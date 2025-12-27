@@ -1,0 +1,793 @@
+# Translation of Plugins - WP Mail Logging - Stable (latest release) in Japanese
+# This file is distributed under the same license as the Plugins - WP Mail Logging - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2023-07-19 05:52:13+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: GlotPress/4.0.0-alpha.4\n"
+"Language: ja_JP\n"
+"Project-Id-Version: Plugins - WP Mail Logging - Stable (latest release)\n"
+
+#: src/WPML_Plugin.php:424
+msgid "Warning!"
+msgstr "警告 !"
+
+#: src/WPML_Plugin.php:420
+msgid "Heads up!"
+msgstr "注意 !"
+
+#. translators: %d: Email Log ID to delete.
+#: src/WPML_Email_Log_List.php:771
+msgid "Delete log #%d"
+msgstr "ログを削除 #%d"
+
+#. translators: %d: Email Log ID to resend.
+#: src/WPML_Email_Log_List.php:764
+msgid "Resend log #%d"
+msgstr "ログ #%d を再送信"
+
+#. translators: %d: Email Log ID to view.
+#: src/WPML_Email_Log_List.php:757
+msgid "View log #%d"
+msgstr "ログ #%d を表示"
+
+#: src/inc/Migration/Migration.php:593
+msgid "This upgrade will delete all of your existings logs. Are you sure you want to proceed?"
+msgstr "このアップグレードにより、既存のログがすべて削除されます。続行してもよろしいですか?"
+
+#: src/inc/Migration/Migration.php:455
+msgid "Upgrade"
+msgstr "アップグレード"
+
+#: src/inc/Migration/Migration.php:451
+msgid "Please create a backup of your database before performing the upgrade."
+msgstr "アップグレードを実行する前に、データベースのバックアップを作成してください。"
+
+#: src/inc/Migration/Migration.php:434
+msgid "<i>If you wish to keep all email logs and get the above improvements as well, please <a href=\"https://wordpress.org/support/topic/how-to-keep-your-email-logs-with-manual-v1-12-0-database-upgrade/\" target=\"_blank\">read our manual upgrade guide</a> for more information.</i>"
+msgstr "<i>すべてのメールログを保存し、上記の改善も加えたい場合は、<a href=\"https://wordpress.org/support/topic/how-to-keep-your-email-logs-with -manual-v1-12-0-database-upgrade/\" target=\"_blank\">詳細については、手動アップグレードガイド</a>をお読みください。</i>"
+
+#: src/inc/Migration/Migration.php:423
+msgid "<strong>Important!</strong> By performing this upgrade, <strong>ALL your existing logs will be deleted</strong>."
+msgstr "<strong>重要!</strong> このアップグレードを実行すると、<strong>既存のログがすべて削除されます</strong>。"
+
+#: src/inc/Migration/Migration.php:417
+msgid "If you do not need these improvements, you can keep using the plugin as is and dismiss this banner in the top right corner."
+msgstr "これらの改善が必要ない場合は、プラグインをそのまま使用し続けて、右上隅にあるこのバナーを閉じてください。"
+
+#: src/inc/Migration/Migration.php:412
+msgid "Faster email log search by message."
+msgstr "メッセージごとのメールログ検索が高速化されました。"
+
+#: src/inc/Migration/Migration.php:406
+msgid "Support for non-UTF8 characters like emojis (%s)."
+msgstr "絵文字 (%s) などの非 UTF8 文字のサポート。"
+
+#: src/inc/Migration/Migration.php:398
+msgid "This upgrade will include the following:"
+msgstr "このアップグレードには次の内容が含まれます。"
+
+#: src/inc/Migration/Migration.php:393
+msgid "Database Upgrade"
+msgstr "データベースのアップグレード"
+
+#: src/inc/Migration/Migration.php:368
+msgid "Database upgrade completed."
+msgstr "データベースのアップグレードが完了しました。"
+
+#: src/inc/Migration/Migration.php:327
+msgid "An optional database optimization upgrade is available. Click <a href=\"%s\">here</a> to learn more."
+msgstr "オプションでデータベース最適化アップグレードを利用できます。詳細については、<a href=\"%s\">ここ</a>をクリックしてください。"
+
+#: src/inc/Admin/EmailLogsTab.php:560
+msgid "Are you sure you want to delete this log?"
+msgstr "このログを削除してもよろしいですか?"
+
+#: src/WPML_ProductEducation.php:70
+msgid "Request invalid."
+msgstr "リクエストが無効です。"
+
+#. translators: $1$s - WP Mail Logging plugin name; $2$s - WP.org review link;
+#. $3$s - WP.org review link.
+#: src/WPML_Plugin.php:559
+msgid "Please rate %1$s <a href=\"%2$s\" target=\"_blank\" rel=\"noopener noreferrer\">&#9733;&#9733;&#9733;&#9733;&#9733;</a> on <a href=\"%3$s\" target=\"_blank\" rel=\"noopener\">WordPress.org</a> to help us spread the word."
+msgstr "%1$s <a href=\"%2$s\" target=\"_blank\" rel=\"noopener noreferrer\">&#9733;&#9733;&#9733;&#9733;&#9733;</a> を評価し、<a href=\"%3$s\" target=\"_blank\" rel=\"noopener\">WordPress.org</a> で広めるのを手伝ってください。"
+
+#: src/WPML_Plugin.php:277
+msgid "WP Mail Logging logo"
+msgstr "WP Mail Logging ロゴ"
+
+#: src/WPML_OptionsManager.php:425 src/WPML_OptionsManager.php:426
+#: src/WPML_Plugin.php:305
+msgid "SMTP"
+msgstr "SMTP"
+
+#: src/WPML_Email_Log_List.php:601
+msgid "Invalid request!"
+msgstr "不正なリクエストです !"
+
+#: src/WPML_Email_Log_List.php:278
+msgid "One email failed to be added to the sending queue."
+msgid_plural "Some emails failed to be added to the sending queue."
+msgstr[0] "送信キューへのメール追加に失敗しました。"
+
+#. translators: %d: Number of email logs that was added to the sending queue.
+#: src/WPML_Email_Log_List.php:265
+msgid "%d email was added to the sending queue."
+msgid_plural "%d emails were added to the sending queue."
+msgstr[0] "%d 件のメールを送信キューへ追加しました。"
+
+#: src/WPML_Email_Log_List.php:261
+msgid "Email was added to the sending queue."
+msgstr "メールを送信キューへ追加しました。"
+
+#: src/WPML_Email_Log_List.php:251
+msgid "Unable to add email to the sending queue."
+msgid_plural "Unable to add emails to the sending queue."
+msgstr[0] "メールを送信キューへ追加できません。"
+
+#: src/WPML_Email_Log_List.php:240
+msgid "One of the emails failed to be deleted."
+msgid_plural "Some emails failed to be deleted."
+msgstr[0] "メールの削除に失敗しました。"
+
+#. translators: %d: Number of email logs that was successfully deleted.
+#: src/WPML_Email_Log_List.php:221
+msgid "%d email log was successfully deleted."
+msgid_plural "%d email logs were successfully deleted!"
+msgstr[0] "%d 件のメールログを削除しました !"
+
+#: src/WPML_Email_Log_List.php:217
+msgid "Email log was successfully deleted."
+msgstr "メールログを削除しました。"
+
+#: src/WPML_Email_Log_List.php:207
+msgid "Unable to delete email log."
+msgid_plural "Unable to delete email logs."
+msgstr[0] "メールログを削除できません。"
+
+#: src/inc/Migration/Migration.php:458 src/Renderer/Format/BaseRenderer.php:200
+#: src/WPML_Email_Log_List.php:862
+msgid "Dismiss this notice."
+msgstr "この通知を非表示にする。"
+
+#. translators: %s - Link to the SMTP page.
+#: src/Renderer/Format/BaseRenderer.php:188
+msgid "<strong>This email failed to send.</strong> <a href=\"%s\">Install WP Mail SMTP</a> to solve your deliverability issues."
+msgstr "<strong>このメールは送信できませんでした。</strong><a href=\"%s\">WP Mail SMTP をインストール</a>して、配信の問題を解決してください。"
+
+#. translators: %d - Email Log ID.
+#: src/Renderer/Format/BaseRenderer.php:130
+msgid "Email Log ID Content: %d"
+msgstr "メールログ ID コンテンツ : %d"
+
+#: src/Model/Email_Log_Collection.php:484
+msgid "Failed"
+msgstr "失敗しました"
+
+#: src/Model/Email_Log_Collection.php:483
+msgid "Successful"
+msgstr "成功しました"
+
+#: src/inc/Admin/SMTPTab.php:724
+msgid "Start Setup"
+msgstr "セットアップを開始"
+
+#: src/inc/Admin/SMTPTab.php:697
+msgid "Select and configure your mailer."
+msgstr "メーラーを選択して設定します。"
+
+#: src/inc/Admin/SMTPTab.php:696
+msgid "Set Up WP Mail SMTP"
+msgstr "WP Mail SMTPのセットアップ"
+
+#: src/inc/Admin/SMTPTab.php:695
+msgid "Step 2"
+msgstr "ステップ2"
+
+#: src/inc/Admin/SMTPTab.php:550
+msgid "Activate WP Mail SMTP"
+msgstr "WP Mail SMTP を有効化"
+
+#: src/inc/Admin/SMTPTab.php:540
+msgid "WP Mail SMTP on WordPress.org"
+msgstr "WordPress.org の WP Mail SMTP"
+
+#: src/inc/Admin/SMTPTab.php:522
+msgid "Install WP Mail SMTP from the WordPress.org plugin repository."
+msgstr "WordPress.org プラグインリポジトリーから WP Mail SMTP をインストールします。"
+
+#: src/inc/Admin/SMTPTab.php:521
+msgid "Install and Activate WP Mail SMTP"
+msgstr "WP Mail SMTP をインストールして有効化"
+
+#: src/inc/Admin/SMTPTab.php:504
+msgid "Step 1"
+msgstr "ステップ1"
+
+#: src/inc/Admin/SMTPTab.php:441
+msgid "Pro mailers: Amazon SES, Microsoft 365 / Outlook.com, Zoho Mail."
+msgstr "プロメーラー：Amazon SES、Microsoft 365 / Outlook.com、ZohoMail 。"
+
+#: src/inc/Admin/SMTPTab.php:440
+msgid "Free mailers: SendLayer, SMTP.com, Sendinblue, Google / Gmail, Mailgun, Postmark, SendGrid."
+msgstr "無料のメーラー：SMTP.com、Sendinblue、Google Workspace / Gmail、Mailgun、Postmark、SendGrid 。"
+
+#: src/inc/Admin/SMTPTab.php:439
+msgid "Used by 3+ million websites."
+msgstr "300万以上のサイトで使用されています。"
+
+#: src/inc/Admin/SMTPTab.php:438
+msgid "Improves email deliverability in WordPress."
+msgstr "WordPress のメール配信性を向上させます。"
+
+#: src/inc/Admin/SMTPTab.php:436
+msgid "WP Mail SMTP screenshot"
+msgstr "WP Mail SMTP スクリーンショット"
+
+#: src/inc/Admin/SMTPTab.php:407
+msgid "WP Mail SMTP fixes deliverability problems with your WordPress emails and form notifications. It's built by the same folks behind WPForms."
+msgstr "WP Mail SMTP は、WordPress のメールとフォーム通知の配信可能性の問題を修正します。 これは、WPForms の背後にいる同じ人々によって構築されています。"
+
+#: src/inc/Admin/SMTPTab.php:406
+msgid "Making Email Deliverability Easy for WordPress"
+msgstr "WordPress で簡単にメール配信をしましょう"
+
+#: src/inc/Admin/SMTPTab.php:377 src/inc/Admin/SMTPTab.php:405
+#: src/inc/Admin/SMTPTab.php:538
+msgid "WP Mail SMTP"
+msgstr "WP Mail SMTP"
+
+#: src/inc/Admin/SMTPTab.php:346 src/inc/Admin/SMTPTab.php:729
+msgid "Go to SMTP settings"
+msgstr "SMTP 設定に移動"
+
+#: src/inc/Admin/SMTPTab.php:345 src/inc/Admin/SMTPTab.php:720
+msgid "Open Setup Wizard"
+msgstr "セットアップウィザードを開く"
+
+#: src/inc/Admin/SMTPTab.php:339
+msgid "Go to Plugins page"
+msgstr "プラグインページに移動"
+
+#: src/inc/Admin/SMTPTab.php:338
+msgid "Download Now"
+msgstr "今すぐダウンロード"
+
+#: src/inc/Admin/SMTPTab.php:337 src/inc/Admin/SMTPTab.php:550
+msgid "WP Mail SMTP Installed & Activated"
+msgstr "WP Mail SMTP インストールおよび有効化"
+
+#: src/inc/Admin/SMTPTab.php:336
+msgid "Installing..."
+msgstr "インストール中..."
+
+#: src/inc/Admin/SMTPTab.php:335
+msgid "Activating..."
+msgstr "有効化中…"
+
+#. translators: %s - Lite plugin download URL.
+#: src/inc/Admin/SMTPTab.php:319
+msgid "Could not activate the plugin. Please activate it on the <a href=\"%s\">Plugins page</a>."
+msgstr "プラグインを有効化できませんでした。<a href=\"%s\">プラグイン</a>ページから有効にしてください。"
+
+#. translators: %s - Lite plugin download URL.
+#: src/inc/Admin/SMTPTab.php:307
+msgid "Could not install the plugin automatically. Please <a href=\"%s\">download</a> it and install it manually."
+msgstr "プラグインを自動的にインストールできませんでした。 手動で<a href=\"%s\">ダウンロード</a>してインストールしてください。"
+
+#: src/inc/Admin/SMTPTab.php:239
+msgid "Plugin unavailable."
+msgstr "プラグインが利用できません。"
+
+#: src/inc/Admin/SMTPTab.php:230
+msgid "You do not have permission."
+msgstr "権限がありません。"
+
+#: src/inc/Admin/SMTPTab.php:212
+msgid "Could not activate the plugin. Please activate it on the Plugins page."
+msgstr "プラグインを有効化できませんでした。「プラグイン」ページから有効にしてください。"
+
+#: src/inc/Admin/SMTPTab.php:209
+msgid "Plugin activated."
+msgstr "プラグインを有効化しました。"
+
+#: src/inc/Admin/SMTPTab.php:197
+msgid "Plugin activation is disabled for you on this site."
+msgstr "このサイトでは、プラグインの有効化が無効化になっています。"
+
+#: src/inc/Admin/SMTPTab.php:176
+msgid "Plugin installed & activated."
+msgstr "プラグインをインストールして有効化しました。"
+
+#: src/inc/Admin/SMTPTab.php:163
+msgid "Plugin installed."
+msgstr "プラグインをインストールしました。"
+
+#: src/inc/Admin/SMTPTab.php:108
+msgid "Could not install the plugin. Please download and install it manually."
+msgstr "プラグインをインストールできませんでした。ダウンロードして手動でインストールしてください。"
+
+#: src/inc/Admin/SMTPTab.php:102 src/inc/Admin/SMTPTab.php:201
+msgid "There was an error while performing your request."
+msgstr "リクエストの実行中にエラーが発生しました。"
+
+#: src/inc/Admin/SettingsTab.php:349
+msgid "Reset to Default"
+msgstr "初期設定に戻す"
+
+#: src/inc/Admin/SettingsTab.php:346
+msgid "Save Settings"
+msgstr "設定を保存"
+
+#: src/inc/Admin/SettingsTab.php:335
+msgid "Delete email logs after this many days."
+msgstr "この日数が経過後、メールログを削除します。"
+
+#: src/inc/Admin/SettingsTab.php:324
+msgid "Set up an automated cleanup routine that is triggered after a certain amount of time has passed."
+msgstr "一定の時間が経過した後にトリガーされる自動クリーンアップルーチンを設定します。"
+
+#: src/inc/Admin/SettingsTab.php:314
+msgid "Delete email logs after this amount has been reached."
+msgstr "この量に達したら、メールログを削除します。"
+
+#: src/inc/Admin/SettingsTab.php:303
+msgid "Set up an automated cleanup routine that is triggered when a certain amount of logs have been saved."
+msgstr "一定量のログが保存されたときにトリガーされる自動クリーンアップルーチンを設定します。"
+
+#: src/inc/Admin/SettingsTab.php:287
+msgid "Delete all WP Mail Logging data on deactivation."
+msgstr "非アクティブ化時にすべての WP Mail Logging のデータを削除します。"
+
+#: src/inc/Admin/SettingsTab.php:278
+msgid "Top Level Menu"
+msgstr "トップレベルメニュー"
+
+#: src/inc/Admin/SettingsTab.php:276
+msgid "Disabling this will condense navigation and move WP Mail Log under the WordPress Tools menu."
+msgstr "これを無効にすると、ナビゲーションを凝縮し、WordPress の「ツール」 メニューの下に WP Mail Log を移動します。"
+
+#: src/inc/Admin/SettingsTab.php:267
+msgid "Display Attachments"
+msgstr "添付ファイルを表示"
+
+#: src/inc/Admin/SettingsTab.php:265
+msgid "Display the attachments in Email Logs table."
+msgstr "メールログテーブルに添付ファイルを表示します。"
+
+#: src/inc/Admin/SettingsTab.php:254
+msgid "Display the IP of the host WordPress is running on. This is useful when running WP Mail Logging on multiple servers at the same time."
+msgstr "WordPress が実行されているホストの IP を表示します。これは、同時に複数のサーバーで WP Mail Logging を実行する場合に便利です。"
+
+#: src/inc/Admin/SettingsTab.php:229
+msgid "WP Date Time Format"
+msgstr "WP 日付と時刻の形式"
+
+#: src/inc/Admin/SettingsTab.php:209
+msgid "Select the minimum role required to view submission data."
+msgstr "送信データを表示するために必要な最小限の権限を選択します。"
+
+#: src/inc/Admin/SettingsTab.php:203
+msgid "Change your WP Mail Logging settings."
+msgstr "WP Mail Logging の設定を変更します。"
+
+#: src/inc/Admin/EmailLogsTab.php:417
+msgid "Get WP Mail SMTP Pro"
+msgstr "WP Mail SMTP Pro を入手する"
+
+#: src/inc/Admin/EmailLogsTab.php:413
+msgid "Take Your Email Logs to the Next level"
+msgstr "メールログを次のレベルに引き上げます"
+
+#: src/inc/Admin/EmailLogsTab.php:381
+msgid "We know you'll love the powerful features in WP Mail SMTP. It's used by over 3,000,000 websites."
+msgstr "WP Mail SMTP の強力な機能をきっと気に入っていただけるはずです。3,000,000以上の Web サイトで使用されています。"
+
+#. translators: 1: URL to WP Mail SMTP pricing page 2: URL to WP Forms pricing
+#. page
+#: src/inc/Admin/EmailLogsTab.php:367
+msgid "Want more from your email logs? <strong><a target=\"_blank\" href=\"%1$s\">WP Mail SMTP Pro</a></strong> offers advanced email logging, failed email alerts, backup connections, email reports, email tracking, and much more!"
+msgstr "メールログからさらに情報を得たいですか ? <strong><a target=\"_blank\" href=\"%1$s\">WP Mail SMTP Pro</a></strong> は、高度なメール ログ、失敗したメール アラート、バックアップ接続、メール レポート、メール追跡、さらに！"
+
+#: src/inc/Admin/EmailLogsTab.php:355
+msgid "Get weekly email summary"
+msgstr "週間のメール概要を受け取ります"
+
+#: src/inc/Admin/EmailLogsTab.php:354
+msgid "Review open & click statistics"
+msgstr "開封とクリックの統計を確認します"
+
+#: src/inc/Admin/EmailLogsTab.php:353
+msgid "Generate deliverability charts"
+msgstr "配信率チャートを生成します"
+
+#: src/inc/Admin/EmailLogsTab.php:351
+msgid "Email Reports"
+msgstr "メールレポート"
+
+#: src/inc/Admin/EmailLogsTab.php:346
+msgid "Download sent attachments"
+msgstr "送信済の添付ファイルをダウンロードします"
+
+#: src/inc/Admin/EmailLogsTab.php:345
+msgid "Track open and click data"
+msgstr "開封とクリックのデータを追跡します"
+
+#: src/inc/Admin/EmailLogsTab.php:344
+msgid "Review technical details"
+msgstr "技術的な詳細を確認します"
+
+#: src/inc/Admin/EmailLogsTab.php:342
+msgid "Individual Log"
+msgstr "個別ログ"
+
+#: src/inc/Admin/EmailLogsTab.php:337
+msgid "View original email content"
+msgstr "元のメールコンテンツを表示します"
+
+#: src/inc/Admin/EmailLogsTab.php:336
+msgid "Resend emails"
+msgstr "メールを再送信します"
+
+#: src/inc/Admin/EmailLogsTab.php:335
+msgid "See delivery status"
+msgstr "配信状況を表示します"
+
+#: src/inc/Admin/EmailLogsTab.php:333 src/inc/Admin/EmailLogsTab.php:433
+msgid "Email Logs"
+msgstr "メールログ"
+
+#: src/inc/Admin/EmailLogsTab.php:280 src/inc/Admin/SMTPTab.php:532
+msgid "Install WP Mail SMTP"
+msgstr "WP Mail SMTP をインストール"
+
+#: src/inc/Admin/EmailLogsTab.php:276
+msgid "Heads up! WP Mail Logging has detected a problem sending emails."
+msgstr "注意！WP Mail Logging は、メール送信の問題を検出しました。"
+
+#: src/inc/Admin/EmailLogsTab.php:271
+msgid "Use the one-click install and setup wizard to fix your emails in minutes."
+msgstr "ワンクリックのインストールおよびセットアップ ウィザードを使用して、メールを数分で修正します。"
+
+#: src/inc/Admin/EmailLogsTab.php:270
+msgid "To solve email delivery issues, install WP Mail SMTP (free) - trusted by over 3,000,00 sites!"
+msgstr "メール配信の問題を解決するには、3,000,00以上のサイトで信頼されている WP Mail SMTP (無料) をインストールしてください !"
+
+#. Author URI of the plugin
+msgid "https://github.com/awesomemotive/wp-mail-logging"
+msgstr "https://github.com/awesomemotive/wp-mail-logging"
+
+#. Author of the plugin
+msgid "WP Mail Logging Team"
+msgstr "WP Mail Logging チーム"
+
+#: src/WPML_UserFeedback.php:148
+msgid "I already did"
+msgstr "すでにしました"
+
+#: src/WPML_UserFeedback.php:146
+msgid "Nope, maybe later"
+msgstr "いいえ、後で"
+
+#: src/WPML_UserFeedback.php:143
+msgid "OK, you deserve it"
+msgstr "了解です。その価値があります"
+
+#: src/WPML_UserFeedback.php:138
+msgid "~ WP Mail Logging team"
+msgstr "~ WP Mail Logging チーム"
+
+#: src/WPML_UserFeedback.php:137
+msgid "That’s awesome! Could you please do me a BIG favor and give it a 5-star rating on WordPress to help us spread the word and boost our motivation?"
+msgstr "それは素晴らしいです！ WordPress で5つ星の評価を付けて、私たちの言葉を広め、モチベーションを高めてくださいませんか ?"
+
+#: src/WPML_UserFeedback.php:132
+msgid "No thanks"
+msgstr "いいえ、結構です"
+
+#: src/WPML_UserFeedback.php:127
+msgid "Give Feedback"
+msgstr "フィードバックする"
+
+#: src/WPML_UserFeedback.php:122
+msgid "We're sorry to hear you aren't enjoying WP Mail Logging. We would love a chance to improve. Could you take a minute and let us know what we can do better?"
+msgstr "WP Mail Logging をご利用いただけないとのこと、申し訳ございません。改善する機会があれば幸いです。少し時間を割いていただき、改善できる点を教えていただけますか ?"
+
+#: src/WPML_UserFeedback.php:118
+msgid "Not Really"
+msgstr "そうでもありません"
+
+#: src/WPML_Plugin.php:421 src/WPML_UserFeedback.php:116
+msgid "Yes"
+msgstr "はい"
+
+#: src/WPML_UserFeedback.php:113
+msgid "Are you enjoying WP Mail Logging?"
+msgstr "WP Mail Logging を楽しんでいますか?"
+
+#: src/WPML_OptionsManager.php:406 src/WPML_OptionsManager.php:407
+#: src/WPML_Plugin.php:291
+msgid "Email Log"
+msgstr "メールログ"
+
+#. translators: %d Mail Log ID that was not removed.
+#: src/WPML_PrivacyController.php:138
+msgid "A mail with the id %d was unable to be removed at this time."
+msgstr "メールID %d は、この時点で削除できませんでした。"
+
+#: src/WPML_PrivacyController.php:101
+msgid "Mails"
+msgstr "メール"
+
+#: src/WPML_PrivacyController.php:43
+msgid "When you use this site several actions (e.g. commenting) trigger the dispatch of emails. They contain information about you associated with your email address. Which data are part of these emails depends on the action performed. These emails are stored and accessible to the site management as log."
+msgstr "あなたがこのサイトを使用すると、いくつかのアクション（例えばコメント）が電子メールの送信のトリガーとなります。これらのメールには、あなたのメールアドレスに関連付けられたあなたに関する情報が含まれています。どのデータがこれらの電子メールの一部であるかは、実行されたアクションに依存します。これらの電子メールは保存され、ログとしてサイト管理にアクセスできます。"
+
+#. Description of the plugin
+msgid "Logs each email sent by WordPress."
+msgstr "WordPress によって送信された各メールを記録します。"
+
+#. Plugin URI of the plugin
+msgid "https://wordpress.org/plugins/wp-mail-logging/"
+msgstr "https://wordpress.org/extend/plugins/wp-mail-logging/"
+
+#. Plugin Name of the plugin
+#: src/WPML_OptionsManager.php:360 src/WPML_OptionsManager.php:397
+#: src/WPML_OptionsManager.php:398 src/WPML_PrivacyController.php:54
+#: src/WPML_PrivacyController.php:62
+msgid "WP Mail Logging"
+msgstr "WP Mail Logging"
+
+#: wp-mail-logging.php:34
+msgid "Your server's PHP version: "
+msgstr "サーバーの PHP バージョン:"
+
+#: wp-mail-logging.php:33
+msgid "Minimal version of PHP required: "
+msgstr "最低限必要な PHP のバージョン: "
+
+#: wp-mail-logging.php:32
+msgid "Error: plugin \"WP Mail Logging\" requires a newer version of PHP to be running."
+msgstr "エラー：プラグイン \"WP Mail Logging\" を実行するには、新しいバージョンの PHP が必要です。"
+
+#: src/inc/Admin/SettingsTab.php:435
+msgid "Off"
+msgstr "オフ"
+
+#: src/inc/Admin/SettingsTab.php:434
+msgid "On"
+msgstr "オン"
+
+#: src/WPML_Plugin.php:422
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: src/Model/Email_Log_Collection.php:482
+msgid "All"
+msgstr "すべて"
+
+#: src/inc/Admin/SettingsTab.php:137 src/inc/Admin/SettingsTab.php:154
+msgid "Settings saved!"
+msgstr "設定を保存しました !"
+
+#: src/inc/Admin/SettingsTab.php:326
+msgid "Cleanup by Time"
+msgstr "時間によるクリーンアップ"
+
+#: src/inc/Admin/SettingsTab.php:305
+msgid "Cleanup by Amount"
+msgstr "数によるクリーンアップ"
+
+#: src/inc/Admin/SettingsTab.php:298
+msgid "Save space by deleting logs regularly."
+msgstr "ログを定期的に削除してスペースを節約します。"
+
+#: src/inc/Admin/SettingsTab.php:297
+msgid "Log Rotation"
+msgstr "ログローテーション"
+
+#: src/inc/Admin/SettingsTab.php:256
+msgid "Display Host"
+msgstr "ホストの表示"
+
+#: src/inc/Admin/SettingsTab.php:238
+msgid "Select your preferred display format."
+msgstr "お好みの表示形式を選択してください。"
+
+#: src/inc/Admin/SettingsTab.php:240
+msgid "Default Format for Message"
+msgstr "メッセージのデフォルトフォーマット"
+
+#. translators: %s: Date time in WP format.
+#: src/inc/Admin/SettingsTab.php:220
+msgid "Use format from WordPress settings (%s)"
+msgstr "WordPress 設定 (%s) の形式を使う"
+
+#: src/inc/Admin/SettingsTab.php:211
+msgid "Can See Submission data"
+msgstr "送信データの閲覧権限"
+
+#: src/inc/Admin/SettingsTab.php:289
+msgid "Cleanup"
+msgstr "クリーンアップ"
+
+#: src/inc/Admin/SettingsTab.php:202
+msgid "General Settings"
+msgstr "基本設定"
+
+#: src/inc/class-wp-list-table.php:720
+msgid "Select All"
+msgstr "すべて選択"
+
+#: src/inc/class-wp-list-table.php:584
+msgid "Go to the last page"
+msgstr "最後のページヘ"
+
+#: src/inc/class-wp-list-table.php:577
+msgid "Go to the next page"
+msgstr "次のページへ"
+
+#: src/inc/class-wp-list-table.php:573
+msgctxt "paging"
+msgid "%1$s of %2$s"
+msgstr "%1$s / %2$s"
+
+#: src/inc/class-wp-list-table.php:567
+msgid "Current page"
+msgstr "現在のページ"
+
+#: src/inc/class-wp-list-table.php:558
+msgid "Go to the previous page"
+msgstr "前のページヘ"
+
+#: src/inc/class-wp-list-table.php:551
+msgid "Go to the first page"
+msgstr "最初のページへ"
+
+#: src/inc/class-wp-list-table.php:533 src/inc/class-wp-list-table.php:948
+msgid "1 item"
+msgid_plural "%s items"
+msgstr[0] "%s アイテム"
+
+#: src/inc/class-wp-list-table.php:465
+msgid "%s pending"
+msgstr "%s件の承認待ち"
+
+#: src/inc/class-wp-list-table.php:439
+msgid "Excerpt View"
+msgstr "抜粋表示"
+
+#: src/inc/class-wp-list-table.php:438
+msgid "List View"
+msgstr "リスト表示"
+
+#. translators: 1: month name, 2: 4-digit year
+#: src/inc/class-wp-list-table.php:422
+msgid "%1$s %2$d"
+msgstr "%2$d年%1$s"
+
+#: src/inc/class-wp-list-table.php:409
+msgid "Show all dates"
+msgstr "日付指定なし"
+
+#: src/inc/class-wp-list-table.php:325
+msgid "Apply"
+msgstr "適用"
+
+#: src/inc/class-wp-list-table.php:315
+msgid "Bulk Actions"
+msgstr "一括操作"
+
+#: src/inc/class-wp-list-table.php:191
+msgid "No items found."
+msgstr "項目は見つかりませんでした。"
+
+#: src/WPML_OptionsManager.php:602
+msgid "Anyone"
+msgstr "だれでも"
+
+#: src/WPML_OptionsManager.php:600
+msgid "Subscriber"
+msgstr "購読者"
+
+#: src/WPML_OptionsManager.php:598
+msgid "Contributor"
+msgstr "寄稿者"
+
+#: src/WPML_OptionsManager.php:596
+msgid "Author"
+msgstr "投稿者"
+
+#: src/WPML_OptionsManager.php:594
+msgid "Editor"
+msgstr "編集者"
+
+#: src/WPML_OptionsManager.php:592
+msgid "Administrator"
+msgstr "管理者"
+
+#: src/WPML_OptionsManager.php:589
+msgid "false"
+msgstr "偽"
+
+#: src/WPML_OptionsManager.php:587
+msgid "true"
+msgstr "真"
+
+#: src/inc/Admin/EmailLogsTab.php:526 src/WPML_OptionsManager.php:562
+msgid "Search"
+msgstr "検索"
+
+#: src/WPML_OptionsManager.php:509 src/WPML_OptionsManager.php:547
+msgid "You do not have sufficient permissions to access this page."
+msgstr "このページにアクセスするための十分な権限がありません。"
+
+#: src/WPML_OptionsManager.php:374
+msgid "Entries per page"
+msgstr "1ページあたりのエントリー"
+
+#: src/WPML_OptionsManager.php:359
+msgid "WP Mail Log"
+msgstr "WP Mail Log"
+
+#: src/WPML_LifeCycle.php:204 src/WPML_OptionsManager.php:417
+#: src/WPML_OptionsManager.php:418 src/WPML_Plugin.php:301
+msgid "Settings"
+msgstr "設定"
+
+#. translators: %s filename of the attachment that doesn't exist.
+#: src/Renderer/Column/AttachmentsColumn.php:50
+#: src/Renderer/Column/AttachmentsColumn.php:81
+msgid "Attachment %s is not present"
+msgstr "添付ファイル %s がありません"
+
+#: src/Renderer/Format/BaseRenderer.php:53
+#: src/Renderer/WPML_ColumnManager.php:35
+msgid "Host"
+msgstr "Host"
+
+#: src/Renderer/Format/BaseRenderer.php:44
+#: src/Renderer/WPML_ColumnManager.php:39
+msgid "Error"
+msgstr "エラー"
+
+#: src/Renderer/Format/BaseRenderer.php:47
+#: src/Renderer/WPML_ColumnManager.php:38
+msgid "Attachments"
+msgstr "添付ファイル"
+
+#: src/Renderer/Format/BaseRenderer.php:45
+msgid "Headers"
+msgstr "ヘッダー"
+
+#: src/inc/Admin/EmailLogsTab.php:481 src/Renderer/Format/BaseRenderer.php:46
+#: src/WPML_Email_Log_List.php:511
+msgid "Message"
+msgstr "メッセージ"
+
+#: src/Renderer/Format/BaseRenderer.php:43
+#: src/Renderer/WPML_ColumnManager.php:37
+msgid "Subject"
+msgstr "件名"
+
+#: src/Renderer/Format/BaseRenderer.php:42
+#: src/Renderer/WPML_ColumnManager.php:36
+msgid "Receiver"
+msgstr "受信者"
+
+#: src/Renderer/Format/BaseRenderer.php:41
+#: src/Renderer/WPML_ColumnManager.php:34
+msgid "Time"
+msgstr "時刻"
+
+#: src/Renderer/WPML_ColumnManager.php:33
+msgid "ID"
+msgstr "ID"
+
+#: src/WPML_Email_Log_List.php:330
+msgid "No email found."
+msgstr "メールが見つかりません。"

@@ -1,0 +1,2177 @@
+# Translation of Plugins - Google for WooCommerce - Stable (latest release) in Japanese
+# This file is distributed under the same license as the Plugins - Google for WooCommerce - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2025-07-02 02:06:03+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: GlotPress/4.0.1\n"
+"Language: ja_JP\n"
+"Project-Id-Version: Plugins - Google for WooCommerce - Stable (latest release)\n"
+
+#: src/API/Google/BudgetRecommendations.php:157 js/build/commons.js:69
+#: js/build/price-benchmark.js:1
+msgid "High"
+msgstr "高い"
+
+#: src/API/Google/BudgetRecommendations.php:160 js/build/commons.js:69
+#: js/build/price-benchmark.js:1
+msgid "Low"
+msgstr "低い"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:344
+msgid "Total number of products without price benchmark data."
+msgstr "価格ベンチマークデータのない商品の総数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:340
+msgid "Total number of products with lower prices to benchmark data."
+msgstr "ベンチマークデータより価格の低い商品の総数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:336
+msgid "Total number of products with higher prices to benchmark data."
+msgstr "ベンチマークデータより価格が高い商品の総数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:332
+msgid "Total number of products with similar prices to benchmark data."
+msgstr "ベンチマークデータと類似した価格の商品の総数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:328
+msgid "Total number of products represented in the Google report."
+msgstr "Google レポートに掲載された商品の総数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:301
+msgid "The total number of benchmarks that are available."
+msgstr "利用可能なベンチマークの総数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:295
+msgid "Comparison of price with benchmark."
+msgstr "ベンチマークとの価格比較。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:291
+msgid "Expected uplift in conversions (fraction)."
+msgstr "期待されるコンバージョンの上昇（割合）。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:287
+msgid "Expected uplift in clicks (fraction)."
+msgstr "期待されるクリック数の増加（割合）。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:283
+msgid "Expected uplift in impressions (fraction)."
+msgstr "予想されるインプレッションの上昇（割合）。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:279
+msgid "Current conversions."
+msgstr "現在のコンバージョン。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:275
+msgid "Click-through rate."
+msgstr "クリックスルー率。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:271
+msgid "Current impressions."
+msgstr "現在のインプレッション。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:267
+msgid "Current clicks."
+msgstr "現在のクリック数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:263
+msgid "Suggested price currency code."
+msgstr "希望価格通貨コード。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:259
+msgid "Suggested price for the product."
+msgstr "希望小売価格。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:255
+msgid "Price gap between the product price and the benchmark price on Google."
+msgstr "商品価格とGoogleのベンチマーク価格との価格差。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:251
+msgid "Benchmark price currency code."
+msgstr "ベンチマーク価格の通貨コード。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:247
+msgid "Average benchmark price of the product on Google."
+msgstr "Google における商品の平均ベンチマーク価格。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:243
+msgid "Current price of the product on Google."
+msgstr "Google での商品の現在の価格。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:239
+msgid "Currency code."
+msgstr "通貨コード。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:230
+msgid "Effectiveness score."
+msgstr "効果スコア。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:218
+msgid "Product details."
+msgstr "商品の詳細。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:181
+msgid "The Id of the product."
+msgstr "商品のID。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:155
+msgid "Limit results to those matching a string."
+msgstr "結果を文字列に一致するものに限定します。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:148
+msgid "Maximum number of items returned in the results."
+msgstr "結果で返される項目の最大数。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:142
+msgid "Current page of the collection."
+msgstr "コレクションの現在のページ。"
+
+#: src/API/Google/MerchantPriceBenchmarks.php:196
+msgid "Unable to retrieve product metrics data"
+msgstr "商品メトリクスデータを取得できない"
+
+#: src/API/Google/MerchantPriceBenchmarks.php:143
+msgid "Unable to retrieve price insights data"
+msgstr "価格インサイトデータを取得できない"
+
+#: src/API/Google/MerchantPriceBenchmarks.php:84
+msgid "Unable to retrieve price benchmark data"
+msgstr "価格ベンチマークデータを取得できない"
+
+#: src/API/Google/Ads.php:354
+msgid "Unable to find the pending approval link sent from the Merchant Center account"
+msgstr "Merchant Center アカウントから送信された承認待ちリンクが見つかりません"
+
+#: src/Menu/Shipping.php:27 js/build/commons.js:60 js/build/index.js:25
+msgid "Shipping"
+msgstr "配送"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:315
+msgid "The minimum shipping time cannot be greater than the maximum shipping time."
+msgstr "最短発送日数が最長発送日数を超えることはありません。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:311
+msgid "Shipping times cannot be negative."
+msgstr "発送にかかる時間は、マイナスにはできません。"
+
+#. translators: 1: Parameter, 2: Type name.
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:305
+msgid "%1$s is not of type %2$s."
+msgstr "%1$s は %2$s タイプではありません。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:269
+msgid "The maximum shipping time in days."
+msgstr "最大発送日数。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:263
+msgid "The minimum shipping time in days."
+msgstr "最短発送日数。"
+
+#: src/API/Site/Controllers/MerchantCenter/SettingsController.php:159
+msgid "The number of shipping rates in WC ready to be used in the Merchant Center."
+msgstr "Merchant Center で使用可能な WC の配送料金の数。"
+
+#. Translators: %1$d is the number of migrated GTINS and %2$d is the execution
+#. time in seconds.
+#: src/Utility/WPCLIMigrationGTIN.php:96
+msgid "%1$d GTIN was migrated in %2$d seconds."
+msgid_plural "%1$d GTIN were migrated in %2$d seconds."
+msgstr[0] "%1$d GTIN は%2$d秒で移行されました。"
+
+#: src/Utility/WPCLIMigrationGTIN.php:89
+msgid "No GTIN were migrated."
+msgstr "GTIN は移行されなかった。"
+
+#: src/Notes/SetupCampaignTwoWeeks.php:48
+msgid "Reach more shoppers with Google Ads"
+msgstr "Google 広告でより多くの買い物客にリーチする"
+
+#: src/API/Site/Controllers/GTINMigrationController.php:89
+msgid "GTIN Migration successfully started."
+msgstr "GTIN マイグレーションが正常に開始されました。"
+
+#: src/API/Site/Controllers/GTINMigrationController.php:79
+msgid "GTIN Migration cannot be scheduled."
+msgstr "GTIN マイグレーションはスケジュールできません。"
+
+#: src/Admin/Product/Attributes/Input/GTINInput.php:47
+msgid "The Global Trade Item Number (GTIN) for your item can now be entered on the \"Inventory\" tab"
+msgstr "商品のグローバル貿易品目番号（GTIN）が「在庫」タブで入力できるようになりました"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:399
+msgid "The name of the label to assign to the campaign."
+msgstr "キャンペーンに割り当てるラベルの名前。"
+
+#: src/TaskList/CompleteSetupTask.php:53
+msgid "Set up Google for WooCommerce"
+msgstr "WooCommerce に Google を設定する"
+
+#. translators: %1 is a random 4-digit string, %2 is the country code
+#: src/Shipping/GoogleAdapter/WCShippingSettingsAdapter.php:149
+msgid "[%1$s] Google for WooCommerce generated service - %2$s"
+msgstr "[%1$s]Google for WooCommerce 生成サービス - %2$s"
+
+#. translators: %1 is a random 4-digit string, %2 is the rate, %3 is the
+#. currency, %4 is the country code
+#: src/Shipping/GoogleAdapter/DBShippingSettingsAdapter.php:150
+msgid "[%1$s] Google for WooCommerce generated service - %2$s %3$s to %4$s"
+msgstr "[%1$s]Google for WooCommerce 生成サービス - %2$s %3$s ～ %4$s"
+
+#: src/Notes/ReconnectWordPress.php:70
+msgid "Go to Google for WooCommerce"
+msgstr "Google で WooCommerce を検索"
+
+#: src/Notes/ReconnectWordPress.php:59
+msgid "Re-connect your store to Google for WooCommerce"
+msgstr "Google for WooCommerce にストアを再接続する"
+
+#: src/MerchantCenter/AccountService.php:594
+msgid "Nonces mismatch, skip updating auth status."
+msgstr "Nonce が一致しません。認証ステータスの更新をスキップします。"
+
+#: src/MerchantCenter/AccountService.php:587
+msgid "Nonce is not provided, skip updating auth status."
+msgstr "Nonce が提供されていない場合は、認証ステータスの更新をスキップする。"
+
+#: src/MerchantCenter/AccountService.php:581
+msgid "No stored nonce found in the database, skip updating auth status."
+msgstr "データベースに保存された nonce が見つからないため、認証ステータスの更新をスキップする。"
+
+#: src/Integration/JetpackWPCOM.php:323
+msgid "The authorization process expired. Please go back and try again."
+msgstr "認証プロセスの期限が切れました。戻ってもう一度やり直してください。"
+
+#. translators: %s is a URL
+#: src/Integration/JetpackWPCOM.php:226
+msgid "Your site is incorrectly double-encoding redirects from http to https. This is preventing Jetpack from authenticating your connection. Please visit our <a href=\"%s\">support page</a> for details about how to resolve this."
+msgstr "サイトが、http から https へのリダイレクトを誤ってダブルエンコードしています。これにより、Jetpack が接続を認証できなくなります。これを解決する方法の詳細については、<a href=\"%s\">サポートページ</a>をご覧ください。"
+
+#: src/Integration/JetpackWPCOM.php:216
+msgid "Someone may be trying to trick you into giving them access to your site. Or it could be you just encountered a bug :).  Either way, please close this window."
+msgstr "誰かがあなたのサイトへのアクセス権を不正に取得しようとしているか、 何らかのバグが発生したようです。いずれの場合も、このウィンドウを閉じて構いません。"
+
+#: src/Integration/JetpackWPCOM.php:213
+msgid "You must connect your Jetpack plugin to WordPress.com to use this feature."
+msgstr "この機能を使用するには、Jetpack プラグインを WordPress.com に接続する必要があります。"
+
+#. translators: Name/image of the client requesting authorization
+#: src/Integration/JetpackWPCOM.php:193
+msgid "%s wants to access your site’s data. Log in to authorize that access."
+msgstr "%s がサイトのデータにアクセスを試みています。ログインして認証してください。"
+
+#: src/Exception/InvalidVersion.php:85
+msgid "Google for WooCommerce requires a 64 bit version of PHP."
+msgstr "Google for WooCommerce には64ビット版のPHPが必要です。"
+
+#. translators: 1 is the required component, 2 is the minimum required version
+#: src/Exception/InvalidVersion.php:67
+msgid "Google for WooCommerce requires %1$s version %2$s or higher."
+msgstr "Google for WooCommerce には%1$sバージョン%2$s以上が必要です。"
+
+#. translators: 1 the incompatible plugin name
+#: src/Exception/ExtensionRequirementException.php:59
+msgid "Google for WooCommerce is incompatible with %1$s."
+msgstr "Google for WooCommerce は%1$sと互換性がありません。"
+
+#. translators: 1 the missing plugin name
+#: src/Exception/ExtensionRequirementException.php:36
+msgid "Google for WooCommerce requires %1$s to be enabled."
+msgstr "Google for WooCommerce は%1$sを有効にする必要があります。"
+
+#: src/API/Site/Controllers/RestAPI/AuthController.php:193
+msgid "The authorization URL for granting access to Google WPCOM App."
+msgstr "Google WPCOM App へのアクセスを許可するための認証 URL。"
+
+#: src/API/Site/Controllers/RestAPI/AuthController.php:176
+msgid "The nonce provided by Google in the URL query parameter when Google redirects back to merchant's site"
+msgstr "Google がマーチャントのサイトにリダイレクトする際に URL クエリパラメータに指定する nonce"
+
+#: src/API/Site/Controllers/RestAPI/AuthController.php:169
+#: src/API/Site/Controllers/RestAPI/AuthController.php:198
+msgid "The status of the merchant granting access to Google's WPCOM app"
+msgstr "Google の WPCOM アプリへのアクセスを許可する加盟店のステータス"
+
+#: src/API/Site/Controllers/RestAPI/AuthController.php:152
+msgid "Indicates the next page name mapped to the redirect URL when redirected back from Google WPCOM App authorization."
+msgstr "Google WPCOM App の認証からリダイレクトされた際に、リダイレクト URL にマッピングされる次のページ名を示します。"
+
+#: src/API/Google/Middleware.php:679
+msgid "Error authenticating Google Partner APP."
+msgstr "Google Partner APP の認証にエラーが発生しました。"
+
+#: src/API/Google/Middleware.php:669
+msgid "Invalid response authenticating partner app."
+msgstr "パートナーアプリの認証応答が無効です。"
+
+#. translators: %1 is a random 4-digit string
+#: src/API/Google/AdsConversionAction.php:70
+msgid "[%1$s] Google for WooCommerce purchase action"
+msgstr "[%1$s]Google for WooCommerce の購入アクション"
+
+#. Plugin Name of the plugin
+#: google-listings-and-ads.php src/Admin/ProductBlocksService.php:148
+#: src/Internal/DependencyManagement/ThirdPartyServiceProvider.php:82
+#: src/Menu/Dashboard.php:37 src/Menu/GetStarted.php:37
+#: src/MultichannelMarketing/GLAChannel.php:104
+#: views/attributes/variations-form.php:22
+#: views/meta-box/channel_visibility.php:63
+#: views/meta-box/channel_visibility.php:92
+#: views/meta-box/coupon_channel_visibility.php:114
+#: views/meta-box/coupon_channel_visibility.php:160
+#: js/build/get-started-page.js:1 js/build/index.js:25
+msgid "Google for WooCommerce"
+msgstr "Google for WooCommerce"
+
+#: src/Ads/AccountService.php:249
+msgid "Account must be accepted before completing setup."
+msgstr "セットアップを完了する前に、アカウントを承認する必要があります。"
+
+#: src/Notes/ReviewAfterConversions.php:81
+msgid "You got your first conversion on Google Ads! 🎉"
+msgstr "Google 広告で初めてのコンバージョンを獲得しました !🎉"
+
+#: src/MerchantCenter/MerchantStatuses.php:147
+msgid "The scheduled job has been paused due to a high failure rate."
+msgstr "失敗率が高いため、スケジュールされたジョブは一時停止されました。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:181
+msgid "Error message in case of failure"
+msgstr "失敗時のエラーメッセージ"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:175
+msgid "Whether the product statistics are loading."
+msgstr "商品統計がロードされているかどうか。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:183
+msgid "Whether the product issues are loading."
+msgstr "商品の問題がロードされているかどうか。"
+
+#: src/API/Google/MerchantReport.php:116
+msgid "Unable to retrieve Product View Report."
+msgstr "商品ビューレポートを取得できません。"
+
+#: js/build/product-select-with-text-field/block.json
+msgctxt "block title"
+msgid "Product select with text field"
+msgstr "テキストフィールドによる商品選択"
+
+#: js/build/product-select-field/block.json
+msgctxt "block title"
+msgid "Product select field"
+msgstr "商品選択フィールド"
+
+#: js/build/product-onboarding-prompt/block.json
+msgctxt "block title"
+msgid "Product onboarding prompt"
+msgstr "商品のオンボーディングプロンプト"
+
+#: js/build/product-date-time-field/block.json
+msgctxt "block title"
+msgid "Product date and time fields"
+msgstr "商品の日付と時刻フィールド"
+
+#: js/build/product-channel-visibility/block.json
+msgctxt "block title"
+msgid "Product channel visibility"
+msgstr "商品チャネルの可視性"
+
+#: src/API/Site/Controllers/Ads/BudgetRecommendationController.php:232
+msgid "The recommended daily budget for a country."
+msgstr "その国の1日の推奨予算。"
+
+#. translators: 1) HTML anchor open tag 2) HTML anchor closing tag
+#: src/Admin/Admin.php:293
+msgid "By using this extension, you may be storing personal data or sharing data with an external service. %1$sLearn more about what data is collected by Google and what you may want to include in your privacy policy%2$s."
+msgstr "この拡張機能を使用すると、個人データを保存したり、外部サービスとデータを共有したりする可能性があります。%1$sGoogle が収集するデータと、プライバシー ポリシーに記載する内容については、こちらをご覧ください%2$s。"
+
+#: src/API/Google/ExceptionTrait.php:139
+msgid "An unknown error occurred in the Shopping Content Service."
+msgstr "ショッピングコンテンツサービスで不明なエラーが発生しました。"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:195
+msgid "The URL linked to the post/term"
+msgstr "投稿/タームにリンクされたURL"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:189
+msgid "The post or term title"
+msgstr "投稿またはタームのタイトル"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:182
+msgid "Post, term or homepage"
+msgstr "投稿、タームまたはホームページ"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:177
+msgid "Post ID or Term ID"
+msgstr "投稿 ID またはターム ID"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:119
+msgid "Type linked to the id."
+msgstr "ID にリンクされたタイプ。"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:112
+msgid "Post ID or Term ID."
+msgstr "投稿 IDまたはターム ID。"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:94
+msgid "Sort retrieved items by parameter"
+msgstr "検索された項目をパラメータで並べ替える"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:86
+msgid "The number of items to be return"
+msgstr "返却するアイテムの数"
+
+#: src/API/Site/Controllers/Ads/AssetSuggestionsController.php:79
+msgid "Search for post title or term name"
+msgstr "投稿タイトルまたはターム名で検索"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:289
+msgid "Asset field type"
+msgstr "アセットフィールドタイプ"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:285
+msgid "Asset content"
+msgstr "アセット内容"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:281
+msgid "Asset ID"
+msgstr "アセット ID"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:237
+msgid "Asset is a part of an ad which can be shared across multiple ads. It can be an image, headlines, descriptions, etc."
+msgstr "アセットとは、複数の広告で共有できる広告の一部です。画像、見出し、説明文などです。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:232
+msgid "Text that may appear appended to the url displayed in the ad."
+msgstr "広告に表示される URL に付加されるテキスト。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:226
+#: js/build/commons.js:1
+msgid "Final URL"
+msgstr "最終 URL"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:221
+msgid "Asset Group ID"
+msgstr "アセットグループ ID"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:203
+msgid "Successfully edited asset group."
+msgstr "アセットグループの編集に成功しました。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:197
+msgid "No asset group fields to update."
+msgstr "更新するアセットグループフィールドがない。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:174
+msgid "Successfully created asset group."
+msgstr "アセットグループの作成に成功しました。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:131
+msgid "Campaign ID."
+msgstr "キャンペーン ID。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:114
+msgid "List of asset to be edited."
+msgstr "編集するアセットのリスト。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:108
+msgid "Asset Group ID."
+msgstr "アセットグループ ID。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:94
+msgid "Asset Group path 2."
+msgstr "アセットグループパス 2。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:90
+msgid "Asset Group path 1."
+msgstr "アセットグループパス 1。"
+
+#: src/API/Site/Controllers/Ads/AssetGroupController.php:86
+msgid "Final URL."
+msgstr "最終 URL。"
+
+#. translators: %s Error message
+#: src/API/Google/AdsAssetGroupAsset.php:206
+msgid "Error retrieving asset groups assets by final url: %s"
+msgstr "最終 URL によるアセットグループのアセット取得エラー: %s"
+
+#. translators: %s Error message
+#: src/API/Google/AdsAssetGroupAsset.php:140
+msgid "Error retrieving asset groups assets: %s"
+msgstr "アセットグループのアセット取得エラー: %s"
+
+#: src/API/Google/AdsAssetGroup.php:425
+msgid "Invalid asset group ID"
+msgstr "無効なアセットグループ ID"
+
+#. translators: %s Error message
+#: src/API/Google/AdsAssetGroup.php:336
+msgid "Error editing asset group: %s"
+msgstr "アセットグループの編集エラー: %s"
+
+#: src/API/Google/AdsAssetGroup.php:330
+msgid "Each image type (landscape, square, portrait or logo) cannot contain duplicated images."
+msgstr "各画像タイプ（横長、正方形、縦長、ロゴ）に重複した画像を含めることはできません。"
+
+#. translators: %s Error message
+#: src/API/Google/AdsAssetGroup.php:262
+msgid "Error retrieving asset groups: %s"
+msgstr "アセットグループの検索エラー: %s"
+
+#. translators: %s Error message
+#: src/API/Google/AdsAssetGroup.php:116
+msgid "Error creating asset group: %s"
+msgstr "アセットグループの作成エラー: %s"
+
+#. translators: %s: current date time.
+#: src/API/Google/AdsAssetGroup.php:100
+msgid "PMax %s"
+msgstr "PMax %s"
+
+#. translators: 1: is an integer representing an unknown Post ID
+#: src/Ads/AssetSuggestionsService.php:266
+msgid "Invalid Post ID %1$d"
+msgstr "無効な投稿 ID %1$d"
+
+#: src/Ads/AssetSuggestionsService.php:242
+#: src/Ads/AssetSuggestionsService.php:243
+#: src/Ads/AssetSuggestionsService.php:244
+#: src/Ads/AssetSuggestionsService.php:721
+msgid "Homepage"
+msgstr "ホームページ"
+
+#. translators: 1: is an integer representing an unknown Term ID
+#: src/Ads/AssetSuggestionsService.php:173
+msgid "Invalid Term ID or Post ID or site url %1$d"
+msgstr "無効なターム ID または投稿 ID またはサイト URL %1$d"
+
+#. translators: 1: is an integer representing an unknown Term ID
+#: src/Ads/AssetSuggestionsService.php:315
+msgid "Invalid Term ID %1$d"
+msgstr "無効なターム ID %1$d"
+
+#: src/API/Site/Controllers/TourController.php:153
+msgid "Whether the tour was checked."
+msgstr "ツアーがチェックされたかどうか。"
+
+#: src/API/Site/Controllers/TourController.php:146
+msgid "The Id for the tour."
+msgstr "ツアーの id。"
+
+#: src/API/Site/Controllers/TourController.php:132
+msgid "Tour not found"
+msgstr "ツアーが見つかりません"
+
+#: src/API/Site/Controllers/TourController.php:105
+msgid "Unable to updated the tour."
+msgstr "ツアーの更新ができない。"
+
+#: src/API/Site/Controllers/TourController.php:100
+msgid "Successfully updated the tour."
+msgstr "ツアーのアップデートに成功。"
+
+#: src/Product/Attributes/SizeType.php:80
+msgid "Size Type"
+msgstr "サイズの種類"
+
+#: src/Product/Attributes/SizeSystem.php:84
+msgid "Size System"
+msgstr "サイズシステム"
+
+#: src/Product/Attributes/MPN.php:61
+msgid "MPN"
+msgstr "MPN"
+
+#: src/Product/Attributes/IsBundle.php:72
+msgid "Is Bundle"
+msgstr "バンドル"
+
+#: src/Product/Attributes/GTIN.php:61
+msgid "GTIN"
+msgstr "GTIN"
+
+#: src/Product/Attributes/AgeGroup.php:79
+msgid "Age group"
+msgstr "年齢層"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:133
+msgid "- Custom Attributes -"
+msgstr "カスタム属性をマップする"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:110
+msgid "- Product fields -"
+msgstr "- 商品フィールド -"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:104
+msgid "Weight (with units)"
+msgstr "重量（単位付き）"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:103
+msgid "Weight (raw value, no units)"
+msgstr "重量（生の値、単位なし）"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:102
+msgid "Variation title"
+msgstr "バリエーションタイトル"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:101
+msgid "Tax class"
+msgstr "税区分"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:100
+msgid "Stock Status"
+msgstr "在庫状況"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:99
+msgid "Stock Qty"
+msgstr "在庫数"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:98
+msgid "SKU"
+msgstr "SKU"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:96
+msgid "Allow backorders setting"
+msgstr "バックオーダーを許可する設定"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:80
+msgid "- Taxonomies -"
+msgstr "- タクソノミー -"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:70
+msgid "- Global attributes -"
+msgstr "- グローバル属性"
+
+#: src/Menu/AttributeMapping.php:25 js/build/index.js:25
+msgid "Attribute Mapping"
+msgstr "属性マッピング"
+
+#: src/Integration/YoastWooCommerceSeo.php:233
+msgid "MPN Field"
+msgstr "MPNフィールド"
+
+#: src/Integration/YoastWooCommerceSeo.php:224
+msgid "GTIN Field"
+msgstr "GTINフィールド"
+
+#: src/Integration/YoastWooCommerceSeo.php:215
+msgid "- Yoast SEO -"
+msgstr "✅Yoast SEO と Rank Math のサポートを拡張"
+
+#: src/API/Site/Controllers/MerchantCenter/AttributeMappingCategoriesController.php:92
+msgid "The category parent."
+msgstr "カテゴリーの親。"
+
+#: src/API/Site/Controllers/MerchantCenter/AttributeMappingCategoriesController.php:86
+msgid "The category name."
+msgstr "カテゴリー名。"
+
+#: src/API/Site/Controllers/MerchantCenter/AttributeMappingCategoriesController.php:80
+msgid "The Category ID."
+msgstr "カテゴリー ID。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingSyncerController.php:96
+msgid "Timestamp with the last sync."
+msgstr "最終同期のタイムスタンプ。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingSyncerController.php:89
+msgid "Indicates if the products are currently syncing"
+msgstr "商品が現在同期中かどうかを示す"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingRulesController.php:233
+msgid "List of category IDs, separated by commas."
+msgstr "カンマで区切られたカテゴリー ID のリスト。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingRulesController.php:226
+msgid "The category condition type to apply for this rule."
+msgstr "このルールに適用するカテゴリー条件タイプ。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingRulesController.php:220
+msgid "The source value for the rule."
+msgstr "ルールのソース値。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingRulesController.php:213
+msgid "The attribute value for the rule."
+msgstr "ルールの属性値。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingRulesController.php:207
+msgid "The Id for the rule."
+msgstr "ルールの Id。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingDataController.php:125
+msgid "The list of attributes or attribute sources."
+msgstr "属性または属性ソースのリスト。"
+
+#: src/API/Site/Controllers/AttributeMapping/AttributeMappingDataController.php:71
+msgid "The attribute key to get the sources."
+msgstr "ソースを取得するための属性キー。"
+
+#: src/API/Google/BudgetRecommendations.php:154
+#: src/API/Site/Controllers/Ads/BudgetRecommendationController.php:200
+#: js/build/commons.js:60 js/build/commons.js:69
+msgid "Recommended"
+msgstr "推奨"
+
+#: src/API/Site/Controllers/MerchantCenter/SyncableProductsCountController.php:115
+msgid "The number of products that are ready to be synced to Google."
+msgstr "Google に同期する準備ができた商品の数。"
+
+#: src/API/Site/Controllers/MerchantCenter/SyncableProductsCountController.php:99
+msgid "Successfully scheduled a job to update the number of syncable products."
+msgstr "同期可能な商品数を更新するジョブのスケジューリングに成功しました。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:117
+msgid "The price of the product."
+msgstr "商品の価格。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:112
+msgid "The image url of the product."
+msgstr "商品の画像の URL。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:140
+msgid "The verification status of the phone number associated with the Merchant Center account."
+msgstr "Merchant Center アカウントに関連付けられている電話番号の検証ステータス。"
+
+#: src/MerchantCenter/PolicyComplianceCheck.php:211
+msgctxt "Page slug"
+msgid "refund_returns"
+msgstr "refund_returns"
+
+#: src/API/Site/Controllers/MerchantCenter/PolicyComplianceCheckController.php:126
+msgid "The refund returns policy associated with onboarding policy checking."
+msgstr "オンボーディングポリシーのチェックに関連する払い戻し返品ポリシー。"
+
+#: src/API/Site/Controllers/MerchantCenter/PolicyComplianceCheckController.php:121
+msgid "The store ssl associated with onboarding policy checking."
+msgstr "オンボーディングポリシーのチェックに関連するストアの ssl。"
+
+#: src/API/Site/Controllers/MerchantCenter/PolicyComplianceCheckController.php:116
+msgid "The payment gateways associated with onboarding policy checking."
+msgstr "オンボーディングポリシーのチェックに関連する支払ゲートウェイ。"
+
+#: src/API/Site/Controllers/MerchantCenter/PolicyComplianceCheckController.php:111
+msgid "The sample of product landing pages have redirects through 3P domains."
+msgstr "商品ランディングページのサンプルは、3P ドメイン経由でリダイレクトされている。"
+
+#: src/API/Site/Controllers/MerchantCenter/PolicyComplianceCheckController.php:106
+msgid "The sample of product landing pages leads to a 404 error."
+msgstr "商品ランディングページのサンプルは404エラーにつながります。"
+
+#: src/API/Site/Controllers/MerchantCenter/PolicyComplianceCheckController.php:101
+msgid "The merchant set the restrictions in robots.txt or not in the store."
+msgstr "加盟店は robots.txt で制限を設定するか、店舗で制限を設定しない。"
+
+#: src/API/Site/Controllers/MerchantCenter/PolicyComplianceCheckController.php:96
+msgid "The store website could be accessed or not by all users."
+msgstr "店舗のウェブサイトは、すべてのユーザーがアクセスできるかどうか。"
+
+#: src/Product/Attributes/SizeType.php:56
+msgid "Big"
+msgstr "大"
+
+#: src/Product/Attributes/SizeType.php:55
+msgid "Tall"
+msgstr "高い"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:165
+msgid "Whether the campaign has been converted"
+msgstr "キャンペーンがコンバージョンされたかどうか"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:320
+msgid "Exclude removed campaigns."
+msgstr "削除されたキャンペーンを除く。"
+
+#: src/API/Google/Query/AdsQuery.php:81
+msgid "No result from query"
+msgstr "クエリから結果が見つかりません"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:204
+msgid "The region codes in which is allowed to request a new review."
+msgstr "新しいレビューを要求できる地域コード。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:195
+msgid "The issues related to the Merchant Center to be reviewed and addressed before approval."
+msgstr "Merchant Center に関する問題は、承認前に検討され、対処される。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:189
+msgid "Timestamp indicating if the user is in cool down period."
+msgstr "ユーザーがクールダウン中であるかどうかを示すタイムスタンプ。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:183
+msgid "The status of the last review."
+msgstr "前回のレビューの状況。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:131
+msgid "Your account is not eligible for a new request review."
+msgstr "アカウントは新規リクエスト審査の対象外です。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:119
+msgid "Your account is under cool down period and cannot request a new review."
+msgstr "アカウントはクールダウン期間中であり、新しいレビューをリクエストすることはできません。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:331
+msgid "Error requesting a new review."
+msgstr "新しいレビューのリクエストエラー。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:325
+msgid "A new review has been successfully requested"
+msgstr "新しいレビューのリクエストに成功しました"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:318
+msgid "Invalid response getting requesting a new review."
+msgstr "新しいレビューを要求する無効な応答。"
+
+#: src/API/Site/Controllers/MerchantCenter/RequestReviewController.php:286
+msgid "Error getting account review status."
+msgstr "アカウント審査ステータスの取得エラー。"
+
+#: src/API/Site/Controllers/MerchantCenter/SupportedCountriesController.php:159
+msgid "Include continents data if set to true."
+msgstr "true に設定すると大陸データを含む。"
+
+#: src/API/Site/Controllers/Google/AccountController.php:126
+msgid "Indicates the next page name mapped to the redirect URL when back from Google authorization."
+msgstr "Google 認証からリダイレクト URL にマップされた次のページ名を示します。"
+
+#: src/Exception/AccountReconnect.php:44
+msgid "Please reconnect your Google account."
+msgstr "Google アカウントを再接続してください。"
+
+#: src/Exception/AccountReconnect.php:27
+msgid "Please reconnect your Jetpack account."
+msgstr "Jetpack アカウントに再接続してください。"
+
+#: src/Notes/ReconnectWordPress.php:62
+msgid "Your WordPress.com account has been disconnected from Google for WooCommerce. Connect your WordPress.com account again to ensure your products stay listed on Google through the Google for WooCommerce extension.<br/><br/>If you do not re-connect, any existing listings may be removed from Google."
+msgstr "WordPress.com アカウントが Google for WooCommerce から切断されました。Google for WooCommerce エクステンションを通して Google に商品が掲載され続けるようにするには、WordPress.com アカウントを再度接続してください。<br/><br/>再接続しない場合、既存のリストは Google から削除される可能性があります。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:366
+msgid "Campaign type."
+msgstr "キャンペーンの種類。"
+
+#: views/meta-box/coupon_channel_visibility.php:90
+msgid "This coupon cannot be shown because the coupon restrictions are not supported to share in Google channel."
+msgstr "クーポンの制限が Google チャンネルでの共有に対応していないため、このクーポンは表示できません。"
+
+#: views/meta-box/coupon_channel_visibility.php:89
+msgid "This coupon cannot be shown on public channel because it is hidden from your store."
+msgstr "このクーポンは、店から隠されているため、公共のチャンネルに表示することはできません。"
+
+#. translators: 1 top level domain name.
+#: src/Exception/InvalidDomainName.php:28
+msgid "Unable to create an account, the domain name \"%s\" must end with a valid top-level domain name."
+msgstr "アカウントを作成できません。ドメイン名「%s」の末尾に有効なトップレベルドメイン名が必要です。"
+
+#: src/Exception/ApiNotReady.php:29
+msgid "Please retry the request after the indicated number of seconds."
+msgstr "指定された秒数後にリクエストを再試行してください。"
+
+#: src/API/Site/Controllers/ShippingRateSchemaTrait.php:58
+msgid "Array of options for the shipping method."
+msgstr "配送方法のオプションの配列。"
+
+#: src/API/Site/Controllers/ShippingRateSchemaTrait.php:28
+msgid "The shipping rate unique identification number."
+msgstr "配送料金固有の識別番号。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateController.php:249
+msgid "Successfully deleted rate."
+msgstr "レートの削除に成功。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateController.php:152
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateController.php:238
+msgid "No rate found with the given ID."
+msgstr "指定された ID のレートが見つかりません。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateBatchController.php:145
+msgid "Array of unique shipping rate identification numbers."
+msgstr "固有の配送料金識別番号の配列。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateBatchController.php:123
+msgid "Array of shipping rates to create."
+msgstr "作成する配送料金の配列。"
+
+#: src/API/Site/Controllers/CountryCodeTrait.php:72
+msgid "Country is not supported"
+msgstr "国がサポートされていません"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:387
+msgid "The locations that an Ads campaign is targeting in ISO 3166-1 alpha-2 format."
+msgstr "広告キャンペーンがターゲットとしている場所（ISO 3166-1 alpha-2フォーマット）。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:379
+msgid "Country code of sale country in ISO 3166-1 alpha-2 format."
+msgstr "販売国の国コード（ISO 3166-1 alpha-2形式）。"
+
+#: src/API/Site/Controllers/Ads/BudgetRecommendationController.php:155
+msgid "Cannot find any budget recommendations."
+msgstr "おすすめの予算が見つからない。"
+
+#: src/API/Site/Controllers/Ads/BudgetMetricsController.php:109
+#: src/API/Site/Controllers/Ads/BudgetRecommendationController.php:103
+msgid "No currency available for the Ads account."
+msgstr "広告アカウントで使用できる通貨はありません。"
+
+#. translators: %s Error message
+#: src/API/Google/AdsReport.php:110
+msgid "Unable to retrieve report data: %s"
+msgstr "レポートデータを取得できません: %s"
+
+#: src/API/Google/AdsCampaign.php:639
+msgid "Invalid geo target location ID"
+msgstr "無効なジオターゲットロケーション ID"
+
+#: src/Notes/SetupCampaignTwoWeeks.php:67
+msgid "You're just a few steps away from reaching new shoppers across Google. Finish connecting your account, create your campaign, pick your budget, and easily measure the impact of your ads."
+msgstr "わずか数ステップで、Google 全体で新しい買い物客にリーチできます。アカウントの接続を完了し、キャンペーンを作成して予算を設定すれば、広告の効果を簡単に測定できます。"
+
+#: src/Notes/SetupCampaignTwoWeeks.php:64
+msgid "Finish setting up your ads campaign and boost your sales"
+msgstr "広告キャンペーンの設定を完了し、売上を向上させる"
+
+#: src/Notes/SetupCampaignTwoWeeks.php:50
+msgid "Your products are ready for Google Ads! Connect with the right shoppers at the right moment when they’re searching for products like yours. Connect your Google Ads account to create your first campaign."
+msgstr "Google 広告に貴社の商品を掲載できます！あなたのような商品を探している適切な買い物客と、適切なタイミングでつながりましょう。Google 広告アカウントに接続して、最初のキャンペーンを作成します。"
+
+#: src/Notes/SetupCampaign.php:72 src/Notes/SetupCampaignTwoWeeks.php:74
+msgid "Complete Setup"
+msgstr "設定を完了させる"
+
+#: src/Notes/SetupCampaign.php:65
+msgid "Your products are ready for Google Ads! Finish connecting your account, create your campaign, pick your budget, and easily measure the impact of your ads. Plus, Google will give you $500 USD in ad credit when you spend $500 for new accounts. T&Cs apply."
+msgstr "Google 広告の準備が整いました！アカウントの接続が完了したら、キャンペーンを作成して予算を決め、広告の効果を簡単に測定できます。さらに、新規アカウントで500ドルご利用いただくと、Google から500ドルの広告クレジットを差し上げます。利用規約が適用されます。"
+
+#: src/Notes/SetupCampaign.php:63
+msgid "Finish connecting your Google Ads account"
+msgstr "Google広告アカウントの接続を完了する"
+
+#: src/Notes/SetupCampaign.php:57 src/Notes/SetupCampaignTwoWeeks.php:57
+msgid "Set up Google Ads"
+msgstr "Google 広告の設定"
+
+#: src/Notes/SetupCampaign.php:50
+msgid "Your products are ready for Google Ads! Get your products shown on Google exactly when shoppers are searching for the products you offer. For new Google Ads accounts, get $500 in ad credit when you spend $500 within your first 60 days. T&Cs apply."
+msgstr "Google 広告の準備が整いました！買い物客が商品を探しているタイミングで、Google に商品を表示させましょう。Google 広告の新規アカウントの場合、最初の 60 日間に 500 ドルご利用いただくと、500 ドルの広告クレジットを差し上げます。利用規約が適用されます。"
+
+#: src/Notes/SetupCampaign.php:48
+msgid "Launch ads to drive traffic and grow sales"
+msgstr "トラフィックを増やし、売上を伸ばすための広告を打ち出す"
+
+#: views/bulk-edit/shop_coupon.php:26
+msgid "Don't show coupon"
+msgstr "クーポンを表示しない"
+
+#: views/bulk-edit/shop_coupon.php:25
+msgid "Show coupon"
+msgstr "クーポンを表示"
+
+#: views/bulk-edit/shop_coupon.php:24
+msgid "— No change —"
+msgstr "- 変化なし -"
+
+#: views/bulk-edit/shop_coupon.php:19
+msgid "Google visibility"
+msgstr "Google の可視性"
+
+#: src/Notes/SetupCouponSharing.php:74
+msgid "Go to coupons"
+msgstr "クーポンへ"
+
+#: src/Notes/SetupCouponSharing.php:61
+msgid "Sync your store promotions and coupons directly with Google to showcase on your product listings across the Google Shopping tab. <br/><br/>When creating a coupon, you’ll see a Channel Visibility settings box on the right; select \"Show coupon on Google\" to enable."
+msgstr "お店のプロモーションやクーポンを Google と直接同期し、Google ショッピングタブの商品リストに表示することができます。<br/><br/>クーポンを作成する際、右側にチャンネルの表示設定ボックスが表示されます。"
+
+#: src/Notes/SetupCouponSharing.php:59
+msgid "Show your store coupons on your Google listings"
+msgstr "Google リスティングにお店のクーポンを表示する"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:163
+msgid "The errors associated with the WooCommerce address"
+msgstr "WooCommerce アドレスに関連するエラー"
+
+#: src/Notes/ReviewAfterClicks.php:81 src/Notes/ReviewAfterConversions.php:83
+msgid "Congratulations! Tell us what you think about Google for WooCommerce by leaving a review. Your feedback will help us make WooCommerce even better for you."
+msgstr "おめでとうございます !Google for WooCommerce についてのご意見・ご感想をお聞かせください。あなたのフィードバックは、WooCommerce をより良いものにするために役立ちます。"
+
+#: src/Notes/LeaveReviewActionTrait.php:30
+msgid "Leave a review"
+msgstr "レビューを残します"
+
+#: src/API/Site/Controllers/MerchantCenter/AccountController.php:245
+msgid "The domain registered with the Merchant Center Account."
+msgstr "Merchant Center アカウントに登録されているドメイン。"
+
+#: src/API/Site/Controllers/MerchantCenter/AccountController.php:239
+msgid "The Merchant Center Account name."
+msgstr "Merchant Center アカウント名。"
+
+#: src/API/Site/Controllers/Google/AccountController.php:133
+msgid "Indicate the Google account to suggest for authorization."
+msgstr "認証に使用する Google アカウントを指定します。"
+
+#: views/meta-box/coupon_channel_visibility.php:162
+msgid "Complete setup to get your coupon listed on Google for free."
+msgstr "Google にクーポンを掲載するための設定を無料で行います。"
+
+#: views/meta-box/coupon_channel_visibility.php:138
+msgid "Coupon issues"
+msgstr "クーポンの問題"
+
+#: views/meta-box/coupon_channel_visibility.php:122
+msgid "Don't show coupon on Google"
+msgstr "Google でクーポンを表示しない"
+
+#: views/meta-box/coupon_channel_visibility.php:118
+msgid "Show coupon on Google"
+msgstr "Google でクーポンを表示する"
+
+#: views/meta-box/coupon_channel_visibility.php:95
+msgid "This coupon visibility channel has not been supported in your store base country yet."
+msgstr "このクーポン表示チャネルは、ストアの拠点国ではまだサポートされていません。"
+
+#: views/meta-box/coupon_channel_visibility.php:73
+msgid "Check your email for updates."
+msgstr "最新情報はメールでご確認ください。"
+
+#: views/meta-box/coupon_channel_visibility.php:65
+msgid "Sent to Google"
+msgstr "Google に送信"
+
+#: views/meta-box/coupon_channel_visibility.php:62
+msgid "Pending for sync"
+msgstr "同期待ち"
+
+#: src/API/Site/Controllers/MerchantCenter/PhoneVerificationController.php:101
+msgid "The verification code that was sent to the phone number for validation."
+msgstr "検証のために電話番号に送信された検証コード。"
+
+#: src/API/Site/Controllers/MerchantCenter/PhoneVerificationController.php:95
+msgid "The verification ID returned by the /request call."
+msgstr "request コールで返される検証 ID。"
+
+#: src/API/Site/Controllers/MerchantCenter/PhoneVerificationController.php:75
+msgid "The phone number to verify."
+msgstr "確認する電話番号。"
+
+#: src/API/Site/Controllers/MerchantCenter/PhoneVerificationController.php:69
+msgid "Two-letter country code (ISO 3166-1 alpha-2) for the phone number."
+msgstr "電話番号の2文字の国コード（ISO 3166-1 alpha-2）。"
+
+#: src/API/Site/Controllers/MerchantCenter/PhoneVerificationController.php:50
+msgid "Method used to verify the phone number."
+msgstr "電話番号の確認方法。"
+
+#. translators: 1: current date in the format Y-m-d
+#: src/API/Google/Middleware.php:592
+msgid "Account %1$s"
+msgstr "アカウント %1$s"
+
+#: src/Admin/Product/Attributes/Input/AvailabilityDateInput.php:26
+#: src/Product/Attributes/AvailabilityDate.php:47
+msgid "The date a preordered or backordered product becomes available for delivery. Required if product availability is preorder or backorder"
+msgstr "予約またはバックオーダーされた商品が配送可能になる日付。商品の在庫が予約またはバックオーダーの場合は必須です"
+
+#: src/Admin/Product/Attributes/Input/AvailabilityDateInput.php:25
+#: src/Product/Attributes/AvailabilityDate.php:38
+msgid "Availability Date"
+msgstr "発売日"
+
+#: views/meta-box/channel_visibility.php:93 js/build/blocks.js:1
+msgid "Complete setup to get your products listed on Google for free."
+msgstr "Google に商品を無料で掲載するための完全なセットアップ。"
+
+#: src/Notes/SetupCampaign.php:81 js/build/commons.js:10 js/build/commons.js:66
+#: js/build/product-feed.js:1 js/build/settings.js:1
+msgid "Learn more"
+msgstr "詳細はこちら"
+
+#: src/Notes/ContactInformation.php:42
+msgid "Google requires the phone number and store address for all stores using Google Merchant Center. This is required to verify your store, and it will not be shown to customers. If you do not add your contact information, your listings may not appear on Google."
+msgstr "Google では、Google Merchant Center を使用するすべてのストアの電話番号と店舗の住所が必要です。 これはストアを確認するために必要であり、顧客には表示されません。 連絡先情報を追加しないと、リスティングが Google に表示されない場合があります。"
+
+#: src/Notes/ContactInformation.php:41
+msgid "Please add your contact information"
+msgstr "連絡先情報を追加してください"
+
+#: src/MerchantCenter/MerchantCenterService.php:308
+msgid "Add store contact information"
+msgstr "ストア連絡先情報を追加"
+
+#: src/Notes/ContactInformation.php:51
+msgid "Add contact information"
+msgstr "連絡先情報を追加"
+
+#: src/MerchantCenter/MerchantCenterService.php:307
+msgid "No contact information."
+msgstr "連絡先情報がありません。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:197
+msgid "CLDR country code (e.g. \"US\")."
+msgstr "CLDR 国別コード (例 \"US\")。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:192
+msgid "Postal code or ZIP (e.g. \"94043\")."
+msgstr "郵便番号もしくはZIP (例 \"94043\")。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:187
+msgid "Top-level administrative subdivision of the country. For example, a state like California (\"CA\") or a province like Quebec (\"QC\")."
+msgstr "国のトップレベルの行政区画。 たとえば、カリフォルニア(\"CA\")のような州やケベック(\"QC\")のような州。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:182
+msgid "City, town or commune. May also include dependent localities or sublocalities (e.g. neighborhoods or suburbs)."
+msgstr "市、町またはコミューン。 従属地域または準地域（近隣や郊外など）も含まれる場合があります。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:177
+msgid "Street-level part of the address."
+msgstr "住所のストリートレベルの部分。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:158
+msgid "Whether the Merchant Center account address is different than the WooCommerce store address."
+msgstr "Merchant Center のアカウント住所が WooCommerce ストアの住所と異なるかどうか。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:152
+msgid "The WooCommerce store address."
+msgstr "WooCommerceストアの住所。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:146
+msgid "The address associated with the Merchant Center account."
+msgstr "Merchant Center アカウントに関連付けられている住所。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:135
+msgid "The phone number associated with the Merchant Center account."
+msgstr "Merchant Center アカウントに関連付けられている電話番号。"
+
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:235
+msgid "Country code."
+msgstr "国コードの接頭辞を含む 8 ～ 12 桁の番号 (例: DE 123456789)。"
+
+#: src/API/Site/Controllers/MerchantCenter/ContactInformationController.php:129
+msgid "The Merchant Center account ID."
+msgstr "Merchant Center のアカウント ID。"
+
+#: views/meta-box/channel_visibility.php:47
+msgid "This product cannot be shown on any channel because it is hidden from your store catalog."
+msgstr "この商品はストアカタログに表示されていないため、どのチャネルにも表示できません。"
+
+#: src/MerchantCenter/MerchantStatuses.php:279
+msgid "Merchant Center account is not set up."
+msgstr "Merchant Center アカウントが設定されていません。"
+
+#: src/MerchantCenter/MerchantStatuses.php:276
+msgid "Google account is not connected."
+msgstr "Google アカウントが接続されていません。"
+
+#: src/Internal/Requirements/GoogleProductFeedValidator.php:85
+msgid "Deactivate the Google Product Feed plugin from your store"
+msgstr "ストアから Google Product Feed プラグインを無効にします"
+
+#: src/Internal/Requirements/GoogleProductFeedValidator.php:84
+msgid "The Google Product Feed plugin may cause conflicts or unexpected results."
+msgstr "Google Product Feed プラグインは、競合や予期しない結果を引き起こす可能性があります。"
+
+#: src/API/Site/Controllers/Jetpack/AccountController.php:147
+msgid "Indicates the next page name mapped to the redirect URL when back from Jetpack authorization."
+msgstr "Jetpack の認証から戻ったときにリダイレクト URL にマップされる次のページ名を示します。"
+
+#: src/MerchantCenter/MerchantStatuses.php:589
+msgid "Update this attribute in your product data"
+msgstr "商品データのこの属性を更新します"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:160
+msgid "Severity level of the issue: warning or error."
+msgstr "問題の重大度: 警告またはエラー。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:169
+msgid "Amount of scheduled jobs which will sync products to Google."
+msgstr "商品を Google に同期するのに予定されているジョブの量。"
+
+#: views/meta-box/channel_visibility.php:28
+#: views/meta-box/coupon_channel_visibility.php:60 js/build/blocks.js:1
+msgid "Issues detected"
+msgstr "問題が検出されました"
+
+#: src/Notes/CompleteSetup.php:50
+msgid "Finish setup"
+msgstr "設定完了"
+
+#: src/Admin/Product/Attributes/Input/MultipackInput.php:26
+msgid "The number of identical products in a multipack. Use this attribute to indicate that you've grouped multiple identical products for sale as one item."
+msgstr "マルチパック内の同一商品の数。この属性を使用して、販売する複数の同一の商品を1つのアイテムとしてグループ化したことを示します。"
+
+#: src/Admin/Product/Attributes/Input/MultipackInput.php:25
+#: src/Product/Attributes/Multipack.php:72
+msgid "Multipack"
+msgstr "マルチパック"
+
+#: src/Admin/Product/Attributes/Input/IsBundleInput.php:26
+msgid "Whether the item is a bundle of products. A bundle is a custom grouping of different products sold by a merchant for a single price."
+msgstr "商品が商品の束であるかどうか。 バンドルは、マーチャントが単一の価格で販売するさまざまな商品のカスタムグループです。"
+
+#: src/Admin/Product/Attributes/Input/IsBundleInput.php:25
+msgid "Is Bundle?"
+msgstr "バンドルですか?"
+
+#: src/Product/Attributes/Condition.php:53
+msgid "Used"
+msgstr "中古"
+
+#: src/Product/Attributes/Condition.php:52
+msgid "Refurbished"
+msgstr "整備済"
+
+#: src/Product/Attributes/Condition.php:51 js/build/price-benchmark.js:1
+msgid "New"
+msgstr "新品"
+
+#: src/Admin/Product/Attributes/Input/ConditionInput.php:26
+msgid "Condition or state of the item."
+msgstr "商品の条件または状態。"
+
+#: src/Admin/Product/Attributes/Input/ConditionInput.php:25
+#: src/Product/Attributes/Condition.php:76
+msgid "Condition"
+msgstr "状態"
+
+#: src/Admin/Input/BooleanSelect.php:22 src/Product/Attributes/Adult.php:83
+#: src/Product/Attributes/IsBundle.php:84
+msgid "No"
+msgstr "いいえ"
+
+#: src/Admin/Input/BooleanSelect.php:21 src/Product/Attributes/Adult.php:82
+#: src/Product/Attributes/IsBundle.php:83
+msgid "Yes"
+msgstr "はい"
+
+#: src/Admin/Input/BooleanSelect.php:20
+#: src/Admin/Product/Attributes/AttributesForm.php:147
+msgid "Default"
+msgstr "初期設定"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductVisibilityController.php:154
+msgid "New Visibility status for the specified products."
+msgstr "指定された商品の新しい可視性ステータス。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductVisibilityController.php:145
+msgid "IDs of the products to update."
+msgstr "更新する商品の ID。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductVisibilityController.php:126
+msgid "Products whose visibility was not changed."
+msgstr "視認性が変わらない商品。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductVisibilityController.php:117
+msgid "Products whose visibility was changed successfully."
+msgstr "可視性が正常に変更された商品。"
+
+#: src/Notes/CompleteSetup.php:41
+msgid "Finish setting up Google for WooCommerce to list your products on Google for free and promote them with ads."
+msgstr "Google for WooCommerce の設定を完了し、Google に無料で商品を掲載し、広告で宣伝する。"
+
+#: src/Product/Attributes/Adult.php:72 src/Product/Attributes/AgeGroup.php:46
+msgid "Adult"
+msgstr "大人"
+
+#: src/Product/Attributes/AgeGroup.php:45
+msgid "Kids"
+msgstr "子供"
+
+#: src/Product/Attributes/AgeGroup.php:44
+msgid "Toddler"
+msgstr "幼児（1歳から3歳くらい）"
+
+#: src/Product/Attributes/AgeGroup.php:43
+msgid "Infant"
+msgstr "幼児（生後1年未満）"
+
+#: src/Product/Attributes/AgeGroup.php:42
+msgid "Newborn"
+msgstr "新生児"
+
+#: src/Admin/Product/Attributes/Input/AgeGroupInput.php:26
+msgid "Target age group of the item."
+msgstr "商品の対象年齢層。"
+
+#: src/Admin/Product/Attributes/Input/AgeGroupInput.php:25
+msgid "Age Group"
+msgstr "年齢層"
+
+#: src/Admin/Product/Attributes/Input/MPNInput.php:26
+msgid "This code uniquely identifies the product to its manufacturer."
+msgstr "このコードにより、製造者は商品を一意に識別できる。"
+
+#: src/Admin/Product/Attributes/Input/MPNInput.php:25
+msgid "Manufacturer Part Number (MPN)"
+msgstr "メーカー品番 (MPN)"
+
+#: src/Admin/Product/Attributes/Input/BrandInput.php:26
+msgid "Brand of the product."
+msgstr "商品のブランド。"
+
+#: src/Admin/Product/Attributes/Input/BrandInput.php:25
+#: src/Product/Attributes/Brand.php:61
+msgid "Brand"
+msgstr "ブランド"
+
+#: src/Admin/Product/Attributes/Input/MaterialInput.php:26
+msgid "The material of which the item is made."
+msgstr "アイテムの素材。"
+
+#: src/Admin/Product/Attributes/Input/MaterialInput.php:25
+#: src/Product/Attributes/Material.php:61
+msgid "Material"
+msgstr "マテリアル"
+
+#: src/Product/Attributes/SizeType.php:57
+msgid "Maternity"
+msgstr "マタニティ"
+
+#: src/Product/Attributes/SizeType.php:54
+msgid "Plus"
+msgstr "プラス"
+
+#: src/Product/Attributes/SizeType.php:53
+msgid "Petite"
+msgstr "プチ"
+
+#: src/Product/Attributes/SizeType.php:52
+msgid "Regular"
+msgstr "レギュラー"
+
+#: src/Admin/Product/Attributes/Input/SizeTypeInput.php:26
+msgid "The cut of the item. Recommended for apparel items."
+msgstr "アイテムのカット。アパレルアイテムにおすすめ。"
+
+#: src/Admin/Product/Attributes/Input/SizeTypeInput.php:25
+msgid "Size type"
+msgstr "サイズタイプ"
+
+#: src/Admin/Product/Attributes/Input/GTINInput.php:29
+msgid "Global Trade Item Number (GTIN) for your item. These identifiers include UPC (in North America), EAN (in Europe), JAN (in Japan), and ISBN (for books)"
+msgstr "商品の国際貿易品目番号（GTIN）。これらの識別子には、UPC（北米）、EAN（欧州）、JAN（日本）、ISBN（書籍）が含まれます。"
+
+#: src/Admin/Product/Attributes/Input/GTINInput.php:28
+msgid "Global Trade Item Number (GTIN)"
+msgstr "世界貿易品目番号(GTIN)"
+
+#: src/Admin/Product/Attributes/Input/PatternInput.php:26
+msgid "The item's pattern (e.g. polka dots)."
+msgstr "アイテムの柄（水玉など）。"
+
+#: src/Admin/Product/Attributes/Input/PatternInput.php:25
+#: src/Product/Attributes/Pattern.php:61
+msgid "Pattern"
+msgstr "パターン"
+
+#: src/Product/Attributes/SizeSystem.php:61
+msgid "MEX"
+msgstr "MEX"
+
+#: src/Product/Attributes/SizeSystem.php:60
+msgid "JP"
+msgstr "JP"
+
+#: src/Product/Attributes/SizeSystem.php:59
+msgid "CN"
+msgstr "CN"
+
+#: src/Product/Attributes/SizeSystem.php:58
+msgid "BR"
+msgstr "BR"
+
+#: src/Product/Attributes/SizeSystem.php:57
+msgid "AU"
+msgstr "AU"
+
+#: src/Product/Attributes/SizeSystem.php:56
+msgid "IT"
+msgstr "IT"
+
+#: src/Product/Attributes/SizeSystem.php:55
+msgid "FR"
+msgstr "FR"
+
+#: src/Product/Attributes/SizeSystem.php:54
+msgid "DE"
+msgstr "DE"
+
+#: src/Product/Attributes/SizeSystem.php:53
+msgid "UK"
+msgstr "UK"
+
+#: src/Product/Attributes/SizeSystem.php:52
+msgid "EU"
+msgstr "EU"
+
+#: src/Product/Attributes/SizeSystem.php:51
+msgid "US"
+msgstr "US"
+
+#: src/Admin/Product/Attributes/Input/SizeSystemInput.php:26
+msgid "System in which the size is specified. Recommended for apparel items."
+msgstr "サイズを指定するシステム。アパレルアイテムにおすすめ。"
+
+#: src/Admin/Product/Attributes/Input/SizeSystemInput.php:25
+msgid "Size system"
+msgstr "サイズシステム"
+
+#: src/Product/Attributes/Gender.php:44
+msgid "Unisex"
+msgstr "ユニセックス"
+
+#: src/Product/Attributes/Gender.php:43
+msgid "Female"
+msgstr "女性"
+
+#: src/Product/Attributes/Gender.php:42
+msgid "Male"
+msgstr "男性"
+
+#: src/Admin/Product/Attributes/Input/GenderInput.php:26
+msgid "The gender for which your product is intended."
+msgstr "商品の対象性別。"
+
+#: src/Admin/Product/Attributes/Input/GenderInput.php:25
+#: src/Product/Attributes/Gender.php:76
+msgid "Gender"
+msgstr "性別"
+
+#: src/Admin/Product/Attributes/Input/SizeInput.php:26
+msgid "Size of the product."
+msgstr "商品のサイズ。"
+
+#: src/Admin/Product/Attributes/Input/SizeInput.php:25
+#: src/Product/Attributes/Size.php:61
+msgid "Size"
+msgstr "サイズ"
+
+#: src/Admin/Product/Attributes/Input/ColorInput.php:26
+msgid "Color of the product."
+msgstr "商品の色。"
+
+#: src/Admin/Product/Attributes/Input/ColorInput.php:25
+#: src/Product/Attributes/Color.php:61
+msgid "Color"
+msgstr "カラー"
+
+#: src/Admin/Product/Attributes/Input/AdultInput.php:26
+msgid "Whether the product contains nudity or sexually suggestive content"
+msgstr "商品にヌードや性的描写が含まれているかどうか"
+
+#: src/Admin/Product/Attributes/Input/AdultInput.php:25
+msgid "Adult content"
+msgstr "成人コンテンツ"
+
+#: src/Admin/Input/SelectWithTextInput.php:106
+#: src/Admin/Input/SelectWithTextInput.php:165
+msgid "Enter a custom value"
+msgstr "カスタム値を入力"
+
+#: src/Admin/Input/SelectWithTextInput.php:27
+msgid "Enter your value"
+msgstr "値を入力してください"
+
+#. translators: 1: is a numeric account ID
+#: src/MerchantCenter/AccountService.php:441
+msgid "Merchant Center account already connected: %d"
+msgstr "Merchant Center アカウントはすでに接続されています: %d"
+
+#: views/attributes/tab-panel.php:21
+msgid "As this is a variable product, you can add additional product attributes by going to Variations > Select one variation > Google for WooCommerce."
+msgstr "これはバリエーション商品なので、「バリエーション」>「バリエーションを1つ選択」>「Google for WooCommerce」で商品属性を追加できます。"
+
+#: src/Admin/ProductBlocksService.php:204 views/attributes/tab-panel.php:20
+msgid "Product attributes"
+msgstr "商品属性"
+
+#: src/TaskList/CompleteSetupTask.php:74
+msgid "20 minutes"
+msgstr "20分"
+
+#: src/Product/AttributeMapping/Traits/IsFieldTrait.php:97
+#: js/build/reports.js:4
+msgid "Product title"
+msgstr "商品タイトル"
+
+#. translators: 1: is a string representing an unknown step name
+#: src/Ads/AccountService.php:185
+msgid "Unknown ads account creation step %1$s"
+msgstr "不明な広告アカウントの作成手順%1$s"
+
+#. translators: 1: is a string representing an unknown step name
+#: src/MerchantCenter/AccountService.php:377
+msgid "Unknown merchant account creation step %1$s"
+msgstr "不明なマーチャントアカウントの作成手順%1$s"
+
+#: src/Menu/Reports.php:25 js/build/commons.js:60 js/build/index.js:25
+msgid "Reports"
+msgstr "レポート"
+
+#: views/meta-box/channel_visibility.php:95
+#: views/meta-box/coupon_channel_visibility.php:163 js/build/onboarding.js:1
+msgid "Complete setup"
+msgstr "セットアップ完了"
+
+#: src/Menu/SetupAds.php:25
+msgid "Ads Setup Wizard"
+msgstr "広告セットアップウィザード"
+
+#: src/Menu/SetupMerchantCenter.php:25
+msgid "MC Setup Wizard"
+msgstr "MCセットアップウィザード"
+
+#: src/Menu/ProductFeed.php:25 js/build/commons.js:60 js/build/index.js:25
+#: js/build/product-feed.js:13 js/build/reports.js:1 js/build/reports.js:4
+msgid "Product Feed"
+msgstr "商品フィード"
+
+#. translators: %s: the action name
+#: src/ActionScheduler/ActionSchedulerException.php:29
+msgid "No action matching %s was found."
+msgstr "%s に一致するアクションは見つかりませんでした。"
+
+#: src/Coupon/CouponSyncer.php:473 src/Product/ProductSyncer.php:363
+msgid "Google Merchant Center has not been set up correctly. Please review your configuration."
+msgstr "Google Merchant Center が正しく設定されていません。設定を見直してください。"
+
+#: src/Admin/MetaBox/ChannelVisibilityMetaBox.php:73
+#: src/Admin/MetaBox/CouponChannelVisibilityMetaBox.php:78
+#: src/Admin/ProductBlocksService.php:185
+msgid "Channel visibility"
+msgstr "チャンネルの可視性"
+
+#: views/meta-box/channel_visibility.php:81 js/build/blocks.js:1
+msgid "Issues"
+msgstr "問題"
+
+#: views/meta-box/channel_visibility.php:77 js/build/blocks.js:1
+msgid "Google sync status"
+msgstr "Google 同期状況"
+
+#: src/Value/ChannelVisibility.php:75
+msgid "Don't Sync and show"
+msgstr "同期して表示しない"
+
+#: src/Value/ChannelVisibility.php:74 js/build/product-feed.js:7
+#: js/build/product-feed.js:13
+msgid "Sync and show"
+msgstr "同期と表示"
+
+#: src/Admin/Admin.php:232
+msgid "Documentation"
+msgstr "ドキュメント"
+
+#: src/Admin/Admin.php:225 js/build/blocks.js:1
+msgid "Get Started"
+msgstr "始める"
+
+#: src/Admin/Admin.php:219 src/Menu/Settings.php:25 js/build/commons.js:60
+#: js/build/index.js:25
+msgid "Settings"
+msgstr "設定"
+
+#. translators: %s: the job classname
+#: src/Jobs/JobException.php:72
+msgid "The job \"%s\" does not exist."
+msgstr "ジョブ「%s」が存在しない。"
+
+#. translators: %s: the job name
+#: src/Jobs/JobException.php:55
+msgid "The \"%s\" job was stopped because its failure rate is above the allowed threshold."
+msgstr "「%s」ジョブは、その失敗率が許容されるしきい値を超えているため、停止された。"
+
+#. translators: %s: the job item name
+#: src/Jobs/JobException.php:38
+msgid "Required job item \"%s\" not provided."
+msgstr "必須ジョブ項目「%s」が提供されていない。"
+
+#: src/Jobs/JobException.php:24
+msgid "Job item not found."
+msgstr "ジョブ項目が見つかりません。"
+
+#: src/MerchantCenter/MerchantStatuses.php:497
+msgid "All products"
+msgstr "すべての商品"
+
+#: src/API/Site/Controllers/Jetpack/AccountController.php:268
+msgid "The URL for making a connection to Jetpack (wordpress.com)."
+msgstr "Jetpack (wordpress.com) に接続するための URL。"
+
+#: src/API/Site/Controllers/Google/AccountController.php:206
+msgid "The URL for making a connection to Google."
+msgstr "Google に接続するための URL。"
+
+#: src/API/Site/Controllers/Ads/SetupCompleteController.php:85
+msgid "Successfully marked Ads setup as completed."
+msgstr "広告のセットアップが完了しました。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:372
+msgid "Daily budget amount in the local currency."
+msgstr "現地通貨による1日の予算額。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:351
+msgid "Descriptive campaign name."
+msgstr "わかりやすいキャンペーン名。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:278
+msgid "Successfully deleted campaign."
+msgstr "キャンペーンの削除に成功しました。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:243
+msgid "Successfully edited campaign."
+msgstr "キャンペーンの編集に成功。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:213
+msgid "Invalid edit data."
+msgstr "無効な編集データです。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:186
+msgid "Campaign is not available."
+msgstr "キャンペーンはご利用いただけません。"
+
+#. translators: %s: current date time.
+#: src/API/Site/Controllers/Ads/CampaignController.php:132
+msgid "Campaign %s"
+msgstr "キャンペーン %s"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:226
+msgid "Conversions."
+msgstr "コンバージョン。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:221
+msgid "Spend amount."
+msgstr "支出金額。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:216
+msgid "Sales amount."
+msgstr "販売額。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:359
+#: src/API/Site/Controllers/Ads/ReportsController.php:160
+msgid "Campaign status."
+msgstr "キャンペーンステータス。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:154
+msgid "Campaign name."
+msgstr "キャンペーン名。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:345
+#: src/API/Site/Controllers/Ads/ReportsController.php:149
+msgid "ID number."
+msgstr "ID番号。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:135
+#: src/API/Site/Controllers/MerchantCenter/ReportsController.php:139
+msgid "Product name."
+msgstr "商品名。"
+
+#: src/Ads/AccountService.php:328
+msgid "Billing setup must be completed."
+msgstr "課金設定を完了する必要があります。"
+
+#. translators: 1: is a numeric account ID
+#: src/Ads/AccountService.php:108
+msgid "Ads account %1$d already connected."
+msgstr "広告アカウント%1$dはすでに接続されています。"
+
+#: src/API/Site/Controllers/Ads/AccountController.php:207
+msgid "Billing Flow URL."
+msgstr "請求フロー URL。"
+
+#: src/API/Site/Controllers/Ads/AccountController.php:200
+msgid "Google Ads Account ID."
+msgstr "Google 広告アカウントID。"
+
+#: src/API/Site/Controllers/Ads/AccountController.php:160
+#: src/API/Site/Controllers/Google/AccountController.php:151
+#: src/API/Site/Controllers/Jetpack/AccountController.php:169
+msgid "Successfully disconnected."
+msgstr "切断に成功した。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:165
+msgid "Country codes of the product audience."
+msgstr "商品の利用者の国コード。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:155
+msgid "Documentation URL for issue and/or action."
+msgstr "問題および/またはアクションのドキュメンテーション URL。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:150
+msgid "Descriptive text of action to take."
+msgstr "取るべき行動の説明文。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:145
+msgid "Descriptive text of the issue."
+msgstr "問題の説明文。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:140
+msgid "Internal Google code for issue."
+msgstr "Google の内部コード。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:135
+msgid "The WooCommerce product ID."
+msgstr "WooCommerce のプロダクト ID。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:130
+msgid "Affected product."
+msgstr "影響を受ける商品。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:125
+msgid "Issue type."
+msgstr "問題の種類。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:117
+msgid "The issues related to the Merchant Center account."
+msgstr "Merchant Center アカウントに関する問題。"
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:346
+msgid "Country in which the shipping time applies."
+msgstr "配送時間が適用される国。"
+
+#. translators: %s is the country code in ISO 3166-1 alpha-2 format.
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:204
+msgid "Successfully deleted the time for country: \"%s\"."
+msgstr "国の時間の削除に成功: \"%s\"."
+
+#. translators: %s is the country code in ISO 3166-1 alpha-2 format.
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:170
+msgid "Successfully added time for country: \"%s\"."
+msgstr "国の時間の追加に成功: \"%s\"."
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:119
+msgid "No time available."
+msgstr "時間がない。"
+
+#: src/API/Site/Controllers/MerchantCenter/ConnectionController.php:56
+msgid "Action that should be completed after connection."
+msgstr "接続後に完了する必要があるアクション。"
+
+#: src/API/Site/Controllers/ShippingRateSchemaTrait.php:50
+msgid "The shipping rate."
+msgstr "送料。"
+
+#: src/API/Site/Controllers/Ads/BudgetRecommendationController.php:216
+#: src/API/Site/Controllers/ShippingRateSchemaTrait.php:42
+msgid "The currency to use for the shipping rate."
+msgstr "送料に使用する通貨。"
+
+#: src/API/Site/Controllers/Ads/BudgetMetricsController.php:167
+#: src/API/Site/Controllers/Ads/BudgetRecommendationController.php:227
+#: src/API/Site/Controllers/Ads/IncentiveCreditsController.php:89
+#: src/API/Site/Controllers/MerchantCenter/ShippingTimeController.php:255
+#: src/API/Site/Controllers/ShippingRateSchemaTrait.php:34
+msgid "Country code in ISO 3166-1 alpha-2 format."
+msgstr "ISO 3166-1 alpha-2 形式の国コード。"
+
+#. translators: %s is the country code in ISO 3166-1 alpha-2 format.
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateController.php:216
+msgid "Successfully added rate for country: \"%s\"."
+msgstr "国別料金の追加に成功しました: ”%s”."
+
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateController.php:128
+msgid "No rate available."
+msgstr "レートはありません。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:182
+msgid "Limit result to items with specified ids (comma-separated)."
+msgstr "指定した ID (カンマ区切り) を持つアイテムに結果を限定する。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:177
+msgid "Text to search for in product names."
+msgstr "商品名で検索するテキスト。"
+
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:200
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:161
+msgid "Page of data to retrieve."
+msgstr "取得するデータのページ。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:122
+msgid "Errors preventing the product from being synced to the Merchant Center."
+msgstr "商品が Merchant Center に同期されないエラー。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:107
+msgid "The current sync status of the product."
+msgstr "商品の現在の同期ステータス。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:102
+msgid "Whether the product is set to be visible in the Merchant Center"
+msgstr "商品が Merchant Center に表示されるように設定されているかどうか"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:97
+msgid "Product title."
+msgstr "商品タイトル。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:84
+msgid "The store's products."
+msgstr "店の商品。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:211
+#: src/API/Site/Controllers/MerchantCenter/ReportsController.php:185
+msgid "Impressions."
+msgstr "印象だ。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:206
+#: src/API/Site/Controllers/MerchantCenter/ReportsController.php:180
+msgid "Clicks."
+msgstr "クリック。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:189
+#: src/API/Site/Controllers/MerchantCenter/ReportsController.php:163
+msgid "Token to retrieve the next page of results."
+msgstr "次のページの結果を取得するためのトークン。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:179
+#: src/API/Site/Controllers/MerchantCenter/ReportsController.php:153
+msgid "ID of this report segment."
+msgstr "このレポートセグメントの ID。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:130
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:92
+#: src/API/Site/Controllers/MerchantCenter/ReportsController.php:134
+msgid "Product ID."
+msgstr "商品 ID。"
+
+#: src/API/Site/Controllers/Ads/ReportsController.php:102
+#: src/API/Site/Controllers/MerchantCenter/ReportsController.php:101
+msgid "Time interval to use for segments in the returned data."
+msgstr "返されるデータのセグメントに使用する時間間隔。"
+
+#: src/API/Site/Controllers/MerchantCenter/SettingsSyncController.php:91
+msgid "Successfully synchronized settings with Google."
+msgstr "Google との設定の同期に成功。"
+
+#: src/API/Site/Controllers/MerchantCenter/TargetAudienceController.php:236
+msgid "Location where products will be shown."
+msgstr "商品が展示される場所。"
+
+#: src/API/Site/Controllers/MerchantCenter/TargetAudienceController.php:176
+msgid "The language to use for product listings."
+msgstr "商品リストに使用する言語。"
+
+#: src/API/Site/Controllers/MerchantCenter/TargetAudienceController.php:165
+msgid "The locale for the site."
+msgstr "サイトのロケール。"
+
+#: src/API/Site/Controllers/MerchantCenter/TargetAudienceController.php:143
+msgid "Successfully updated the Target Audience settings."
+msgstr "対象読者設定の更新に成功しました。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:162
+msgid "Products not uploaded."
+msgstr "アップロードされていない商品。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:157
+msgid "Disapproved products."
+msgstr "認可されていない商品。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:152
+msgid "Pending products."
+msgstr "保留中の商品。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:147
+msgid "Expiring products."
+msgstr "期限切れ商品。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:142
+msgid "Active products."
+msgstr "有効な商品。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:136
+msgid "Merchant Center product status statistics."
+msgstr "Merchant Center の商品ステータス統計。"
+
+#: src/API/Site/Controllers/MerchantCenter/ProductStatisticsController.php:130
+msgid "Timestamp reflecting when the product status statistics were last generated."
+msgstr "商品ステータス統計が最後に生成された日時を反映したタイムスタンプ。"
+
+#: src/API/Site/Controllers/MerchantCenter/SettingsController.php:145
+msgid "Whether tax rate is destination based or need to be configured manually in the Merchant Center."
+msgstr "税率が仕向地ベースか、Merchant Center で手動で設定する必要があるか。"
+
+#: src/API/Site/Controllers/MerchantCenter/SettingsController.php:132
+msgid "Whether shipping time is a simple flat time or needs to be configured manually in the Merchant Center."
+msgstr "配送時間が単純な一律時間であるか、Merchant Center で手動で設定する必要があるか。"
+
+#: src/API/Site/Controllers/ShippingRateSchemaTrait.php:66
+msgid "Minimum price eligible for free shipping."
+msgstr "送料無料の対象となる最低価格です。"
+
+#: src/API/Site/Controllers/MerchantCenter/SettingsController.php:118
+msgid "Whether shipping rate is a simple flat rate or needs to be configured manually in the Merchant Center."
+msgstr "配送料が単純な一律料金であるか、Merchant Center で手動で設定する必要があるか。"
+
+#: src/API/Site/Controllers/MerchantCenter/SettingsController.php:103
+msgid "Merchant Center Settings successfully updated."
+msgstr "Merchant Center の設定が正常に更新されました。"
+
+#. translators: 1: is a website URL (without the protocol)
+#: src/MerchantCenter/AccountService.php:490
+msgid "This Merchant Center account already has a verified and claimed URL, %1$s"
+msgstr "この Merchant Center のアカウントは、すでに検証済みの請求済み URL、%1$sを持っています"
+
+#: src/MerchantCenter/AccountService.php:409
+msgid "Unable to claim website URL with this Merchant Center Account."
+msgstr "この Merchant Center アカウントでウェブサイトの URL を請求できません。"
+
+#: src/API/Site/Controllers/MerchantCenter/AccountController.php:233
+msgid "Is a MCA sub account."
+msgstr "MCA のサブアカウント。"
+
+#: src/API/Site/Controllers/MerchantCenter/AccountController.php:226
+msgid "Merchant Center Account ID."
+msgstr "Merchant Center のアカウント ID。"
+
+#: src/API/Site/Controllers/MerchantCenter/AccountController.php:212
+msgid "Merchant Center account successfully disconnected."
+msgstr "Merchant Center のアカウントは正常に切断されました。"
+
+#: src/MerchantCenter/AccountService.php:186
+msgid "Attempting invalid URL switch."
+msgstr "無効な URL 切り替えを試みています。"
+
+#: src/MerchantCenter/AccountService.php:209
+msgid "Attempting invalid claim overwrite."
+msgstr "無効なクレームの上書きを試みています。"
+
+#: src/API/Site/Controllers/BatchSchemaTrait.php:33
+#: src/API/Site/Controllers/MerchantCenter/ShippingRateSuggestionsController.php:64
+#: src/API/Site/Controllers/MerchantCenter/TargetAudienceController.php:247
+msgid "Array of country codes in ISO 3166-1 alpha-2 format."
+msgstr "ISO 3166-1 alpha-2 形式の国コードの配列。"
+
+#: src/API/Site/Controllers/BaseReportsController.php:88
+msgid "Token to retrieve the next page."
+msgstr "次のページを取得するためのトークン。"
+
+#: src/API/Site/Controllers/Ads/CampaignController.php:326
+#: src/API/Site/Controllers/BaseReportsController.php:79
+#: src/API/Site/Controllers/MerchantCenter/IssuesController.php:208
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:169
+msgid "Maximum number of rows to be returned in result data."
+msgstr "結果データで返される最大行数。"
+
+#: src/API/Site/Controllers/BaseReportsController.php:74
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:165
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:191
+msgid "Sort collection by attribute."
+msgstr "コレクションを属性でソートする。"
+
+#: src/API/Site/Controllers/BaseReportsController.php:67
+#: src/API/Site/Controllers/MerchantCenter/PriceBenchmarksController.php:159
+#: src/API/Site/Controllers/MerchantCenter/ProductFeedController.php:198
+msgid "Order sort attribute ascending or descending."
+msgstr "注文の昇順または降順の並べ替え属性。"
+
+#: src/API/Site/Controllers/BaseReportsController.php:58
+msgid "Limit totals to a set of fields."
+msgstr "合計を一連のフィールドに制限する。"
+
+#: src/API/Site/Controllers/BaseReportsController.php:49
+msgid "Limit result to items with specified ids."
+msgstr "指定した ID を持つアイテムに結果を制限する。"
+
+#: src/API/Site/Controllers/BaseReportsController.php:42
+msgid "Limit response to data before a given ISO8601 compliant date."
+msgstr "ISO8601 に準拠した日付以前のデータに制限する。"
+
+#: src/API/Site/Controllers/BaseReportsController.php:35
+msgid "Limit response to data after a given ISO8601 compliant date."
+msgstr "ISO8601 に準拠した日付以降のデータへの応答を制限する。"
+
+#: src/API/Google/AdsCampaignBudget.php:147
+msgid "Invalid campaign budget ID"
+msgstr "無効なキャンペーン予算 ID"
+
+#. translators: %d Campaign ID
+#: src/API/Google/AdsCampaignBudget.php:131
+msgid "No budget found for campaign %d"
+msgstr "キャンペーン%dの予算が見つかりません"
+
+#: src/API/Google/MerchantReport.php:184
+msgid "Unable to retrieve report data."
+msgstr "レポートデータを取得できません。"
+
+#. translators: %s Error message
+#: src/API/Google/AdsConversionAction.php:157
+msgid "Error retrieving conversion action: %s"
+msgstr "コンバージョンアクションの取得エラー: %s"
+
+#. translators: %s Error message
+#: src/API/Google/AdsConversionAction.php:116
+msgid "Error creating conversion action: %s"
+msgstr "コンバージョンアクションの作成エラー: %s"
+
+#: src/API/Google/AdsConversionAction.php:107
+msgid "A conversion action with this name already exists"
+msgstr "この名前の変換アクションはすでに存在します"
+
+#. translators: %s Error message
+#: src/API/Google/SiteVerification.php:168
+msgid "Unable to insert site verification: %s"
+msgstr "サイト検証を挿入できません: %s"
+
+#. translators: %s Error message
+#: src/API/Google/SiteVerification.php:126
+msgid "Unable to retrieve site verification token: %s"
+msgstr "サイト検証トークンを取得できない: %s"
+
+#: src/API/Google/Connection.php:128
+msgid "Error retrieving status"
+msgstr "ステータス取得エラー"
+
+#: src/API/Google/Connection.php:123
+msgid "Invalid response when retrieving status"
+msgstr "ステータス取得時の無効な応答"
+
+#: src/API/Google/Connection.php:68 src/API/Google/Connection.php:72
+msgid "Unable to connect Google account"
+msgstr "Google アカウントに接続できない"
+
+#: src/API/Google/AdsCampaign.php:623
+msgid "Invalid campaign ID"
+msgstr "無効なキャンペーン ID"
+
+#. translators: %s Error message
+#: src/API/Google/AdsCampaign.php:361
+msgid "Error deleting campaign: %s"
+msgstr "キャンペーン削除のエラー: %s"
+
+#: src/API/Google/AdsCampaign.php:364
+msgid "This campaign has already been deleted"
+msgstr "このキャンペーンはすでに削除されています"
+
+#. translators: %s Error message
+#: src/API/Google/AdsCampaign.php:325
+msgid "Error editing campaign: %s"
+msgstr "キャンペーン編集エラー: %s"
+
+#. translators: %s Error message
+#: src/API/Google/AdsCampaign.php:203
+msgid "Error retrieving campaign: %s"
+msgstr "キャンペーンの取得エラー: %s"
+
+#. translators: %s Error message
+#: src/API/Google/AdsCampaign.php:269
+msgid "Error creating campaign: %s"
+msgstr "キャンペーン作成エラー: %s"
+
+#: src/API/Google/AdsCampaign.php:272
+msgid "A campaign with this name already exists"
+msgstr "この名前のキャンペーンはすでに存在する"
+
+#. translators: %s Error message
+#: src/API/Google/AdsCampaign.php:160
+msgid "Error retrieving campaigns: %s"
+msgstr "キャンペーンの取得エラー: %s"
+
+#. translators: %1 is the shipping rate, %2 is the currency (e.g. USD)
+#: src/Shipping/GoogleAdapter/DBShippingSettingsAdapter.php:122
+msgid "Flat rate - %1$s %2$s"
+msgstr "定額 - %1$s %2$s"
+
+#. translators: %s Error message
+#: src/API/Google/Merchant.php:301
+msgid "Unable to update Merchant Center account: %s"
+msgstr "Merchant Center アカウントを更新できません: %s"
+
+#: src/API/Google/Merchant.php:251
+msgid "Unable to retrieve Merchant Center account status."
+msgstr "Merchant Center のアカウントステータスを取得できません。"
+
+#. translators: %s Error message
+#: src/API/Google/Merchant.php:200
+msgid "Unable to retrieve Merchant Center account: %s"
+msgstr "Merchant Center のアカウントを取得できません: %s"
+
+#: src/API/Google/Merchant.php:100
+msgid "Website already claimed, use overwrite to complete the process."
+msgstr "サイトはすでにクレーム済みなので、上書きで処理を完了させる。"
+
+#: src/API/Google/Merchant.php:98
+msgid "Unable to claim website."
+msgstr "サイトを請求できない。"
+
+#: src/API/Google/Middleware.php:390
+msgid "Error linking account"
+msgstr "アカウントのリンクエラー"
+
+#: src/API/Google/Middleware.php:384
+msgid "Invalid response when linking account"
+msgstr "アカウントのリンク時に無効な応答"
+
+#: src/API/Google/Middleware.php:288
+msgid "Store country is not supported"
+msgstr "店舗の国がサポートされていません"
+
+#. translators: %s Error message
+#: src/API/Google/Ads.php:85
+msgid "Error retrieving accounts: %s"
+msgstr "アカウント取得エラー: %s"
+
+#: src/API/Google/Middleware.php:269
+msgid "Error claiming website"
+msgstr "サイトの請求エラー"
+
+#: src/API/Google/Middleware.php:262
+msgid "Invalid response when claiming website"
+msgstr "サイトへの請求時に無効な応答"
+
+#: src/API/Google/Middleware.php:223
+msgid "Error linking merchant to MCA"
+msgstr "加盟店と MCA のリンクエラー"
+
+#: src/API/Google/Middleware.php:217
+msgid "Invalid response when linking merchant to MCA"
+msgstr "加盟店を MCA にリンクする際の無効な応答"
+
+#: src/API/Google/Middleware.php:156 src/API/Google/Middleware.php:340
+msgid "Error creating account"
+msgstr "アカウント作成エラー"
+
+#: src/API/Google/Middleware.php:153 src/API/Google/Middleware.php:334
+msgid "Invalid response when creating account"
+msgstr "アカウント作成時の無効な応答"
+
+#: src/API/Google/Middleware.php:97 src/API/Google/SiteVerification.php:59
+#: src/MerchantCenter/AccountService.php:462
+msgid "Invalid site URL."
+msgstr "無効なサイト URL です。"
+
+#: src/API/Google/Middleware.php:92 src/API/Google/Middleware.php:294
+msgid "Unable to log accepted TOS"
+msgstr "承認された TOS を記録できない"
+
+#: src/API/Google/Middleware.php:75
+msgid "Error retrieving accounts"
+msgstr "アカウントの取得エラー"
+
+#. translators: 1: is a link to a support document. 2: closing link
+#: src/Autoloader.php:63
+msgid "Your installation of Google for WooCommerce is incomplete. If you installed from GitHub, %1$splease refer to this document%2$s to set up your development environment."
+msgstr "Google for WooCommerce のインストールが不完全です。GitHub からインストールした場合は、%1$sこちらのドキュメント%2$sを参照して開発環境をセットアップしてください。"
+
+#: src/Autoloader.php:51
+msgid "Your installation of Google for WooCommerce is incomplete. If you installed from GitHub, please refer to this document to set up your development environment: https://github.com/woocommerce/woocommerce/wiki/How-to-set-up-WooCommerce-development-environment"
+msgstr "Google for WooCommerce のインストールが不完全です。GitHub からインストールした場合は、こちらのドキュメントを参考に開発環境を設定してください: https://github.com/woocommerce/woocommerce/wiki/How-to-set-up-WooCommerce-development-environment"
+
+#. translators: 1 is the required component, 2 is the minimum required version,
+#. 3 is the version in use on the site
+#: src/Exception/InvalidVersion.php:40
+msgid "Google for WooCommerce requires %1$s version %2$s or higher. You are using version %3$s."
+msgstr "Google for WooCommerce は%1$sバージョン%2$s以上を必要とします。あなたはバージョン%3$sを使用しています。"
+
+#. Author URI of the plugin
+#: google-listings-and-ads.php
+msgid "https://woocommerce.com/"
+msgstr "https://woocommerce.com/"
+
+#. Author of the plugin
+#: google-listings-and-ads.php js/build/index.js:25
+msgid "WooCommerce"
+msgstr "WooCommerce"
+
+#. Description of the plugin
+#: google-listings-and-ads.php src/MultichannelMarketing/GLAChannel.php:113
+msgid "Native integration with Google that allows merchants to easily display their products across Google’s network."
+msgstr "Google とのネイティブ統合により、マーチャントは Google のネットワーク上で簡単に商品を表示することができます。"

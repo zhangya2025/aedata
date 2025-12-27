@@ -1,0 +1,32 @@
+# --- WordPress core (可选：如果你不想提交核心文件，可以忽略 wp-admin/wp-includes 等；此处先不忽略，保持“能还原”思路) ---
+
+# Sensitive
+wp-config.php
+.env
+*.key
+*.pem
+
+# Uploads (建议不入库)
+wp-content/uploads/
+
+# Cache / logs
+wp-content/cache/
+wp-content/w3tc-config/
+wp-content/upgrade/
+wp-content/backups/
+wp-content/backup-*
+*.log
+error_log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependency dirs (如有)
+node_modules/
+vendor/
+
+# Misc
+.htaccess~
