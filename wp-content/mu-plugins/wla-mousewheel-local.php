@@ -11,12 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-if ( is_admin() ) {
+if ( is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
     return;
 }
 
-add_action( 'wp_enqueue_scripts', 'wla_register_local_mousewheel', 5 );
+add_action( 'wp_enqueue_scripts', 'wla_register_local_mousewheel', 1 );
 function wla_register_local_mousewheel() {
+    $path = plugin_dir_path( __FILE__ ) . 'vendor/jquery-mousewheel/jquery.mousewheel.min.js';
+
+    if ( ! file_exists( $path ) ) {
+        return;
+    }
+
     $src = plugin_dir_url( __FILE__ ) . 'vendor/jquery-mousewheel/jquery.mousewheel.min.js';
 
     wp_register_script( 'wla-jquery-mousewheel', $src, [ 'jquery' ], '3.1.13', false );
@@ -27,7 +33,7 @@ add_action( 'wp_enqueue_scripts', 'wla_add_mousewheel_dependency', 50 );
 function wla_add_mousewheel_dependency() {
     $scripts = wp_scripts();
 
-    if ( ! $scripts ) {
+    if ( ! $scripts || ! wp_script_is( 'wla-jquery-mousewheel', 'enqueued' ) ) {
         return;
     }
 
