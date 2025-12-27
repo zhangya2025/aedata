@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WLA Mousewheel Local
  * Description: Load a local jquery-mousewheel script early on the frontend to prevent The7 custom scrollbar from requesting cdnjs.cloudflare.com.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Wind Local Assets
  * License: MIT (jquery-mousewheel by brandonaaron/jquery-mousewheel)
  */
@@ -23,7 +23,7 @@ function wla_register_local_mousewheel() {
     wp_enqueue_script( 'wla-jquery-mousewheel' );
 }
 
-add_action( 'wp_enqueue_scripts', 'wla_add_mousewheel_dependency', 15 );
+add_action( 'wp_enqueue_scripts', 'wla_add_mousewheel_dependency', 50 );
 function wla_add_mousewheel_dependency() {
     $scripts = wp_scripts();
 
