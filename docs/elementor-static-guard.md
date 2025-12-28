@@ -12,6 +12,10 @@
 return [
   'enable'         => true,
   'log'            => false,
+  'immutable_lock' => true,       // S1 总开关（锁能力/文件修改）
+  'lock_caps' => true,
+  'lock_file_mods' => true,
+  'disable_wp_update_cron' => true,
   'freeze_all_updates' => true,  // 全站插件更新冻结
   'freeze_updates' => true,      // Elementor/Pro 冻结（兼容旧配置）
   'freeze_themes'  => true,
@@ -19,6 +23,8 @@ return [
   'silence_notices'=> true,
   'block_remote'   => true,
   'hide_plugin_row_upsell' => true,
+  'disable_the7_tgmpa' => true,
+  'disable_the7_wizard' => true,
   'fonts_mode'     => 'system',  // system|local|allow-google
   'deny_hosts'     => [
     'assets.elementor.com',
@@ -32,6 +38,9 @@ return [
     'go.elementor.com',
     'api.wordpress.org',
     'downloads.wordpress.org',
+    'repo.the7.io',
+    'my.the7.io',
+    'themeforest.net',
   ],
   'allow_hosts'    => [],
 ];
@@ -52,6 +61,8 @@ return [
 - **静默后台/编辑器营销**：通过 `elementor/core/admin/notifications` 过滤器返回空数组；在 `plugins_loaded` 精准移除 `Elementor\Core\Admin\Admin_Notices::admin_notices`（动态获取优先级）；`elementor/tracker/send_override` 阻止追踪发送；`plugin_action_links/plugin_row_meta` 过滤掉 Elementor 行内 “Get Pro/Upgrade” 链接。
 - **外联全断与空响应回填**：`pre_http_request` 对 deny_hosts 命中阻断；`assets.elementor.com` 返回 200 空 JSON（通知类用 `[]`，其余 `{}`），`api.wordpress.org` 返回 200 空结构（避免“未知错误”），其他云域名默认阻断；`http_request_args` 将相关请求超时压缩到 5 秒以内。
 - **字体零外联**：`elementor/frontend/print_google_fonts` 阻止输出；`style_loader_tag/script_loader_tag` 直接移除 fonts.googleapis.com / fonts.gstatic.com 标签，避免空 href/src；`pre_http_request` 阻断为兜底。
+- **S1 锁死能力**：`immutable_lock` 打开时强制 `DISALLOW_FILE_MODS`/`DISALLOW_FILE_EDIT`，并通过 `user_has_cap`/`map_meta_cap` 移除安装/更新/删除/编辑插件与主题的能力，同时清理 `wp_update_plugins/wp_update_themes/wp_version_check` 计划任务。
+- **The7 专项禁用**：在激活 dt-the7 主题时，过滤 `presscore_tgmpa_module_plugins_list`、移除 `Presscore_Modules_TGMPAModule::register_plugins_action` 及相关更新过滤器，清空 `the7_demo_content_list` 并移除 Demo/Wizard AJAX 与菜单钩子；外联对 repo.the7.io/my.the7.io/themeforest.net 一律阻断或回填空 JSON。
 
 ## 被阻断域名与影响
 - assets.elementor.com：通知/Promotions/向导素材 → 空 JSON/缺图，不影响编辑保存（通知类返回 `[]`）。

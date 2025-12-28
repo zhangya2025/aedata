@@ -13,6 +13,10 @@ function wla_esg_default_config() {
     return [
         'enable'         => true,
         'log'            => false,
+        'immutable_lock' => true,
+        'lock_caps' => true,
+        'lock_file_mods' => true,
+        'disable_wp_update_cron' => true,
         'freeze_all_updates' => true,
         'freeze_updates' => true,
         'freeze_themes'  => true,
@@ -20,6 +24,8 @@ function wla_esg_default_config() {
         'silence_notices'=> true,
         'block_remote'   => true,
         'hide_plugin_row_upsell' => true,
+        'disable_the7_tgmpa' => true,
+        'disable_the7_wizard' => true,
         'fonts_mode'     => 'system',
         'deny_hosts'     => [
             'assets.elementor.com',
@@ -33,6 +39,9 @@ function wla_esg_default_config() {
             'go.elementor.com',
             'api.wordpress.org',
             'downloads.wordpress.org',
+            'repo.the7.io',
+            'my.the7.io',
+            'themeforest.net',
         ],
         'allow_hosts'    => [],
     ];
@@ -87,8 +96,69 @@ function wla_esg_log( $message ) {
     file_put_contents( $file, $line, FILE_APPEND );
 }
 
+function wla_esg_apply_file_mod_constants() {
+    if ( ! wla_esg_is_immutable() || ! wla_esg_cfg( 'lock_file_mods', true ) ) {
+        return;
+    }
+
+    if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+        define( 'DISALLOW_FILE_MODS', true );
+    }
+
+    if ( ! defined( 'DISALLOW_FILE_EDIT' ) ) {
+        define( 'DISALLOW_FILE_EDIT', true );
+    }
+}
+add_action( 'muplugins_loaded', 'wla_esg_apply_file_mod_constants', 1 );
+
+function wla_esg_lock_user_caps( $allcaps ) {
+    if ( ! wla_esg_is_immutable() || ! wla_esg_cfg( 'lock_caps', true ) ) {
+        return $allcaps;
+    }
+
+    foreach ( wla_esg_locked_caps() as $cap ) {
+        if ( isset( $allcaps[ $cap ] ) ) {
+            $allcaps[ $cap ] = false;
+        }
+    }
+
+    return $allcaps;
+}
+add_filter( 'user_has_cap', 'wla_esg_lock_user_caps' );
+
+function wla_esg_map_meta_cap( $caps, $cap ) {
+    if ( ! wla_esg_is_immutable() || ! wla_esg_cfg( 'lock_caps', true ) ) {
+        return $caps;
+    }
+
+    if ( in_array( $cap, wla_esg_locked_caps(), true ) ) {
+        return [ 'do_not_allow' ];
+    }
+
+    return $caps;
+}
+add_filter( 'map_meta_cap', 'wla_esg_map_meta_cap', 10, 2 );
+
 function wla_esg_is_enabled() {
     return (bool) wla_esg_cfg( 'enable', true );
+}
+
+function wla_esg_is_immutable() {
+    return wla_esg_is_enabled() && (bool) wla_esg_cfg( 'immutable_lock', true );
+}
+
+function wla_esg_locked_caps() {
+    return [
+        'update_plugins',
+        'update_themes',
+        'update_core',
+        'install_plugins',
+        'install_themes',
+        'delete_plugins',
+        'delete_themes',
+        'edit_themes',
+        'edit_plugins',
+    ];
 }
 
 function wla_esg_is_host_allowed( $host ) {
@@ -125,9 +195,18 @@ function wla_esg_elementor_plugins() {
 
 function wla_esg_empty_json_body( $url ) {
     $path = parse_url( $url, PHP_URL_PATH );
+    $host = parse_url( $url, PHP_URL_HOST );
 
     if ( $path && false !== stripos( $path, 'notifications' ) ) {
         return '[]';
+    }
+
+    if ( $host && 'repo.the7.io' === strtolower( $host ) && $path ) {
+        if ( false !== stripos( $path, 'list' ) ) {
+            return '[]';
+        }
+
+        return '{}';
     }
 
     return '{}';
@@ -173,7 +252,7 @@ function wla_esg_fake_http_response( $body ) {
 }
 
 function wla_esg_pre_http_request( $pre, $r, $url ) {
-    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'block_remote' ) ) {
+    if ( ! wla_esg_is_enabled() ) {
         return $pre;
     }
 
@@ -183,7 +262,8 @@ function wla_esg_pre_http_request( $pre, $r, $url ) {
         return $pre;
     }
 
-    $host = strtolower( $host );
+    $host          = strtolower( $host );
+    $should_block  = wla_esg_cfg( 'block_remote' ) || wla_esg_is_immutable();
 
     // Fonts are blocked unless explicitly allowed.
     if ( 'system' === wla_esg_cfg( 'fonts_mode' ) && ( 'fonts.googleapis.com' === $host || 'fonts.gstatic.com' === $host ) ) {
@@ -196,7 +276,7 @@ function wla_esg_pre_http_request( $pre, $r, $url ) {
         return new WP_Error( 'wla_esg_fonts_blocked', __( 'Remote fonts blocked', 'wla-esg' ) );
     }
 
-    if ( ! wla_esg_is_host_denied( $host ) ) {
+    if ( ! $should_block || ! wla_esg_is_host_denied( $host ) ) {
         return $pre;
     }
 
@@ -215,7 +295,21 @@ function wla_esg_pre_http_request( $pre, $r, $url ) {
         return wla_esg_fake_http_response( $body );
     }
 
-    // Block Elementor/Pro cloud APIs and other hosts with an error or empty response for downloads.
+    if ( 'repo.the7.io' === $host ) {
+        $path = parse_url( $url, PHP_URL_PATH );
+
+        if ( $path && false !== stripos( $path, 'download.php' ) ) {
+            wla_esg_log( 'Blocked repo.the7.io download: ' . $url );
+
+            return new WP_Error( 'wla_esg_the7_download_blocked', __( 'The7 downloads blocked by Immutable Lock', 'wla-esg' ) );
+        }
+
+        $body = wla_esg_empty_json_body( $url );
+        wla_esg_log( 'Blocked repo.the7.io with placeholder body: ' . $url );
+
+        return wla_esg_fake_http_response( $body );
+    }
+
     if ( 'downloads.wordpress.org' === $host ) {
         wla_esg_log( 'Blocked downloads.wordpress.org request: ' . $url );
 
@@ -247,6 +341,20 @@ function wla_esg_http_request_args( $args, $url ) {
     return $args;
 }
 add_filter( 'http_request_args', 'wla_esg_http_request_args', 10, 2 );
+
+function wla_esg_is_the7_active() {
+    if ( ! function_exists( 'wp_get_theme' ) ) {
+        require_once ABSPATH . 'wp-includes/theme.php';
+    }
+
+    $theme = wp_get_theme();
+
+    if ( ! $theme ) {
+        return false;
+    }
+
+    return 'dt-the7' === $theme->get_template();
+}
 
 function wla_esg_freeze_update_transient( $transient ) {
     if ( ! wla_esg_is_enabled() || ( ! wla_esg_cfg( 'freeze_updates' ) && ! wla_esg_cfg( 'freeze_all_updates' ) ) ) {
@@ -578,20 +686,82 @@ function wla_esg_strip_font_tag( $tag, $handle, $src ) {
 add_filter( 'style_loader_tag', 'wla_esg_strip_font_tag', 10, 3 );
 add_filter( 'script_loader_tag', 'wla_esg_strip_font_tag', 10, 3 );
 
+function wla_esg_disable_the7_tgmpa() {
+    if ( ! wla_esg_is_immutable() || ! wla_esg_cfg( 'disable_the7_tgmpa', true ) || ! wla_esg_is_the7_active() ) {
+        return;
+    }
+
+    add_filter( 'presscore_tgmpa_module_plugins_list', '__return_empty_array', 1 );
+
+    if ( class_exists( 'Presscore_Modules_TGMPAModule' ) ) {
+        remove_action( 'tgmpa_register', [ 'Presscore_Modules_TGMPAModule', 'register_plugins_action' ] );
+        remove_filter( 'pre_set_site_transient_update_plugins', [ 'Presscore_Modules_TGMPAModule', 'update_plugins_list' ], 99 );
+        remove_filter( 'site_transient_update_plugins', [ 'Presscore_Modules_TGMPAModule', 'update_plugins_list' ], 99 );
+    }
+
+    if ( has_action( 'tgmpa_register' ) ) {
+        remove_all_actions( 'tgmpa_register' );
+    }
+}
+add_action( 'after_setup_theme', 'wla_esg_disable_the7_tgmpa', 20 );
+
+function wla_esg_hide_the7_menus() {
+    if ( ! wla_esg_is_immutable() || ! wla_esg_cfg( 'disable_the7_wizard', true ) || ! wla_esg_is_the7_active() ) {
+        return;
+    }
+
+    remove_menu_page( 'the7-dashboard' );
+    remove_submenu_page( 'the7-dashboard', 'the7-plugins' );
+    remove_submenu_page( 'the7-dashboard', 'the7-demo-content' );
+}
+
+function wla_esg_disable_the7_wizard() {
+    if ( ! wla_esg_is_immutable() || ! wla_esg_cfg( 'disable_the7_wizard', true ) || ! wla_esg_is_the7_active() ) {
+        return;
+    }
+
+    if ( function_exists( 'the7_demo_content' ) ) {
+        $demo = the7_demo_content();
+
+        if ( isset( $demo->admin ) ) {
+            remove_action( 'admin_enqueue_scripts', [ $demo->admin, 'register_scripts' ] );
+            remove_action( 'admin_notices', [ $demo->admin, 'add_admin_notices' ] );
+            remove_action( 'wp_ajax_the7_import_demo_content', [ $demo->admin, 'ajax_import_demo_content' ] );
+            remove_action( 'wp_ajax_the7_remove_demo_content', [ $demo->admin, 'ajax_remove_demo_content' ] );
+            remove_action( 'wp_ajax_the7_demo_content_php_status', [ $demo->admin, 'ajax_get_php_ini_status' ] );
+            remove_action( 'wp_ajax_the7_keep_demo_content', [ $demo->admin, 'ajax_keep_demo_content' ] );
+            remove_action( 'admin_menu', [ $demo->admin, 'add_import_by_url_admin_menu' ] );
+        }
+
+        if ( isset( $demo->remote ) ) {
+            remove_action( 'init', [ $demo->remote, 'add_hooks' ] );
+            remove_filter( 'the7_demo_content_list', [ $demo->remote, 'filter_dummies_list' ] );
+        }
+    }
+
+    remove_action( 'add_meta_boxes', [ 'The7_Demo_Content_Meta_Box', 'add' ] );
+    remove_action( 'wp_ajax_the7_demo_keep_the_post', [ 'The7_Demo_Content_Meta_Box', 'save' ] );
+    add_filter( 'the7_demo_content_list', '__return_empty_array', 1 );
+    add_action( 'admin_menu', 'wla_esg_hide_the7_menus', 999 );
+}
+add_action( 'after_setup_theme', 'wla_esg_disable_the7_wizard', 25 );
+
 function wla_esg_clear_update_crons() {
     if ( ! wla_esg_is_enabled() ) {
         return;
     }
 
-    if ( wla_esg_cfg( 'freeze_all_updates' ) || wla_esg_cfg( 'freeze_updates' ) ) {
+    $cron_lock = wla_esg_is_immutable() && wla_esg_cfg( 'disable_wp_update_cron', true );
+
+    if ( $cron_lock || wla_esg_cfg( 'freeze_all_updates' ) || wla_esg_cfg( 'freeze_updates' ) ) {
         wp_clear_scheduled_hook( 'wp_update_plugins' );
     }
 
-    if ( wla_esg_cfg( 'freeze_themes' ) ) {
+    if ( $cron_lock || wla_esg_cfg( 'freeze_themes' ) ) {
         wp_clear_scheduled_hook( 'wp_update_themes' );
     }
 
-    if ( wla_esg_cfg( 'freeze_core' ) ) {
+    if ( $cron_lock || wla_esg_cfg( 'freeze_core' ) ) {
         wp_clear_scheduled_hook( 'wp_version_check' );
     }
 }

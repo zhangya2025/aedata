@@ -2,6 +2,10 @@
 return [
   'enable'         => true,
   'log'            => false,
+  'immutable_lock' => true,
+  'lock_caps' => true,
+  'lock_file_mods' => true,
+  'disable_wp_update_cron' => true,
   'freeze_all_updates' => true,
   'freeze_updates' => true,
   'freeze_themes'  => true,
@@ -9,6 +13,8 @@ return [
   'silence_notices'=> true,
   'block_remote'   => true,
   'hide_plugin_row_upsell' => true,
+  'disable_the7_tgmpa' => true,
+  'disable_the7_wizard' => true,
   'fonts_mode'     => 'system',
   'deny_hosts'     => [
     'assets.elementor.com',
@@ -22,6 +28,9 @@ return [
     'go.elementor.com',
     'api.wordpress.org',
     'downloads.wordpress.org',
+    'repo.the7.io',
+    'my.the7.io',
+    'themeforest.net',
   ],
   'allow_hosts'    => [],
 ];
