@@ -2,9 +2,13 @@
 return [
   'enable'         => true,
   'log'            => false,
+  'freeze_all_updates' => true,
   'freeze_updates' => true,
+  'freeze_themes'  => true,
+  'freeze_core'    => true,
   'silence_notices'=> true,
   'block_remote'   => true,
+  'hide_plugin_row_upsell' => true,
   'fonts_mode'     => 'system',
   'deny_hosts'     => [
     'assets.elementor.com',
@@ -16,6 +20,8 @@ return [
     'api.github.com',
     'raw.githubusercontent.com',
     'go.elementor.com',
+    'api.wordpress.org',
+    'downloads.wordpress.org',
   ],
   'allow_hosts'    => [],
 ];

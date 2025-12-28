@@ -13,9 +13,13 @@ function wla_esg_default_config() {
     return [
         'enable'         => true,
         'log'            => false,
+        'freeze_all_updates' => true,
         'freeze_updates' => true,
+        'freeze_themes'  => true,
+        'freeze_core'    => true,
         'silence_notices'=> true,
         'block_remote'   => true,
+        'hide_plugin_row_upsell' => true,
         'fonts_mode'     => 'system',
         'deny_hosts'     => [
             'assets.elementor.com',
@@ -27,6 +31,8 @@ function wla_esg_default_config() {
             'api.github.com',
             'raw.githubusercontent.com',
             'go.elementor.com',
+            'api.wordpress.org',
+            'downloads.wordpress.org',
         ],
         'allow_hosts'    => [],
     ];
@@ -109,15 +115,61 @@ function wla_esg_is_host_denied( $host ) {
     return in_array( $host, (array) wla_esg_cfg( 'deny_hosts', [] ), true );
 }
 
-function wla_esg_empty_json_body( $url ) {
-    $body = '{}';
+function wla_esg_elementor_plugins() {
+    return [
+        'elementor/elementor.php',
+        'elementor-pro/elementor-pro.php',
+        'pro-elements/pro-elements.php',
+    ];
+}
 
+function wla_esg_empty_json_body( $url ) {
     $path = parse_url( $url, PHP_URL_PATH );
-    if ( preg_match( '#notifications|promotions|experiments|mixpanel#i', $url ) || ( $path && '.json' === substr( $path, -5 ) ) ) {
-        $body = '[]';
+
+    if ( $path && false !== stripos( $path, 'notifications' ) ) {
+        return '[]';
     }
 
-    return $body;
+    return '{}';
+}
+
+function wla_esg_fake_wporg_body( $url ) {
+    $path = parse_url( $url, PHP_URL_PATH );
+
+    if ( $path && false !== strpos( $path, '/plugins/update-check' ) ) {
+        return maybe_serialize( (object) [
+            'plugins'      => [],
+            'translations' => [],
+        ] );
+    }
+
+    if ( $path && false !== strpos( $path, '/themes/update-check' ) ) {
+        return maybe_serialize( (object) [
+            'themes'       => [],
+            'translations' => [],
+        ] );
+    }
+
+    if ( $path && false !== strpos( $path, '/core/version-check' ) ) {
+        $version = get_bloginfo( 'version' );
+        return wp_json_encode( [
+            'offers'          => [],
+            'translations'    => [],
+            'version_checked' => $version,
+        ] );
+    }
+
+    return '{}';
+}
+
+function wla_esg_fake_http_response( $body ) {
+    return [
+        'headers'  => [],
+        'body'     => $body,
+        'response' => [ 'code' => 200, 'message' => 'OK' ],
+        'cookies'  => [],
+        'filename' => null,
+    ];
 }
 
 function wla_esg_pre_http_request( $pre, $r, $url ) {
@@ -135,6 +187,10 @@ function wla_esg_pre_http_request( $pre, $r, $url ) {
 
     // Fonts are blocked unless explicitly allowed.
     if ( 'system' === wla_esg_cfg( 'fonts_mode' ) && ( 'fonts.googleapis.com' === $host || 'fonts.gstatic.com' === $host ) ) {
+        if ( wla_esg_is_host_allowed( $host ) ) {
+            return $pre;
+        }
+
         wla_esg_log( 'Blocked fonts host: ' . $url );
 
         return new WP_Error( 'wla_esg_fonts_blocked', __( 'Remote fonts blocked', 'wla-esg' ) );
@@ -146,18 +202,26 @@ function wla_esg_pre_http_request( $pre, $r, $url ) {
 
     // Assets endpoints get empty JSON to avoid repeated retries.
     if ( 'assets.elementor.com' === $host ) {
+        $body = wla_esg_empty_json_body( $url );
         wla_esg_log( 'Blocked assets endpoint with empty JSON: ' . $url );
 
-        return [
-            'headers'  => [],
-            'body'     => wla_esg_empty_json_body( $url ),
-            'response' => [ 'code' => 200, 'message' => 'OK' ],
-            'cookies'  => [],
-            'filename' => null,
-        ];
+        return wla_esg_fake_http_response( $body );
     }
 
-    // Block Elementor/Pro cloud APIs and other hosts with an error.
+    if ( 'api.wordpress.org' === $host ) {
+        $body = wla_esg_fake_wporg_body( $url );
+        wla_esg_log( 'Blocked api.wordpress.org with fake body: ' . $url );
+
+        return wla_esg_fake_http_response( $body );
+    }
+
+    // Block Elementor/Pro cloud APIs and other hosts with an error or empty response for downloads.
+    if ( 'downloads.wordpress.org' === $host ) {
+        wla_esg_log( 'Blocked downloads.wordpress.org request: ' . $url );
+
+        return new WP_Error( 'wla_esg_download_blocked', __( 'Download blocked by Elementor Static Guard', 'wla-esg' ) );
+    }
+
     wla_esg_log( 'Blocked remote request: ' . $url );
 
     return new WP_Error( 'wla_esg_remote_blocked', __( 'Remote request blocked by Elementor Static Guard', 'wla-esg' ) );
@@ -185,7 +249,7 @@ function wla_esg_http_request_args( $args, $url ) {
 add_filter( 'http_request_args', 'wla_esg_http_request_args', 10, 2 );
 
 function wla_esg_freeze_update_transient( $transient ) {
-    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'freeze_updates' ) ) {
+    if ( ! wla_esg_is_enabled() || ( ! wla_esg_cfg( 'freeze_updates' ) && ! wla_esg_cfg( 'freeze_all_updates' ) ) ) {
         return $transient;
     }
 
@@ -209,12 +273,26 @@ function wla_esg_freeze_update_transient( $transient ) {
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
     }
 
-    $plugins    = get_plugins();
-    $elementors = [
-        'elementor/elementor.php',
-        'elementor-pro/elementor-pro.php',
-        'pro-elements/pro-elements.php',
-    ];
+    $plugins = get_plugins();
+
+    if ( wla_esg_cfg( 'freeze_all_updates' ) ) {
+        $transient->response = [];
+
+        foreach ( $plugins as $basename => $data ) {
+            $transient->checked[ $basename ]   = $data['Version'];
+            $transient->no_update[ $basename ] = (object) [
+                'slug'        => sanitize_title( $data['Name'] ),
+                'plugin'      => $basename,
+                'new_version' => $data['Version'],
+                'package'     => '',
+                'icons'       => [],
+            ];
+        }
+
+        return $transient;
+    }
+
+    $elementors = wla_esg_elementor_plugins();
 
     foreach ( $elementors as $basename ) {
         if ( isset( $transient->response[ $basename ] ) ) {
@@ -239,8 +317,67 @@ function wla_esg_freeze_update_transient( $transient ) {
 add_filter( 'pre_set_site_transient_update_plugins', 'wla_esg_freeze_update_transient' );
 add_filter( 'site_transient_update_plugins', 'wla_esg_freeze_update_transient' );
 
+function wla_esg_freeze_theme_transient( $transient ) {
+    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'freeze_themes' ) ) {
+        return $transient;
+    }
+
+    if ( ! is_object( $transient ) ) {
+        $transient = new stdClass();
+    }
+
+    if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) {
+        $transient->response = [];
+    }
+
+    if ( ! isset( $transient->checked ) || ! is_array( $transient->checked ) ) {
+        $transient->checked = [];
+    }
+
+    if ( ! function_exists( 'wp_get_themes' ) ) {
+        require_once ABSPATH . 'wp-includes/theme.php';
+    }
+
+    $themes = wp_get_themes();
+
+    foreach ( $themes as $slug => $theme ) {
+        $transient->checked[ $slug ] = $theme->get( 'Version' );
+    }
+
+    return $transient;
+}
+add_filter( 'pre_set_site_transient_update_themes', 'wla_esg_freeze_theme_transient' );
+add_filter( 'site_transient_update_themes', 'wla_esg_freeze_theme_transient' );
+
+function wla_esg_freeze_core_update( $value ) {
+    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'freeze_core' ) ) {
+        return $value;
+    }
+
+    $version = get_bloginfo( 'version' );
+    $empty   = new stdClass();
+    $empty->updates          = [];
+    $empty->version_checked  = $version;
+    $empty->translations     = [];
+
+    return $empty;
+}
+add_filter( 'pre_site_transient_update_core', 'wla_esg_freeze_core_update' );
+add_filter( 'site_transient_update_core', 'wla_esg_freeze_core_update' );
+
+function wla_esg_disable_core_auto_updates( $value ) {
+    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'freeze_core' ) ) {
+        return $value;
+    }
+
+    return false;
+}
+add_filter( 'allow_major_auto_core_updates', 'wla_esg_disable_core_auto_updates' );
+add_filter( 'allow_minor_auto_core_updates', 'wla_esg_disable_core_auto_updates' );
+add_filter( 'auto_update_core', 'wla_esg_disable_core_auto_updates' );
+
 function wla_esg_plugins_api_block( $result, $action, $args ) {
-    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'freeze_updates' ) ) {
+    if ( ! wla_esg_is_enabled() || ( ! wla_esg_cfg( 'freeze_updates' ) && ! wla_esg_cfg( 'freeze_all_updates' ) ) ) {
         return $result;
     }
 
@@ -262,11 +399,17 @@ function wla_esg_plugins_api_block( $result, $action, $args ) {
 add_filter( 'plugins_api', 'wla_esg_plugins_api_block', 10, 3 );
 
 function wla_esg_prevent_auto_update( $update, $item ) {
-    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'freeze_updates' ) ) {
+    if ( ! wla_esg_is_enabled() || ( ! wla_esg_cfg( 'freeze_updates' ) && ! wla_esg_cfg( 'freeze_all_updates' ) ) ) {
         return $update;
     }
 
-    $protected = [ 'elementor/elementor.php', 'elementor-pro/elementor-pro.php', 'pro-elements/pro-elements.php' ];
+    if ( wla_esg_cfg( 'freeze_all_updates' ) ) {
+        wla_esg_log( 'Prevented auto-update globally for: ' . $item->plugin );
+
+        return false;
+    }
+
+    $protected = wla_esg_elementor_plugins();
 
     if ( in_array( $item->plugin, $protected, true ) ) {
         wla_esg_log( 'Prevented auto-update for: ' . $item->plugin );
@@ -277,6 +420,69 @@ function wla_esg_prevent_auto_update( $update, $item ) {
     return $update;
 }
 add_filter( 'auto_update_plugin', 'wla_esg_prevent_auto_update', 10, 2 );
+
+function wla_esg_strip_upsell_links( $links ) {
+    $keywords = [ 'pro', 'upgrade', 'get pro', 'purchase', 'buy', 'renew', 'go pro' ];
+
+    foreach ( $links as $key => $link ) {
+        $text = wp_strip_all_tags( $link );
+        foreach ( $keywords as $keyword ) {
+            if ( false !== stripos( $text, $keyword ) ) {
+                unset( $links[ $key ] );
+                break;
+            }
+        }
+    }
+
+    return $links;
+}
+
+function wla_esg_plugin_action_links( $links, $plugin_file ) {
+    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'hide_plugin_row_upsell' ) ) {
+        return $links;
+    }
+
+    if ( ! in_array( $plugin_file, wla_esg_elementor_plugins(), true ) ) {
+        return $links;
+    }
+
+    if ( function_exists( 'get_current_screen' ) ) {
+        $screen = get_current_screen();
+        if ( $screen && ! in_array( $screen->base, [ 'plugins', 'plugins-network' ], true ) ) {
+            return $links;
+        }
+    }
+
+    $filtered = wla_esg_strip_upsell_links( $links );
+
+    return array_values( $filtered );
+}
+add_filter( 'plugin_action_links', 'wla_esg_plugin_action_links', 20, 2 );
+add_filter( 'plugin_action_links_' . 'elementor/elementor.php', 'wla_esg_plugin_action_links', 20, 2 );
+add_filter( 'plugin_action_links_' . 'elementor-pro/elementor-pro.php', 'wla_esg_plugin_action_links', 20, 2 );
+add_filter( 'plugin_action_links_' . 'pro-elements/pro-elements.php', 'wla_esg_plugin_action_links', 20, 2 );
+
+function wla_esg_plugin_row_meta( $links, $plugin_file ) {
+    if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'hide_plugin_row_upsell' ) ) {
+        return $links;
+    }
+
+    if ( ! in_array( $plugin_file, wla_esg_elementor_plugins(), true ) ) {
+        return $links;
+    }
+
+    if ( function_exists( 'get_current_screen' ) ) {
+        $screen = get_current_screen();
+        if ( $screen && ! in_array( $screen->base, [ 'plugins', 'plugins-network' ], true ) ) {
+            return $links;
+        }
+    }
+
+    $filtered = wla_esg_strip_upsell_links( $links );
+
+    return array_values( $filtered );
+}
+add_filter( 'plugin_row_meta', 'wla_esg_plugin_row_meta', 20, 2 );
 
 function wla_esg_filter_notifications( $notifications ) {
     if ( ! wla_esg_is_enabled() || ! wla_esg_cfg( 'silence_notices' ) ) {
@@ -306,9 +512,12 @@ function wla_esg_remove_admin_notices() {
 
     $notice_component = $plugin->admin->get_component( 'admin-notices' );
 
-    if ( $notice_component && has_action( 'admin_notices', [ $notice_component, 'admin_notices' ] ) ) {
-        remove_action( 'admin_notices', [ $notice_component, 'admin_notices' ], 20 );
-        wla_esg_log( 'Removed Elementor admin_notices output.' );
+    if ( $notice_component ) {
+        $priority = has_action( 'admin_notices', [ $notice_component, 'admin_notices' ] );
+        if ( is_numeric( $priority ) ) {
+            remove_action( 'admin_notices', [ $notice_component, 'admin_notices' ], (int) $priority );
+            wla_esg_log( 'Removed Elementor admin_notices output at priority ' . $priority . '.' );
+        }
     }
 }
 add_action( 'plugins_loaded', 'wla_esg_remove_admin_notices', 25 );
@@ -341,31 +550,50 @@ function wla_esg_disable_google_fonts( $should_print ) {
 }
 add_filter( 'elementor/frontend/print_google_fonts', 'wla_esg_disable_google_fonts' );
 
-function wla_esg_strip_font_src( $src ) {
+function wla_esg_strip_font_tag( $tag, $handle, $src ) {
     if ( ! wla_esg_is_enabled() ) {
-        return $src;
+        return $tag;
     }
 
     if ( empty( $src ) ) {
-        return $src;
+        return $tag;
     }
 
     $host = parse_url( $src, PHP_URL_HOST );
 
     if ( ! $host ) {
-        return $src;
+        return $tag;
     }
 
     $host = strtolower( $host );
 
     if ( ( 'fonts.googleapis.com' === $host || 'fonts.gstatic.com' === $host ) && ( 'system' === wla_esg_cfg( 'fonts_mode' ) || wla_esg_cfg( 'block_remote' ) ) && ! wla_esg_is_host_allowed( $host ) ) {
-        wla_esg_log( 'Stripped font asset: ' . $src );
+        wla_esg_log( 'Removed font tag for: ' . $src );
 
         return '';
     }
 
-    return $src;
+    return $tag;
 }
-add_filter( 'style_loader_src', 'wla_esg_strip_font_src', 10 );
-add_filter( 'script_loader_src', 'wla_esg_strip_font_src', 10 );
+add_filter( 'style_loader_tag', 'wla_esg_strip_font_tag', 10, 3 );
+add_filter( 'script_loader_tag', 'wla_esg_strip_font_tag', 10, 3 );
+
+function wla_esg_clear_update_crons() {
+    if ( ! wla_esg_is_enabled() ) {
+        return;
+    }
+
+    if ( wla_esg_cfg( 'freeze_all_updates' ) || wla_esg_cfg( 'freeze_updates' ) ) {
+        wp_clear_scheduled_hook( 'wp_update_plugins' );
+    }
+
+    if ( wla_esg_cfg( 'freeze_themes' ) ) {
+        wp_clear_scheduled_hook( 'wp_update_themes' );
+    }
+
+    if ( wla_esg_cfg( 'freeze_core' ) ) {
+        wp_clear_scheduled_hook( 'wp_version_check' );
+    }
+}
+add_action( 'init', 'wla_esg_clear_update_crons', 20 );
 
