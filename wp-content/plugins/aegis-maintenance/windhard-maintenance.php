@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Windhard Maintenance
+ * Plugin Name: Aegis Maintenance
  * Description: Maintenance mode guard with scope control.
  * Version: PR-ROLLBACK-MINIMAL-02
- * Author: Windhard
+ * Author: Aegis
  * Text Domain: windhard-maintenance
  */
 
