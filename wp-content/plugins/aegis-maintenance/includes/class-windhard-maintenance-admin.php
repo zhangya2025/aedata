@@ -272,11 +272,15 @@ class Windhard_Maintenance_Admin {
         $output['ip_whitelist'] = $this->sanitize_textarea_lines(isset($input['ip_whitelist']) ? $input['ip_whitelist'] : '', false);
 
         $output['login_exempt_paths'] = $this->sanitize_path_lines(isset($input['login_exempt_paths']) ? $input['login_exempt_paths'] : '');
-        if (strpos($output['login_exempt_paths'], '/windlogin.php') === false) {
-            $lines = $this->explode_lines($output['login_exempt_paths']);
-            $lines[] = '/windlogin.php';
-            $output['login_exempt_paths'] = implode("\n", array_unique($lines));
+
+        $lines = $this->explode_lines($output['login_exempt_paths']);
+        foreach (array('/aegislogin.php', '/windlogin.php') as $required_path) {
+            if (!in_array($required_path, $lines, true)) {
+                $lines[] = $required_path;
+            }
         }
+
+        $output['login_exempt_paths'] = implode("\n", array_unique($lines));
 
         $scope_mode = isset($input['scope_mode']) ? sanitize_text_field($input['scope_mode']) : $defaults['scope_mode'];
         if (!in_array($scope_mode, $this->allowed_scope_modes, true)) {

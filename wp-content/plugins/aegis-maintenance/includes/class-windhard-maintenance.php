@@ -28,7 +28,7 @@ class Windhard_Maintenance {
             'reason_custom' => '',
             'allow_roles' => array('administrator'),
             'ip_whitelist' => '',
-            'login_exempt_paths' => "/windlogin.php",
+            'login_exempt_paths' => "/aegislogin.php\n/windlogin.php",
             'scope_mode' => 'all',
             'intercept_paths' => '',
             'allow_paths' => '',
