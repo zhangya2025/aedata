@@ -1,23 +1,25 @@
 <?php
 /**
- * Plugin Name: windhard-safe
- * Description: Enforce a private login entrance at /windlogin.php with request-level guards.
+ * Plugin Name: Aegis Safe
+ * Description: Enforce a private login entrance at /aegislogin.php with request-level guards.
  * Version: 4.0.0
- * Author: windhard
+ * Author: Aegis
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Windhard_Safe {
+class Aegis_Safe {
 
-    const LOGIN_SLUG  = 'windlogin';
-    const GLOBAL_FLAG = '__windhard_safe_login_whitelist';
+    const LOGIN_SLUG  = 'aegislogin';
+    const LEGACY_LOGIN_SLUG = 'windlogin';
+    const GLOBAL_FLAG = '__aegis_safe_login_whitelist';
 
     private $is_whitelisted     = false;
     private $is_private_request = false;
     private $request_path       = '/';
+    private $is_legacy_private_request = false;
 
     public function __construct() {
         add_action( 'plugins_loaded', [ $this, 'detect_private_entry' ], 0 );
@@ -44,15 +46,16 @@ class Windhard_Safe {
             $this->is_whitelisted     = true;
             $this->is_private_request = true;
             $GLOBALS[ self::GLOBAL_FLAG ] = true;
-        } elseif ( $this->looks_like_private_script() ) {
-            $this->is_private_request = true;
+        } elseif ( $this->is_legacy_private_path( $this->request_path ) ) {
+            $this->is_private_request        = true;
+            $this->is_legacy_private_request = true;
         }
     }
 
     /* ---------- guards ---------- */
 
     public function guard_login_and_admin() {
-        if ( $this->should_bypass() ) {
+        if ( $this->should_bypass() || $this->is_recovery_mode() ) {
             return;
         }
 
@@ -68,6 +71,10 @@ class Windhard_Safe {
     /* ---------- main dispatcher ---------- */
 
     public function handle_private_login() {
+        if ( $this->is_legacy_private_request ) {
+            $this->redirect_legacy_private_request();
+        }
+
         if ( $this->is_private_request && ! $this->is_whitelisted ) {
             $this->deny_request();
         }
@@ -123,8 +130,8 @@ class Windhard_Safe {
             return false;
         }
 
-        if ( ! defined( 'WINDHARD_SAFE_LOGOUT_PROXY' ) ) {
-            define( 'WINDHARD_SAFE_LOGOUT_PROXY', true );
+        if ( ! defined( 'AEGIS_SAFE_LOGOUT_PROXY' ) ) {
+            define( 'AEGIS_SAFE_LOGOUT_PROXY', true );
         }
 
         $_GET['action']     = 'logout';
@@ -230,16 +237,30 @@ class Windhard_Safe {
             || $normalized === $slug . '.php'
             || str_ends_with( $normalized, $slug )
             || str_ends_with( $normalized, $slug . '.php' )
-            || $this->looks_like_private_script();
+            || $this->looks_like_login_script( self::LOGIN_SLUG );
     }
 
-    private function looks_like_private_script() {
-        return basename( $_SERVER['SCRIPT_NAME'] ?? '' ) === 'windlogin.php'
-            || basename( $_SERVER['PHP_SELF'] ?? '' ) === 'windlogin.php';
+    private function is_legacy_private_path( $path ) {
+        $normalized = rtrim( $path, '/' );
+        $slug       = '/' . self::LEGACY_LOGIN_SLUG;
+
+        return $normalized === $slug
+            || $normalized === $slug . '.php'
+            || str_ends_with( $normalized, $slug )
+            || str_ends_with( $normalized, $slug . '.php' )
+            || $this->looks_like_login_script( self::LEGACY_LOGIN_SLUG );
+    }
+
+    private function looks_like_login_script( $slug ) {
+        $script_name = basename( $_SERVER['SCRIPT_NAME'] ?? '' );
+        $php_self    = basename( $_SERVER['PHP_SELF'] ?? '' );
+
+        return in_array( $script_name, [ $slug . '.php' ], true )
+            || in_array( $php_self, [ $slug . '.php' ], true );
     }
 
     private function is_core_login_request() {
-        if ( defined( 'WINDHARD_SAFE_LOGOUT_PROXY' ) && WINDHARD_SAFE_LOGOUT_PROXY ) {
+        if ( defined( 'AEGIS_SAFE_LOGOUT_PROXY' ) && AEGIS_SAFE_LOGOUT_PROXY ) {
             return false;
         }
 
@@ -261,6 +282,14 @@ class Windhard_Safe {
         return $this->is_private_path( $this->request_path );
     }
 
+    private function is_recovery_mode() {
+        if ( ! isset( $_GET['aegis_recover'] ) || $_GET['aegis_recover'] !== '1' ) {
+            return false;
+        }
+
+        return $this->is_core_login_request();
+    }
+
     private function should_bypass() {
         return ( defined( 'REST_REQUEST' ) && REST_REQUEST )
             || ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() )
@@ -272,6 +301,17 @@ class Windhard_Safe {
         status_header( 404 );
         exit;
     }
+
+    private function redirect_legacy_private_request() {
+        $target = $this->private_login_url();
+
+        if ( empty( $target ) ) {
+            $this->deny_request();
+        }
+
+        wp_safe_redirect( $target, 301 );
+        exit;
+    }
 }
 
-new Windhard_Safe();
+new Aegis_Safe();
