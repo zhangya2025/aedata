@@ -1,13 +1,13 @@
 <?php
 /**
- * Front-end guard for Windhard Maintenance.
+ * Front-end guard for Aegis Maintenance.
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class Windhard_Maintenance_Guard {
+class Aegis_Maintenance_Guard {
     /**
      * Options.
      *
@@ -35,7 +35,7 @@ class Windhard_Maintenance_Guard {
      * Maybe intercept the request.
      */
     public function maybe_block() {
-        $options = Windhard_Maintenance::get_options();
+        $options = Aegis_Maintenance::get_options();
         if (empty($options['enabled'])) {
             return;
         }
@@ -100,7 +100,7 @@ class Windhard_Maintenance_Guard {
         $headline_font_size = isset($headline_font_sizes[$headline_size]) ? $headline_font_sizes[$headline_size] : $headline_font_sizes['xl'];
         $subhead_font_size = isset($subhead_font_sizes[$subhead_size]) ? $subhead_font_sizes[$subhead_size] : $subhead_font_sizes['m'];
 
-        include WINDHARD_MAINTENANCE_PLUGIN_DIR . 'public/maintenance-template.php';
+        include AEGIS_MAINTENANCE_PLUGIN_DIR . 'public/maintenance-template.php';
         exit;
     }
 
@@ -366,4 +366,8 @@ class Windhard_Maintenance_Guard {
 
         return $value;
     }
+}
+
+if (!class_exists('Windhard_Maintenance_Guard')) {
+    class_alias('Aegis_Maintenance_Guard', 'Windhard_Maintenance_Guard');
 }

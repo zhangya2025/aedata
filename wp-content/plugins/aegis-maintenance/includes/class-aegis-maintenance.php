@@ -1,13 +1,13 @@
 <?php
 /**
- * Core plugin bootstrap for Windhard Maintenance.
+ * Core plugin bootstrap for Aegis Maintenance.
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class Windhard_Maintenance {
+class Aegis_Maintenance {
     /**
      * Plugin options.
      *
@@ -74,11 +74,15 @@ class Windhard_Maintenance {
         $this->options = self::get_options();
 
         if (is_admin()) {
-            $admin = new Windhard_Maintenance_Admin($this->options);
+            $admin = new Aegis_Maintenance_Admin($this->options);
             $admin->init();
         }
 
-        $guard = new Windhard_Maintenance_Guard($this->options);
+        $guard = new Aegis_Maintenance_Guard($this->options);
         $guard->init();
     }
+}
+
+if (!class_exists('Windhard_Maintenance')) {
+    class_alias('Aegis_Maintenance', 'Windhard_Maintenance');
 }
