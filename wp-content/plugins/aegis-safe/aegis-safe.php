@@ -312,6 +312,51 @@ class Aegis_Safe {
         wp_safe_redirect( $target, 301 );
         exit;
     }
+
+    public static function on_activation(): void {
+        $primary_path = ABSPATH . self::LOGIN_SLUG . '.php';
+        $legacy_path  = ABSPATH . self::LEGACY_LOGIN_SLUG . '.php';
+
+        $primary_created = self::ensure_entry_file( $primary_path, self::primary_entry_contents() );
+
+        if ( ! $primary_created ) {
+            add_action(
+                'admin_notices',
+                static function () use ( $primary_path ) {
+                    echo '<div class="notice notice-error"><p>' . esc_html( sprintf( __( 'Aegis Safe could not create the login entry file at %s. Please create it manually to avoid 404 errors.', 'aegis-safe' ), $primary_path ) ) . '</p></div>';
+                }
+            );
+        }
+
+        if ( ! file_exists( $legacy_path ) ) {
+            self::ensure_entry_file( $legacy_path, self::legacy_entry_contents() );
+        }
+    }
+
+    private static function ensure_entry_file( $path, $contents ) {
+        if ( file_exists( $path ) ) {
+            return true;
+        }
+
+        $written = @file_put_contents( $path, $contents );
+
+        return $written !== false;
+    }
+
+    private static function primary_entry_contents() {
+        return "<?php\n" .
+            "define('WP_USE_THEMES', false);\n" .
+            "require __DIR__ . '/wp-blog-header.php';\n";
+    }
+
+    private static function legacy_entry_contents() {
+        $target = '/' . self::LOGIN_SLUG . '.php';
+
+        return "<?php\n" .
+            "header('Location: {$target}', true, 301);\n" .
+            "exit;\n";
+    }
 }
 
+register_activation_hook( __FILE__, [ 'Aegis_Safe', 'on_activation' ] );
 new Aegis_Safe();
