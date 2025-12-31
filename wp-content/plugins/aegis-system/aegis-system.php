@@ -1,0 +1,1445 @@
+<?php
+/**
+ * Plugin Name: AEGIS System
+ * Description: AEGIS 系统骨架插件，提供模块管理功能。
+ * Version: 0.1.0
+ * Author: AEGIS
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class AEGIS_System {
+    const OPTION_KEY = 'aegis_system_modules';
+    const TYPOGRAPHY_OPTION = 'aegis_system_typography';
+    const AUDIT_TABLE = 'aegis_audit_events';
+    const MEDIA_TABLE = 'aegis_media_files';
+    const SKU_TABLE = 'aegis_skus';
+
+    const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
+    const ACTION_MODULE_DISABLE = 'MODULE_DISABLE';
+    const ACTION_MODULE_UNINSTALL = 'MODULE_UNINSTALL';
+    const ACTION_MEDIA_UPLOAD = 'MEDIA_UPLOAD';
+    const ACTION_MEDIA_DOWNLOAD = 'MEDIA_DOWNLOAD';
+    const ACTION_MEDIA_DOWNLOAD_DENY = 'MEDIA_DOWNLOAD_DENY';
+    const ACTION_SKU_CREATE = 'SKU_CREATE';
+    const ACTION_SKU_UPDATE = 'SKU_UPDATE';
+    const ACTION_SKU_ENABLE = 'SKU_ENABLE';
+    const ACTION_SKU_DISABLE = 'SKU_DISABLE';
+    const ACTION_SKU_EAN_CORRECT = 'SKU_EAN_CORRECT';
+
+    /**
+     * 预置模块注册表。
+     *
+     * @return array
+     */
+    public static function get_registered_modules() {
+        return [
+            'core_manager'   => ['label' => '核心管理', 'default' => true],
+            'access_audit'   => ['label' => '访问审计', 'default' => false],
+            'assets_media'   => ['label' => '资产与媒体', 'default' => false],
+            'sku'            => ['label' => 'SKU', 'default' => false],
+            'dealer_master'  => ['label' => '经销商主数据', 'default' => false],
+            'codes'          => ['label' => '编码管理', 'default' => false],
+            'shipments'      => ['label' => '出货管理', 'default' => false],
+            'public_query'   => ['label' => '公开查询', 'default' => false],
+            'reset_b'        => ['label' => '重置 B', 'default' => false],
+            'orders'         => ['label' => '订单', 'default' => false],
+            'payments'       => ['label' => '支付', 'default' => false],
+            'reports'        => ['label' => '报表', 'default' => false],
+            'monitoring'     => ['label' => '监控', 'default' => false],
+        ];
+    }
+
+    /**
+     * 初始化钩子。
+     */
+    public function __construct() {
+        add_action('admin_menu', [$this, 'register_admin_menu']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('rest_api_init', ['AEGIS_Assets_Media', 'register_rest_routes']);
+        add_filter('query_vars', ['AEGIS_Assets_Media', 'register_query_vars']);
+        add_action('template_redirect', ['AEGIS_Assets_Media', 'maybe_serve_media']);
+        add_shortcode('aegis_system_page', ['AEGIS_Assets_Media', 'render_frontend_container']);
+        add_action('wp_enqueue_scripts', ['AEGIS_Assets_Media', 'enqueue_front_assets']);
+        register_activation_hook(__FILE__, [__CLASS__, 'activate']);
+        add_action('plugins_loaded', [__CLASS__, 'maybe_install_tables']);
+    }
+
+    /**
+     * 激活时初始化模块状态。
+     */
+    public static function activate() {
+        self::maybe_install_tables();
+        AEGIS_Assets_Media::ensure_upload_structure();
+        $stored = get_option(self::OPTION_KEY);
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        $modules = self::get_registered_modules();
+        foreach ($modules as $slug => $module) {
+            if (!isset($stored[$slug])) {
+                $stored[$slug] = !empty($module['default']);
+            }
+        }
+
+        update_option(self::OPTION_KEY, $stored, true);
+    }
+
+    /**
+     * 后台菜单注册。
+     */
+    public function register_admin_menu() {
+        add_menu_page(
+            'AEGIS-SYSTEM',
+            'AEGIS-SYSTEM',
+            'manage_options',
+            'aegis-system',
+            [$this, 'render_module_manager'],
+            'dashicons-admin-generic',
+            56
+        );
+
+        $states = $this->get_module_states();
+        if (!empty($states['assets_media'])) {
+            add_submenu_page(
+                'aegis-system',
+                '排版设置',
+                '全局设置',
+                'manage_options',
+                'aegis-system-typography',
+                ['AEGIS_Assets_Media', 'render_typography_settings']
+            );
+        }
+
+        if (!empty($states['sku'])) {
+            add_submenu_page(
+                'aegis-system',
+                'SKU 管理',
+                'SKU 管理',
+                'manage_options',
+                'aegis-system-sku',
+                ['AEGIS_SKU', 'render_admin_page']
+            );
+        }
+
+        // 将来根据模块启用状态挂载子菜单，可在此预留。
+        foreach (self::get_registered_modules() as $slug => $module) {
+            if ($slug === 'core_manager') {
+                continue; // 核心管理仅用于驱动，不暴露额外菜单。
+            }
+            if (!empty($states[$slug])) {
+                // 占位：模块启用后可在此添加对应的菜单项。
+                // add_submenu_page(...);
+            }
+        }
+    }
+
+    /**
+     * 后台按需加载资源。
+     *
+     * @param string $hook
+     */
+    public function enqueue_admin_assets($hook) {
+        $screens = [
+            'toplevel_page_aegis-system',
+            'aegis-system_page_aegis-system-typography',
+            'aegis-system_page_aegis-system-sku',
+        ];
+
+        if (!in_array($hook, $screens, true)) {
+            return;
+        }
+
+        wp_register_style('aegis-system-admin-style', false, [], '0.1.0');
+        wp_register_script('aegis-system-admin-js', false, [], '0.1.0', true);
+        wp_add_inline_style('aegis-system-admin-style', AEGIS_Assets_Media::build_typography_css());
+        wp_add_inline_script('aegis-system-admin-js', 'window["aegis-system"] = window["aegis-system"] || { pages: {} };');
+
+        wp_enqueue_style('aegis-system-admin-style');
+        wp_enqueue_script('aegis-system-admin-js');
+    }
+
+    /**
+     * 模块管理页渲染。
+     */
+    public function render_module_manager() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('您无权访问该页面。'));
+        }
+
+        $modules = self::get_registered_modules();
+        $states = $this->get_module_states();
+
+        $validation = ['success' => true, 'message' => ''];
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'      => 'manage_options',
+                    'nonce_field'     => 'aegis_system_nonce',
+                    'nonce_action'    => 'aegis_system_save_modules',
+                    'whitelist'       => ['aegis_system_nonce', 'modules', '_wp_http_referer', '_aegis_idempotency'],
+                    'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
+                ]
+            );
+        }
+
+        if ($validation['success'] && 'POST' === $_SERVER['REQUEST_METHOD']) {
+            $new_states = [];
+            foreach ($modules as $slug => $module) {
+                if ($slug === 'core_manager') {
+                    $new_states[$slug] = true;
+                    continue;
+                }
+                $new_states[$slug] = isset($_POST['modules'][$slug]) ? true : false;
+            }
+            $this->save_module_states($new_states, $states);
+            $states = $this->get_module_states();
+            echo '<div class="updated"><p>模块配置已保存。</p></div>';
+        } elseif (!empty($validation['message'])) {
+            echo '<div class="error"><p>' . esc_html($validation['message']) . '</p></div>';
+        }
+
+        echo '<div class="wrap">';
+        echo '<h1>模块管理</h1>';
+        echo '<div class="notice notice-info"><p>“资产与媒体”模块启用后可配置排版等级与附件上传。</p></div>';
+        $idempotency_key = wp_generate_uuid4();
+        echo '<form method="post">';
+        wp_nonce_field('aegis_system_save_modules', 'aegis_system_nonce');
+        echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($idempotency_key) . '" />';
+        echo '<table class="widefat fixed" cellspacing="0">';
+        echo '<thead><tr><th>模块</th><th>启用</th><th>说明</th></tr></thead>';
+        echo '<tbody>';
+
+        foreach ($modules as $slug => $module) {
+            $enabled = !empty($states[$slug]);
+            $disabled_attr = $slug === 'core_manager' ? 'disabled="disabled"' : '';
+            $checked_attr = $enabled ? 'checked="checked"' : '';
+            $label = isset($module['label']) ? $module['label'] : $slug;
+            echo '<tr>';
+            echo '<td><strong>' . esc_html($label) . '</strong><br /><code>' . esc_html($slug) . '</code></td>';
+            echo '<td style="width:120px;">';
+            echo '<input type="checkbox" name="modules[' . esc_attr($slug) . ']" ' . $checked_attr . ' ' . $disabled_attr . ' />';
+            if ($slug === 'core_manager') {
+                echo '<p style="margin:4px 0 0;color:#666;">核心模块始终启用</p>';
+            }
+            echo '</td>';
+            echo '<td>—</td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody>';
+        echo '</table>';
+        submit_button('保存配置');
+        echo '</form>';
+        echo '</div>';
+    }
+
+    /**
+     * 读取模块状态。
+     *
+     * @return array
+     */
+    public function get_module_states() {
+        $states = get_option(self::OPTION_KEY, []);
+        if (!is_array($states)) {
+            $states = [];
+        }
+
+        $modules = self::get_registered_modules();
+        foreach ($modules as $slug => $module) {
+            if (!isset($states[$slug])) {
+                $states[$slug] = !empty($module['default']);
+            }
+        }
+
+        return $states;
+    }
+
+    /**
+     * 检查模块是否启用。
+     *
+     * @param string $slug
+     * @return bool
+     */
+    public static function is_module_enabled($slug) {
+        $states = get_option(self::OPTION_KEY, []);
+        return !empty($states[$slug]);
+    }
+
+    /**
+     * 保存模块状态并写入审计。
+     *
+     * @param array $states
+     * @param array $previous_states
+     */
+    public function save_module_states($states, $previous_states = []) {
+        $modules = self::get_registered_modules();
+        $clean = [];
+        foreach ($modules as $slug => $module) {
+            if ($slug === 'core_manager') {
+                $clean[$slug] = true;
+                continue;
+            }
+            $clean[$slug] = !empty($states[$slug]);
+        }
+
+        update_option(self::OPTION_KEY, $clean);
+
+        foreach ($clean as $slug => $enabled) {
+            $previous = !empty($previous_states[$slug]);
+            if ($enabled === $previous) {
+                continue;
+            }
+            $action = $enabled ? self::ACTION_MODULE_ENABLE : self::ACTION_MODULE_DISABLE;
+            AEGIS_Access_Audit::record_event(
+                $action,
+                'SUCCESS',
+                [
+                    'module' => $slug,
+                ]
+            );
+        }
+    }
+
+    /**
+     * 安装或升级审计表。
+     */
+    public static function maybe_install_tables() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::AUDIT_TABLE;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE {$table_name} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            actor_id BIGINT(20) UNSIGNED NULL,
+            actor_login VARCHAR(60) NULL,
+            action VARCHAR(64) NOT NULL,
+            result VARCHAR(20) NOT NULL,
+            object_data LONGTEXT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY action (action),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+
+        $media_table = $wpdb->prefix . self::MEDIA_TABLE;
+        $media_sql = "CREATE TABLE {$media_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            owner_type VARCHAR(64) NOT NULL,
+            owner_id BIGINT(20) UNSIGNED NULL,
+            file_path TEXT NOT NULL,
+            mime VARCHAR(191) NULL,
+            file_hash VARCHAR(128) NULL,
+            visibility VARCHAR(32) NOT NULL DEFAULT 'private',
+            uploaded_by BIGINT(20) UNSIGNED NULL,
+            uploaded_at DATETIME NOT NULL,
+            deleted_at DATETIME NULL,
+            meta LONGTEXT NULL,
+            PRIMARY KEY  (id),
+            KEY owner (owner_type, owner_id),
+            KEY visibility (visibility),
+            KEY uploaded_at (uploaded_at)
+        ) {$charset_collate};";
+        dbDelta($media_sql);
+
+        $sku_table = $wpdb->prefix . self::SKU_TABLE;
+        $sku_sql = "CREATE TABLE {$sku_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            ean VARCHAR(64) NOT NULL,
+            product_name VARCHAR(191) NOT NULL,
+            size_label VARCHAR(100) NULL,
+            color_label VARCHAR(100) NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'active',
+            product_image_id BIGINT(20) UNSIGNED NULL,
+            certificate_id BIGINT(20) UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY ean (ean),
+            KEY status (status),
+            KEY updated_at (updated_at)
+        ) {$charset_collate};";
+        dbDelta($sku_sql);
+    }
+}
+
+class AEGIS_Access_Audit {
+    /**
+     * 验证写入口：统一鉴权、nonce、白名单、可选幂等键。
+     *
+     * @param array $params
+     * @param array $config
+     * @return array
+     */
+    public static function validate_write_request($params, $config = []) {
+        $defaults = [
+            'capability'      => 'manage_options',
+            'nonce_field'     => null,
+            'nonce_action'    => null,
+            'whitelist'       => [],
+            'idempotency_key' => null,
+        ];
+        $config = wp_parse_args($config, $defaults);
+
+        if (!current_user_can($config['capability'])) {
+            self::record_event('ACCESS_DENIED', 'FAIL', ['reason' => 'capability']);
+            return [
+                'success' => false,
+                'message' => '权限不足。',
+            ];
+        }
+
+        if ($config['nonce_field'] && $config['nonce_action']) {
+            $nonce_value = isset($params[$config['nonce_field']]) ? $params[$config['nonce_field']] : '';
+            if (!wp_verify_nonce($nonce_value, $config['nonce_action'])) {
+                self::record_event('NONCE_INVALID', 'FAIL', ['nonce_field' => $config['nonce_field']]);
+                return [
+                    'success' => false,
+                    'message' => '安全校验失败，请重试。',
+                ];
+            }
+        }
+
+        if (!empty($config['whitelist'])) {
+            $extra_keys = array_diff(array_keys($params), $config['whitelist']);
+            if (!empty($extra_keys)) {
+                self::record_event('PARAMS_NOT_ALLOWED', 'FAIL', ['keys' => array_values($extra_keys)]);
+                return [
+                    'success' => false,
+                    'message' => '请求参数不被允许。',
+                ];
+            }
+        }
+
+        if (!empty($config['idempotency_key'])) {
+            $idem_key = 'aegis_idem_' . md5($config['idempotency_key']);
+            if (get_transient($idem_key)) {
+                self::record_event('IDEMPOTENT_REPLAY', 'FAIL', ['key' => $config['idempotency_key']]);
+                return [
+                    'success' => false,
+                    'message' => '请求已处理，请勿重复提交。',
+                ];
+            }
+            set_transient($idem_key, 1, MINUTE_IN_SECONDS * 10);
+        }
+
+        return [
+            'success' => true,
+            'message' => '',
+        ];
+    }
+
+    /**
+     * 写入审计事件。
+     *
+     * @param string $action
+     * @param string $result
+     * @param array  $object_data
+     */
+    public static function record_event($action, $result, $object_data = []) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . AEGIS_System::AUDIT_TABLE;
+
+        $current_user = wp_get_current_user();
+        $actor_id = $current_user && $current_user->ID ? (int) $current_user->ID : null;
+        $actor_login = $current_user && $current_user->user_login ? $current_user->user_login : null;
+
+        $wpdb->insert(
+            $table_name,
+            [
+                'actor_id'    => $actor_id,
+                'actor_login' => $actor_login,
+                'action'      => $action,
+                'result'      => $result,
+                'object_data' => !empty($object_data) ? wp_json_encode($object_data) : null,
+                'created_at'  => current_time('mysql'),
+            ],
+            [
+                '%d',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+            ]
+        );
+    }
+}
+
+class AEGIS_Assets_Media {
+    const UPLOAD_ROOT = 'aegis-system';
+    const FRONT_SHORTCODE = 'aegis_system_page';
+    const VISIBILITY_PUBLIC = 'public';
+    const VISIBILITY_PRIVATE = 'private';
+    const VISIBILITY_SENSITIVE = 'sensitive';
+
+    /**
+     * 确保上传目录与防直链文件存在。
+     */
+    public static function ensure_upload_structure() {
+        $upload_dir = wp_upload_dir();
+        $base = trailingslashit($upload_dir['basedir']) . self::UPLOAD_ROOT;
+        $buckets = ['sku', 'dealer', 'payments', 'exports', 'temp', 'certificate'];
+
+        if (!file_exists($base)) {
+            wp_mkdir_p($base);
+        }
+
+        $htaccess = $base . '/.htaccess';
+        if (!file_exists($htaccess)) {
+            file_put_contents($htaccess, "Deny from all\n");
+        }
+
+        $index = $base . '/index.php';
+        if (!file_exists($index)) {
+            file_put_contents($index, "<?php // Silence is golden.\n");
+        }
+
+        foreach ($buckets as $bucket) {
+            $bucket_path = trailingslashit($base) . $bucket;
+            if (!file_exists($bucket_path)) {
+                wp_mkdir_p($bucket_path);
+            }
+        }
+    }
+
+    /**
+     * 排版配置默认值。
+     *
+     * @return array
+     */
+    public static function get_typography_defaults() {
+        return [
+            'A1' => ['size' => '2.4', 'line' => '3.2'],
+            'A2' => ['size' => '2.0', 'line' => '2.8'],
+            'A3' => ['size' => '1.8', 'line' => '2.6'],
+            'A4' => ['size' => '1.6', 'line' => '2.2'],
+            'A5' => ['size' => '1.4', 'line' => '2.0'],
+            'A6' => ['size' => '1.2', 'line' => '1.8'],
+        ];
+    }
+
+    /**
+     * 允许的表单键。
+     *
+     * @return array
+     */
+    public static function allowed_typography_keys() {
+        $keys = [];
+        foreach (array_keys(self::get_typography_defaults()) as $key) {
+            $keys[] = $key . '_size';
+            $keys[] = $key . '_line';
+        }
+        return $keys;
+    }
+
+    /**
+     * 获取排版设置。
+     *
+     * @return array
+     */
+    public static function get_typography_settings() {
+        $stored = get_option(AEGIS_System::TYPOGRAPHY_OPTION, []);
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        $defaults = self::get_typography_defaults();
+        foreach ($defaults as $level => $values) {
+            if (!isset($stored[$level]['size'])) {
+                $stored[$level]['size'] = $values['size'];
+            }
+            if (!isset($stored[$level]['line'])) {
+                $stored[$level]['line'] = $values['line'];
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
+     * 解析并清洗排版 POST 数据。
+     *
+     * @param array $params
+     * @return array
+     */
+    public static function parse_typography_post($params) {
+        $settings = [];
+        foreach (self::get_typography_defaults() as $key => $defaults) {
+            $size_key = $key . '_size';
+            $line_key = $key . '_line';
+            $size_val = isset($params[$size_key]) ? (float) $params[$size_key] : (float) $defaults['size'];
+            $line_val = isset($params[$line_key]) ? (float) $params[$line_key] : (float) $defaults['line'];
+
+            $settings[$key] = [
+                'size' => $size_val > 0 ? $size_val : (float) $defaults['size'],
+                'line' => $line_val > 0 ? $line_val : (float) $defaults['line'],
+            ];
+        }
+
+        return $settings;
+    }
+
+    /**
+     * 后台排版设置渲染。
+     */
+    public static function render_typography_settings() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('您无权访问该页面。'));
+        }
+
+        if (!AEGIS_System::is_module_enabled('assets_media')) {
+            echo '<div class="wrap"><h1>全局设置</h1><div class="notice notice-warning"><p>请先启用“资产与媒体”模块。</p></div></div>';
+            return;
+        }
+
+        $settings = self::get_typography_settings();
+        $validation = ['success' => true, 'message' => ''];
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'   => 'manage_options',
+                    'nonce_field'  => 'aegis_typography_nonce',
+                    'nonce_action' => 'aegis_typography_save',
+                    'whitelist'    => array_merge(['aegis_typography_nonce', '_wp_http_referer'], self::allowed_typography_keys()),
+                ]
+            );
+        }
+
+        if ($validation['success'] && 'POST' === $_SERVER['REQUEST_METHOD']) {
+            $settings = self::parse_typography_post($_POST);
+            update_option(AEGIS_System::TYPOGRAPHY_OPTION, $settings);
+            echo '<div class="updated"><p>排版配置已保存。</p></div>';
+        } elseif (!empty($validation['message'])) {
+            echo '<div class="error"><p>' . esc_html($validation['message']) . '</p></div>';
+        }
+
+        echo '<div class="wrap aegis-system-root">';
+        echo '<h1>排版设置（Typography）</h1>';
+        echo '<form method="post">';
+        wp_nonce_field('aegis_typography_save', 'aegis_typography_nonce');
+
+        echo '<table class="widefat fixed" cellspacing="0">';
+        echo '<thead><tr><th>等级</th><th>字号 (rem)</th><th>行高 (rem)</th></tr></thead>';
+        echo '<tbody>';
+        foreach (self::get_typography_defaults() as $key => $defaults) {
+            $size = isset($settings[$key]['size']) ? $settings[$key]['size'] : $defaults['size'];
+            $line = isset($settings[$key]['line']) ? $settings[$key]['line'] : $defaults['line'];
+            echo '<tr>';
+            echo '<td><strong>' . esc_html($key) . '</strong></td>';
+            echo '<td><input type="number" step="0.1" min="0.5" name="' . esc_attr($key) . '_size" value="' . esc_attr($size) . '" /></td>';
+            echo '<td><input type="number" step="0.1" min="0.5" name="' . esc_attr($key) . '_line" value="' . esc_attr($line) . '" /></td>';
+            echo '</tr>';
+        }
+        echo '</tbody>';
+        echo '</table>';
+
+        submit_button('保存配置');
+        echo '</form>';
+        echo '</div>';
+    }
+
+    /**
+     * 构造排版 CSS。
+     *
+     * @return string
+     */
+    public static function build_typography_css() {
+        $settings = self::get_typography_settings();
+        $css = '.aegis-system-root{';
+        foreach ($settings as $key => $values) {
+            $lower = strtolower($key);
+            $css .= '--aegis-' . $lower . '-size:' . $values['size'] . 'rem;';
+            $css .= '--aegis-' . $lower . '-line:' . $values['line'] . 'rem;';
+        }
+        $css .= '}' . PHP_EOL;
+
+        foreach ($settings as $key => $values) {
+            $lower = strtolower($key);
+            $css .= '.aegis-system-root .aegis-t-' . $lower . '{font-size:var(--aegis-' . $lower . '-size);line-height:var(--aegis-' . $lower . '-line);}';
+        }
+
+        return $css;
+    }
+
+    /**
+     * 在前台有短码时按需加载样式。
+     */
+    public static function enqueue_front_assets() {
+        if (!AEGIS_System::is_module_enabled('assets_media')) {
+            return;
+        }
+
+        global $post;
+        if (!is_a($post, 'WP_Post')) {
+            return;
+        }
+
+        if (has_shortcode($post->post_content, self::FRONT_SHORTCODE)) {
+            wp_register_style('aegis-system-frontend-style', false, [], '0.1.0');
+            wp_add_inline_style('aegis-system-frontend-style', self::build_typography_css());
+            wp_enqueue_style('aegis-system-frontend-style');
+        }
+    }
+
+    /**
+     * 前台短码容器。
+     *
+     * @return string
+     */
+    public static function render_frontend_container() {
+        if (!AEGIS_System::is_module_enabled('assets_media')) {
+            return '';
+        }
+
+        wp_register_style('aegis-system-frontend-style', false, [], '0.1.0');
+        wp_add_inline_style('aegis-system-frontend-style', self::build_typography_css());
+        wp_enqueue_style('aegis-system-frontend-style');
+
+        $output  = '<div class="aegis-system-root">';
+        $output .= '<div class="aegis-t-a3">AEGIS System 容器</div>';
+        $output .= '</div>';
+        return $output;
+    }
+
+    /**
+     * 注册 REST 路由。
+     */
+    public static function register_rest_routes() {
+        register_rest_route(
+            'aegis-system/v1',
+            '/media/upload',
+            [
+                'methods'             => 'POST',
+                'callback'            => [__CLASS__, 'handle_upload'],
+                'permission_callback' => function () {
+                    return AEGIS_System::is_module_enabled('assets_media') && current_user_can('manage_options');
+                },
+            ]
+        );
+
+        register_rest_route(
+            'aegis-system/v1',
+            '/media/download/(?P<id>\d+)',
+            [
+                'methods'             => 'GET',
+                'callback'            => [__CLASS__, 'handle_download_api'],
+                'permission_callback' => function () {
+                    return AEGIS_System::is_module_enabled('assets_media');
+                },
+            ]
+        );
+    }
+
+    /**
+     * 允许自定义查询变量用于下载网关。
+     */
+    public static function register_query_vars($vars) {
+        $vars[] = 'aegis_media';
+        return $vars;
+    }
+
+    /**
+     * 模板重定向阶段输出附件。
+     */
+    public static function maybe_serve_media() {
+        if (!AEGIS_System::is_module_enabled('assets_media')) {
+            return;
+        }
+
+        $id = get_query_var('aegis_media');
+        if (!$id) {
+            return;
+        }
+
+        self::stream_media((int) $id);
+    }
+
+    /**
+     * 处理上传逻辑。
+     */
+    public static function handle_upload($request) {
+        if (!AEGIS_System::is_module_enabled('assets_media')) {
+            return new WP_REST_Response(['message' => '模块未启用'], 403);
+        }
+
+        self::ensure_upload_structure();
+
+        $params = $request instanceof WP_REST_Request ? $request->get_params() : [];
+        $validation = AEGIS_Access_Audit::validate_write_request(
+            $params,
+            [
+                'capability'   => 'manage_options',
+                'nonce_field'  => '_wpnonce',
+                'nonce_action' => 'wp_rest',
+                'whitelist'    => ['_wpnonce', 'bucket', 'owner_type', 'owner_id', 'visibility', 'meta'],
+            ]
+        );
+
+        if (!$validation['success']) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_UPLOAD, 'FAIL', ['reason' => $validation['message']]);
+            return new WP_REST_Response(['message' => $validation['message']], 400);
+        }
+
+        $bucket = isset($params['bucket']) ? sanitize_key($params['bucket']) : 'temp';
+        $allowed_buckets = ['sku', 'dealer', 'payments', 'exports', 'temp', 'certificate'];
+        if (!in_array($bucket, $allowed_buckets, true)) {
+            $bucket = 'temp';
+        }
+
+        $owner_type = isset($params['owner_type']) ? sanitize_key($params['owner_type']) : '';
+        $owner_id = isset($params['owner_id']) ? (int) $params['owner_id'] : null;
+        $visibility = isset($params['visibility']) ? sanitize_key($params['visibility']) : self::VISIBILITY_PRIVATE;
+        $allowed_visibility = [self::VISIBILITY_PUBLIC, self::VISIBILITY_PRIVATE, self::VISIBILITY_SENSITIVE];
+        if (!in_array($visibility, $allowed_visibility, true)) {
+            $visibility = self::VISIBILITY_PRIVATE;
+        }
+
+        $sensitive_types = ['business_license', 'payment_receipt', 'payment_voucher'];
+        if (in_array($owner_type, $sensitive_types, true)) {
+            $visibility = self::VISIBILITY_SENSITIVE;
+        }
+
+        if (!isset($_FILES['file'])) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_UPLOAD, 'FAIL', ['reason' => 'missing_file']);
+            return new WP_REST_Response(['message' => '未找到上传文件'], 400);
+        }
+
+        $upload_override = ['test_form' => false];
+        $dir_filter = function ($uploads) use ($bucket) {
+            $uploads['subdir'] = '/' . AEGIS_Assets_Media::UPLOAD_ROOT . '/' . $bucket;
+            $uploads['path'] = $uploads['basedir'] . $uploads['subdir'];
+            $uploads['url'] = $uploads['baseurl'] . $uploads['subdir'];
+            return $uploads;
+        };
+        add_filter('upload_dir', $dir_filter);
+
+        $result = wp_handle_upload($_FILES['file'], $upload_override);
+        remove_filter('upload_dir', $dir_filter);
+
+        if (isset($result['error'])) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_UPLOAD, 'FAIL', ['reason' => $result['error']]);
+            return new WP_REST_Response(['message' => $result['error']], 400);
+        }
+
+        $file_path = str_replace(trailingslashit(wp_upload_dir()['basedir']), '', $result['file']);
+        $hash = hash_file('sha256', $result['file']);
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
+        $wpdb->insert(
+            $table,
+            [
+                'owner_type'  => $owner_type,
+                'owner_id'    => $owner_id,
+                'file_path'   => ltrim($file_path, '/'),
+                'mime'        => isset($result['type']) ? $result['type'] : null,
+                'file_hash'   => $hash,
+                'visibility'  => $visibility,
+                'uploaded_by' => get_current_user_id(),
+                'uploaded_at' => current_time('mysql'),
+                'meta'        => isset($params['meta']) ? wp_json_encode($params['meta']) : null,
+            ],
+            ['%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s']
+        );
+
+        $id = $wpdb->insert_id;
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_MEDIA_UPLOAD,
+            'SUCCESS',
+            [
+                'id'          => $id,
+                'owner_type'  => $owner_type,
+                'owner_id'    => $owner_id,
+                'visibility'  => $visibility,
+                'bucket'      => $bucket,
+                'file'        => basename($result['file']),
+            ]
+        );
+
+        return new WP_REST_Response(
+            [
+                'id'         => $id,
+                'path'       => $file_path,
+                'visibility' => $visibility,
+                'mime'       => isset($result['type']) ? $result['type'] : '',
+            ],
+            200
+        );
+    }
+
+    /**
+     * 后台表单上传复用管道。
+     *
+     * @param array $file
+     * @param array $params
+     * @return array|WP_Error
+     */
+    public static function handle_admin_upload($file, $params = []) {
+        if (!AEGIS_System::is_module_enabled('assets_media')) {
+            return new WP_Error('module_disabled', '资产与媒体模块未启用');
+        }
+
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('forbidden', '权限不足');
+        }
+
+        if (!is_array($file) || empty($file['name'])) {
+            return new WP_Error('missing_file', '未选择文件');
+        }
+
+        self::ensure_upload_structure();
+
+        $allowed_buckets = ['sku', 'dealer', 'payments', 'exports', 'temp', 'certificate'];
+        $bucket = isset($params['bucket']) ? sanitize_key($params['bucket']) : 'temp';
+        if (!in_array($bucket, $allowed_buckets, true)) {
+            $bucket = 'temp';
+        }
+
+        $owner_type = isset($params['owner_type']) ? sanitize_key($params['owner_type']) : '';
+        $owner_id = isset($params['owner_id']) ? (int) $params['owner_id'] : null;
+        $visibility = isset($params['visibility']) ? sanitize_key($params['visibility']) : self::VISIBILITY_PRIVATE;
+        $allowed_visibility = [self::VISIBILITY_PUBLIC, self::VISIBILITY_PRIVATE, self::VISIBILITY_SENSITIVE];
+        if (!in_array($visibility, $allowed_visibility, true)) {
+            $visibility = self::VISIBILITY_PRIVATE;
+        }
+
+        $sensitive_types = ['business_license', 'payment_receipt', 'payment_voucher'];
+        if (in_array($owner_type, $sensitive_types, true)) {
+            $visibility = self::VISIBILITY_SENSITIVE;
+        }
+
+        $upload_override = ['test_form' => false];
+        $dir_filter = function ($uploads) use ($bucket) {
+            $uploads['subdir'] = '/' . AEGIS_Assets_Media::UPLOAD_ROOT . '/' . $bucket;
+            $uploads['path'] = $uploads['basedir'] . $uploads['subdir'];
+            $uploads['url'] = $uploads['baseurl'] . $uploads['subdir'];
+            return $uploads;
+        };
+        add_filter('upload_dir', $dir_filter);
+
+        $result = wp_handle_upload($file, $upload_override);
+        remove_filter('upload_dir', $dir_filter);
+
+        if (isset($result['error'])) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_UPLOAD, 'FAIL', ['reason' => $result['error']]);
+            return new WP_Error('upload_error', $result['error']);
+        }
+
+        $file_path = str_replace(trailingslashit(wp_upload_dir()['basedir']), '', $result['file']);
+        $hash = hash_file('sha256', $result['file']);
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
+        $wpdb->insert(
+            $table,
+            [
+                'owner_type'  => $owner_type,
+                'owner_id'    => $owner_id,
+                'file_path'   => ltrim($file_path, '/'),
+                'mime'        => isset($result['type']) ? $result['type'] : null,
+                'file_hash'   => $hash,
+                'visibility'  => $visibility,
+                'uploaded_by' => get_current_user_id(),
+                'uploaded_at' => current_time('mysql'),
+                'meta'        => isset($params['meta']) ? wp_json_encode($params['meta']) : null,
+            ],
+            ['%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s']
+        );
+
+        $id = $wpdb->insert_id;
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_MEDIA_UPLOAD,
+            'SUCCESS',
+            [
+                'id'         => $id,
+                'owner_type' => $owner_type,
+                'owner_id'   => $owner_id,
+                'visibility' => $visibility,
+                'bucket'     => $bucket,
+                'file'       => basename($result['file']),
+            ]
+        );
+
+        return [
+            'id'         => $id,
+            'path'       => $file_path,
+            'visibility' => $visibility,
+            'mime'       => isset($result['type']) ? $result['type'] : '',
+        ];
+    }
+
+    /**
+     * 处理 REST 下载。
+     */
+    public static function handle_download_api($request) {
+        $id = $request instanceof WP_REST_Request ? (int) $request->get_param('id') : 0;
+        self::stream_media($id);
+    }
+
+    /**
+     * 按鉴权输出媒体文件。
+     *
+     * @param int $id
+     */
+    public static function stream_media($id) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
+        $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
+
+        if (!$record) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_DOWNLOAD_DENY, 'FAIL', ['id' => $id, 'reason' => 'not_found']);
+            status_header(404);
+            exit;
+        }
+
+        $is_public_certificate = (self::VISIBILITY_PUBLIC === $record->visibility && 'certificate' === $record->owner_type);
+        if (!$is_public_certificate && !current_user_can('manage_options')) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_DOWNLOAD_DENY, 'FAIL', ['id' => $id, 'reason' => 'forbidden']);
+            status_header(403);
+            exit;
+        }
+
+        $file_full_path = trailingslashit(wp_upload_dir()['basedir']) . $record->file_path;
+        if (!file_exists($file_full_path)) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_DOWNLOAD_DENY, 'FAIL', ['id' => $id, 'reason' => 'missing_file']);
+            status_header(404);
+            exit;
+        }
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_MEDIA_DOWNLOAD,
+            'SUCCESS',
+            [
+                'id'         => $id,
+                'visibility' => $record->visibility,
+                'owner_type' => $record->owner_type,
+            ]
+        );
+
+        $mime = $record->mime ? $record->mime : 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($file_full_path));
+        header('Content-Disposition: attachment; filename="' . basename($file_full_path) . '"');
+        readfile($file_full_path);
+        exit;
+    }
+}
+
+class AEGIS_SKU {
+    const STATUS_ACTIVE = 'active';
+    const STATUS_INACTIVE = 'inactive';
+
+    /**
+     * 渲染 SKU 管理页面。
+     */
+    public static function render_admin_page() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('您无权访问该页面。'));
+        }
+
+        if (!AEGIS_System::is_module_enabled('sku')) {
+            echo '<div class="wrap"><h1>SKU 管理</h1><div class="notice notice-warning"><p>请先在模块管理中启用 SKU 模块。</p></div></div>';
+            return;
+        }
+
+        $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
+        $messages = [];
+        $errors = [];
+        $current_edit = null;
+
+        if (isset($_GET['edit'])) {
+            $current_edit = self::get_sku((int) $_GET['edit']);
+        }
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $action = isset($_POST['sku_action']) ? sanitize_key(wp_unslash($_POST['sku_action'])) : '';
+            $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
+            $whitelist = ['sku_action', 'sku_id', 'ean', 'product_name', 'size_label', 'color_label', 'status', 'ean_correct', 'ean_correct_confirm', 'certificate_visibility', 'target_status', 'aegis_sku_nonce', '_wp_http_referer', '_aegis_idempotency'];
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'      => 'manage_options',
+                    'nonce_field'     => 'aegis_sku_nonce',
+                    'nonce_action'    => 'aegis_sku_action',
+                    'whitelist'       => $whitelist,
+                    'idempotency_key' => $idempotency,
+                ]
+            );
+
+            if (!$validation['success']) {
+                $errors[] = $validation['message'];
+            } elseif ('save' === $action) {
+                $result = self::handle_save_request($_POST, $_FILES, $assets_enabled);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    $messages = array_merge($messages, $result['messages']);
+                    $current_edit = $result['sku'];
+                }
+            } elseif ('toggle_status' === $action) {
+                $result = self::handle_status_toggle($_POST);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    $messages[] = $result['message'];
+                }
+            }
+        }
+
+        $skus = self::list_skus();
+
+        echo '<div class="wrap aegis-system-root">';
+        echo '<h1 class="aegis-t-a2">SKU 管理</h1>';
+        echo '<p class="aegis-t-a6">维护产品主数据，启停状态将影响后续业务规则。</p>';
+
+        foreach ($messages as $msg) {
+            echo '<div class="updated"><p>' . esc_html($msg) . '</p></div>';
+        }
+        foreach ($errors as $msg) {
+            echo '<div class="error"><p>' . esc_html($msg) . '</p></div>';
+        }
+
+        if (!$assets_enabled) {
+            echo '<div class="notice notice-warning"><p class="aegis-t-a6">附件上传依赖“资产与媒体”模块，请确保已启用。</p></div>';
+        }
+
+        self::render_form($current_edit, $assets_enabled);
+        self::render_table($skus);
+        echo '</div>';
+    }
+
+    /**
+     * 渲染新增/编辑表单。
+     *
+     * @param object|null $sku
+     * @param bool        $assets_enabled
+     */
+    protected static function render_form($sku, $assets_enabled) {
+        $id = $sku ? (int) $sku->id : 0;
+        $ean = $sku ? $sku->ean : '';
+        $product_name = $sku ? $sku->product_name : '';
+        $size_label = $sku ? $sku->size_label : '';
+        $color_label = $sku ? $sku->color_label : '';
+        $status = $sku ? $sku->status : self::STATUS_ACTIVE;
+        $idempotency_key = wp_generate_uuid4();
+
+        echo '<div class="aegis-t-a5" style="margin-top:20px;">';
+        echo '<h2 class="aegis-t-a3">' . ($sku ? '编辑 SKU' : '新增 SKU') . '</h2>';
+        echo '<form method="post" enctype="multipart/form-data" class="aegis-t-a5">';
+        wp_nonce_field('aegis_sku_action', 'aegis_sku_nonce');
+        echo '<input type="hidden" name="sku_action" value="save" />';
+        echo '<input type="hidden" name="sku_id" value="' . esc_attr($id) . '" />';
+        echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($idempotency_key) . '" />';
+
+        echo '<table class="form-table">';
+        echo '<tr><th><label for="aegis-ean">EAN</label></th><td>';
+        echo '<input type="text" id="aegis-ean" name="ean" value="' . esc_attr($ean) . '" ' . ($sku ? 'readonly' : '') . ' class="regular-text" />';
+        if ($sku) {
+            echo '<p class="description aegis-t-a6">常规编辑不可修改 EAN。</p>';
+            echo '<div class="aegis-t-a6" style="margin-top:8px;">';
+            echo '<label><input type="checkbox" name="ean_correct_confirm" value="1" /> 启用受控更正</label><br />';
+            echo '<input type="text" name="ean_correct" placeholder="新的 EAN" class="regular-text" />';
+            echo '<p class="description">仅限总部管理员，提交将写入审计。</p>';
+            echo '</div>';
+        }
+        echo '</td></tr>';
+
+        echo '<tr><th><label for="aegis-name">产品名称</label></th><td><input type="text" id="aegis-name" name="product_name" value="' . esc_attr($product_name) . '" class="regular-text" required /></td></tr>';
+        echo '<tr><th><label for="aegis-size">尺码</label></th><td><input type="text" id="aegis-size" name="size_label" value="' . esc_attr($size_label) . '" class="regular-text" /></td></tr>';
+        echo '<tr><th><label for="aegis-color">颜色</label></th><td><input type="text" id="aegis-color" name="color_label" value="' . esc_attr($color_label) . '" class="regular-text" /></td></tr>';
+
+        echo '<tr><th>状态</th><td><select name="status">';
+        foreach (self::get_status_labels() as $value => $label) {
+            $selected = selected($status, $value, false);
+            echo '<option value="' . esc_attr($value) . '" ' . $selected . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></td></tr>';
+
+        if ($assets_enabled) {
+            echo '<tr><th>产品图片</th><td>';
+            echo '<input type="file" name="product_image" accept="image/*" />';
+            if ($sku && $sku->product_image_id) {
+                echo '<p class="description aegis-t-a6">已关联媒体 ID：' . esc_html($sku->product_image_id) . '</p>';
+            }
+            echo '</td></tr>';
+
+            echo '<tr><th>证书上传</th><td>';
+            echo '<input type="file" name="certificate_file" />';
+            $visibility = isset($_POST['certificate_visibility']) ? sanitize_key(wp_unslash($_POST['certificate_visibility'])) : AEGIS_Assets_Media::VISIBILITY_PRIVATE;
+            echo '<p class="aegis-t-a6">证书可设置公开（public）或内部可见（internal=private）。</p>';
+            echo '<label><input type="radio" name="certificate_visibility" value="private" ' . checked($visibility, 'private', false) . ' /> 内部</label> ';
+            echo '<label><input type="radio" name="certificate_visibility" value="public" ' . checked($visibility, 'public', false) . ' /> 公开</label>';
+            if ($sku && $sku->certificate_id) {
+                echo '<p class="description aegis-t-a6" style="margin-top:6px;">已关联证书媒体 ID：' . esc_html($sku->certificate_id) . '</p>';
+            }
+            echo '</td></tr>';
+        }
+
+        echo '</table>';
+        submit_button($sku ? '保存 SKU' : '新增 SKU');
+        echo '</form>';
+        echo '</div>';
+    }
+
+    /**
+     * 处理保存请求。
+     *
+     * @param array $post
+     * @param array $files
+     * @param bool  $assets_enabled
+     * @return array|WP_Error
+     */
+    protected static function handle_save_request($post, $files, $assets_enabled) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+
+        $sku_id = isset($post['sku_id']) ? (int) $post['sku_id'] : 0;
+        $ean_input = isset($post['ean']) ? sanitize_text_field(wp_unslash($post['ean'])) : '';
+        $product_name = isset($post['product_name']) ? sanitize_text_field(wp_unslash($post['product_name'])) : '';
+        $size_label = isset($post['size_label']) ? sanitize_text_field(wp_unslash($post['size_label'])) : '';
+        $color_label = isset($post['color_label']) ? sanitize_text_field(wp_unslash($post['color_label'])) : '';
+        $status_raw = isset($post['status']) ? sanitize_key($post['status']) : '';
+        $status = $status_raw && array_key_exists($status_raw, self::get_status_labels()) ? $status_raw : self::STATUS_ACTIVE;
+
+        $now = current_time('mysql');
+        $is_new = $sku_id === 0;
+        $existing = $is_new ? null : self::get_sku($sku_id);
+        if (!$is_new && !$existing) {
+            return new WP_Error('not_found', '未找到对应的 SKU。');
+        }
+
+        $ean_to_use = $is_new ? $ean_input : $existing->ean;
+        $ean_correct = isset($post['ean_correct']) ? sanitize_text_field(wp_unslash($post['ean_correct'])) : '';
+        $ean_confirm = !empty($post['ean_correct_confirm']);
+
+        if ($is_new && '' === $ean_to_use) {
+            return new WP_Error('ean_required', '请填写 EAN。');
+        }
+
+        if (!$is_new && $ean_confirm && $ean_correct) {
+            $ean_to_use = $ean_correct;
+        }
+
+        if (self::ean_exists($ean_to_use, $sku_id)) {
+            return new WP_Error('ean_exists', 'EAN 已存在，无法重复。');
+        }
+
+        $data = [
+            'product_name' => $product_name,
+            'size_label'   => $size_label,
+            'color_label'  => $color_label,
+            'status'       => $status,
+            'updated_at'   => $now,
+        ];
+
+        $messages = [];
+
+        if ($is_new) {
+            $data['ean'] = $ean_to_use;
+            $data['created_at'] = $now;
+            $wpdb->insert($table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s']);
+            $sku_id = (int) $wpdb->insert_id;
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SKU_CREATE, 'SUCCESS', ['id' => $sku_id, 'ean' => $ean_to_use]);
+            $messages[] = 'SKU 已创建。';
+        } else {
+            $wpdb->update($table, $data, ['id' => $sku_id]);
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SKU_UPDATE, 'SUCCESS', ['id' => $sku_id]);
+            $messages[] = 'SKU 已更新。';
+
+            if ($existing->status !== $status) {
+                $action = self::STATUS_ACTIVE === $status ? AEGIS_System::ACTION_SKU_ENABLE : AEGIS_System::ACTION_SKU_DISABLE;
+                AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $sku_id, 'from' => $existing->status, 'to' => $status]);
+            }
+
+            if ($ean_to_use !== $existing->ean) {
+                $wpdb->update($table, ['ean' => $ean_to_use], ['id' => $sku_id]);
+                AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SKU_EAN_CORRECT, 'SUCCESS', ['id' => $sku_id, 'from' => $existing->ean, 'to' => $ean_to_use]);
+                $messages[] = 'EAN 已完成受控更正。';
+            }
+        }
+
+        if ($assets_enabled) {
+            if (isset($files['product_image']) && is_array($files['product_image']) && !empty($files['product_image']['name'])) {
+                $upload = AEGIS_Assets_Media::handle_admin_upload($files['product_image'], [
+                    'bucket'     => 'sku',
+                    'owner_type' => 'sku_image',
+                    'owner_id'   => $sku_id,
+                    'visibility' => AEGIS_Assets_Media::VISIBILITY_PRIVATE,
+                    'meta'       => ['type' => 'product_image', 'sku' => $ean_to_use],
+                ]);
+
+                if (is_wp_error($upload)) {
+                    $messages[] = '产品图片上传失败：' . $upload->get_error_message();
+                } else {
+                    $wpdb->update($table, ['product_image_id' => $upload['id']], ['id' => $sku_id]);
+                    $messages[] = '产品图片已上传并关联。';
+                }
+            }
+
+            if (isset($files['certificate_file']) && is_array($files['certificate_file']) && !empty($files['certificate_file']['name'])) {
+                $visibility = isset($post['certificate_visibility']) && 'public' === sanitize_key($post['certificate_visibility']) ? AEGIS_Assets_Media::VISIBILITY_PUBLIC : AEGIS_Assets_Media::VISIBILITY_PRIVATE;
+                $upload = AEGIS_Assets_Media::handle_admin_upload($files['certificate_file'], [
+                    'bucket'     => 'certificate',
+                    'owner_type' => 'certificate',
+                    'owner_id'   => $sku_id,
+                    'visibility' => $visibility,
+                    'meta'       => ['type' => 'sku_certificate', 'sku' => $ean_to_use],
+                ]);
+
+                if (is_wp_error($upload)) {
+                    $messages[] = '证书上传失败：' . $upload->get_error_message();
+                } else {
+                    $wpdb->update($table, ['certificate_id' => $upload['id']], ['id' => $sku_id]);
+                    $messages[] = '证书已上传并关联。';
+                }
+            }
+        }
+
+        $sku = self::get_sku($sku_id);
+
+        return [
+            'sku'      => $sku,
+            'messages' => $messages,
+        ];
+    }
+
+    /**
+     * 处理状态切换。
+     *
+     * @param array $post
+     * @return array|WP_Error
+     */
+    protected static function handle_status_toggle($post) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        $sku_id = isset($post['sku_id']) ? (int) $post['sku_id'] : 0;
+        $target = isset($post['target_status']) ? sanitize_key($post['target_status']) : '';
+
+        if (!array_key_exists($target, self::get_status_labels())) {
+            return new WP_Error('bad_status', '无效的状态。');
+        }
+
+        $sku = self::get_sku($sku_id);
+        if (!$sku) {
+            return new WP_Error('not_found', '未找到对应的 SKU。');
+        }
+
+        $wpdb->update($table, ['status' => $target, 'updated_at' => current_time('mysql')], ['id' => $sku_id]);
+        $action = self::STATUS_ACTIVE === $target ? AEGIS_System::ACTION_SKU_ENABLE : AEGIS_System::ACTION_SKU_DISABLE;
+        AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $sku_id, 'from' => $sku->status, 'to' => $target]);
+
+        return ['message' => '状态已更新。'];
+    }
+
+    /**
+     * 列出所有 SKU。
+     *
+     * @return array
+     */
+    protected static function list_skus() {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        return $wpdb->get_results("SELECT * FROM {$table} ORDER BY created_at DESC");
+    }
+
+    /**
+     * 获取单个 SKU。
+     *
+     * @param int $id
+     * @return object|null
+     */
+    protected static function get_sku($id) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+    }
+
+    /**
+     * 检查 EAN 是否已存在。
+     *
+     * @param string $ean
+     * @param int    $exclude_id
+     * @return bool
+     */
+    protected static function ean_exists($ean, $exclude_id = 0) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        $sql = "SELECT COUNT(*) FROM {$table} WHERE ean = %s";
+        $params = [$ean];
+        if ($exclude_id > 0) {
+            $sql .= ' AND id != %d';
+            $params[] = $exclude_id;
+        }
+        $count = $wpdb->get_var($wpdb->prepare($sql, $params));
+        return ((int) $count) > 0;
+    }
+
+    /**
+     * 状态字典。
+     *
+     * @return array
+     */
+    protected static function get_status_labels() {
+        return [
+            self::STATUS_ACTIVE   => '启用',
+            self::STATUS_INACTIVE => '停用',
+        ];
+    }
+
+    /**
+     * 渲染列表。
+     *
+     * @param array $skus
+     */
+    protected static function render_table($skus) {
+        echo '<h2 class="aegis-t-a3" style="margin-top:24px;">SKU 列表</h2>';
+        echo '<table class="widefat fixed striped">';
+        echo '<thead><tr class="aegis-t-a6"><th>ID</th><th>EAN</th><th>名称</th><th>尺码</th><th>颜色</th><th>状态</th><th>附件</th><th>操作</th></tr></thead>';
+        echo '<tbody class="aegis-t-a6">';
+        if (empty($skus)) {
+            echo '<tr><td colspan="8">暂无记录。</td></tr>';
+        }
+
+        foreach ($skus as $sku) {
+            $status_label = isset(self::get_status_labels()[$sku->status]) ? self::get_status_labels()[$sku->status] : $sku->status;
+            echo '<tr>';
+            echo '<td>' . esc_html($sku->id) . '</td>';
+            echo '<td>' . esc_html($sku->ean) . '</td>';
+            echo '<td>' . esc_html($sku->product_name) . '</td>';
+            echo '<td>' . esc_html($sku->size_label) . '</td>';
+            echo '<td>' . esc_html($sku->color_label) . '</td>';
+            echo '<td>' . esc_html($status_label) . '</td>';
+            echo '<td>';
+            if ($sku->product_image_id) {
+                echo '<div>图：' . esc_html($sku->product_image_id) . '</div>';
+            }
+            if ($sku->certificate_id) {
+                echo '<div>证：' . esc_html($sku->certificate_id) . '</div>';
+            }
+            echo '</td>';
+            echo '<td>';
+            echo '<a class="button button-small" href="' . esc_url(add_query_arg(['page' => 'aegis-system-sku', 'edit' => $sku->id], admin_url('admin.php'))) . '">编辑</a> ';
+            $target_status = self::STATUS_ACTIVE === $sku->status ? self::STATUS_INACTIVE : self::STATUS_ACTIVE;
+            echo '<form method="post" style="display:inline;">';
+            wp_nonce_field('aegis_sku_action', 'aegis_sku_nonce');
+            echo '<input type="hidden" name="sku_action" value="toggle_status" />';
+            echo '<input type="hidden" name="sku_id" value="' . esc_attr($sku->id) . '" />';
+            echo '<input type="hidden" name="target_status" value="' . esc_attr($target_status) . '" />';
+            echo '<button type="submit" class="button button-small">' . (self::STATUS_ACTIVE === $sku->status ? '停用' : '启用') . '</button>';
+            echo '</form>';
+            echo '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody>';
+        echo '</table>';
+    }
+}
+
+new AEGIS_System();
