@@ -26,9 +26,9 @@ add_filter(
         // Keep backend unchanged; apply to frontend and REST requests.
         $is_rest_request = defined('REST_REQUEST') && REST_REQUEST;
 
+        // NOTE: Do NOT remove 'demo-content'. The7 Elementor page-settings includes
+        // the7-demo-content.php and requires The7_Demo_Content_Meta_Box class from demo-content module.
         $modules_to_remove = [
-            'demo-content',
-            'bundled-content',
             'dev-mode',
             'dev-tools',
         ];

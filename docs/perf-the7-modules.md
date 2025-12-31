@@ -7,7 +7,7 @@
 
 ## 实现范围
 - 仅针对前台和 REST（含 `/wp-json/`）请求生效；`is_admin()`（后台）不做任何修改。
-- 移除的模块：`demo-content`、`bundled-content`、`dev-mode`、`dev-tools`。
+- 移除的模块：`dev-mode`、`dev-tools`（保留 `demo-content` / `bundled-content` 以避免 Elementor/The7 依赖缺失）。
 - The7 父主题和其他插件代码未改动，逻辑封装在 MU 插件 `wp-content/mu-plugins/aegis-perf-the7-modules.php` 中。
 
 ## 验证与观测
