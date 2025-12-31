@@ -21,6 +21,13 @@ class AEGIS_System {
     const CODE_BATCH_TABLE = 'aegis_code_batches';
     const CODE_TABLE = 'aegis_codes';
 
+    const CAP_ACCESS_ROOT = 'aegis_access_root';
+    const CAP_MANAGE_SYSTEM = 'aegis_manage_system';
+    const CAP_MANAGE_WAREHOUSE = 'aegis_manage_warehouse';
+    const CAP_USE_WAREHOUSE = 'aegis_use_warehouse';
+    const CAP_RESET_B = 'aegis_reset_b';
+    const CAP_ORDERS = 'aegis_orders';
+
     const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
     const ACTION_MODULE_DISABLE = 'MODULE_DISABLE';
     const ACTION_MODULE_UNINSTALL = 'MODULE_UNINSTALL';
@@ -76,6 +83,7 @@ class AEGIS_System {
         add_action('template_redirect', ['AEGIS_Assets_Media', 'maybe_serve_media']);
         add_shortcode('aegis_system_page', ['AEGIS_Assets_Media', 'render_frontend_container']);
         add_action('wp_enqueue_scripts', ['AEGIS_Assets_Media', 'enqueue_front_assets']);
+        add_action('init', ['AEGIS_System_Roles', 'sync_roles']);
         register_activation_hook(__FILE__, [__CLASS__, 'activate']);
         add_action('plugins_loaded', ['AEGIS_System_Schema', 'maybe_upgrade']);
     }
@@ -84,6 +92,7 @@ class AEGIS_System {
      * 激活时初始化模块状态。
      */
     public static function activate() {
+        AEGIS_System_Roles::sync_roles();
         AEGIS_System_Schema::maybe_upgrade();
         AEGIS_Assets_Media::ensure_upload_structure();
         $stored = get_option(self::OPTION_KEY);
@@ -105,58 +114,96 @@ class AEGIS_System {
      * 后台菜单注册。
      */
     public function register_admin_menu() {
+        $states = $this->get_module_states();
+
+        $has_visible = false;
+        if (AEGIS_System_Roles::user_can_manage_system()) {
+            $has_visible = true;
+        }
+        if (AEGIS_System_Roles::user_can_manage_warehouse() && (!empty($states['sku']) || !empty($states['dealer_master']) || !empty($states['codes']))) {
+            $has_visible = true;
+        }
+        if (AEGIS_System_Roles::user_can_reset_b() && !empty($states['reset_b'])) {
+            $has_visible = true;
+        }
+
+        if (!$has_visible) {
+            return;
+        }
+
         add_menu_page(
             'AEGIS-SYSTEM',
             'AEGIS-SYSTEM',
-            'manage_options',
+            AEGIS_System::CAP_ACCESS_ROOT,
             'aegis-system',
-            [$this, 'render_module_manager'],
+            [$this, 'render_root_router'],
             'dashicons-admin-generic',
             56
         );
 
-        $states = $this->get_module_states();
-        if (!empty($states['assets_media'])) {
+        if (AEGIS_System_Roles::user_can_manage_system()) {
+            add_submenu_page(
+                'aegis-system',
+                '模块管理',
+                '模块管理',
+                AEGIS_System::CAP_MANAGE_SYSTEM,
+                'aegis-system',
+                [$this, 'render_module_manager']
+            );
+        }
+
+        if (!empty($states['assets_media']) && AEGIS_System_Roles::user_can_manage_system()) {
             add_submenu_page(
                 'aegis-system',
                 '排版设置',
                 '全局设置',
-                'manage_options',
+                AEGIS_System::CAP_MANAGE_SYSTEM,
                 'aegis-system-typography',
                 ['AEGIS_Assets_Media', 'render_typography_settings']
             );
         }
 
-        if (!empty($states['sku'])) {
+        if (!empty($states['sku']) && AEGIS_System_Roles::user_can_manage_warehouse()) {
             add_submenu_page(
                 'aegis-system',
                 'SKU 管理',
                 'SKU 管理',
-                'manage_options',
+                AEGIS_System::CAP_MANAGE_WAREHOUSE,
                 'aegis-system-sku',
                 ['AEGIS_SKU', 'render_admin_page']
             );
         }
 
-        if (!empty($states['dealer_master'])) {
+        if (!empty($states['dealer_master']) && AEGIS_System_Roles::user_can_manage_warehouse()) {
             add_submenu_page(
                 'aegis-system',
                 '经销商管理',
                 '经销商管理',
-                'manage_options',
+                AEGIS_System::CAP_MANAGE_WAREHOUSE,
                 'aegis-system-dealer',
                 ['AEGIS_Dealer', 'render_admin_page']
             );
         }
 
-        if (!empty($states['codes'])) {
+        if (!empty($states['codes']) && AEGIS_System_Roles::user_can_manage_warehouse()) {
             add_submenu_page(
                 'aegis-system',
                 '防伪码生成',
                 '防伪码生成',
-                'manage_options',
+                AEGIS_System::CAP_MANAGE_WAREHOUSE,
                 'aegis-system-codes',
                 ['AEGIS_Codes', 'render_admin_page']
+            );
+        }
+
+        if (!empty($states['reset_b']) && AEGIS_System_Roles::user_can_reset_b()) {
+            add_submenu_page(
+                'aegis-system',
+                '清零系统',
+                '清零系统',
+                AEGIS_System::CAP_RESET_B,
+                'aegis-system-reset-b',
+                [$this, 'render_reset_placeholder']
             );
         }
 
@@ -184,6 +231,7 @@ class AEGIS_System {
             'aegis-system_page_aegis-system-sku',
             'aegis-system_page_aegis-system-dealer',
             'aegis-system_page_aegis-system-codes',
+            'aegis-system_page_aegis-system-reset-b',
         ];
 
         if (!in_array($hook, $screens, true)) {
@@ -203,7 +251,7 @@ class AEGIS_System {
      * 模块管理页渲染。
      */
     public function render_module_manager() {
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_system()) {
             wp_die(__('您无权访问该页面。'));
         }
 
@@ -215,7 +263,7 @@ class AEGIS_System {
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => 'manage_options',
+                    'capability'      => AEGIS_System::CAP_MANAGE_SYSTEM,
                     'nonce_field'     => 'aegis_system_nonce',
                     'nonce_action'    => 'aegis_system_save_modules',
                     'whitelist'       => ['aegis_system_nonce', 'modules', '_wp_http_referer', '_aegis_idempotency'],
@@ -342,6 +390,165 @@ class AEGIS_System {
         }
     }
 
+    /**
+     * 根路由占位，根据能力分流。
+     */
+    public function render_root_router() {
+        if (AEGIS_System_Roles::user_can_manage_system()) {
+            $this->render_module_manager();
+            return;
+        }
+
+        $states = $this->get_module_states();
+        if (AEGIS_System_Roles::user_can_manage_warehouse() && !empty($states['sku'])) {
+            echo '<div class="wrap aegis-system-root"><h1 class="aegis-t-a3">AEGIS-SYSTEM</h1><p class="aegis-t-a6">请选择左侧功能菜单进行操作。</p></div>';
+            return;
+        }
+
+        if (AEGIS_System_Roles::user_can_reset_b() && !empty($states['reset_b'])) {
+            $url = admin_url('admin.php?page=aegis-system-reset-b');
+            echo '<div class="wrap aegis-system-root"><h1 class="aegis-t-a3">AEGIS-SYSTEM</h1><p class="aegis-t-a6">请前往 <a href="' . esc_url($url) . '">清零系统</a>。</p></div>';
+            return;
+        }
+
+        wp_die(__('您无权访问该页面。'));
+    }
+
+    /**
+     * 清零系统占位页（仅限有权限且模块已启用的用户）。
+     */
+    public function render_reset_placeholder() {
+        if (!AEGIS_System_Roles::user_can_reset_b()) {
+            wp_die(__('您无权访问该页面。'));
+        }
+
+        if (!AEGIS_System::is_module_enabled('reset_b')) {
+            echo '<div class="wrap aegis-system-root"><h1 class="aegis-t-a3">清零系统</h1><div class="notice notice-warning"><p class="aegis-t-a6">请先启用清零系统模块。</p></div></div>';
+            return;
+        }
+
+        echo '<div class="wrap aegis-system-root"><h1 class="aegis-t-a3">清零系统</h1><p class="aegis-t-a6">清零功能尚未上线，后续版本提供。</p></div>';
+    }
+
+}
+
+class AEGIS_System_Roles {
+    /**
+     * 确保角色与能力存在且幂等。
+     */
+    public static function sync_roles() {
+        $definitions = self::get_role_definitions();
+
+        foreach ($definitions as $role_key => $def) {
+            $role = get_role($role_key);
+            if (!$role) {
+                $role = add_role($role_key, $def['label'], ['read' => true]);
+            }
+
+            if (!$role) {
+                continue;
+            }
+
+            foreach ($def['caps'] as $cap => $grant) {
+                if ($grant) {
+                    $role->add_cap($cap);
+                }
+            }
+        }
+    }
+
+    /**
+     * 当前用户是否具备系统访问根权限。
+     *
+     * @return bool
+     */
+    public static function user_can_access_root() {
+        return current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
+            || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+            || current_user_can(AEGIS_System::CAP_MANAGE_WAREHOUSE)
+            || current_user_can(AEGIS_System::CAP_USE_WAREHOUSE)
+            || current_user_can(AEGIS_System::CAP_RESET_B)
+            || current_user_can(AEGIS_System::CAP_ORDERS);
+    }
+
+    public static function user_can_manage_system() {
+        return current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM);
+    }
+
+    public static function user_can_manage_warehouse() {
+        return current_user_can(AEGIS_System::CAP_MANAGE_WAREHOUSE) || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM);
+    }
+
+    public static function user_can_use_warehouse() {
+        return current_user_can(AEGIS_System::CAP_USE_WAREHOUSE)
+            || self::user_can_manage_warehouse();
+    }
+
+    public static function user_can_reset_b() {
+        return current_user_can(AEGIS_System::CAP_RESET_B) || self::user_can_manage_system();
+    }
+
+    /**
+     * 是否为仅经销商角色。
+     *
+     * @return bool
+     */
+    public static function is_dealer_only() {
+        $user = wp_get_current_user();
+        if (!$user || empty($user->roles)) {
+            return false;
+        }
+        $roles = (array) $user->roles;
+        return 1 === count($roles) && in_array('aegis_dealer', $roles, true);
+    }
+
+    /**
+     * 角色定义。
+     *
+     * @return array
+     */
+    protected static function get_role_definitions() {
+        return [
+            'aegis_hq_admin'          => [
+                'label' => 'AEGIS HQ 管理员',
+                'caps'  => [
+                    'read'                                 => true,
+                    AEGIS_System::CAP_ACCESS_ROOT          => true,
+                    AEGIS_System::CAP_MANAGE_SYSTEM        => true,
+                    AEGIS_System::CAP_MANAGE_WAREHOUSE     => true,
+                    AEGIS_System::CAP_USE_WAREHOUSE        => true,
+                    AEGIS_System::CAP_RESET_B              => true,
+                    AEGIS_System::CAP_ORDERS               => true,
+                ],
+            ],
+            'aegis_warehouse_manager' => [
+                'label' => 'AEGIS 仓库管理员',
+                'caps'  => [
+                    'read'                                 => true,
+                    AEGIS_System::CAP_ACCESS_ROOT          => true,
+                    AEGIS_System::CAP_MANAGE_WAREHOUSE     => true,
+                    AEGIS_System::CAP_USE_WAREHOUSE        => true,
+                    AEGIS_System::CAP_RESET_B              => true,
+                ],
+            ],
+            'aegis_warehouse_staff'   => [
+                'label' => 'AEGIS 仓库员工',
+                'caps'  => [
+                    'read'                                 => true,
+                    AEGIS_System::CAP_ACCESS_ROOT          => true,
+                    AEGIS_System::CAP_USE_WAREHOUSE        => true,
+                ],
+            ],
+            'aegis_dealer'            => [
+                'label' => 'AEGIS 经销商',
+                'caps'  => [
+                    'read'                                 => true,
+                    AEGIS_System::CAP_ACCESS_ROOT          => true,
+                    AEGIS_System::CAP_RESET_B              => true,
+                ],
+            ],
+        ];
+    }
 }
 
 class AEGIS_Access_Audit {
@@ -354,7 +561,7 @@ class AEGIS_Access_Audit {
      */
     public static function validate_write_request($params, $config = []) {
         $defaults = [
-            'capability'      => 'manage_options',
+            'capability'      => AEGIS_System::CAP_MANAGE_SYSTEM,
             'nonce_field'     => null,
             'nonce_action'    => null,
             'whitelist'       => [],
@@ -741,7 +948,7 @@ class AEGIS_Assets_Media {
      * 后台排版设置渲染。
      */
     public static function render_typography_settings() {
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_system()) {
             wp_die(__('您无权访问该页面。'));
         }
 
@@ -756,7 +963,7 @@ class AEGIS_Assets_Media {
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'   => 'manage_options',
+                    'capability'   => AEGIS_System::CAP_MANAGE_SYSTEM,
                     'nonce_field'  => 'aegis_typography_nonce',
                     'nonce_action' => 'aegis_typography_save',
                     'whitelist'    => array_merge(['aegis_typography_nonce', '_wp_http_referer'], self::allowed_typography_keys()),
@@ -871,7 +1078,7 @@ class AEGIS_Assets_Media {
                 'methods'             => 'POST',
                 'callback'            => [__CLASS__, 'handle_upload'],
                 'permission_callback' => function () {
-                    return AEGIS_System::is_module_enabled('assets_media') && current_user_can('manage_options');
+                    return AEGIS_System::is_module_enabled('assets_media') && AEGIS_System_Roles::user_can_manage_warehouse();
                 },
             ]
         );
@@ -883,7 +1090,7 @@ class AEGIS_Assets_Media {
                 'methods'             => 'GET',
                 'callback'            => [__CLASS__, 'handle_download_api'],
                 'permission_callback' => function () {
-                    return AEGIS_System::is_module_enabled('assets_media');
+                    return AEGIS_System::is_module_enabled('assets_media') && !AEGIS_System_Roles::is_dealer_only();
                 },
             ]
         );
@@ -927,7 +1134,7 @@ class AEGIS_Assets_Media {
         $validation = AEGIS_Access_Audit::validate_write_request(
             $params,
             [
-                'capability'   => 'manage_options',
+                'capability'   => AEGIS_System::CAP_MANAGE_WAREHOUSE,
                 'nonce_field'  => '_wpnonce',
                 'nonce_action' => 'wp_rest',
                 'whitelist'    => ['_wpnonce', 'bucket', 'owner_type', 'owner_id', 'visibility', 'meta'],
@@ -1037,7 +1244,7 @@ class AEGIS_Assets_Media {
             return new WP_Error('module_disabled', '资产与媒体模块未启用');
         }
 
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
             return new WP_Error('forbidden', '权限不足');
         }
 
@@ -1150,7 +1357,10 @@ class AEGIS_Assets_Media {
         }
 
         $is_public_certificate = (self::VISIBILITY_PUBLIC === $record->visibility && 'certificate' === $record->owner_type);
-        if (!$is_public_certificate && !current_user_can('manage_options')) {
+        $can_manage_media = AEGIS_System_Roles::user_can_manage_warehouse();
+        $can_reset_media = AEGIS_System_Roles::user_can_reset_b() && in_array($record->owner_type, ['reset_b'], true);
+
+        if (!$is_public_certificate && !$can_manage_media && !$can_reset_media) {
             AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_DOWNLOAD_DENY, 'FAIL', ['id' => $id, 'reason' => 'forbidden']);
             status_header(403);
             exit;
@@ -1190,7 +1400,7 @@ class AEGIS_SKU {
      * 渲染 SKU 管理页面。
      */
     public static function render_admin_page() {
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
             wp_die(__('您无权访问该页面。'));
         }
 
@@ -1215,7 +1425,7 @@ class AEGIS_SKU {
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => 'manage_options',
+                    'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
                     'nonce_field'     => 'aegis_sku_nonce',
                     'nonce_action'    => 'aegis_sku_action',
                     'whitelist'       => $whitelist,
@@ -1600,7 +1810,7 @@ class AEGIS_Dealer {
      * 渲染经销商管理页面。
      */
     public static function render_admin_page() {
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
             wp_die(__('您无权访问该页面。'));
         }
 
@@ -1641,7 +1851,7 @@ class AEGIS_Dealer {
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => 'manage_options',
+                    'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
                     'nonce_field'     => 'aegis_dealer_nonce',
                     'nonce_action'    => 'aegis_dealer_action',
                     'whitelist'       => $whitelist,
@@ -2037,7 +2247,7 @@ class AEGIS_Codes {
      * 渲染防伪码管理页面。
      */
     public static function render_admin_page() {
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
             wp_die(__('您无权访问该页面。'));
         }
 
@@ -2071,7 +2281,7 @@ class AEGIS_Codes {
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => 'manage_options',
+                    'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
                     'nonce_field'     => 'aegis_codes_nonce',
                     'nonce_action'    => 'aegis_codes_action',
                     'whitelist'       => $whitelist,
@@ -2460,7 +2670,7 @@ class AEGIS_Codes {
      * 处理导出。
      */
     protected static function handle_export($batch_id) {
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
             return new WP_Error('forbidden', '权限不足');
         }
 
@@ -2503,7 +2713,7 @@ class AEGIS_Codes {
      * 处理打印视图。
      */
     protected static function handle_print($batch_id) {
-        if (!current_user_can('manage_options')) {
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
             return new WP_Error('forbidden', '权限不足');
         }
 
