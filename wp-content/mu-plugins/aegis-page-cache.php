@@ -43,7 +43,6 @@ function aegis_page_cache_header($name, $value) {
 
 // Basic request context.
 $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) : 'GET';
-$host   = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
 $uri    = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
 
 // Only cache GET/HEAD.
@@ -119,11 +118,9 @@ if ($cookie !== '') {
 $content_dir = defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : (ABSPATH . 'wp-content');
 $cache_dir   = rtrim($content_dir, '/\\') . '/cache/aegis-page-cache';
 
-// Normalize host (strip port) but prefer path-only key to maximize hits.
-$normalized_host = strtolower(preg_replace('/:\\d+$/', '', $host));
-$key_source      = $path; // path-only key to avoid split caches on host aliases.
-$key             = md5($normalized_host . '|' . $key_source);
-$cache_file      = $cache_dir . '/' . $key . '.html';
+// Key: path-only to avoid host/port splits.
+$key        = md5($path);
+$cache_file = $cache_dir . '/' . $key . '.html';
 
 // HIT path (must exit early, before any WP init).
 if (is_file($cache_file)) {
