@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 class AEGIS_System {
     const OPTION_KEY = 'aegis_system_modules';
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
+    const SCHEMA_VERSION = '1.0.0';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -21,6 +22,7 @@ class AEGIS_System {
     const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
     const ACTION_MODULE_DISABLE = 'MODULE_DISABLE';
     const ACTION_MODULE_UNINSTALL = 'MODULE_UNINSTALL';
+    const ACTION_SCHEMA_UPGRADE = 'SCHEMA_UPGRADE';
     const ACTION_MEDIA_UPLOAD = 'MEDIA_UPLOAD';
     const ACTION_MEDIA_DOWNLOAD = 'MEDIA_DOWNLOAD';
     const ACTION_MEDIA_DOWNLOAD_DENY = 'MEDIA_DOWNLOAD_DENY';
@@ -70,14 +72,14 @@ class AEGIS_System {
         add_shortcode('aegis_system_page', ['AEGIS_Assets_Media', 'render_frontend_container']);
         add_action('wp_enqueue_scripts', ['AEGIS_Assets_Media', 'enqueue_front_assets']);
         register_activation_hook(__FILE__, [__CLASS__, 'activate']);
-        add_action('plugins_loaded', [__CLASS__, 'maybe_install_tables']);
+        add_action('plugins_loaded', ['AEGIS_System_Schema', 'maybe_upgrade']);
     }
 
     /**
      * 激活时初始化模块状态。
      */
     public static function activate() {
-        self::maybe_install_tables();
+        AEGIS_System_Schema::maybe_upgrade();
         AEGIS_Assets_Media::ensure_upload_structure();
         $stored = get_option(self::OPTION_KEY);
         if (!is_array($stored)) {
@@ -323,89 +325,6 @@ class AEGIS_System {
         }
     }
 
-    /**
-     * 安装或升级审计表。
-     */
-    public static function maybe_install_tables() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . self::AUDIT_TABLE;
-        $charset_collate = $wpdb->get_charset_collate();
-
-        $sql = "CREATE TABLE {$table_name} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            actor_id BIGINT(20) UNSIGNED NULL,
-            actor_login VARCHAR(60) NULL,
-            action VARCHAR(64) NOT NULL,
-            result VARCHAR(20) NOT NULL,
-            object_data LONGTEXT NULL,
-            created_at DATETIME NOT NULL,
-            PRIMARY KEY  (id),
-            KEY action (action),
-            KEY created_at (created_at)
-        ) {$charset_collate};";
-
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        dbDelta($sql);
-
-        $media_table = $wpdb->prefix . self::MEDIA_TABLE;
-        $media_sql = "CREATE TABLE {$media_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            owner_type VARCHAR(64) NOT NULL,
-            owner_id BIGINT(20) UNSIGNED NULL,
-            file_path TEXT NOT NULL,
-            mime VARCHAR(191) NULL,
-            file_hash VARCHAR(128) NULL,
-            visibility VARCHAR(32) NOT NULL DEFAULT 'private',
-            uploaded_by BIGINT(20) UNSIGNED NULL,
-            uploaded_at DATETIME NOT NULL,
-            deleted_at DATETIME NULL,
-            meta LONGTEXT NULL,
-            PRIMARY KEY  (id),
-            KEY owner (owner_type, owner_id),
-            KEY visibility (visibility),
-            KEY uploaded_at (uploaded_at)
-        ) {$charset_collate};";
-        dbDelta($media_sql);
-
-        $sku_table = $wpdb->prefix . self::SKU_TABLE;
-        $sku_sql = "CREATE TABLE {$sku_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            ean VARCHAR(64) NOT NULL,
-            product_name VARCHAR(191) NOT NULL,
-            size_label VARCHAR(100) NULL,
-            color_label VARCHAR(100) NULL,
-            status VARCHAR(20) NOT NULL DEFAULT 'active',
-            product_image_id BIGINT(20) UNSIGNED NULL,
-            certificate_id BIGINT(20) UNSIGNED NULL,
-            created_at DATETIME NOT NULL,
-            updated_at DATETIME NOT NULL,
-            PRIMARY KEY  (id),
-            UNIQUE KEY ean (ean),
-            KEY status (status),
-            KEY updated_at (updated_at)
-        ) {$charset_collate};";
-        dbDelta($sku_sql);
-
-        $dealer_table = $wpdb->prefix . self::DEALER_TABLE;
-        $dealer_sql = "CREATE TABLE {$dealer_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            auth_code VARCHAR(64) NOT NULL,
-            dealer_name VARCHAR(191) NOT NULL,
-            contact_name VARCHAR(191) NULL,
-            phone VARCHAR(64) NULL,
-            address VARCHAR(255) NULL,
-            authorized_at DATETIME NULL,
-            status VARCHAR(20) NOT NULL DEFAULT 'active',
-            business_license_id BIGINT(20) UNSIGNED NULL,
-            created_at DATETIME NOT NULL,
-            updated_at DATETIME NOT NULL,
-            PRIMARY KEY  (id),
-            UNIQUE KEY auth_code (auth_code),
-            KEY status (status),
-            KEY authorized_at (authorized_at)
-        ) {$charset_collate};";
-        dbDelta($dealer_sql);
-    }
 }
 
 class AEGIS_Access_Audit {
@@ -508,6 +427,150 @@ class AEGIS_Access_Audit {
                 '%s',
             ]
         );
+    }
+}
+
+class AEGIS_System_Schema {
+    const OPTION_KEY = 'aegis_schema_version';
+
+    /**
+     * 根据版本执行安装或升级。
+     */
+    public static function maybe_upgrade() {
+        global $wpdb;
+        $installed = get_option(self::OPTION_KEY, '0');
+        if (!is_string($installed) || $installed === '') {
+            $installed = '0';
+        }
+
+        if (version_compare($installed, AEGIS_System::SCHEMA_VERSION, '>=')) {
+            return;
+        }
+
+        $wpdb->last_error = '';
+        $executed = self::install_tables();
+        $result = empty($wpdb->last_error) ? 'SUCCESS' : 'FAIL';
+
+        if ($result === 'SUCCESS') {
+            update_option(self::OPTION_KEY, AEGIS_System::SCHEMA_VERSION, true);
+        }
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_SCHEMA_UPGRADE,
+            $result,
+            [
+                'from_version' => $installed,
+                'to_version'   => AEGIS_System::SCHEMA_VERSION,
+                'statements'   => $executed,
+                'db_error'     => $wpdb->last_error,
+            ]
+        );
+    }
+
+    /**
+     * 返回建表 SQL 集合。
+     *
+     * @param string $charset_collate
+     * @return array
+     */
+    protected static function get_table_sql($charset_collate) {
+        global $wpdb;
+        $audit_table = $wpdb->prefix . AEGIS_System::AUDIT_TABLE;
+        $media_table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
+        $sku_table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+
+        $audit_sql = "CREATE TABLE {$audit_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            actor_id BIGINT(20) UNSIGNED NULL,
+            actor_login VARCHAR(60) NULL,
+            action VARCHAR(64) NOT NULL,
+            result VARCHAR(20) NOT NULL,
+            object_data LONGTEXT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY action (action),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
+        $media_sql = "CREATE TABLE {$media_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            owner_type VARCHAR(64) NOT NULL,
+            owner_id BIGINT(20) UNSIGNED NULL,
+            file_path TEXT NOT NULL,
+            mime VARCHAR(191) NULL,
+            file_hash VARCHAR(128) NULL,
+            visibility VARCHAR(32) NOT NULL DEFAULT 'private',
+            uploaded_by BIGINT(20) UNSIGNED NULL,
+            uploaded_at DATETIME NOT NULL,
+            deleted_at DATETIME NULL,
+            meta LONGTEXT NULL,
+            PRIMARY KEY  (id),
+            KEY owner (owner_type, owner_id),
+            KEY visibility (visibility),
+            KEY uploaded_at (uploaded_at)
+        ) {$charset_collate};";
+
+        $sku_sql = "CREATE TABLE {$sku_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            ean VARCHAR(64) NOT NULL,
+            product_name VARCHAR(191) NOT NULL,
+            size_label VARCHAR(100) NULL,
+            color_label VARCHAR(100) NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'active',
+            product_image_id BIGINT(20) UNSIGNED NULL,
+            certificate_id BIGINT(20) UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY ean (ean),
+            KEY status (status),
+            KEY created_at (created_at),
+            KEY updated_at (updated_at)
+        ) {$charset_collate};";
+
+        $dealer_sql = "CREATE TABLE {$dealer_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            auth_code VARCHAR(64) NOT NULL,
+            dealer_name VARCHAR(191) NOT NULL,
+            contact_name VARCHAR(191) NULL,
+            phone VARCHAR(64) NULL,
+            address VARCHAR(255) NULL,
+            authorized_at DATETIME NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'active',
+            business_license_id BIGINT(20) UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY auth_code (auth_code),
+            KEY status (status),
+            KEY authorized_at (authorized_at),
+            KEY created_at (created_at),
+            KEY updated_at (updated_at)
+        ) {$charset_collate};";
+
+        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql];
+    }
+
+    /**
+     * 执行建表并返回执行列表。
+     *
+     * @return array
+     */
+    protected static function install_tables() {
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $charset_collate = $GLOBALS['wpdb']->get_charset_collate();
+        $sqls = self::get_table_sql($charset_collate);
+        $executed = [];
+
+        foreach ($sqls as $sql) {
+            $result = dbDelta($sql);
+            if (is_array($result)) {
+                $executed = array_merge($executed, array_values($result));
+            }
+        }
+
+        return $executed;
     }
 }
 
