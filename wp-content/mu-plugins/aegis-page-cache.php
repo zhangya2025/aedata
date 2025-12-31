@@ -5,10 +5,6 @@
  * Goal:
  * - Reduce TTFB by serving cached HTML before Elementor/Pro/The7 initialize.
  * - Keep Woo critical flows and any logged-in/session traffic BYPASS.
- *
- * Notes:
- * - This is an engineering tradeoff: prioritize speed for anonymous browsing.
- * - Not designed for long TTL; default TTL is short to reduce staleness risk.
  */
 
 defined('ABSPATH') || exit;
@@ -20,7 +16,7 @@ if (!defined('AEGIS_PAGE_CACHE_ENABLE')) {
 
 // Default TTL in seconds (override in wp-config.php).
 if (!defined('AEGIS_PAGE_CACHE_TTL')) {
-    define('AEGIS_PAGE_CACHE_TTL', 60);
+    define('AEGIS_PAGE_CACHE_TTL', 600);
 }
 
 // Debug header switch.
@@ -28,12 +24,8 @@ if (!defined('AEGIS_PAGE_CACHE_DEBUG_HEADER')) {
     define('AEGIS_PAGE_CACHE_DEBUG_HEADER', true);
 }
 
-// Do not run on CLI.
-if ((PHP_SAPI === 'cli') || (defined('WP_CLI') && WP_CLI)) {
-    return;
-}
-
-if (!AEGIS_PAGE_CACHE_ENABLE) {
+// Do not run on CLI or when disabled.
+if ((PHP_SAPI === 'cli') || (defined('WP_CLI') && WP_CLI) || !AEGIS_PAGE_CACHE_ENABLE) {
     return;
 }
 
@@ -49,9 +41,7 @@ function aegis_page_cache_header($name, $value) {
     }
 }
 
-/**
- * Basic request context.
- */
+// Basic request context.
 $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) : 'GET';
 $host   = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
 $uri    = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
@@ -107,35 +97,35 @@ if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($_SERVER['REDIRECT_HTTP_AUT
     return;
 }
 
-// Cookie-based bypass (conservative).
+// Cookie-based bypass: only block known sensitive cookies.
 $cookie = isset($_SERVER['HTTP_COOKIE']) ? (string) $_SERVER['HTTP_COOKIE'] : '';
 if ($cookie !== '') {
-    // Logged-in or password-protected.
-    if (strpos($cookie, 'wordpress_logged_in_') !== false || strpos($cookie, 'wp-postpass_') !== false) {
-        aegis_page_cache_header('X-Aegis-Page-Cache', 'BYPASS:login');
-        return;
+    $sensitive_cookies = [
+        'wordpress_logged_in_',
+        'wp-postpass_',
+        'wp_woocommerce_session_',
+        'woocommerce_items_in_cart',
+        'woocommerce_cart_hash',
+    ];
+    foreach ($sensitive_cookies as $needle) {
+        if (strpos($cookie, $needle) !== false) {
+            aegis_page_cache_header('X-Aegis-Page-Cache', 'BYPASS:cookie');
+            return;
+        }
     }
-    // Woo cart/session cookies.
-    if (strpos($cookie, 'woocommerce_items_in_cart') !== false ||
-        strpos($cookie, 'woocommerce_cart_hash') !== false ||
-        strpos($cookie, 'wp_woocommerce_session_') !== false) {
-        aegis_page_cache_header('X-Aegis-Page-Cache', 'BYPASS:woo-cookie');
-        return;
-    }
-    // Any other cookies: bypass for safety (reduce hit rate, maximize correctness).
-    aegis_page_cache_header('X-Aegis-Page-Cache', 'BYPASS:cookie');
-    return;
 }
 
 // Build cache paths.
 $content_dir = defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : (ABSPATH . 'wp-content');
 $cache_dir   = rtrim($content_dir, '/\\') . '/cache/aegis-page-cache';
 
-// Key: host + path (scheme-insensitive, conservative).
-$key        = md5($host . '|' . $path);
-$cache_file = $cache_dir . '/' . $key . '.html';
+// Normalize host (strip port) but prefer path-only key to maximize hits.
+$normalized_host = strtolower(preg_replace('/:\\d+$/', '', $host));
+$key_source      = $path; // path-only key to avoid split caches on host aliases.
+$key             = md5($normalized_host . '|' . $key_source);
+$cache_file      = $cache_dir . '/' . $key . '.html';
 
-// HIT path.
+// HIT path (must exit early, before any WP init).
 if (is_file($cache_file)) {
     $age = time() - (int) @filemtime($cache_file);
     if ($age >= 0 && $age <= (int) AEGIS_PAGE_CACHE_TTL) {
@@ -146,101 +136,79 @@ if (is_file($cache_file)) {
         if ($method === 'HEAD') {
             exit;
         }
-        // Read and output.
-        $fp = @fopen($cache_file, 'rb');
-        if ($fp) {
-            fpassthru($fp);
-            fclose($fp);
-        } else {
-            // Fallback.
-            echo (string) @file_get_contents($cache_file);
-        }
+        @readfile($cache_file);
         exit;
     }
 }
 
-// MISS: start buffering and cache at shutdown if eligible.
+// MISS path: start buffering and write cache from handler.
 aegis_page_cache_header('X-Aegis-Page-Cache', 'MISS');
-
-// Ensure cache dir exists (do not fail request if it cannot be created).
 if (!is_dir($cache_dir)) {
     @mkdir($cache_dir, 0775, true);
 }
 
-// Capture output early; write at shutdown.
 if (!defined('AEGIS_PAGE_CACHE_OB_STARTED')) {
     define('AEGIS_PAGE_CACHE_OB_STARTED', true);
-    ob_start();
+
+    ob_start(function ($buffer) use ($cache_file, $cache_dir) {
+        static $written = false;
+
+        if ($written || !is_string($buffer) || $buffer === '') {
+            return $buffer;
+        }
+
+        $code = function_exists('http_response_code') ? (int) http_response_code() : 200;
+        if ($code !== 200) {
+            return $buffer;
+        }
+
+        $headers          = headers_list();
+        $has_content_type = false;
+        $is_html          = false;
+        foreach ($headers as $h) {
+            $hl = strtolower($h);
+            if (strpos($hl, 'set-cookie:') === 0) {
+                return $buffer; // personalized response
+            }
+            if (strpos($hl, 'content-type:') === 0) {
+                $has_content_type = true;
+                if (strpos($hl, 'text/html') !== false) {
+                    $is_html = true;
+                }
+            }
+            if (strpos($hl, 'cache-control:') === 0 && strpos($hl, 'private') !== false) {
+                return $buffer;
+            }
+        }
+
+        if ($has_content_type && !$is_html) {
+            return $buffer; // not HTML
+        }
+
+        if (!is_dir($cache_dir)) {
+            @mkdir($cache_dir, 0775, true);
+        }
+
+        $tmp = $cache_file . '.tmp.' . getmypid();
+        $ok  = @file_put_contents($tmp, $buffer, LOCK_EX);
+        if ($ok !== false) {
+            @rename($tmp, $cache_file);
+            @chmod($cache_file, 0664);
+            $written = true;
+        } else {
+            @unlink($tmp);
+        }
+
+        return $buffer;
+    });
 }
-
-/**
- * Determine if response is cacheable based on headers/status.
- */
-function aegis_page_cache_is_cacheable_response() {
-    $code = function_exists('http_response_code') ? (int) http_response_code() : 200;
-    if ($code !== 200) {
-        return false;
-    }
-    if (headers_sent()) {
-        // Still may be cacheable, but if headers already sent we cannot reliably check Set-Cookie.
-        // Be conservative.
-        return false;
-    }
-    $headers = headers_list();
-    $has_html = false;
-    foreach ($headers as $h) {
-        $hl = strtolower($h);
-        if (strpos($hl, 'set-cookie:') === 0) {
-            return false;
-        }
-        if (strpos($hl, 'content-type:') === 0 && strpos($hl, 'text/html') !== false) {
-            $has_html = true;
-        }
-        if (strpos($hl, 'cache-control:') === 0 && strpos($hl, 'private') !== false) {
-            return false;
-        }
-    }
-    // If no explicit Content-Type header, WordPress will usually set it; be conservative and require it.
-    return $has_html;
-}
-
-register_shutdown_function(function () use ($cache_file, $cache_dir) {
-    // Only write if buffering is still available.
-    if (!defined('AEGIS_PAGE_CACHE_OB_STARTED') || !AEGIS_PAGE_CACHE_OB_STARTED) {
-        return;
-    }
-
-    // If response not cacheable, do nothing.
-    if (!aegis_page_cache_is_cacheable_response()) {
-        return;
-    }
-
-    $html = ob_get_contents();
-    if (!is_string($html) || $html === '') {
-        return;
-    }
-
-    if (!is_dir($cache_dir)) {
-        @mkdir($cache_dir, 0775, true);
-    }
-
-    // Atomic write: temp file + rename.
-    $tmp = $cache_file . '.tmp.' . getmypid();
-    $ok = @file_put_contents($tmp, $html, LOCK_EX);
-    if ($ok !== false) {
-        @rename($tmp, $cache_file);
-        @chmod($cache_file, 0664);
-    } else {
-        @unlink($tmp);
-    }
-});
 
 /**
  * Flush cache directory (simple full flush).
  */
 function aegis_page_cache_flush_all() {
     $content_dir = defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : (ABSPATH . 'wp-content');
-    $dir = rtrim($content_dir, '/\\') . '/cache/aegis-page-cache';
+    $dir         = rtrim($content_dir, '/\\') . '/cache/aegis-page-cache';
     if (!is_dir($dir)) {
         return;
     }
