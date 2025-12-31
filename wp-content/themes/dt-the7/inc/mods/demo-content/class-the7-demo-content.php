@@ -125,9 +125,9 @@ class The7_Demo_Content {
 		require_once __DIR__ . '/class-the7-demo.php';
 	}
 
-	private function define_admin_hooks() {
-		$this->admin  = new The7_Demo_Content_Admin();
-		$this->remote = new The7_Demo_Content_Remote_Content();
+        private function define_admin_hooks() {
+                $this->admin  = new The7_Demo_Content_Admin();
+                $this->remote = new The7_Demo_Content_Remote_Content();
 
 		add_action( 'admin_enqueue_scripts', [ $this->admin, 'register_scripts' ] );
 
@@ -140,7 +140,9 @@ class The7_Demo_Content {
 
 		add_action( 'admin_menu', [ $this->admin, 'add_import_by_url_admin_menu' ] );
 
-		add_action( 'add_meta_boxes', [ 'The7_Demo_Content_Meta_Box', 'add' ] );
-		add_action( 'wp_ajax_the7_demo_keep_the_post', [ 'The7_Demo_Content_Meta_Box', 'save' ] );
-	}
+                if ( class_exists( 'The7_Demo_Content_Meta_Box' ) ) {
+                        add_action( 'add_meta_boxes', [ 'The7_Demo_Content_Meta_Box', 'add' ] );
+                        add_action( 'wp_ajax_the7_demo_keep_the_post', [ 'The7_Demo_Content_Meta_Box', 'save' ] );
+                }
+        }
 }
