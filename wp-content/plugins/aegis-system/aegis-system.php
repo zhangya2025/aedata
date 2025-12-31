@@ -12,6 +12,11 @@ if (!defined('ABSPATH')) {
 
 class AEGIS_System {
     const OPTION_KEY = 'aegis_system_modules';
+    const AUDIT_TABLE = 'aegis_audit_events';
+
+    const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
+    const ACTION_MODULE_DISABLE = 'MODULE_DISABLE';
+    const ACTION_MODULE_UNINSTALL = 'MODULE_UNINSTALL';
 
     /**
      * 预置模块注册表。
@@ -42,12 +47,14 @@ class AEGIS_System {
     public function __construct() {
         add_action('admin_menu', [$this, 'register_admin_menu']);
         register_activation_hook(__FILE__, [__CLASS__, 'activate']);
+        add_action('plugins_loaded', [__CLASS__, 'maybe_install_tables']);
     }
 
     /**
      * 激活时初始化模块状态。
      */
     public static function activate() {
+        self::maybe_install_tables();
         $stored = get_option(self::OPTION_KEY);
         if (!is_array($stored)) {
             $stored = [];
@@ -101,7 +108,21 @@ class AEGIS_System {
         $modules = self::get_registered_modules();
         $states = $this->get_module_states();
 
-        if (isset($_POST['aegis_system_nonce']) && wp_verify_nonce($_POST['aegis_system_nonce'], 'aegis_system_save_modules')) {
+        $validation = ['success' => true, 'message' => ''];
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'      => 'manage_options',
+                    'nonce_field'     => 'aegis_system_nonce',
+                    'nonce_action'    => 'aegis_system_save_modules',
+                    'whitelist'       => ['aegis_system_nonce', 'modules', '_wp_http_referer', '_aegis_idempotency'],
+                    'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
+                ]
+            );
+        }
+
+        if ($validation['success'] && 'POST' === $_SERVER['REQUEST_METHOD']) {
             $new_states = [];
             foreach ($modules as $slug => $module) {
                 if ($slug === 'core_manager') {
@@ -110,15 +131,19 @@ class AEGIS_System {
                 }
                 $new_states[$slug] = isset($_POST['modules'][$slug]) ? true : false;
             }
-            $this->save_module_states($new_states);
+            $this->save_module_states($new_states, $states);
             $states = $this->get_module_states();
             echo '<div class="updated"><p>模块配置已保存。</p></div>';
+        } elseif (!empty($validation['message'])) {
+            echo '<div class="error"><p>' . esc_html($validation['message']) . '</p></div>';
         }
 
         echo '<div class="wrap">';
         echo '<h1>模块管理</h1>';
+        $idempotency_key = wp_generate_uuid4();
         echo '<form method="post">';
         wp_nonce_field('aegis_system_save_modules', 'aegis_system_nonce');
+        echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($idempotency_key) . '" />';
         echo '<table class="widefat fixed" cellspacing="0">';
         echo '<thead><tr><th>模块</th><th>启用</th><th>说明</th></tr></thead>';
         echo '<tbody>';
@@ -169,11 +194,12 @@ class AEGIS_System {
     }
 
     /**
-     * 保存模块状态。
+     * 保存模块状态并写入审计。
      *
      * @param array $states
+     * @param array $previous_states
      */
-    public function save_module_states($states) {
+    public function save_module_states($states, $previous_states = []) {
         $modules = self::get_registered_modules();
         $clean = [];
         foreach ($modules as $slug => $module) {
@@ -185,6 +211,149 @@ class AEGIS_System {
         }
 
         update_option(self::OPTION_KEY, $clean);
+
+        foreach ($clean as $slug => $enabled) {
+            $previous = !empty($previous_states[$slug]);
+            if ($enabled === $previous) {
+                continue;
+            }
+            $action = $enabled ? self::ACTION_MODULE_ENABLE : self::ACTION_MODULE_DISABLE;
+            AEGIS_Access_Audit::record_event(
+                $action,
+                'SUCCESS',
+                [
+                    'module' => $slug,
+                ]
+            );
+        }
+    }
+
+    /**
+     * 安装或升级审计表。
+     */
+    public static function maybe_install_tables() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::AUDIT_TABLE;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE {$table_name} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            actor_id BIGINT(20) UNSIGNED NULL,
+            actor_login VARCHAR(60) NULL,
+            action VARCHAR(64) NOT NULL,
+            result VARCHAR(20) NOT NULL,
+            object_data LONGTEXT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY action (action),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
+}
+
+class AEGIS_Access_Audit {
+    /**
+     * 验证写入口：统一鉴权、nonce、白名单、可选幂等键。
+     *
+     * @param array $params
+     * @param array $config
+     * @return array
+     */
+    public static function validate_write_request($params, $config = []) {
+        $defaults = [
+            'capability'      => 'manage_options',
+            'nonce_field'     => null,
+            'nonce_action'    => null,
+            'whitelist'       => [],
+            'idempotency_key' => null,
+        ];
+        $config = wp_parse_args($config, $defaults);
+
+        if (!current_user_can($config['capability'])) {
+            self::record_event('ACCESS_DENIED', 'FAIL', ['reason' => 'capability']);
+            return [
+                'success' => false,
+                'message' => '权限不足。',
+            ];
+        }
+
+        if ($config['nonce_field'] && $config['nonce_action']) {
+            $nonce_value = isset($params[$config['nonce_field']]) ? $params[$config['nonce_field']] : '';
+            if (!wp_verify_nonce($nonce_value, $config['nonce_action'])) {
+                self::record_event('NONCE_INVALID', 'FAIL', ['nonce_field' => $config['nonce_field']]);
+                return [
+                    'success' => false,
+                    'message' => '安全校验失败，请重试。',
+                ];
+            }
+        }
+
+        if (!empty($config['whitelist'])) {
+            $extra_keys = array_diff(array_keys($params), $config['whitelist']);
+            if (!empty($extra_keys)) {
+                self::record_event('PARAMS_NOT_ALLOWED', 'FAIL', ['keys' => array_values($extra_keys)]);
+                return [
+                    'success' => false,
+                    'message' => '请求参数不被允许。',
+                ];
+            }
+        }
+
+        if (!empty($config['idempotency_key'])) {
+            $idem_key = 'aegis_idem_' . md5($config['idempotency_key']);
+            if (get_transient($idem_key)) {
+                self::record_event('IDEMPOTENT_REPLAY', 'FAIL', ['key' => $config['idempotency_key']]);
+                return [
+                    'success' => false,
+                    'message' => '请求已处理，请勿重复提交。',
+                ];
+            }
+            set_transient($idem_key, 1, MINUTE_IN_SECONDS * 10);
+        }
+
+        return [
+            'success' => true,
+            'message' => '',
+        ];
+    }
+
+    /**
+     * 写入审计事件。
+     *
+     * @param string $action
+     * @param string $result
+     * @param array  $object_data
+     */
+    public static function record_event($action, $result, $object_data = []) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . AEGIS_System::AUDIT_TABLE;
+
+        $current_user = wp_get_current_user();
+        $actor_id = $current_user && $current_user->ID ? (int) $current_user->ID : null;
+        $actor_login = $current_user && $current_user->user_login ? $current_user->user_login : null;
+
+        $wpdb->insert(
+            $table_name,
+            [
+                'actor_id'    => $actor_id,
+                'actor_login' => $actor_login,
+                'action'      => $action,
+                'result'      => $result,
+                'object_data' => !empty($object_data) ? wp_json_encode($object_data) : null,
+                'created_at'  => current_time('mysql'),
+            ],
+            [
+                '%d',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+            ]
+        );
     }
 }
 
