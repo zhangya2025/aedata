@@ -11,6 +11,10 @@ use The7_Elementor_Compatibility;
 
 defined( 'ABSPATH' ) || exit;
 
+if ( ! class_exists( '\\The7_Demo_Content_Meta_Box' ) ) {
+        return [];
+}
+
 ob_start();
 \The7_Demo_Content_Meta_Box::render( $document->get_main_id() );
 $metabox = ob_get_clean();
