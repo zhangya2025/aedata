@@ -178,6 +178,25 @@ class AEGIS_Assets_Media {
     }
 
     /**
+     * 获取静态资源版本号（基于文件修改时间）。
+     *
+     * @param string $relative_path
+     * @return int|string
+     */
+    public static function get_asset_version($relative_path) {
+        $file = trailingslashit(AEGIS_SYSTEM_PATH) . ltrim($relative_path, '/');
+
+        if (file_exists($file)) {
+            $mtime = filemtime($file);
+            if ($mtime) {
+                return $mtime;
+            }
+        }
+
+        return AEGIS_SYSTEM_VERSION;
+    }
+
+    /**
      * 注册并输出排版样式表与变量。
      *
      * @param string $handle
@@ -187,7 +206,7 @@ class AEGIS_Assets_Media {
             $handle,
             AEGIS_SYSTEM_URL . 'assets/css/typography.css',
             [],
-            AEGIS_SYSTEM_VERSION
+            self::get_asset_version('assets/css/typography.css')
         );
         wp_add_inline_style($handle, self::build_typography_css());
         wp_enqueue_style($handle);
