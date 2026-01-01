@@ -174,7 +174,7 @@ class AEGIS_System {
                 '模块管理',
                 '模块管理',
                 AEGIS_System::CAP_MANAGE_SYSTEM,
-                'aegis-system',
+                'aegis-system-modules',
                 [$this, 'render_module_manager']
             );
         }
@@ -287,6 +287,7 @@ class AEGIS_System {
     public function enqueue_admin_assets($hook) {
         $screens = [
             'toplevel_page_aegis-system',
+            'aegis-system_page_aegis-system-modules',
             'aegis-system_page_aegis-system-typography',
             'aegis-system_page_aegis-system-sku',
             'aegis-system_page_aegis-system-dealer',
@@ -462,8 +463,8 @@ class AEGIS_System {
      */
     public function render_root_router() {
         if (AEGIS_System_Roles::user_can_manage_system()) {
-            $this->render_module_manager();
-            return;
+            wp_safe_redirect(admin_url('admin.php?page=aegis-system-modules'));
+            exit;
         }
 
         $states = $this->get_module_states();
