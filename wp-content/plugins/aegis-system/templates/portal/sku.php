@@ -30,134 +30,12 @@ $create_url = add_query_arg([
 $list_url = add_query_arg('m', 'sku', $base_url);
 ?>
 
-<div class="aegis-portal-card">
-    <div class="portal-action-bar">
-        <div>
-            <div class="aegis-t-a3" style="margin:0;">SKU 管理</div>
-            <div class="aegis-t-a6" style="color:#555;">维护产品主数据，确保 EAN 唯一且不可变更，停用即视为无效 SKU。</div>
-        </div>
-        <?php if ($can_edit) : ?>
-            <a class="aegis-portal-button is-primary" href="<?php echo esc_url($create_url); ?>">新增 SKU</a>
-        <?php endif; ?>
-    </div>
-
-    <?php foreach ($messages as $msg) : ?>
-        <div class="aegis-portal-notice is-success aegis-t-a6"><?php echo esc_html($msg); ?></div>
-    <?php endforeach; ?>
-    <?php foreach ($errors as $msg) : ?>
-        <div class="aegis-portal-notice is-error aegis-t-a6"><?php echo esc_html($msg); ?></div>
-    <?php endforeach; ?>
-
-    <form method="get" class="aegis-portal-filters aegis-t-a6" action="<?php echo esc_url($list_url); ?>">
-        <input type="hidden" name="m" value="sku" />
-        <div class="aegis-portal-form-grid">
-            <label class="aegis-portal-field">
-                <span class="aegis-t-a6">搜索（EAN / 名称）</span>
-                <input class="aegis-portal-input" type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="输入关键字" />
-            </label>
-            <label class="aegis-portal-field" style="max-width:180px;">
-                <span class="aegis-t-a6">每页</span>
-                <select class="aegis-portal-select" name="per_page">
-                    <?php foreach ($per_options as $opt) : ?>
-                        <option value="<?php echo esc_attr($opt); ?>" <?php selected((int) $per_page, (int) $opt); ?>><?php echo esc_html($opt); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <div class="aegis-portal-field" style="align-self:flex-end;">
-                <button type="submit" class="aegis-portal-button">筛选</button>
-            </div>
-        </div>
-    </form>
-
-    <div class="aegis-table-wrap">
-        <table class="aegis-portal-table aegis-t-a6">
-            <thead>
-                <tr>
-                    <th>EAN</th>
-                    <th>产品名称</th>
-                    <th>尺码</th>
-                    <th>颜色</th>
-                    <th>状态</th>
-                    <th>更新时间</th>
-                    <th>附件</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($skus)) : ?>
-                    <tr><td colspan="8" class="aegis-t-a6" style="text-align:center;">暂无记录</td></tr>
-                <?php endif; ?>
-                <?php foreach ($skus as $sku) :
-                    $status_label = isset($status_labels[$sku->status]) ? $status_labels[$sku->status] : $sku->status;
-                    $status_class = $sku->status === 'active' ? 'is-active' : 'is-inactive';
-                    $target_status = $sku->status === 'active' ? 'inactive' : 'active';
-                    $edit_url = add_query_arg([
-                        'm'      => 'sku',
-                        'action' => 'edit',
-                        'id'     => $sku->id,
-                        'page'   => $page,
-                        'per_page' => $per_page,
-                        's'      => $search,
-                    ], $base_url);
-                ?>
-                    <tr>
-                        <td class="aegis-t-a5" style="font-weight:600;">&nbsp;<?php echo esc_html($sku->ean); ?></td>
-                        <td class="aegis-t-a5"><?php echo esc_html($sku->product_name); ?></td>
-                        <td><?php echo esc_html($sku->size_label); ?></td>
-                        <td><?php echo esc_html($sku->color_label); ?></td>
-                        <td><span class="status-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
-                        <td><?php echo esc_html(mysql2date('Y-m-d H:i', $sku->updated_at)); ?></td>
-                        <td>
-                            <?php if ($sku->product_image_id) : ?>
-                                <div class="aegis-t-a6">产品图 #<?php echo esc_html($sku->product_image_id); ?></div>
-                            <?php endif; ?>
-                            <?php if ($sku->certificate_id) : ?>
-                                <div class="aegis-t-a6">证书 #<?php echo esc_html($sku->certificate_id); ?></div>
-                            <?php endif; ?>
-                            <?php if (!$sku->product_image_id && !$sku->certificate_id) : ?>
-                                <span class="aegis-t-a6" style="color:#666;">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if ($can_edit) : ?>
-                                <div class="table-actions">
-                                    <a class="aegis-portal-button is-link" href="<?php echo esc_url($edit_url); ?>">编辑</a>
-                                    <form method="post" class="inline-form">
-                                        <?php wp_nonce_field('aegis_sku_action', 'aegis_sku_nonce'); ?>
-                                        <input type="hidden" name="sku_action" value="toggle_status" />
-                                        <input type="hidden" name="sku_id" value="<?php echo esc_attr($sku->id); ?>" />
-                                        <input type="hidden" name="target_status" value="<?php echo esc_attr($target_status); ?>" />
-                                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                        <button type="submit" class="aegis-portal-button is-secondary"><?php echo $sku->status === 'active' ? '停用' : '启用'; ?></button>
-                                    </form>
-                                </div>
-                            <?php else : ?>
-                                <a class="aegis-portal-button is-link" href="<?php echo esc_url($edit_url); ?>">查看</a>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="aegis-portal-pagination aegis-t-a6">
-        <div>共 <?php echo esc_html($total); ?> 条，页码 <?php echo esc_html($page); ?>/<?php echo esc_html($total_pages); ?></div>
-        <div class="page-links">
-            <?php for ($i = 1; $i <= $total_pages; $i++) :
-                $page_url = add_query_arg([
-                    'm'        => 'sku',
-                    'page'     => $i,
-                    'per_page' => $per_page,
-                    's'        => $search,
-                ], $base_url);
-                $classes = $i === (int) $page ? 'is-active' : '';
-            ?>
-                <a class="page-link <?php echo esc_attr($classes); ?>" href="<?php echo esc_url($page_url); ?>"><?php echo esc_html($i); ?></a>
-            <?php endfor; ?>
-        </div>
-    </div>
-</div>
+<?php foreach ($messages as $msg) : ?>
+    <div class="aegis-portal-notice is-success aegis-t-a6"><?php echo esc_html($msg); ?></div>
+<?php endforeach; ?>
+<?php foreach ($errors as $msg) : ?>
+    <div class="aegis-portal-notice is-error aegis-t-a6"><?php echo esc_html($msg); ?></div>
+<?php endforeach; ?>
 
 <?php if ($form_action || $current_sku) :
     $is_edit = ($form_action === 'edit' || ($current_sku && 'create' !== $form_action));
@@ -173,7 +51,7 @@ $list_url = add_query_arg('m', 'sku', $base_url);
     $certificate_visibility = isset($_POST['certificate_visibility']) ? sanitize_key(wp_unslash($_POST['certificate_visibility'])) : ($certificate_record ? $certificate_record->visibility : 'private');
     $ean_readonly = $is_edit || !$can_edit;
 ?>
-<div class="aegis-portal-card" style="margin-top:16px;">
+<div class="aegis-portal-card sku-form-card">
     <div class="portal-action-bar">
         <div>
             <div class="aegis-t-a4" style="margin:0;"><?php echo $is_edit ? '编辑 SKU' : '新增 SKU'; ?></div>
@@ -254,3 +132,144 @@ $list_url = add_query_arg('m', 'sku', $base_url);
     </form>
 </div>
 <?php endif; ?>
+
+<div class="aegis-portal-card">
+    <div class="portal-action-bar">
+        <div>
+            <div class="aegis-t-a3" style="margin:0;">SKU 管理</div>
+            <div class="aegis-t-a6" style="color:#555;">维护产品主数据，确保 EAN 唯一且不可变更，停用即视为无效 SKU。</div>
+        </div>
+        <?php if ($can_edit) : ?>
+            <a class="aegis-portal-button is-primary" href="<?php echo esc_url($create_url); ?>">新增 SKU</a>
+        <?php endif; ?>
+    </div>
+
+    <form method="get" class="aegis-portal-filters aegis-t-a6" action="<?php echo esc_url($list_url); ?>">
+        <input type="hidden" name="m" value="sku" />
+        <div class="aegis-portal-form-grid">
+            <label class="aegis-portal-field">
+                <span class="aegis-t-a6">搜索（EAN / 名称）</span>
+                <input class="aegis-portal-input" type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="输入关键字" />
+            </label>
+            <label class="aegis-portal-field" style="max-width:180px;">
+                <span class="aegis-t-a6">每页</span>
+                <select class="aegis-portal-select" name="per_page">
+                    <?php foreach ($per_options as $opt) : ?>
+                        <option value="<?php echo esc_attr($opt); ?>" <?php selected((int) $per_page, (int) $opt); ?>><?php echo esc_html($opt); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <div class="aegis-portal-field" style="align-self:flex-end;">
+                <button type="submit" class="aegis-portal-button">筛选</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="aegis-table-wrap">
+        <table class="aegis-portal-table aegis-t-a6">
+            <thead>
+                <tr>
+                    <th style="width:78px;">图片</th>
+                    <th>EAN</th>
+                    <th>产品名称</th>
+                    <th>尺码</th>
+                    <th>颜色</th>
+                    <th>状态</th>
+                    <th>更新时间</th>
+                    <th>附件</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($skus)) : ?>
+                    <tr><td colspan="9" class="aegis-t-a6" style="text-align:center;">暂无记录</td></tr>
+                <?php endif; ?>
+                <?php foreach ($skus as $sku) :
+                    $status_label = isset($status_labels[$sku->status]) ? $status_labels[$sku->status] : $sku->status;
+                    $status_class = $sku->status === 'active' ? 'is-active' : 'is-inactive';
+                    $target_status = $sku->status === 'active' ? 'inactive' : 'active';
+                    $thumb_url = !empty($sku->product_image_url) ? $sku->product_image_url : '';
+                    $edit_url = add_query_arg([
+                        'm'      => 'sku',
+                        'action' => 'edit',
+                        'id'     => $sku->id,
+                        'page'   => $page,
+                        'per_page' => $per_page,
+                        's'      => $search,
+                    ], $base_url);
+                ?>
+                    <tr>
+                        <td>
+                            <?php if ($thumb_url) : ?>
+                                <button type="button" class="sku-thumb" data-full="<?php echo esc_url($thumb_url); ?>">
+                                    <img src="<?php echo esc_url($thumb_url); ?>" alt="<?php echo esc_attr($sku->product_name ?: $sku->ean); ?>" />
+                                </button>
+                            <?php else : ?>
+                                <div class="sku-thumb placeholder aegis-t-a6">无图</div>
+                            <?php endif; ?>
+                        </td>
+                        <td class="aegis-t-a5" style="font-weight:600;">&nbsp;<?php echo esc_html($sku->ean); ?></td>
+                        <td class="aegis-t-a5"><?php echo esc_html($sku->product_name); ?></td>
+                        <td><?php echo esc_html($sku->size_label); ?></td>
+                        <td><?php echo esc_html($sku->color_label); ?></td>
+                        <td><span class="status-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
+                        <td><?php echo esc_html(mysql2date('Y-m-d H:i', $sku->updated_at)); ?></td>
+                        <td>
+                            <?php if ($sku->product_image_id) : ?>
+                                <div class="aegis-t-a6">产品图 #<?php echo esc_html($sku->product_image_id); ?></div>
+                            <?php endif; ?>
+                            <?php if ($sku->certificate_id) : ?>
+                                <div class="aegis-t-a6">证书 #<?php echo esc_html($sku->certificate_id); ?></div>
+                            <?php endif; ?>
+                            <?php if (!$sku->product_image_id && !$sku->certificate_id) : ?>
+                                <span class="aegis-t-a6" style="color:#666;">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($can_edit) : ?>
+                                <div class="table-actions">
+                                    <a class="aegis-portal-button is-link" href="<?php echo esc_url($edit_url); ?>">编辑</a>
+                                    <form method="post" class="inline-form">
+                                        <?php wp_nonce_field('aegis_sku_action', 'aegis_sku_nonce'); ?>
+                                        <input type="hidden" name="sku_action" value="toggle_status" />
+                                        <input type="hidden" name="sku_id" value="<?php echo esc_attr($sku->id); ?>" />
+                                        <input type="hidden" name="target_status" value="<?php echo esc_attr($target_status); ?>" />
+                                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                        <button type="submit" class="aegis-portal-button is-secondary"><?php echo $sku->status == 'active' ? '停用' : '启用'; ?></button>
+                                    </form>
+                                </div>
+                            <?php else : ?>
+                                <a class="aegis-portal-button is-link" href="<?php echo esc_url($edit_url); ?>">查看</a>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="aegis-portal-pagination aegis-t-a6">
+        <div>共 <?php echo esc_html($total); ?> 条，页码 <?php echo esc_html($page); ?>/<?php echo esc_html($total_pages); ?></div>
+        <div class="page-links">
+            <?php for ($i = 1; $i <= $total_pages; $i++) :
+                $page_url = add_query_arg([
+                    'm'        => 'sku',
+                    'page'     => $i,
+                    'per_page' => $per_page,
+                    's'        => $search,
+                ], $base_url);
+                $classes = $i === (int) $page ? 'is-active' : '';
+            ?>
+                <a class="page-link <?php echo esc_attr($classes); ?>" href="<?php echo esc_url($page_url); ?>"><?php echo esc_html($i); ?></a>
+            <?php endfor; ?>
+        </div>
+    </div>
+</div>
+
+<div class="sku-preview-modal" aria-hidden="true">
+    <div class="sku-preview-backdrop" role="presentation"></div>
+    <div class="sku-preview-dialog" role="dialog" aria-modal="true">
+        <button type="button" class="sku-preview-close" aria-label="关闭预览">×</button>
+        <img class="sku-preview-img" src="" alt="产品图片预览" />
+    </div>
+</div>

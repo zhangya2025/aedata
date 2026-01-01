@@ -501,6 +501,13 @@ class AEGIS_SKU {
         $can_edit = AEGIS_System_Roles::user_can_manage_warehouse();
         $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
         $base_url = add_query_arg('m', 'sku', $portal_url);
+        wp_enqueue_script(
+            'aegis-system-portal-sku',
+            AEGIS_SYSTEM_URL . 'assets/js/portal-sku.js',
+            [],
+            AEGIS_Assets_Media::get_asset_version('assets/js/portal-sku.js'),
+            true
+        );
         $action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
         $current_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         $current_sku = $current_id ? self::get_sku($current_id) : null;
@@ -575,6 +582,9 @@ class AEGIS_SKU {
         ];
 
         $skus = self::list_skus($list_args);
+        foreach ($skus as $sku) {
+            $sku->product_image_url = $sku->product_image_id ? self::get_media_gateway_url($sku->product_image_id) : '';
+        }
         $total = self::count_skus(['search' => $search]);
         $total_pages = $per_page > 0 ? max(1, (int) ceil($total / $per_page)) : 1;
 
