@@ -595,9 +595,13 @@ class AEGIS_Codes {
                     'ean'        => $ean,
                     'code'       => $code,
                     'status'     => self::STATUS_UNUSED,
+                    'stock_status' => 'generated',
+                    'stocked_at'   => null,
+                    'stocked_by'   => null,
+                    'receipt_id'   => null,
                     'created_at' => $now,
                 ],
-                ['%d', '%s', '%s', '%s', '%s']
+                ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
             );
 
             if (false !== $inserted) {
