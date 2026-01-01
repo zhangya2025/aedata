@@ -512,6 +512,21 @@ class AEGIS_System_Roles {
                 }
             }
         }
+
+        $admin_role = get_role('administrator');
+        if ($admin_role) {
+            $fallback_caps = [
+                AEGIS_System::CAP_ACCESS_ROOT,
+                AEGIS_System::CAP_MANAGE_SYSTEM,
+                AEGIS_System::CAP_MANAGE_WAREHOUSE,
+                AEGIS_System::CAP_USE_WAREHOUSE,
+                AEGIS_System::CAP_RESET_B,
+            ];
+
+            foreach ($fallback_caps as $cap) {
+                $admin_role->add_cap($cap);
+            }
+        }
     }
 
     /**
