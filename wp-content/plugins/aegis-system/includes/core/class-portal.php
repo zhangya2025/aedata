@@ -607,7 +607,11 @@ class AEGIS_Portal {
             case 'shipments':
                 return AEGIS_Shipments::render_portal_panel(self::get_portal_url());
             case 'public_query':
-                return '<div class="aegis-t-a5">防伪码查询内部入口占位，具体前台页面将在模块中实现。</div>';
+                $public_url = AEGIS_Public_Query::get_public_page_url();
+                if ($public_url) {
+                    return '<div class="aegis-t-a5">公共查询入口：<a class="aegis-t-a6" href="' . esc_url($public_url) . '" target="_blank" rel="noopener">访问防伪码公共查询</a></div>';
+                }
+                return '<div class="aegis-t-a5">公共查询页面未就绪。</div>';
             case 'reset_b':
                 return '<div class="aegis-t-a5">清零系统占位，请根据权限在此执行 B 清零操作。</div>';
             default:
@@ -632,6 +636,14 @@ class AEGIS_Portal {
         <div class="aegis-t-a5" style="padding:12px 16px; border:1px dashed #d9dce3; border-radius:8px; background:#f8f9fb;">
             请选择左侧功能模块开始操作。
         </div>
+        <?php if (AEGIS_System::is_module_enabled('public_query') && AEGIS_System_Roles::user_can_manage_warehouse()) : ?>
+            <?php $public_url = AEGIS_Public_Query::get_public_page_url(); ?>
+            <?php if (!empty($public_url)) : ?>
+                <div class="aegis-t-a6" style="margin-top:12px;">
+                    <a class="aegis-t-a6" href="<?php echo esc_url($public_url); ?>" target="_blank" rel="noopener">防伪码公共查询（入口）</a>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
         <?php
         return ob_get_clean();
     }

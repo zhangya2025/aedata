@@ -108,6 +108,7 @@ class AEGIS_System {
         add_action('wp_enqueue_scripts', ['AEGIS_Assets_Media', 'enqueue_front_assets']);
         add_action('init', ['AEGIS_System_Roles', 'sync_roles']);
         add_action('init', ['AEGIS_Portal', 'ensure_portal_page']);
+        add_action('init', ['AEGIS_Public_Query', 'ensure_public_page']);
         add_filter('login_redirect', ['AEGIS_Portal', 'filter_login_redirect'], 9999, 3);
         add_filter('login_url', ['AEGIS_Portal', 'filter_login_url'], 10, 3);
         add_filter('login_message', ['AEGIS_Portal', 'render_login_notice']);
@@ -126,6 +127,7 @@ class AEGIS_System {
         AEGIS_System_Schema::maybe_upgrade();
         AEGIS_Assets_Media::ensure_upload_structure();
         AEGIS_Portal::ensure_portal_page(true);
+        AEGIS_Public_Query::ensure_public_page(true);
         if (null === get_option(self::ORDER_SHIPMENT_LINK_OPTION, null)) {
             update_option(self::ORDER_SHIPMENT_LINK_OPTION, false, true);
         }
