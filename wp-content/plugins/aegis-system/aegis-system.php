@@ -108,7 +108,9 @@ class AEGIS_System {
         add_action('init', ['AEGIS_Portal', 'ensure_portal_page']);
         add_filter('login_redirect', ['AEGIS_Portal', 'filter_login_redirect'], 9999, 3);
         add_filter('login_url', ['AEGIS_Portal', 'filter_login_url'], 10, 3);
+        add_filter('logout_redirect', ['AEGIS_Portal', 'filter_logout_redirect'], 9999, 3);
         add_action('template_redirect', ['AEGIS_Portal', 'handle_portal_access']);
+        add_action('template_redirect', ['AEGIS_Portal', 'maybe_redirect_my_account']);
         add_action('admin_init', ['AEGIS_Portal', 'block_business_admin_access']);
         register_activation_hook(__FILE__, [__CLASS__, 'activate']);
         add_action('plugins_loaded', ['AEGIS_System_Schema', 'maybe_upgrade']);
@@ -917,6 +919,17 @@ class AEGIS_Portal {
     }
 
     /**
+     * 业务角色登出后强制返回登录入口。
+     */
+    public static function filter_logout_redirect($redirect_to, $requested, $user) {
+        if ($user instanceof WP_User && AEGIS_System_Roles::is_business_user($user)) {
+            return self::get_login_url();
+        }
+
+        return $redirect_to;
+    }
+
+    /**
      * 拦截业务角色访问后台。
      */
     public static function block_business_admin_access() {
@@ -972,6 +985,46 @@ class AEGIS_Portal {
     }
 
     /**
+     * 避免业务角色进入 WooCommerce My Account。
+     */
+    public static function maybe_redirect_my_account() {
+        if (is_admin() || !is_user_logged_in()) {
+            return;
+        }
+
+        $user = wp_get_current_user();
+        if (!AEGIS_System_Roles::is_business_user($user)) {
+            return;
+        }
+
+        $is_account = false;
+        if (function_exists('is_account_page') && is_account_page()) {
+            $is_account = true;
+        } elseif (isset($_SERVER['REQUEST_URI'])) {
+            $path = wp_parse_url(wp_unslash($_SERVER['REQUEST_URI']), PHP_URL_PATH);
+            if (is_string($path) && preg_match('#/my-account/?$#', $path)) {
+                $is_account = true;
+            }
+        }
+
+        if (!$is_account) {
+            return;
+        }
+
+        $portal_url = self::get_portal_url();
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_PORTAL_BLOCKED,
+            'SUCCESS',
+            [
+                'reason' => 'business_account_redirect',
+                'target' => $portal_url,
+            ]
+        );
+        wp_safe_redirect($portal_url);
+        exit;
+    }
+
+    /**
      * Portal 占位短码渲染。
      */
     public static function render_portal_shortcode() {
@@ -1020,9 +1073,13 @@ class AEGIS_Portal {
         $nav .= '</div>';
 
         $content = '<div class="aegis-system-root aegis-t-a5">';
-        $content .= '<h2 class="aegis-t-a3">AEGIS-SYSTEM Portal</h2>';
-        $content .= '<p class="aegis-t-a5">当前用户：' . esc_html($user->user_login) . '</p>';
-        $content .= '<p class="aegis-t-a6">角色：' . esc_html(implode(', ', array_intersect((array) $user->roles, AEGIS_System_Roles::get_business_roles()))) . '</p>';
+        $content .= '<div class="aegis-portal-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">';
+        $content .= '<div><h2 class="aegis-t-a3" style="margin:0;">AEGIS-SYSTEM Portal</h2>';
+        $content .= '<p class="aegis-t-a5" style="margin:4px 0 0 0;">当前用户：' . esc_html($user->user_login) . '</p>';
+        $content .= '<p class="aegis-t-a6" style="margin:2px 0 0 0;">角色：' . esc_html(implode(', ', array_intersect((array) $user->roles, AEGIS_System_Roles::get_business_roles()))) . '</p></div>';
+        $logout_url = wp_logout_url(self::get_login_url());
+        $content .= '<div><a class="aegis-t-a6" style="padding:8px 12px;border:1px solid #c00;border-radius:4px;background:#fff5f5;color:#c00;text-decoration:none;display:inline-block;" href="' . esc_url($logout_url) . '">退出</a></div>';
+        $content .= '</div>';
         $content .= '<div class="aegis-portal-layout" style="margin-top:16px;">';
         $content .= $nav;
         $content .= '<div class="aegis-portal-panel aegis-t-a6" style="margin-top:16px;border:1px solid #e5e5e5;padding:16px;border-radius:4px;">';
