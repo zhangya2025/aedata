@@ -516,3 +516,46 @@
     align-items: center;
     justify-content: center;
 }
+
+.aegis-codes-form .aegis-code-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.aegis-codes-form .aegis-code-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.aegis-codes-form .aegis-code-row .aegis-code-remove {
+    align-self: flex-end;
+    padding: 8px 10px;
+}
+
+.aegis-code-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.aegis-code-actions .limit-note {
+    color: #555;
+}
+
+.codes-summary {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 8px 0 12px;
+}
+
+.codes-summary .chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f0f4ff;
+    border: 1px solid #d9e3ff;
+}

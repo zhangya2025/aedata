@@ -556,7 +556,7 @@ class AEGIS_Portal {
         } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
             $allowed = ['sku', 'dealer_master', 'codes', 'shipments', 'public_query', 'reset_b'];
         } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
-            $allowed = ['sku', 'dealer_master', 'shipments', 'public_query'];
+            $allowed = ['sku', 'dealer_master', 'codes', 'shipments', 'public_query'];
         } elseif (in_array('aegis_dealer', $roles, true)) {
             $allowed = ['reset_b'];
             if (!empty($states['orders']['enabled'])) {
@@ -599,6 +599,8 @@ class AEGIS_Portal {
                 return AEGIS_SKU::render_portal_panel(self::get_portal_url());
             case 'dealer_master':
                 return AEGIS_Dealer::render_portal_panel(self::get_portal_url());
+            case 'codes':
+                return AEGIS_Codes::render_portal_panel(self::get_portal_url());
             case 'shipments':
                 return '<div class="aegis-t-a5">出货管理前台界面尚未实现（占位）。</div>';
             case 'public_query':
