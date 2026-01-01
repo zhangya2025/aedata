@@ -243,7 +243,7 @@ class AEGIS_Dealer {
             $wpdb->insert($table, $data, array_fill(0, count($data), '%s'));
             $dealer_id = (int) $wpdb->insert_id;
             AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_DEALER_CREATE, 'SUCCESS', ['id' => $dealer_id, 'code' => $auth_code_to_use]);
-            $messages[] = '经销商已创建。';
+            $messages[] = '录入成功，经销商已创建。';
         } else {
             $wpdb->update($table, $data, ['id' => $dealer_id]);
             AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_DEALER_UPDATE, 'SUCCESS', ['id' => $dealer_id]);
@@ -277,6 +277,7 @@ class AEGIS_Dealer {
         return [
             'dealer'   => $dealer,
             'messages' => $messages,
+            'is_new'   => $is_new,
         ];
     }
 
@@ -548,9 +549,10 @@ class AEGIS_Dealer {
                     $errors[] = $result->get_error_message();
                 } else {
                     $messages = array_merge($messages, $result['messages']);
-                    $current_dealer = $result['dealer'];
+                    $is_new = !empty($result['is_new']);
+                    $current_dealer = $is_new ? null : $result['dealer'];
                     $current_id = $current_dealer ? (int) $current_dealer->id : 0;
-                    $action = 'edit';
+                    $action = $is_new ? '' : 'edit';
                 }
             } elseif ('toggle_status' === $request_action) {
                 $result = self::handle_portal_status_toggle($_POST);

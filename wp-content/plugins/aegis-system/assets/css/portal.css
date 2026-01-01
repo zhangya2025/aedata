@@ -299,6 +299,50 @@
     background: #f8f9fb;
 }
 
+.aegis-dealer-table {
+    table-layout: auto;
+}
+
+.aegis-dealer-table .col-auth-code {
+    width: 12ch;
+    max-width: 12ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-contact {
+    width: 6ch;
+    max-width: 8ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-phone {
+    width: 13ch;
+    max-width: 15ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-date {
+    width: 12ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-address {
+    max-width: 36ch;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aegis-dealer-table .col-license {
+    width: 9ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-actions {
+    width: 14ch;
+    white-space: nowrap;
+}
+
 .aegis-portal-table .col-auth-code {
     width: 140px;
     max-width: 160px;
