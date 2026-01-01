@@ -178,6 +178,25 @@ class AEGIS_Assets_Media {
     }
 
     /**
+     * 获取静态资源版本号（基于文件修改时间）。
+     *
+     * @param string $relative_path
+     * @return int|string
+     */
+    public static function get_asset_version($relative_path) {
+        $file = trailingslashit(AEGIS_SYSTEM_PATH) . ltrim($relative_path, '/');
+
+        if (file_exists($file)) {
+            $mtime = filemtime($file);
+            if ($mtime) {
+                return $mtime;
+            }
+        }
+
+        return AEGIS_SYSTEM_VERSION;
+    }
+
+    /**
      * 注册并输出排版样式表与变量。
      *
      * @param string $handle
@@ -187,7 +206,7 @@ class AEGIS_Assets_Media {
             $handle,
             AEGIS_SYSTEM_URL . 'assets/css/typography.css',
             [],
-            AEGIS_SYSTEM_VERSION
+            self::get_asset_version('assets/css/typography.css')
         );
         wp_add_inline_style($handle, self::build_typography_css());
         wp_enqueue_style($handle);
@@ -342,7 +361,7 @@ class AEGIS_Assets_Media {
             $visibility = self::VISIBILITY_PRIVATE;
         }
 
-        $sensitive_types = ['business_license', 'payment_receipt', 'payment_voucher'];
+        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher'];
         if (in_array($owner_type, $sensitive_types, true)) {
             $visibility = self::VISIBILITY_SENSITIVE;
         }
@@ -350,6 +369,10 @@ class AEGIS_Assets_Media {
         if (!isset($_FILES['file'])) {
             AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_UPLOAD, 'FAIL', ['reason' => 'missing_file']);
             return new WP_REST_Response(['message' => '未找到上传文件'], 400);
+        }
+
+        if (!function_exists('wp_handle_upload')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
         $upload_override = ['test_form' => false];
@@ -461,9 +484,13 @@ class AEGIS_Assets_Media {
             $visibility = self::VISIBILITY_PRIVATE;
         }
 
-        $sensitive_types = ['business_license', 'payment_receipt', 'payment_voucher'];
+        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher'];
         if (in_array($owner_type, $sensitive_types, true)) {
             $visibility = self::VISIBILITY_SENSITIVE;
+        }
+
+        if (!function_exists('wp_handle_upload')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
         $upload_override = ['test_form' => false];
