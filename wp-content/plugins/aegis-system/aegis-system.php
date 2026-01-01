@@ -64,6 +64,9 @@ class AEGIS_System {
     const ACTION_ORDER_CREATE = 'ORDER_CREATE';
     const ACTION_ORDER_UPDATE = 'ORDER_UPDATE';
     const ACTION_PAYMENT_UPLOAD = 'PAYMENT_UPLOAD';
+    const ACTION_LOGIN_REDIRECT = 'LOGIN_REDIRECT';
+    const ACTION_ADMIN_BLOCKED = 'ADMIN_BLOCKED';
+    const ACTION_PORTAL_BLOCKED = 'PORTAL_BLOCKED';
 
     /**
      * 预置模块注册表。
@@ -99,8 +102,14 @@ class AEGIS_System {
         add_action('template_redirect', ['AEGIS_Assets_Media', 'maybe_serve_media']);
         add_shortcode('aegis_system_page', ['AEGIS_Assets_Media', 'render_frontend_container']);
         add_shortcode('aegis_query', ['AEGIS_Public_Query', 'render_shortcode']);
+        add_shortcode('aegis_system_portal', ['AEGIS_Portal', 'render_portal_shortcode']);
         add_action('wp_enqueue_scripts', ['AEGIS_Assets_Media', 'enqueue_front_assets']);
         add_action('init', ['AEGIS_System_Roles', 'sync_roles']);
+        add_action('init', ['AEGIS_Portal', 'ensure_portal_page']);
+        add_filter('login_redirect', ['AEGIS_Portal', 'filter_login_redirect'], 999, 3);
+        add_filter('login_url', ['AEGIS_Portal', 'filter_login_url'], 10, 3);
+        add_action('template_redirect', ['AEGIS_Portal', 'handle_portal_access']);
+        add_action('admin_init', ['AEGIS_Portal', 'block_business_admin_access']);
         register_activation_hook(__FILE__, [__CLASS__, 'activate']);
         add_action('plugins_loaded', ['AEGIS_System_Schema', 'maybe_upgrade']);
     }
@@ -112,6 +121,7 @@ class AEGIS_System {
         AEGIS_System_Roles::sync_roles();
         AEGIS_System_Schema::maybe_upgrade();
         AEGIS_Assets_Media::ensure_upload_structure();
+        AEGIS_Portal::ensure_portal_page(true);
         if (null === get_option(self::ORDER_SHIPMENT_LINK_OPTION, null)) {
             update_option(self::ORDER_SHIPMENT_LINK_OPTION, false, true);
         }
@@ -582,6 +592,39 @@ class AEGIS_System_Roles {
     }
 
     /**
+     * 业务角色集合。
+     *
+     * @return array
+     */
+    public static function get_business_roles() {
+        return [
+            'aegis_hq_admin',
+            'aegis_warehouse_manager',
+            'aegis_warehouse_staff',
+            'aegis_dealer',
+        ];
+    }
+
+    /**
+     * 是否为业务角色用户。
+     *
+     * @param WP_User|null $user
+     * @return bool
+     */
+    public static function is_business_user($user = null) {
+        if (null === $user) {
+            $user = wp_get_current_user();
+        }
+
+        if (!$user || empty($user->roles)) {
+            return false;
+        }
+
+        $roles = (array) $user->roles;
+        return !empty(array_intersect($roles, self::get_business_roles()));
+    }
+
+    /**
      * 角色定义。
      *
      * @return array
@@ -733,6 +776,221 @@ class AEGIS_Access_Audit {
                 '%s',
             ]
         );
+    }
+}
+
+class AEGIS_Portal {
+    const PORTAL_SLUG = 'aegis-system';
+    const PORTAL_SHORTCODE = 'aegis_system_portal';
+
+    /**
+     * 确保 Portal 页面存在。
+     */
+    public static function ensure_portal_page($force = false) {
+        if (wp_installing()) {
+            return;
+        }
+
+        if (!$force && !current_user_can('manage_options')) {
+            return;
+        }
+
+        $existing = get_posts(
+            [
+                'name'        => self::PORTAL_SLUG,
+                'post_type'   => 'page',
+                'post_status' => ['publish', 'draft', 'pending', 'future', 'private', 'trash'],
+                'numberposts' => 1,
+                'orderby'     => 'ID',
+                'order'       => 'ASC',
+            ]
+        );
+
+        if (!empty($existing)) {
+            $page = $existing[0];
+            if ('trash' === $page->post_status) {
+                wp_untrash_post($page->ID);
+                $page->post_status = 'draft';
+            }
+
+            if (empty($page->post_content)) {
+                wp_update_post([
+                    'ID'           => $page->ID,
+                    'post_content' => '[' . self::PORTAL_SHORTCODE . ']',
+                ]);
+            }
+            return;
+        }
+
+        wp_insert_post([
+            'post_title'   => 'AEGIS-SYSTEM',
+            'post_name'    => self::PORTAL_SLUG,
+            'post_status'  => 'publish',
+            'post_type'    => 'page',
+            'post_content' => '[' . self::PORTAL_SHORTCODE . ']',
+        ]);
+    }
+
+    /**
+     * 登录成功后的分流。
+     */
+    public static function filter_login_redirect($redirect_to, $requested_redirect, $user) {
+        if (!($user instanceof WP_User)) {
+            return $redirect_to;
+        }
+
+        $target = self::get_portal_url();
+        $result = 'SUCCESS';
+        $reason = 'business';
+
+        if (!AEGIS_System_Roles::is_business_user($user)) {
+            $target = admin_url();
+            $reason = 'system';
+        }
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_LOGIN_REDIRECT,
+            $result,
+            [
+                'reason'        => $reason,
+                'requested'     => $requested_redirect,
+                'chosen_target' => $target,
+            ]
+        );
+
+        return $target;
+    }
+
+    /**
+     * 覆盖登录入口。
+     */
+    public static function filter_login_url($login_url, $redirect, $force_reauth) {
+        $url = self::get_login_url();
+        $args = [];
+
+        if (!empty($redirect)) {
+            $args['redirect_to'] = $redirect;
+        }
+
+        if ($force_reauth) {
+            $args['reauth'] = '1';
+        }
+
+        if (!empty($args)) {
+            $url = add_query_arg($args, $url);
+        }
+
+        return $url;
+    }
+
+    /**
+     * 拦截业务角色访问后台。
+     */
+    public static function block_business_admin_access() {
+        if (!is_admin() || !is_user_logged_in()) {
+            return;
+        }
+
+        if (wp_doing_ajax()) {
+            return;
+        }
+
+        if (!AEGIS_System_Roles::is_business_user()) {
+            return;
+        }
+
+        $portal_url = self::get_portal_url();
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ADMIN_BLOCKED,
+            'SUCCESS',
+            [
+                'path'   => isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '',
+                'target' => $portal_url,
+            ]
+        );
+        wp_safe_redirect($portal_url);
+        exit;
+    }
+
+    /**
+     * 处理 Portal 访问权限。
+     */
+    public static function handle_portal_access() {
+        if (is_admin() || !is_page(self::PORTAL_SLUG)) {
+            return;
+        }
+
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(self::get_login_url());
+            exit;
+        }
+
+        if (!AEGIS_System_Roles::is_business_user()) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_PORTAL_BLOCKED,
+                'FAIL',
+                [
+                    'reason' => 'non_business',
+                ]
+            );
+            wp_safe_redirect(admin_url());
+            exit;
+        }
+    }
+
+    /**
+     * Portal 占位短码渲染。
+     */
+    public static function render_portal_shortcode() {
+        if (!is_user_logged_in()) {
+            return '<div class="aegis-system-root aegis-t-a5">请先登录后访问。</div>';
+        }
+
+        $user = wp_get_current_user();
+        if (!AEGIS_System_Roles::is_business_user($user)) {
+            return '<div class="aegis-system-root aegis-t-a5">当前账号无权访问 AEGIS Portal。</div>';
+        }
+
+        $roles = array_intersect((array) $user->roles, AEGIS_System_Roles::get_business_roles());
+        $modules = AEGIS_System::get_registered_modules();
+        $states = get_option(AEGIS_System::OPTION_KEY, []);
+        $enabled = [];
+
+        foreach ($modules as $slug => $module) {
+            $active = ($slug === 'core_manager') ? true : !empty($states[$slug]);
+            $enabled[] = esc_html(($module['label'] ?? $slug) . '：' . ($active ? '启用' : '未启用'));
+        }
+
+        $output = '<div class="aegis-system-root aegis-t-a5">';
+        $output .= '<h2 class="aegis-t-a3">AEGIS-SYSTEM Portal</h2>';
+        $output .= '<p class="aegis-t-a5">当前用户：' . esc_html($user->user_login) . '</p>';
+        $output .= '<p class="aegis-t-a6">角色：' . esc_html(implode(', ', $roles)) . '</p>';
+        $output .= '<p class="aegis-t-a6">可见模块（参考）：</p><ul class="aegis-t-a6">';
+        foreach ($enabled as $line) {
+            $output .= '<li>' . $line . '</li>';
+        }
+        $output .= '</ul>';
+        $output .= '</div>';
+
+        return $output;
+    }
+
+    /**
+     * Portal URL。
+     *
+     * @return string
+     */
+    protected static function get_portal_url() {
+        return home_url('/' . self::PORTAL_SLUG . '/');
+    }
+
+    /**
+     * 登录入口 URL。
+     *
+     * @return string
+     */
+    protected static function get_login_url() {
+        return home_url('/aegislogin.php');
     }
 }
 
