@@ -144,25 +144,25 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
 </form>
 
 <div class="aegis-table-wrap">
-    <table class="aegis-portal-table aegis-t-a6">
+    <table class="aegis-portal-table aegis-table aegis-dealer-table aegis-t-a6">
         <thead>
             <tr>
                 <th class="col-auth-code">授权编码</th>
                 <th>经销商名称</th>
                 <th class="col-contact">联系人</th>
                 <th class="col-phone">联系电话</th>
-                <th>地址</th>
+                <th class="col-address">地址</th>
                 <th class="col-date">授权开始</th>
                 <th class="col-date">授权截止</th>
                 <th>状态</th>
                 <th>更新时间</th>
-                <th>营业执照</th>
-                <th>操作</th>
+                <th class="col-license">营业执照</th>
+                <th class="col-actions">操作</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($dealers)) : ?>
-                <tr><td colspan="10" class="aegis-t-a6" style="text-align:center;">暂无记录</td></tr>
+                <tr><td colspan="11" class="aegis-t-a6" style="text-align:center;">暂无记录</td></tr>
             <?php endif; ?>
             <?php foreach ($dealers as $dealer) :
                 $status_label = isset($status_labels[$dealer->status]) ? $status_labels[$dealer->status] : $dealer->status;
@@ -186,12 +186,12 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
                     <td class="aegis-t-a5"><?php echo esc_html($dealer->dealer_name); ?></td>
                     <td class="col-contact"><?php echo esc_html($dealer->contact_name); ?></td>
                     <td class="col-phone"><?php echo esc_html($dealer->phone); ?></td>
-                    <td style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="<?php echo esc_attr($dealer->address); ?>"><?php echo esc_html($dealer->address); ?></td>
+                    <td class="col-address" title="<?php echo esc_attr($dealer->address); ?>"><?php echo esc_html($dealer->address); ?></td>
                     <td class="col-date"><?php echo esc_html(AEGIS_Dealer::format_date_display($dealer->auth_start_date)); ?></td>
                     <td class="col-date"><?php echo esc_html(AEGIS_Dealer::format_date_display($dealer->auth_end_date)); ?></td>
                     <td><span class="status-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
                     <td><?php echo esc_html(mysql2date('Y-m-d H:i', $dealer->updated_at)); ?></td>
-                    <td>
+                    <td class="col-license">
                         <?php if ($license_url) : ?>
                             <div class="table-actions" style="gap:6px;">
                                 <?php if ($is_image) : ?>
@@ -205,7 +205,7 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
                             <span class="aegis-t-a6" style="color:#666;">未上传</span>
                         <?php endif; ?>
                     </td>
-                    <td>
+                    <td class="col-actions">
                         <?php if ($can_edit) : ?>
                             <div class="table-actions">
                                 <a class="aegis-portal-button is-link" href="<?php echo esc_url($edit_url); ?>">编辑</a>
