@@ -1,0 +1,91 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #f7f8fa;
+}
+
+.aegis-portal-shell {
+    min-height: 100vh;
+}
+
+.aegis-portal-shell .aegis-system-root {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.aegis-portal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.aegis-portal-logout {
+    padding: 8px 12px;
+    border: 1px solid #c00;
+    border-radius: 4px;
+    background: #fff5f5;
+    color: #c00;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.aegis-portal-layout {
+    margin-top: 16px;
+}
+
+.aegis-portal-nav {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.aegis-portal-nav .nav-item {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    display: inline-flex;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+    align-items: center;
+    background: #fff;
+}
+
+.aegis-portal-nav .nav-item .nav-status {
+    color: #666;
+    font-size: 0.92em;
+}
+
+.aegis-portal-nav .nav-item.is-active {
+    background: #f0f6ff;
+    border-color: #9bbcf5;
+}
+
+.aegis-portal-nav .nav-item.is-disabled {
+    color: #999;
+    cursor: not-allowed;
+    background: #f7f7f7;
+    border-style: dashed;
+}
+
+.aegis-portal-panel {
+    border: 1px solid #e5e5e5;
+    padding: 16px;
+    border-radius: 4px;
+    background: #fff;
+}
+.aegis-portal-title h2 {
+    margin: 0;
+}
+
+.aegis-portal-title .portal-user {
+    margin: 4px 0 0 0;
+}
+
+.aegis-portal-title .portal-roles {
+    margin: 2px 0 0 0;
+}
