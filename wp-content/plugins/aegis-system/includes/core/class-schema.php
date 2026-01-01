@@ -182,6 +182,8 @@ class AEGIS_System_Schema {
             dealer_id BIGINT(20) UNSIGNED NOT NULL,
             created_by BIGINT(20) UNSIGNED NULL,
             created_at DATETIME NOT NULL,
+            qty INT(11) NOT NULL DEFAULT 0,
+            note VARCHAR(255) NULL,
             order_ref VARCHAR(100) NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'created',
             meta LONGTEXT NULL,

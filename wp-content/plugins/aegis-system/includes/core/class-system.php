@@ -8,7 +8,7 @@ class AEGIS_System {
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
     const HQ_DISPLAY_OPTION = 'aegis_public_query_hq_label';
     const ORDER_SHIPMENT_LINK_OPTION = 'aegis_order_shipment_link';
-    const SCHEMA_VERSION = '1.6.0';
+    const SCHEMA_VERSION = '1.7.0';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -57,7 +57,8 @@ class AEGIS_System {
     const ACTION_RECEIPT_EXPORT = 'RECEIPT_EXPORT_DETAIL';
     const ACTION_RECEIPT_PRINT = 'RECEIPT_PRINT_SUMMARY';
     const ACTION_SHIPMENT_CREATE = 'SHIPMENT_CREATE';
-    const ACTION_SHIPMENT_EXPORT = 'SHIPMENT_EXPORT';
+    const ACTION_SHIPMENT_EXPORT_SUMMARY = 'SHIPMENT_EXPORT_SUMMARY';
+    const ACTION_SHIPMENT_EXPORT_DETAIL = 'SHIPMENT_EXPORT_DETAIL';
     const ACTION_PUBLIC_QUERY = 'PUBLIC_QUERY';
     const ACTION_PUBLIC_QUERY_RATE_LIMIT = 'PUBLIC_QUERY_RATE_LIMIT';
     const ACTION_RESET_B = 'RESET_B';

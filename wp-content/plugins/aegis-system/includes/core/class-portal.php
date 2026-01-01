@@ -605,7 +605,7 @@ class AEGIS_Portal {
             case 'inbound':
                 return AEGIS_Inbound::render_portal_panel(self::get_portal_url());
             case 'shipments':
-                return '<div class="aegis-t-a5">出货管理前台界面尚未实现（占位）。</div>';
+                return AEGIS_Shipments::render_portal_panel(self::get_portal_url());
             case 'public_query':
                 return '<div class="aegis-t-a5">防伪码查询内部入口占位，具体前台页面将在模块中实现。</div>';
             case 'reset_b':
