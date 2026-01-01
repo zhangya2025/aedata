@@ -319,6 +319,17 @@ class AEGIS_Portal {
     }
 
     /**
+     * 供模块渲染 Portal 模板的公共入口。
+     *
+     * @param string $template
+     * @param array  $context
+     * @return string
+     */
+    public static function render_portal_template($template, $context = []) {
+        return self::render_template($template, $context);
+    }
+
+    /**
      * Portal 样式按需加载。
      */
     protected static function enqueue_portal_assets() {
@@ -483,7 +494,7 @@ class AEGIS_Portal {
         } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
             $allowed = ['sku', 'dealer_master', 'codes', 'shipments', 'public_query', 'reset_b'];
         } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
-            $allowed = ['shipments', 'public_query'];
+            $allowed = ['sku', 'shipments', 'public_query'];
         } elseif (in_array('aegis_dealer', $roles, true)) {
             $allowed = ['reset_b'];
             if (!empty($states['orders']['enabled'])) {
@@ -522,6 +533,8 @@ class AEGIS_Portal {
                 return self::render_system_settings_panel();
             case 'aegis_typography':
                 return self::render_typography_panel();
+            case 'sku':
+                return AEGIS_SKU::render_portal_panel(self::get_portal_url());
             case 'shipments':
                 return '<div class="aegis-t-a5">出货管理前台界面尚未实现（占位）。</div>';
             case 'public_query':
