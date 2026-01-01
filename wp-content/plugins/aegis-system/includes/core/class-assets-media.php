@@ -371,6 +371,10 @@ class AEGIS_Assets_Media {
             return new WP_REST_Response(['message' => '未找到上传文件'], 400);
         }
 
+        if (!function_exists('wp_handle_upload')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
         $upload_override = ['test_form' => false];
         $dir_filter = function ($uploads) use ($bucket) {
             $uploads['subdir'] = '/' . AEGIS_Assets_Media::UPLOAD_ROOT . '/' . $bucket;
@@ -483,6 +487,10 @@ class AEGIS_Assets_Media {
         $sensitive_types = ['business_license', 'payment_receipt', 'payment_voucher'];
         if (in_array($owner_type, $sensitive_types, true)) {
             $visibility = self::VISIBILITY_SENSITIVE;
+        }
+
+        if (!function_exists('wp_handle_upload')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
         $upload_override = ['test_form' => false];
