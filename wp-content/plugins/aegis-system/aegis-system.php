@@ -324,19 +324,25 @@ class AEGIS_System {
 
         $validation = ['success' => true, 'message' => ''];
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
-            $validation = AEGIS_Access_Audit::validate_write_request(
+                $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
                     'capability'      => AEGIS_System::CAP_MANAGE_SYSTEM,
                     'nonce_field'     => 'aegis_system_nonce',
                     'nonce_action'    => 'aegis_system_save_modules',
-                    'whitelist'       => ['aegis_system_nonce', 'modules', '_wp_http_referer', '_aegis_idempotency'],
+                    'whitelist'       => ['aegis_system_nonce', 'modules', '_wp_http_referer', '_aegis_idempotency', 'submit'],
                     'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
                 ]
             );
         }
 
         if ($validation['success'] && 'POST' === $_SERVER['REQUEST_METHOD']) {
+            $allowed_modules = array_keys($modules);
+            $posted_modules = isset($_POST['modules']) && is_array($_POST['modules']) ? array_keys($_POST['modules']) : [];
+            $unknown_modules = array_diff($posted_modules, $allowed_modules);
+            if (!empty($unknown_modules)) {
+                AEGIS_Access_Audit::record_event('PARAMS_IGNORED', 'SUCCESS', ['keys' => array_values($unknown_modules)]);
+            }
             $new_states = [];
             foreach ($modules as $slug => $module) {
                 if ($slug === 'core_manager') {
@@ -664,6 +670,9 @@ class AEGIS_Access_Audit {
         if (!empty($config['whitelist'])) {
             $extra_keys = array_diff(array_keys($params), $config['whitelist']);
             if (!empty($extra_keys)) {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('[AEGIS] Blocked params: ' . wp_json_encode(array_values($extra_keys)));
+                }
                 self::record_event('PARAMS_NOT_ALLOWED', 'FAIL', ['keys' => array_values($extra_keys)]);
                 return [
                     'success' => false,
