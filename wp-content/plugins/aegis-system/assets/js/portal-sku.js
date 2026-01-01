@@ -17,13 +17,18 @@
     }
 
     document.addEventListener('click', function (event) {
-        const trigger = event.target.closest('.sku-thumb');
+        const trigger = event.target.closest('.sku-thumb, .aegis-preview-trigger');
         const modal = document.querySelector('.sku-preview-modal');
         if (trigger && modal) {
-            const url = trigger.getAttribute('data-full');
+            const url = trigger.getAttribute('data-full') || trigger.getAttribute('data-preview-url');
+            const type = trigger.getAttribute('data-preview-type') || '';
             if (url) {
                 event.preventDefault();
-                openModal(modal, url);
+                if (type && type.toLowerCase().indexOf('pdf') !== -1) {
+                    window.open(url, '_blank');
+                } else {
+                    openModal(modal, url);
+                }
             }
             return;
         }

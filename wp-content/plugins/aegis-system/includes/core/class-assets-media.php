@@ -361,7 +361,7 @@ class AEGIS_Assets_Media {
             $visibility = self::VISIBILITY_PRIVATE;
         }
 
-        $sensitive_types = ['business_license', 'payment_receipt', 'payment_voucher'];
+        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher'];
         if (in_array($owner_type, $sensitive_types, true)) {
             $visibility = self::VISIBILITY_SENSITIVE;
         }
@@ -484,7 +484,7 @@ class AEGIS_Assets_Media {
             $visibility = self::VISIBILITY_PRIVATE;
         }
 
-        $sensitive_types = ['business_license', 'payment_receipt', 'payment_voucher'];
+        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher'];
         if (in_array($owner_type, $sensitive_types, true)) {
             $visibility = self::VISIBILITY_SENSITIVE;
         }
