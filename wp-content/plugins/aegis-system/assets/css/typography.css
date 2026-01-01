@@ -1,0 +1,44 @@
+.aegis-system-root {
+    --aegis-a1-size: 2.4rem;
+    --aegis-a1-line: 3.2rem;
+    --aegis-a2-size: 2rem;
+    --aegis-a2-line: 2.8rem;
+    --aegis-a3-size: 1.8rem;
+    --aegis-a3-line: 2.6rem;
+    --aegis-a4-size: 1.6rem;
+    --aegis-a4-line: 2.2rem;
+    --aegis-a5-size: 1.4rem;
+    --aegis-a5-line: 2rem;
+    --aegis-a6-size: 1.2rem;
+    --aegis-a6-line: 1.8rem;
+}
+
+.aegis-system-root .aegis-t-a1 {
+    font-size: var(--aegis-a1-size);
+    line-height: var(--aegis-a1-line);
+}
+
+.aegis-system-root .aegis-t-a2 {
+    font-size: var(--aegis-a2-size);
+    line-height: var(--aegis-a2-line);
+}
+
+.aegis-system-root .aegis-t-a3 {
+    font-size: var(--aegis-a3-size);
+    line-height: var(--aegis-a3-line);
+}
+
+.aegis-system-root .aegis-t-a4 {
+    font-size: var(--aegis-a4-size);
+    line-height: var(--aegis-a4-line);
+}
+
+.aegis-system-root .aegis-t-a5 {
+    font-size: var(--aegis-a5-size);
+    line-height: var(--aegis-a5-line);
+}
+
+.aegis-system-root .aegis-t-a6 {
+    font-size: var(--aegis-a6-size);
+    line-height: var(--aegis-a6-line);
+}
