@@ -141,6 +141,31 @@ class AEGIS_Portal {
     }
 
     /**
+     * 登录页提示。
+     */
+    public static function render_login_notice($message) {
+        if (!isset($_GET['aegis_notice'])) {
+            return $message;
+        }
+
+        $notice = sanitize_key(wp_unslash($_GET['aegis_notice']));
+        $map = [
+            'dealer_inactive' => '账号已停用，请联系管理员。',
+            'dealer_expired'  => '授权已到期，请联系管理员续期后再登录。',
+            'dealer_missing'  => '未找到经销商授权信息，请联系管理员。',
+        ];
+
+        if (!isset($map[$notice])) {
+            return $message;
+        }
+
+        $text = $map[$notice];
+        $html = '<div class="notice notice-error"><p>' . esc_html($text) . '</p></div>';
+
+        return $message . $html;
+    }
+
+    /**
      * 业务角色登出后强制返回登录入口。
      */
     public static function filter_logout_redirect($redirect_to, $requested, $user) {
@@ -193,7 +218,9 @@ class AEGIS_Portal {
             exit;
         }
 
-        if (!AEGIS_System_Roles::is_business_user()) {
+        $user = wp_get_current_user();
+
+        if (!AEGIS_System_Roles::is_business_user($user)) {
             AEGIS_Access_Audit::record_event(
                 AEGIS_System::ACTION_PORTAL_BLOCKED,
                 'FAIL',
@@ -203,6 +230,24 @@ class AEGIS_Portal {
             );
             wp_safe_redirect(admin_url());
             exit;
+        }
+
+        if (in_array('aegis_dealer', (array) $user->roles, true)) {
+            $dealer_state = AEGIS_Dealer::evaluate_dealer_access($user);
+            if (empty($dealer_state['allowed'])) {
+                AEGIS_Access_Audit::record_event(
+                    AEGIS_System::ACTION_PORTAL_BLOCKED,
+                    'FAIL',
+                    [
+                        'reason' => $dealer_state['reason'],
+                    ]
+                );
+
+                wp_logout();
+                $redirect = add_query_arg('aegis_notice', $dealer_state['reason'], self::get_login_url());
+                wp_safe_redirect($redirect);
+                exit;
+            }
         }
 
         self::render_portal_shell();
@@ -296,6 +341,22 @@ class AEGIS_Portal {
         $visible = self::get_visible_modules_for_user($user, $module_states);
         $modules = self::build_portal_modules($user, $visible, $module_states, $portal_url);
 
+        $dealer_notice = null;
+        if (in_array('aegis_dealer', (array) $user->roles, true)) {
+            $dealer_state = AEGIS_Dealer::evaluate_dealer_access($user);
+            if (!empty($dealer_state['allowed']) && !empty($dealer_state['dealer'])) {
+                $warning = '';
+                if (null !== $dealer_state['remaining_days'] && $dealer_state['remaining_days'] < 30) {
+                    $warning = '授权即将到期，请联系管理员续期。';
+                }
+
+                $dealer_notice = [
+                    'range'   => AEGIS_Dealer::format_auth_range($dealer_state['dealer']),
+                    'warning' => $warning,
+                ];
+            }
+        }
+
         $requested = isset($_GET['m']) ? sanitize_key(wp_unslash($_GET['m'])) : '';
         if ('core_manager' === $requested) {
             $requested = 'system_settings';
@@ -313,6 +374,7 @@ class AEGIS_Portal {
             'logout_url'    => wp_logout_url(self::get_login_url()),
             'current_panel' => self::render_module_panel($requested, $modules[$requested]),
             'role_labels'   => implode(' / ', self::get_role_labels_for_user($user)),
+            'dealer_notice' => $dealer_notice,
         ];
 
         return self::render_template('shell', $context);

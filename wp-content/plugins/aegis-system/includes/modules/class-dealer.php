@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 class AEGIS_Dealer {
     const STATUS_ACTIVE = 'active';
     const STATUS_INACTIVE = 'inactive';
+    const USER_META_KEY = 'aegis_dealer_id';
 
     /**
      * 渲染经销商管理页面。
@@ -40,10 +41,9 @@ class AEGIS_Dealer {
                 'contact_name',
                 'phone',
                 'address',
-                'authorized_at',
+                'auth_start_date',
+                'auth_end_date',
                 'status',
-                'auth_code_correct',
-                'auth_code_correct_confirm',
                 'target_status',
                 '_wp_http_referer',
                 '_aegis_idempotency',
@@ -115,7 +115,8 @@ class AEGIS_Dealer {
         $contact_name = $dealer ? $dealer->contact_name : '';
         $phone = $dealer ? $dealer->phone : '';
         $address = $dealer ? $dealer->address : '';
-        $authorized_at = $dealer ? $dealer->authorized_at : '';
+        $auth_start_date = $dealer ? $dealer->auth_start_date : '';
+        $auth_end_date = $dealer ? $dealer->auth_end_date : '';
         $status = $dealer ? $dealer->status : self::STATUS_ACTIVE;
         $idempotency_key = wp_generate_uuid4();
 
@@ -132,11 +133,6 @@ class AEGIS_Dealer {
         echo '<input type="text" id="aegis-auth-code" name="auth_code" value="' . esc_attr($auth_code) . '" ' . ($dealer ? 'readonly' : '') . ' class="regular-text" />';
         if ($dealer) {
             echo '<p class="description aegis-t-a6">常规编辑不可修改授权编码。</p>';
-            echo '<div class="aegis-t-a6" style="margin-top:8px;">';
-            echo '<label><input type="checkbox" name="auth_code_correct_confirm" value="1" /> 启用受控更正</label><br />';
-            echo '<input type="text" name="auth_code_correct" placeholder="新的授权编码" class="regular-text" />';
-            echo '<p class="description">仅限总部管理员，提交将写入审计。</p>';
-            echo '</div>';
         }
         echo '</td></tr>';
 
@@ -144,14 +140,8 @@ class AEGIS_Dealer {
         echo '<tr><th><label for="aegis-contact-name">联系人</label></th><td><input type="text" id="aegis-contact-name" name="contact_name" value="' . esc_attr($contact_name) . '" class="regular-text" /></td></tr>';
         echo '<tr><th><label for="aegis-phone">电话</label></th><td><input type="text" id="aegis-phone" name="phone" value="' . esc_attr($phone) . '" class="regular-text" /></td></tr>';
         echo '<tr><th><label for="aegis-address">地址</label></th><td><input type="text" id="aegis-address" name="address" value="' . esc_attr($address) . '" class="regular-text" /></td></tr>';
-        echo '<tr><th><label for="aegis-authorized">授权时间</label></th><td><input type="datetime-local" id="aegis-authorized" name="authorized_at" value="' . esc_attr(self::format_datetime_local($authorized_at)) . '" /></td></tr>';
-
-        echo '<tr><th>状态</th><td><select name="status">';
-        foreach (self::get_status_labels() as $value => $label) {
-            $selected = selected($status, $value, false);
-            echo '<option value="' . esc_attr($value) . '" ' . $selected . '>' . esc_html($label) . '</option>';
-        }
-        echo '</select></td></tr>';
+        echo '<tr><th><label for="aegis-authorized-start">授权开始日期</label></th><td><input type="date" id="aegis-authorized-start" name="auth_start_date" value="' . esc_attr(self::format_date_input($auth_start_date)) . '" required /></td></tr>';
+        echo '<tr><th><label for="aegis-authorized-end">授权截止日期</label></th><td><input type="date" id="aegis-authorized-end" name="auth_end_date" value="' . esc_attr(self::format_date_input($auth_end_date)) . '" required /></td></tr>';
 
         if ($assets_enabled) {
             echo '<tr><th>营业执照</th><td>';
@@ -187,9 +177,9 @@ class AEGIS_Dealer {
         $contact_name = isset($post['contact_name']) ? sanitize_text_field(wp_unslash($post['contact_name'])) : '';
         $phone = isset($post['phone']) ? sanitize_text_field(wp_unslash($post['phone'])) : '';
         $address = isset($post['address']) ? sanitize_text_field(wp_unslash($post['address'])) : '';
-        $authorized_raw = isset($post['authorized_at']) ? sanitize_text_field(wp_unslash($post['authorized_at'])) : '';
+        $auth_start_raw = isset($post['auth_start_date']) ? sanitize_text_field(wp_unslash($post['auth_start_date'])) : '';
+        $auth_end_raw = isset($post['auth_end_date']) ? sanitize_text_field(wp_unslash($post['auth_end_date'])) : '';
         $status_raw = isset($post['status']) ? sanitize_key($post['status']) : '';
-        $status = $status_raw && array_key_exists($status_raw, self::get_status_labels()) ? $status_raw : self::STATUS_ACTIVE;
 
         $is_new = $dealer_id === 0;
         $existing = $is_new ? null : self::get_dealer($dealer_id);
@@ -198,30 +188,49 @@ class AEGIS_Dealer {
         }
 
         $auth_code_to_use = $is_new ? $auth_code_input : $existing->auth_code;
-        $auth_code_correct = isset($post['auth_code_correct']) ? sanitize_text_field(wp_unslash($post['auth_code_correct'])) : '';
-        $auth_code_confirm = !empty($post['auth_code_correct_confirm']);
 
         if ($is_new && '' === $auth_code_to_use) {
             return new WP_Error('code_required', '请填写授权编码。');
         }
 
-        if (!$is_new && $auth_code_confirm && $auth_code_correct) {
-            $auth_code_to_use = $auth_code_correct;
+        if (!$is_new && $auth_code_input && $auth_code_input !== $auth_code_to_use) {
+            return new WP_Error('code_locked', '授权编码不可修改，如录入错误请停用后新建。');
         }
 
         if (self::auth_code_exists($auth_code_to_use, $dealer_id)) {
             return new WP_Error('code_exists', '授权编码已存在，无法重复。');
         }
 
+        $auth_start_date = $auth_start_raw ? self::normalize_date($auth_start_raw) : '';
+        $auth_end_date = $auth_end_raw ? self::normalize_date($auth_end_raw) : '';
+
+        if (!$auth_start_date || !$auth_end_date) {
+            return new WP_Error('auth_period_required', '请填写授权有效期。');
+        }
+
+        if (strtotime($auth_end_date) < strtotime($auth_start_date)) {
+            return new WP_Error('auth_period_invalid', '授权截止日期不能早于开始日期。');
+        }
+
+        $status = $is_new ? self::STATUS_ACTIVE : ($existing ? $existing->status : self::STATUS_ACTIVE);
+        if ($status_raw && array_key_exists($status_raw, self::get_status_labels())) {
+            $status = $status_raw;
+        }
+
+        if (!array_key_exists($status, self::get_status_labels())) {
+            $status = self::STATUS_ACTIVE;
+        }
+
         $now = current_time('mysql');
-        $authorized_at = $authorized_raw ? self::normalize_datetime($authorized_raw) : null;
 
         $data = [
             'dealer_name'  => $dealer_name,
             'contact_name' => $contact_name,
             'phone'        => $phone,
             'address'      => $address,
-            'authorized_at'=> $authorized_at,
+            'auth_start_date' => $auth_start_date,
+            'auth_end_date'   => $auth_end_date,
+            'authorized_at'   => $auth_start_date ? $auth_start_date . ' 00:00:00' : null,
             'status'       => $status,
             'updated_at'   => $now,
         ];
@@ -231,7 +240,7 @@ class AEGIS_Dealer {
         if ($is_new) {
             $data['auth_code'] = $auth_code_to_use;
             $data['created_at'] = $now;
-            $wpdb->insert($table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']);
+            $wpdb->insert($table, $data, array_fill(0, count($data), '%s'));
             $dealer_id = (int) $wpdb->insert_id;
             AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_DEALER_CREATE, 'SUCCESS', ['id' => $dealer_id, 'code' => $auth_code_to_use]);
             $messages[] = '经销商已创建。';
@@ -243,12 +252,6 @@ class AEGIS_Dealer {
             if ($existing->status !== $status) {
                 $action = self::STATUS_ACTIVE === $status ? AEGIS_System::ACTION_DEALER_ENABLE : AEGIS_System::ACTION_DEALER_DISABLE;
                 AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $dealer_id, 'from' => $existing->status, 'to' => $status]);
-            }
-
-            if ($auth_code_to_use !== $existing->auth_code) {
-                $wpdb->update($table, ['auth_code' => $auth_code_to_use], ['id' => $dealer_id]);
-                AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_DEALER_CODE_CORRECT, 'SUCCESS', ['id' => $dealer_id, 'from' => $existing->auth_code, 'to' => $auth_code_to_use]);
-                $messages[] = '授权编码已完成受控更正。';
             }
         }
 
@@ -406,37 +409,566 @@ class AEGIS_Dealer {
     }
 
     /**
-     * 格式化 datetime-local 字段值。
+     * 格式化 date 输入值。
      *
      * @param string|null $value
      * @return string
      */
-    public static function format_datetime_local($value) {
+    public static function format_date_input($value) {
         if (empty($value)) {
             return '';
         }
-        $timestamp = strtotime($value);
-        if (!$timestamp) {
-            return '';
-        }
-        return gmdate('Y-m-d\TH:i', $timestamp + (get_option('gmt_offset') * HOUR_IN_SECONDS));
+
+        return mysql2date('Y-m-d', $value);
     }
 
     /**
-     * 归一化日期时间。
+     * 前台展示日期。
+     *
+     * @param string|null $value
+     * @return string
+     */
+    public static function format_date_display($value) {
+        if (empty($value)) {
+            return '—';
+        }
+
+        return mysql2date('Y-m-d', $value);
+    }
+
+    /**
+     * 展示授权区间。
+     *
+     * @param object $dealer
+     * @return string
+     */
+    public static function format_auth_range($dealer) {
+        if (!$dealer) {
+            return '';
+        }
+
+        $start = self::format_date_display($dealer->auth_start_date);
+        $end = self::format_date_display($dealer->auth_end_date);
+
+        return trim($start . ' ~ ' . $end);
+    }
+
+    /**
+     * 归一化日期。
      *
      * @param string $value
      * @return string|null
      */
-    protected static function normalize_datetime($value) {
+    protected static function normalize_date($value) {
         if (empty($value)) {
             return null;
         }
-        $timestamp = strtotime($value);
-        if (!$timestamp) {
+        $dt = date_create($value, wp_timezone());
+        if (!$dt) {
             return null;
         }
-        return gmdate('Y-m-d H:i:s', $timestamp - (get_option('gmt_offset') * HOUR_IN_SECONDS));
+
+        return $dt->format('Y-m-d');
+    }
+
+    /**
+     * Portal 经销商面板渲染。
+     *
+     * @param string $portal_url
+     * @return string
+     */
+    public static function render_portal_panel($portal_url) {
+        $user = wp_get_current_user();
+
+        if (!AEGIS_System::is_module_enabled('dealer_master')) {
+            return '<div class="aegis-t-a5">经销商模块未启用，请在系统设置中启用。</div>';
+        }
+
+        if ($user && in_array('aegis_dealer', (array) $user->roles, true)) {
+            return '<div class="aegis-t-a5">当前账号无权访问经销商管理。</div>';
+        }
+
+        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
+            return '<div class="aegis-t-a5">当前账号无权访问经销商模块。</div>';
+        }
+
+        $can_edit = AEGIS_System_Roles::user_can_manage_warehouse();
+        $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
+        $base_url = add_query_arg('m', 'dealer_master', $portal_url);
+
+        wp_enqueue_script(
+            'aegis-system-portal-sku',
+            AEGIS_SYSTEM_URL . 'assets/js/portal-sku.js',
+            [],
+            AEGIS_Assets_Media::get_asset_version('assets/js/portal-sku.js'),
+            true
+        );
+
+        $action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+        $current_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $current_dealer = $current_id ? self::get_dealer($current_id) : null;
+        $messages = [];
+        $errors = [];
+
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && $can_edit) {
+            $request_action = isset($_POST['dealer_action']) ? sanitize_key(wp_unslash($_POST['dealer_action'])) : '';
+            $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
+            $whitelist = [
+                'dealer_action',
+                'dealer_id',
+                'auth_code',
+                'dealer_name',
+                'contact_name',
+                'phone',
+                'address',
+                'auth_start_date',
+                'auth_end_date',
+                'target_status',
+                '_wp_http_referer',
+                '_aegis_idempotency',
+                'aegis_dealer_nonce',
+            ];
+
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
+                    'nonce_field'     => 'aegis_dealer_nonce',
+                    'nonce_action'    => 'aegis_dealer_action',
+                    'whitelist'       => $whitelist,
+                    'idempotency_key' => $idempotency,
+                ]
+            );
+
+            if (!$validation['success']) {
+                $errors[] = $validation['message'];
+            } elseif ('save' === $request_action) {
+                $result = self::handle_portal_save($_POST, $_FILES, $assets_enabled);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    $messages = array_merge($messages, $result['messages']);
+                    $current_dealer = $result['dealer'];
+                    $current_id = $current_dealer ? (int) $current_dealer->id : 0;
+                    $action = 'edit';
+                }
+            } elseif ('toggle_status' === $request_action) {
+                $result = self::handle_portal_status_toggle($_POST);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    $messages[] = $result['message'];
+                }
+            }
+        }
+
+        $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+        $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 20;
+        $per_options = [20, 50, 100];
+        if (!in_array($per_page, $per_options, true)) {
+            $per_page = 20;
+        }
+        $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+
+        $list_args = [
+            'search'   => $search,
+            'page'     => $page,
+            'per_page' => $per_page,
+            'order_by' => 'updated_at',
+            'order'    => 'DESC',
+        ];
+
+        $dealers = self::list_portal_dealers($list_args);
+        $license_ids = [];
+        foreach ($dealers as $dealer) {
+            if (!empty($dealer->business_license_id)) {
+                $license_ids[] = (int) $dealer->business_license_id;
+            }
+        }
+
+        $licenses = self::get_media_records_by_ids($license_ids);
+        foreach ($dealers as $dealer) {
+            $license = $dealer->business_license_id && isset($licenses[$dealer->business_license_id]) ? $licenses[$dealer->business_license_id] : null;
+            $dealer->license_url = $license ? self::get_media_gateway_url($license->id) : '';
+            $dealer->license_mime = $license && !empty($license->mime) ? $license->mime : '';
+        }
+
+        $total = self::count_portal_dealers(['search' => $search]);
+        $total_pages = $per_page > 0 ? max(1, (int) ceil($total / $per_page)) : 1;
+
+        $current_license = $current_dealer && $current_dealer->business_license_id ? self::get_media_records_by_ids([$current_dealer->business_license_id]) : [];
+        $current_license_record = $current_license ? reset($current_license) : null;
+
+        $context = [
+            'base_url'       => $base_url,
+            'action'         => $action,
+            'can_edit'       => $can_edit,
+            'assets_enabled' => $assets_enabled,
+            'messages'       => $messages,
+            'errors'         => $errors,
+            'dealers'        => $dealers,
+            'status_labels'  => self::get_status_labels(),
+            'current_dealer' => $current_dealer,
+            'current_media'  => $current_license_record,
+            'list'           => [
+                'search'      => $search,
+                'page'        => $page,
+                'per_page'    => $per_page,
+                'total'       => $total,
+                'total_pages' => $total_pages,
+                'per_options' => $per_options,
+            ],
+        ];
+
+        return AEGIS_Portal::render_portal_template('dealer', $context);
+    }
+
+    /**
+     * Portal 保存处理。
+     *
+     * @param array $post
+     * @param array $files
+     * @param bool  $assets_enabled
+     * @return array|WP_Error
+     */
+    protected static function handle_portal_save($post, $files, $assets_enabled) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+
+        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
+        $auth_code_input = isset($post['auth_code']) ? sanitize_text_field(wp_unslash($post['auth_code'])) : '';
+        $dealer_name = isset($post['dealer_name']) ? sanitize_text_field(wp_unslash($post['dealer_name'])) : '';
+        $contact_name = isset($post['contact_name']) ? sanitize_text_field(wp_unslash($post['contact_name'])) : '';
+        $phone = isset($post['phone']) ? sanitize_text_field(wp_unslash($post['phone'])) : '';
+        $address = isset($post['address']) ? sanitize_text_field(wp_unslash($post['address'])) : '';
+        $auth_start_raw = isset($post['auth_start_date']) ? sanitize_text_field(wp_unslash($post['auth_start_date'])) : '';
+        $auth_end_raw = isset($post['auth_end_date']) ? sanitize_text_field(wp_unslash($post['auth_end_date'])) : '';
+
+        $is_new = $dealer_id === 0;
+        $existing = $is_new ? null : self::get_dealer($dealer_id);
+        if (!$is_new && !$existing) {
+            return new WP_Error('not_found', '未找到对应的经销商。');
+        }
+
+        $auth_code_to_use = $is_new ? $auth_code_input : $existing->auth_code;
+
+        if ($is_new && '' === $auth_code_to_use) {
+            return new WP_Error('code_required', '请填写授权编码。');
+        }
+
+        if (!$is_new && $auth_code_input && $auth_code_input !== $auth_code_to_use) {
+            return new WP_Error('code_locked', '授权编码不可修改，如录入错误请停用后新建。');
+        }
+
+        if (self::auth_code_exists($auth_code_to_use, $dealer_id)) {
+            return new WP_Error('code_exists', '授权编码已存在，无法重复。');
+        }
+
+        $now = current_time('mysql');
+        $auth_start_date = $auth_start_raw ? self::normalize_date($auth_start_raw) : '';
+        $auth_end_date = $auth_end_raw ? self::normalize_date($auth_end_raw) : '';
+
+        if (!$auth_start_date || !$auth_end_date) {
+            return new WP_Error('auth_period_required', '请填写授权有效期。');
+        }
+
+        if (strtotime($auth_end_date) < strtotime($auth_start_date)) {
+            return new WP_Error('auth_period_invalid', '授权截止日期不能早于开始日期。');
+        }
+
+        $status = $is_new ? self::STATUS_ACTIVE : ($existing ? $existing->status : self::STATUS_ACTIVE);
+
+        if (!array_key_exists($status, self::get_status_labels())) {
+            $status = self::STATUS_ACTIVE;
+        }
+
+        $data = [
+            'dealer_name'  => $dealer_name,
+            'contact_name' => $contact_name,
+            'phone'        => $phone,
+            'address'      => $address,
+            'auth_start_date' => $auth_start_date,
+            'auth_end_date'   => $auth_end_date,
+            'authorized_at'   => $auth_start_date ? $auth_start_date . ' 00:00:00' : null,
+            'status'       => $status,
+            'updated_at'   => $now,
+        ];
+
+        $messages = [];
+
+        if ($is_new) {
+            $data['auth_code'] = $auth_code_to_use;
+            $data['created_at'] = $now;
+            $wpdb->insert($table, $data, array_fill(0, count($data), '%s'));
+            $dealer_id = (int) $wpdb->insert_id;
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_DEALER_CREATE, 'SUCCESS', ['id' => $dealer_id, 'code' => $auth_code_to_use]);
+            $messages[] = '经销商已创建。';
+        } else {
+            $wpdb->update($table, $data, ['id' => $dealer_id]);
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_DEALER_UPDATE, 'SUCCESS', ['id' => $dealer_id]);
+            $messages[] = '经销商已更新。';
+
+            if ($existing->status !== $status) {
+                $action = self::STATUS_ACTIVE === $status ? AEGIS_System::ACTION_DEALER_ENABLE : AEGIS_System::ACTION_DEALER_DISABLE;
+                AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $dealer_id, 'from' => $existing->status, 'to' => $status]);
+            }
+        }
+
+        if ($assets_enabled && isset($files['business_license']) && is_array($files['business_license']) && !empty($files['business_license']['name'])) {
+            $upload = AEGIS_Assets_Media::handle_admin_upload($files['business_license'], [
+                'bucket'     => 'dealer',
+                'owner_type' => 'dealer_license',
+                'owner_id'   => $dealer_id,
+                'visibility' => AEGIS_Assets_Media::VISIBILITY_SENSITIVE,
+                'meta'       => ['type' => 'dealer_license', 'auth_code' => $auth_code_to_use],
+            ]);
+
+            if (is_wp_error($upload)) {
+                $messages[] = '营业执照上传失败：' . $upload->get_error_message();
+            } else {
+                $wpdb->update($table, ['business_license_id' => $upload['id']], ['id' => $dealer_id]);
+                $messages[] = '营业执照已上传并关联。';
+            }
+        }
+
+        $dealer = self::get_dealer($dealer_id);
+
+        return [
+            'dealer'   => $dealer,
+            'messages' => $messages,
+        ];
+    }
+
+    /**
+     * Portal 状态切换。
+     *
+     * @param array $post
+     * @return array|WP_Error
+     */
+    protected static function handle_portal_status_toggle($post) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
+        $target = isset($post['target_status']) ? sanitize_key($post['target_status']) : '';
+
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
+            return new WP_Error('forbidden', '当前账号无权更改经销商状态。');
+        }
+
+        if (!AEGIS_System::is_module_enabled('dealer_master')) {
+            return new WP_Error('module_disabled', '经销商模块未启用。');
+        }
+
+        if (!array_key_exists($target, self::get_status_labels())) {
+            return new WP_Error('bad_status', '无效的状态。');
+        }
+
+        $dealer = self::get_dealer($dealer_id);
+        if (!$dealer) {
+            return new WP_Error('not_found', '未找到对应的经销商。');
+        }
+
+        $wpdb->update($table, ['status' => $target, 'updated_at' => current_time('mysql')], ['id' => $dealer_id]);
+        $action = self::STATUS_ACTIVE === $target ? AEGIS_System::ACTION_DEALER_ENABLE : AEGIS_System::ACTION_DEALER_DISABLE;
+        AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $dealer_id, 'from' => $dealer->status, 'to' => $target]);
+
+        return ['message' => '状态已更新。'];
+    }
+
+    /**
+     * Portal 列表查询。
+     *
+     * @param array $args
+     * @return array
+     */
+    protected static function list_portal_dealers($args = []) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $search = isset($args['search']) ? $args['search'] : '';
+        $page = isset($args['page']) ? max(1, (int) $args['page']) : 1;
+        $per_page = isset($args['per_page']) ? max(1, (int) $args['per_page']) : 20;
+        $order_by = isset($args['order_by']) ? sanitize_key($args['order_by']) : 'updated_at';
+        $order = isset($args['order']) && in_array(strtoupper($args['order']), ['ASC', 'DESC'], true) ? strtoupper($args['order']) : 'DESC';
+        $offset = ($page - 1) * $per_page;
+
+        $allowed_order = ['updated_at', 'created_at'];
+        if (!in_array($order_by, $allowed_order, true)) {
+            $order_by = 'updated_at';
+        }
+
+        $where = 'WHERE 1=1';
+        $params = [];
+        if ($search) {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $where .= " AND (auth_code LIKE %s OR dealer_name LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql = "SELECT * FROM {$table} {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d";
+        $params[] = $per_page;
+        $params[] = $offset;
+
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
+    }
+
+    /**
+     * Portal 列表计数。
+     *
+     * @param array $args
+     * @return int
+     */
+    protected static function count_portal_dealers($args = []) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $search = isset($args['search']) ? $args['search'] : '';
+
+        $where = 'WHERE 1=1';
+        $params = [];
+        if ($search) {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $where .= " AND (auth_code LIKE %s OR dealer_name LIKE %s)";
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql = "SELECT COUNT(*) FROM {$table} {$where}";
+        if (!empty($params)) {
+            $sql = $wpdb->prepare($sql, $params);
+        }
+
+        return (int) $wpdb->get_var($sql);
+    }
+
+    /**
+     * 批量获取媒体记录。
+     *
+     * @param array $ids
+     * @return array
+     */
+    protected static function get_media_records_by_ids($ids) {
+        $ids = array_filter(array_map('intval', (array) $ids));
+        if (empty($ids)) {
+            return [];
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
+        $placeholders = implode(', ', array_fill(0, count($ids), '%d'));
+        $sql = "SELECT * FROM {$table} WHERE id IN ({$placeholders}) AND deleted_at IS NULL";
+
+        $records = $wpdb->get_results($wpdb->prepare($sql, $ids));
+        $map = [];
+        foreach ($records as $record) {
+            $map[$record->id] = $record;
+        }
+
+        return $map;
+    }
+
+    /**
+     * 获取当前用户绑定的经销商记录。
+     *
+     * @param WP_User|null $user
+     * @return object|null
+     */
+    public static function get_dealer_for_user($user = null) {
+        if (null === $user) {
+            $user = wp_get_current_user();
+        }
+
+        if (!$user || !$user->ID) {
+            return null;
+        }
+
+        $dealer_id = (int) get_user_meta($user->ID, self::USER_META_KEY, true);
+        if ($dealer_id <= 0) {
+            return null;
+        }
+
+        return self::get_dealer($dealer_id);
+    }
+
+    /**
+     * 评估经销商账号访问状态。
+     *
+     * @param WP_User|null $user
+     * @return array
+     */
+    public static function evaluate_dealer_access($user = null) {
+        $dealer = self::get_dealer_for_user($user);
+
+        if (!$dealer) {
+            return [
+                'allowed' => false,
+                'reason'  => 'dealer_missing',
+                'dealer'  => null,
+            ];
+        }
+
+        if (self::STATUS_ACTIVE !== $dealer->status) {
+            return [
+                'allowed' => false,
+                'reason'  => 'dealer_inactive',
+                'dealer'  => $dealer,
+            ];
+        }
+
+        $end_ts = self::get_auth_end_timestamp($dealer->auth_end_date);
+        $remaining_days = null;
+
+        if ($end_ts) {
+            $now = current_time('timestamp');
+            if ($now > $end_ts) {
+                return [
+                    'allowed' => false,
+                    'reason'  => 'dealer_expired',
+                    'dealer'  => $dealer,
+                ];
+            }
+
+            $remaining_days = (int) floor(($end_ts - $now) / DAY_IN_SECONDS);
+        }
+
+        return [
+            'allowed'       => true,
+            'reason'        => 'ok',
+            'dealer'        => $dealer,
+            'remaining_days'=> $remaining_days,
+        ];
+    }
+
+    /**
+     * 授权截止日期按日末时间戳。
+     *
+     * @param string|null $date
+     * @return int|null
+     */
+    protected static function get_auth_end_timestamp($date) {
+        if (empty($date)) {
+            return null;
+        }
+
+        $dt = date_create_from_format('Y-m-d H:i:s', $date . ' 23:59:59', wp_timezone());
+        if (!$dt) {
+            return null;
+        }
+
+        return $dt->getTimestamp();
+    }
+
+    /**
+     * 媒体网关 URL。
+     *
+     * @param int $media_id
+     * @return string
+     */
+    public static function get_media_gateway_url($media_id) {
+        if (!$media_id) {
+            return '';
+        }
+
+        return add_query_arg('aegis_media', (int) $media_id, home_url('/'));
     }
 
     /**

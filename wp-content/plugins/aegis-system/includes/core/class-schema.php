@@ -117,6 +117,8 @@ class AEGIS_System_Schema {
             contact_name VARCHAR(191) NULL,
             phone VARCHAR(64) NULL,
             address VARCHAR(255) NULL,
+            auth_start_date DATE NULL,
+            auth_end_date DATE NULL,
             authorized_at DATETIME NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'active',
             business_license_id BIGINT(20) UNSIGNED NULL,
@@ -125,6 +127,8 @@ class AEGIS_System_Schema {
             PRIMARY KEY  (id),
             UNIQUE KEY auth_code (auth_code),
             KEY status (status),
+            KEY auth_start_date (auth_start_date),
+            KEY auth_end_date (auth_end_date),
             KEY authorized_at (authorized_at),
             KEY created_at (created_at),
             KEY updated_at (updated_at)

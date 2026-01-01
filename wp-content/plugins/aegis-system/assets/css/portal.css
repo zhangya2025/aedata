@@ -299,6 +299,29 @@
     background: #f8f9fb;
 }
 
+.aegis-portal-table .col-auth-code {
+    width: 140px;
+    max-width: 160px;
+    white-space: nowrap;
+}
+
+.aegis-portal-table .col-contact {
+    width: 90px;
+    max-width: 110px;
+    white-space: nowrap;
+}
+
+.aegis-portal-table .col-phone {
+    width: 130px;
+    max-width: 150px;
+    white-space: nowrap;
+}
+
+.aegis-portal-table .col-date {
+    width: 130px;
+    white-space: nowrap;
+}
+
 .status-badge {
     display: inline-block;
     padding: 4px 10px;
@@ -337,6 +360,20 @@
     margin-bottom: 8px;
     border: 1px solid #e5e5e5;
     background: #f9fafb;
+}
+
+.dealer-auth-banner {
+    border: 1px solid #d5ddf2;
+    background: #f6f8ff;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+}
+
+.dealer-auth-warning {
+    color: #b10000;
+    margin-top: 6px;
+    font-weight: 600;
 }
 
 .aegis-portal-notice.is-success {

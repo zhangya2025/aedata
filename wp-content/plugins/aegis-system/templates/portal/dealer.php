@@ -54,8 +54,8 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
     $contact_name = $current_dealer ? $current_dealer->contact_name : '';
     $phone = $current_dealer ? $current_dealer->phone : '';
     $address = $current_dealer ? $current_dealer->address : '';
-    $authorized_at = $current_dealer ? AEGIS_Dealer::format_datetime_local($current_dealer->authorized_at) : '';
-    $status_value = $current_dealer ? $current_dealer->status : 'active';
+    $auth_start_date = $current_dealer ? AEGIS_Dealer::format_date_input($current_dealer->auth_start_date) : '';
+    $auth_end_date = $current_dealer ? AEGIS_Dealer::format_date_input($current_dealer->auth_end_date) : '';
     $license_url = $current_media ? AEGIS_Dealer::get_media_gateway_url($current_media->id) : '';
 ?>
 <div class="aegis-portal-card sku-form-card">
@@ -92,16 +92,12 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
                 <input class="aegis-portal-input" type="text" name="address" value="<?php echo esc_attr($address); ?>" <?php disabled(!$can_edit); ?> />
             </label>
             <label class="aegis-portal-field">
-                <span>授权时间</span>
-                <input class="aegis-portal-input" type="datetime-local" name="authorized_at" value="<?php echo esc_attr($authorized_at); ?>" <?php disabled(!$can_edit); ?> />
+                <span>授权开始日期</span>
+                <input class="aegis-portal-input" type="date" name="auth_start_date" value="<?php echo esc_attr($auth_start_date); ?>" <?php disabled(!$can_edit); ?> required />
             </label>
             <label class="aegis-portal-field">
-                <span>状态</span>
-                <select class="aegis-portal-select" name="status" <?php disabled(!$can_edit); ?>>
-                    <?php foreach ($status_labels as $value => $label) : ?>
-                        <option value="<?php echo esc_attr($value); ?>" <?php selected($status_value, $value); ?>><?php echo esc_html($label); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <span>授权截止日期</span>
+                <input class="aegis-portal-input" type="date" name="auth_end_date" value="<?php echo esc_attr($auth_end_date); ?>" <?php disabled(!$can_edit); ?> required />
             </label>
         </div>
         <div class="aegis-portal-form-grid" style="margin-top:12px;">
@@ -151,12 +147,13 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
     <table class="aegis-portal-table aegis-t-a6">
         <thead>
             <tr>
-                <th>授权编码</th>
+                <th class="col-auth-code">授权编码</th>
                 <th>经销商名称</th>
-                <th>联系人</th>
-                <th>联系电话</th>
+                <th class="col-contact">联系人</th>
+                <th class="col-phone">联系电话</th>
                 <th>地址</th>
-                <th>授权时间</th>
+                <th class="col-date">授权开始</th>
+                <th class="col-date">授权截止</th>
                 <th>状态</th>
                 <th>更新时间</th>
                 <th>营业执照</th>
@@ -185,12 +182,13 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
                 $is_image = $license_mime && stripos($license_mime, 'image/') === 0;
             ?>
                 <tr>
-                    <td class="aegis-t-a5" style="font-weight:600;">&nbsp;<?php echo esc_html($dealer->auth_code); ?></td>
+                    <td class="aegis-t-a5 col-auth-code" style="font-weight:600;">&nbsp;<?php echo esc_html($dealer->auth_code); ?></td>
                     <td class="aegis-t-a5"><?php echo esc_html($dealer->dealer_name); ?></td>
-                    <td><?php echo esc_html($dealer->contact_name); ?></td>
-                    <td><?php echo esc_html($dealer->phone); ?></td>
+                    <td class="col-contact"><?php echo esc_html($dealer->contact_name); ?></td>
+                    <td class="col-phone"><?php echo esc_html($dealer->phone); ?></td>
                     <td style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="<?php echo esc_attr($dealer->address); ?>"><?php echo esc_html($dealer->address); ?></td>
-                    <td><?php echo $dealer->authorized_at ? esc_html(mysql2date('Y-m-d H:i', $dealer->authorized_at)) : '—'; ?></td>
+                    <td class="col-date"><?php echo esc_html(AEGIS_Dealer::format_date_display($dealer->auth_start_date)); ?></td>
+                    <td class="col-date"><?php echo esc_html(AEGIS_Dealer::format_date_display($dealer->auth_end_date)); ?></td>
                     <td><span class="status-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
                     <td><?php echo esc_html(mysql2date('Y-m-d H:i', $dealer->updated_at)); ?></td>
                     <td>

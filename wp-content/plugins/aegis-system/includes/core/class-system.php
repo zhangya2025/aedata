@@ -8,7 +8,7 @@ class AEGIS_System {
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
     const HQ_DISPLAY_OPTION = 'aegis_public_query_hq_label';
     const ORDER_SHIPMENT_LINK_OPTION = 'aegis_order_shipment_link';
-    const SCHEMA_VERSION = '1.4.0';
+    const SCHEMA_VERSION = '1.5.0';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -101,6 +101,7 @@ class AEGIS_System {
         add_action('init', ['AEGIS_Portal', 'ensure_portal_page']);
         add_filter('login_redirect', ['AEGIS_Portal', 'filter_login_redirect'], 9999, 3);
         add_filter('login_url', ['AEGIS_Portal', 'filter_login_url'], 10, 3);
+        add_filter('login_message', ['AEGIS_Portal', 'render_login_notice']);
         add_filter('logout_redirect', ['AEGIS_Portal', 'filter_logout_redirect'], 9999, 3);
         add_action('template_redirect', ['AEGIS_Portal', 'handle_portal_access']);
         add_action('template_redirect', ['AEGIS_Portal', 'maybe_redirect_my_account']);

@@ -10,6 +10,7 @@ $user          = $context_data['user'] ?? null;
 $logout_url    = $context_data['logout_url'] ?? '';
 $current_panel = $context_data['current_panel'] ?? '';
 $role_labels   = $context_data['role_labels'] ?? '';
+$dealer_notice = $context_data['dealer_notice'] ?? null;
 ?>
 <div class="aegis-portal-shell">
     <div class="aegis-system-root aegis-portal-root aegis-t-a5">
@@ -48,6 +49,14 @@ $role_labels   = $context_data['role_labels'] ?? '';
             </aside>
             <main class="aegis-portal-main">
                 <div class="aegis-portal-panel aegis-t-a6">
+                    <?php if (!empty($dealer_notice)) : ?>
+                        <div class="dealer-auth-banner">
+                            <div class="aegis-t-a5">授权有效期：<?php echo esc_html($dealer_notice['range'] ?? ''); ?></div>
+                            <?php if (!empty($dealer_notice['warning'])) : ?>
+                                <div class="dealer-auth-warning aegis-t-a6"><?php echo esc_html($dealer_notice['warning']); ?></div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                     <?php echo $current_panel; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
             </main>
