@@ -106,7 +106,7 @@ class AEGIS_System {
         add_action('wp_enqueue_scripts', ['AEGIS_Assets_Media', 'enqueue_front_assets']);
         add_action('init', ['AEGIS_System_Roles', 'sync_roles']);
         add_action('init', ['AEGIS_Portal', 'ensure_portal_page']);
-        add_filter('login_redirect', ['AEGIS_Portal', 'filter_login_redirect'], 999, 3);
+        add_filter('login_redirect', ['AEGIS_Portal', 'filter_login_redirect'], 9999, 3);
         add_filter('login_url', ['AEGIS_Portal', 'filter_login_url'], 10, 3);
         add_action('template_redirect', ['AEGIS_Portal', 'handle_portal_access']);
         add_action('admin_init', ['AEGIS_Portal', 'block_business_admin_access']);
@@ -791,10 +791,6 @@ class AEGIS_Portal {
             return;
         }
 
-        if (!$force && !current_user_can('manage_options')) {
-            return;
-        }
-
         $existing = get_posts(
             [
                 'name'        => self::PORTAL_SLUG,
@@ -808,27 +804,64 @@ class AEGIS_Portal {
 
         if (!empty($existing)) {
             $page = $existing[0];
+            $status_changes = [];
+
             if ('trash' === $page->post_status) {
                 wp_untrash_post($page->ID);
                 $page->post_status = 'draft';
+                $status_changes[] = 'untrashed';
             }
 
-            if (empty($page->post_content)) {
+            if ('publish' !== $page->post_status) {
+                wp_update_post([
+                    'ID'          => $page->ID,
+                    'post_status' => 'publish',
+                ]);
+                $status_changes[] = 'published';
+            }
+
+            $content = (string) $page->post_content;
+            if (strpos($content, '[' . self::PORTAL_SHORTCODE) === false) {
                 wp_update_post([
                     'ID'           => $page->ID,
                     'post_content' => '[' . self::PORTAL_SHORTCODE . ']',
                 ]);
+                $status_changes[] = 'content_reset';
             }
+
+            if ($force && !empty($status_changes)) {
+                AEGIS_Access_Audit::record_event(
+                    AEGIS_System::ACTION_SCHEMA_UPGRADE,
+                    'SUCCESS',
+                    [
+                        'action'  => 'ensure_portal_page',
+                        'page_id' => $page->ID,
+                        'changes' => $status_changes,
+                    ]
+                );
+            }
+
             return;
         }
 
-        wp_insert_post([
+        $page_id = wp_insert_post([
             'post_title'   => 'AEGIS-SYSTEM',
             'post_name'    => self::PORTAL_SLUG,
             'post_status'  => 'publish',
             'post_type'    => 'page',
             'post_content' => '[' . self::PORTAL_SHORTCODE . ']',
         ]);
+
+        if ($force && !is_wp_error($page_id)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_SCHEMA_UPGRADE,
+                'SUCCESS',
+                [
+                    'action'  => 'ensure_portal_page',
+                    'page_id' => $page_id,
+                ]
+            );
+        }
     }
 
     /**
@@ -981,7 +1014,19 @@ class AEGIS_Portal {
      * @return string
      */
     protected static function get_portal_url() {
-        return home_url('/' . self::PORTAL_SLUG . '/');
+        $fallback = home_url('/index.php/' . self::PORTAL_SLUG . '/');
+        $structure = get_option('permalink_structure');
+
+        if (!empty($structure)) {
+            $pretty = home_url('/' . self::PORTAL_SLUG . '/');
+            $use_pretty = apply_filters('aegis_portal_use_pretty_links', false, $pretty, $fallback);
+
+            if ($use_pretty) {
+                return $pretty;
+            }
+        }
+
+        return $fallback;
     }
 
     /**
