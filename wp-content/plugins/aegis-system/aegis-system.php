@@ -982,6 +982,47 @@ class AEGIS_Portal {
             wp_safe_redirect(admin_url());
             exit;
         }
+
+        self::render_portal_shell();
+        exit;
+    }
+
+    /**
+     * 在 Portal 页输出独立壳，绕过主题模板。
+     */
+    protected static function render_portal_shell() {
+        status_header(200);
+
+        $content = self::render_portal_shortcode();
+
+        wp_register_style('aegis-system-portal-shell', false, [], '0.1.0');
+        $shell_css  = 'html,body{margin:0;padding:0;background:#f7f8fa;}';
+        $shell_css .= '.aegis-portal-shell{min-height:100vh;}';
+        $shell_css .= '.aegis-portal-shell .aegis-system-root{max-width:1200px;margin:0 auto;padding:24px;}';
+        wp_add_inline_style('aegis-system-portal-shell', $shell_css);
+        wp_enqueue_style('aegis-system-portal-shell');
+
+        // 确保排版变量输出。
+        wp_register_style('aegis-system-portal-inline', false, [], '0.1.0');
+        wp_add_inline_style('aegis-system-portal-inline', AEGIS_Assets_Media::build_typography_css());
+        wp_enqueue_style('aegis-system-portal-inline');
+
+        ?><!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AEGIS SYSTEM</title>
+    <?php
+        wp_print_styles();
+        wp_print_scripts();
+    ?>
+</head>
+<body class="aegis-portal-shell">
+<?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+</body>
+</html>
+<?php
     }
 
     /**
