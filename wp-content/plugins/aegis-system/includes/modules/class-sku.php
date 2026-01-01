@@ -33,7 +33,7 @@ class AEGIS_SKU {
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['sku_action']) ? sanitize_key(wp_unslash($_POST['sku_action'])) : '';
             $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
-            $whitelist = ['sku_action', 'sku_id', 'ean', 'product_name', 'size_label', 'color_label', 'status', 'ean_correct', 'ean_correct_confirm', 'certificate_visibility', 'target_status', 'aegis_sku_nonce', '_wp_http_referer', '_aegis_idempotency'];
+            $whitelist = ['sku_action', 'sku_id', 'ean', 'product_name', 'size_label', 'color_label', 'status', 'certificate_visibility', 'target_status', 'aegis_sku_nonce', '_wp_http_referer', '_aegis_idempotency'];
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
@@ -112,14 +112,10 @@ class AEGIS_SKU {
 
         echo '<table class="form-table">';
         echo '<tr><th><label for="aegis-ean">EAN</label></th><td>';
-        echo '<input type="text" id="aegis-ean" name="ean" value="' . esc_attr($ean) . '" ' . ($sku ? 'readonly' : '') . ' class="regular-text" />';
+        $ean_readonly = $sku ? 'readonly' : '';
+        echo '<input type="text" id="aegis-ean" name="ean" value="' . esc_attr($ean) . '" ' . $ean_readonly . ' class="regular-text" required />';
         if ($sku) {
-            echo '<p class="description aegis-t-a6">常规编辑不可修改 EAN。</p>';
-            echo '<div class="aegis-t-a6" style="margin-top:8px;">';
-            echo '<label><input type="checkbox" name="ean_correct_confirm" value="1" /> 启用受控更正</label><br />';
-            echo '<input type="text" name="ean_correct" placeholder="新的 EAN" class="regular-text" />';
-            echo '<p class="description">仅限总部管理员，提交将写入审计。</p>';
-            echo '</div>';
+            echo '<p class="description aegis-t-a6">已保存的 EAN 不可修改，如需作废请停用该 SKU。</p>';
         }
         echo '</td></tr>';
 
@@ -172,6 +168,14 @@ class AEGIS_SKU {
         global $wpdb;
         $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
 
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
+            return new WP_Error('forbidden', '当前账号无权新增或编辑 SKU。');
+        }
+
+        if (!AEGIS_System::is_module_enabled('sku')) {
+            return new WP_Error('module_disabled', 'SKU 模块未启用。');
+        }
+
         $sku_id = isset($post['sku_id']) ? (int) $post['sku_id'] : 0;
         $ean_input = isset($post['ean']) ? sanitize_text_field(wp_unslash($post['ean'])) : '';
         $product_name = isset($post['product_name']) ? sanitize_text_field(wp_unslash($post['product_name'])) : '';
@@ -188,15 +192,12 @@ class AEGIS_SKU {
         }
 
         $ean_to_use = $is_new ? $ean_input : $existing->ean;
-        $ean_correct = isset($post['ean_correct']) ? sanitize_text_field(wp_unslash($post['ean_correct'])) : '';
-        $ean_confirm = !empty($post['ean_correct_confirm']);
-
         if ($is_new && '' === $ean_to_use) {
             return new WP_Error('ean_required', '请填写 EAN。');
         }
 
-        if (!$is_new && $ean_confirm && $ean_correct) {
-            $ean_to_use = $ean_correct;
+        if (!$is_new && $ean_input && $ean_input !== $existing->ean) {
+            return new WP_Error('ean_locked', 'EAN 已锁定，若录入错误请停用后新建。');
         }
 
         if (self::ean_exists($ean_to_use, $sku_id)) {
@@ -228,12 +229,6 @@ class AEGIS_SKU {
             if ($existing->status !== $status) {
                 $action = self::STATUS_ACTIVE === $status ? AEGIS_System::ACTION_SKU_ENABLE : AEGIS_System::ACTION_SKU_DISABLE;
                 AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $sku_id, 'from' => $existing->status, 'to' => $status]);
-            }
-
-            if ($ean_to_use !== $existing->ean) {
-                $wpdb->update($table, ['ean' => $ean_to_use], ['id' => $sku_id]);
-                AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SKU_EAN_CORRECT, 'SUCCESS', ['id' => $sku_id, 'from' => $existing->ean, 'to' => $ean_to_use]);
-                $messages[] = 'EAN 已完成受控更正。';
             }
         }
 
@@ -294,6 +289,14 @@ class AEGIS_SKU {
         $sku_id = isset($post['sku_id']) ? (int) $post['sku_id'] : 0;
         $target = isset($post['target_status']) ? sanitize_key($post['target_status']) : '';
 
+        if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
+            return new WP_Error('forbidden', '当前账号无权更改 SKU 状态。');
+        }
+
+        if (!AEGIS_System::is_module_enabled('sku')) {
+            return new WP_Error('module_disabled', 'SKU 模块未启用。');
+        }
+
         if (!array_key_exists($target, self::get_status_labels())) {
             return new WP_Error('bad_status', '无效的状态。');
         }
@@ -315,10 +318,77 @@ class AEGIS_SKU {
      *
      * @return array
      */
-    protected static function list_skus() {
+    protected static function list_skus($args = []) {
         global $wpdb;
         $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
-        return $wpdb->get_results("SELECT * FROM {$table} ORDER BY created_at DESC");
+
+        $defaults = [
+            'search'   => '',
+            'page'     => 1,
+            'per_page' => 0,
+            'order_by' => 'updated_at',
+            'order'    => 'DESC',
+        ];
+        $args = wp_parse_args($args, $defaults);
+
+        $page = max(1, (int) $args['page']);
+        $per_page = max(0, (int) $args['per_page']);
+        $order_by_allowed = ['updated_at', 'created_at'];
+        $order_allowed = ['ASC', 'DESC'];
+        $order_by = in_array(strtoupper($args['order_by']), array_map('strtoupper', $order_by_allowed), true) ? $args['order_by'] : 'updated_at';
+        $order_by_sql = esc_sql($order_by);
+        $order = in_array(strtoupper($args['order']), $order_allowed, true) ? strtoupper($args['order']) : 'DESC';
+
+        $where = 'WHERE 1=1';
+        $params = [];
+        if (!empty($args['search'])) {
+            $keyword = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where .= ' AND (ean LIKE %s OR product_name LIKE %s)';
+            $params[] = $keyword;
+            $params[] = $keyword;
+        }
+
+        $sql = "SELECT * FROM {$table} {$where} ORDER BY {$order_by_sql} {$order}";
+        if ($per_page > 0) {
+            $offset = ($page - 1) * $per_page;
+            $sql .= $wpdb->prepare(' LIMIT %d OFFSET %d', $per_page, $offset);
+        }
+
+        if (!empty($params)) {
+            return $wpdb->get_results($wpdb->prepare($sql, $params));
+        }
+
+        return $wpdb->get_results($sql);
+    }
+
+    /**
+     * 统计 SKU 数量（用于分页）。
+     *
+     * @param array $args
+     * @return int
+     */
+    protected static function count_skus($args = []) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+
+        $search = isset($args['search']) ? $args['search'] : '';
+        $where = 'WHERE 1=1';
+        $params = [];
+
+        if (!empty($search)) {
+            $keyword = '%' . $wpdb->esc_like($search) . '%';
+            $where .= ' AND (ean LIKE %s OR product_name LIKE %s)';
+            $params[] = $keyword;
+            $params[] = $keyword;
+        }
+
+        $sql = "SELECT COUNT(*) FROM {$table} {$where}";
+
+        if (!empty($params)) {
+            return (int) $wpdb->get_var($wpdb->prepare($sql, $params));
+        }
+
+        return (int) $wpdb->get_var($sql);
     }
 
     /**
@@ -411,6 +481,170 @@ class AEGIS_SKU {
         }
         echo '</tbody>';
         echo '</table>';
+    }
+
+    /**
+     * Portal SKU 面板。
+     *
+     * @param string $portal_url
+     * @return string
+     */
+    public static function render_portal_panel($portal_url) {
+        if (!AEGIS_System::is_module_enabled('sku')) {
+            return '<div class="aegis-t-a5">SKU 模块未启用，请在系统设置中启用。</div>';
+        }
+
+        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
+            return '<div class="aegis-t-a5">当前账号无权访问 SKU 模块。</div>';
+        }
+
+        $can_edit = AEGIS_System_Roles::user_can_manage_warehouse();
+        $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
+        $base_url = add_query_arg('m', 'sku', $portal_url);
+        wp_enqueue_script(
+            'aegis-system-portal-sku',
+            AEGIS_SYSTEM_URL . 'assets/js/portal-sku.js',
+            [],
+            AEGIS_Assets_Media::get_asset_version('assets/js/portal-sku.js'),
+            true
+        );
+        $action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+        $current_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $current_sku = $current_id ? self::get_sku($current_id) : null;
+        $messages = [];
+        $errors = [];
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $request_action = isset($_POST['sku_action']) ? sanitize_key(wp_unslash($_POST['sku_action'])) : '';
+            $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
+            $whitelist = [
+                'sku_action',
+                'sku_id',
+                'ean',
+                'product_name',
+                'size_label',
+                'color_label',
+                'status',
+                'certificate_visibility',
+                'target_status',
+                'aegis_sku_nonce',
+                '_wp_http_referer',
+                '_aegis_idempotency',
+            ];
+
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
+                    'nonce_field'     => 'aegis_sku_nonce',
+                    'nonce_action'    => 'aegis_sku_action',
+                    'whitelist'       => $whitelist,
+                    'idempotency_key' => $idempotency,
+                ]
+            );
+
+            if (!$validation['success']) {
+                $errors[] = $validation['message'];
+            } elseif ('save' === $request_action) {
+                $result = self::handle_save_request($_POST, $_FILES, $assets_enabled);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    $messages = array_merge($messages, $result['messages']);
+                    $current_sku = $result['sku'];
+                    $current_id = $current_sku ? (int) $current_sku->id : 0;
+                    $action = 'edit';
+                }
+            } elseif ('toggle_status' === $request_action) {
+                $result = self::handle_status_toggle($_POST);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    $messages[] = $result['message'];
+                }
+            }
+        }
+
+        $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+        $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 20;
+        $per_options = [20, 50, 100];
+        if (!in_array($per_page, $per_options, true)) {
+            $per_page = 20;
+        }
+        $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+
+        $list_args = [
+            'search'   => $search,
+            'page'     => $page,
+            'per_page' => $per_page,
+            'order_by' => 'updated_at',
+            'order'    => 'DESC',
+        ];
+
+        $skus = self::list_skus($list_args);
+        foreach ($skus as $sku) {
+            $sku->product_image_url = $sku->product_image_id ? self::get_media_gateway_url($sku->product_image_id) : '';
+        }
+        $total = self::count_skus(['search' => $search]);
+        $total_pages = $per_page > 0 ? max(1, (int) ceil($total / $per_page)) : 1;
+
+        $current_media = [
+            'product_image' => $current_sku ? self::get_media_record($current_sku->product_image_id) : null,
+            'certificate'   => $current_sku ? self::get_media_record($current_sku->certificate_id) : null,
+        ];
+
+        $context = [
+            'base_url'        => $base_url,
+            'action'          => $action,
+            'can_edit'        => $can_edit,
+            'assets_enabled'  => $assets_enabled,
+            'messages'        => $messages,
+            'errors'         => $errors,
+            'skus'            => $skus,
+            'status_labels'   => self::get_status_labels(),
+            'current_sku'     => $current_sku,
+            'current_media'   => $current_media,
+            'list'            => [
+                'search'      => $search,
+                'page'        => $page,
+                'per_page'    => $per_page,
+                'total'       => $total,
+                'total_pages' => $total_pages,
+                'per_options' => $per_options,
+            ],
+        ];
+
+        return AEGIS_Portal::render_portal_template('sku', $context);
+    }
+
+    /**
+     * 获取媒体记录。
+     *
+     * @param int $id
+     * @return object|null
+     */
+    protected static function get_media_record($id) {
+        if (!$id) {
+            return null;
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
+    }
+
+    /**
+     * 媒体网关下载链接。
+     *
+     * @param int $media_id
+     * @return string
+     */
+    public static function get_media_gateway_url($media_id) {
+        if (!$media_id) {
+            return '';
+        }
+
+        return add_query_arg('aegis_media', (int) $media_id, home_url('/'));
     }
 }
 
