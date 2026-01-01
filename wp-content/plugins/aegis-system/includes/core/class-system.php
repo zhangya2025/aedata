@@ -8,7 +8,7 @@ class AEGIS_System {
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
     const HQ_DISPLAY_OPTION = 'aegis_public_query_hq_label';
     const ORDER_SHIPMENT_LINK_OPTION = 'aegis_order_shipment_link';
-    const SCHEMA_VERSION = '1.5.0';
+    const SCHEMA_VERSION = '1.7.0';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -17,6 +17,8 @@ class AEGIS_System {
     const CODE_TABLE = 'aegis_codes';
     const SHIPMENT_TABLE = 'aegis_shipments';
     const SHIPMENT_ITEM_TABLE = 'aegis_shipment_items';
+    const RECEIPT_TABLE = 'aegis_receipts';
+    const RECEIPT_ITEM_TABLE = 'aegis_receipt_items';
     const QUERY_LOG_TABLE = 'aegis_query_logs';
     const ORDER_TABLE = 'aegis_orders';
     const ORDER_ITEM_TABLE = 'aegis_order_items';
@@ -49,8 +51,14 @@ class AEGIS_System {
     const ACTION_CODE_BATCH_CREATE = 'CODE_BATCH_CREATE';
     const ACTION_CODE_EXPORT = 'CODE_EXPORT';
     const ACTION_CODE_PRINT = 'CODE_PRINT';
+    const ACTION_RECEIPT_CREATE = 'RECEIPT_CREATE';
+    const ACTION_RECEIPT_ITEM_ADD = 'RECEIPT_ITEM_ADD';
+    const ACTION_RECEIPT_COMPLETE = 'RECEIPT_COMPLETE';
+    const ACTION_RECEIPT_EXPORT = 'RECEIPT_EXPORT_DETAIL';
+    const ACTION_RECEIPT_PRINT = 'RECEIPT_PRINT_SUMMARY';
     const ACTION_SHIPMENT_CREATE = 'SHIPMENT_CREATE';
-    const ACTION_SHIPMENT_EXPORT = 'SHIPMENT_EXPORT';
+    const ACTION_SHIPMENT_EXPORT_SUMMARY = 'SHIPMENT_EXPORT_SUMMARY';
+    const ACTION_SHIPMENT_EXPORT_DETAIL = 'SHIPMENT_EXPORT_DETAIL';
     const ACTION_PUBLIC_QUERY = 'PUBLIC_QUERY';
     const ACTION_PUBLIC_QUERY_RATE_LIMIT = 'PUBLIC_QUERY_RATE_LIMIT';
     const ACTION_RESET_B = 'RESET_B';
@@ -74,6 +82,7 @@ class AEGIS_System {
             'sku'            => ['label' => 'SKU', 'default' => false],
             'dealer_master'  => ['label' => '经销商主数据', 'default' => false],
             'codes'          => ['label' => '编码管理', 'default' => false],
+            'inbound'        => ['label' => '扫码入库', 'default' => false],
             'shipments'      => ['label' => '出货管理', 'default' => false],
             'public_query'   => ['label' => '公开查询', 'default' => false],
             'reset_b'        => ['label' => '重置 B', 'default' => false],
