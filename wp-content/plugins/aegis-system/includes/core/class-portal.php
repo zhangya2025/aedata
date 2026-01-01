@@ -337,7 +337,7 @@ class AEGIS_Portal {
             'aegis-system-portal-style',
             AEGIS_SYSTEM_URL . 'assets/css/portal.css',
             ['aegis-system-portal-typography'],
-            AEGIS_SYSTEM_VERSION
+            AEGIS_Assets_Media::get_asset_version('assets/css/portal.css')
         );
     }
 
