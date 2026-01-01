@@ -984,28 +984,52 @@ class AEGIS_Portal {
             return '<div class="aegis-system-root aegis-t-a5">当前账号无权访问 AEGIS Portal。</div>';
         }
 
-        $roles = array_intersect((array) $user->roles, AEGIS_System_Roles::get_business_roles());
-        $modules = AEGIS_System::get_registered_modules();
-        $states = get_option(AEGIS_System::OPTION_KEY, []);
-        $enabled = [];
-
-        foreach ($modules as $slug => $module) {
-            $active = ($slug === 'core_manager') ? true : !empty($states[$slug]);
-            $enabled[] = esc_html(($module['label'] ?? $slug) . '：' . ($active ? '启用' : '未启用'));
+        $portal_url = self::get_portal_url();
+        $module_states = self::get_portal_module_states();
+        $visible = self::get_visible_modules_for_user($user, $module_states);
+        if (empty($visible)) {
+            return '<div class="aegis-system-root aegis-t-a5">未找到可访问的模块。</div>';
         }
 
-        $output = '<div class="aegis-system-root aegis-t-a5">';
-        $output .= '<h2 class="aegis-t-a3">AEGIS-SYSTEM Portal</h2>';
-        $output .= '<p class="aegis-t-a5">当前用户：' . esc_html($user->user_login) . '</p>';
-        $output .= '<p class="aegis-t-a6">角色：' . esc_html(implode(', ', $roles)) . '</p>';
-        $output .= '<p class="aegis-t-a6">可见模块（参考）：</p><ul class="aegis-t-a6">';
-        foreach ($enabled as $line) {
-            $output .= '<li>' . $line . '</li>';
+        $requested = isset($_GET['m']) ? sanitize_key(wp_unslash($_GET['m'])) : '';
+        if (!isset($visible[$requested])) {
+            $keys = array_keys($visible);
+            $requested = $keys[0];
         }
-        $output .= '</ul>';
-        $output .= '</div>';
 
-        return $output;
+        $nav = '<div class="aegis-portal-nav aegis-t-a6" style="display:flex;gap:16px;flex-wrap:wrap;">';
+        foreach ($visible as $slug => $info) {
+            $label = esc_html(($info['label'] ?? $slug) . '（' . $slug . '）');
+            $status = $info['enabled'] ? '已启用' : '未启用';
+            $classes = 'aegis-portal-nav-item aegis-t-a6';
+            $style = 'padding:8px 12px;border:1px solid #ccc;border-radius:4px;display:inline-block;';
+            $style .= 'text-decoration:none;';
+            if ($slug === $requested) {
+                $style .= 'background:#f0f6ff;';
+            }
+            if (!$info['enabled']) {
+                $style .= 'color:#999;cursor:not-allowed;';
+            }
+
+            if ($info['enabled']) {
+                $nav .= '<a class="' . esc_attr($classes) . '" style="' . esc_attr($style) . '" href="' . esc_url(add_query_arg('m', $slug, $portal_url)) . '">' . $label . ' - ' . esc_html($status) . '</a>';
+            } else {
+                $nav .= '<span class="' . esc_attr($classes) . '" style="' . esc_attr($style) . '">' . $label . ' - ' . esc_html($status) . '</span>';
+            }
+        }
+        $nav .= '</div>';
+
+        $content = '<div class="aegis-system-root aegis-t-a5">';
+        $content .= '<h2 class="aegis-t-a3">AEGIS-SYSTEM Portal</h2>';
+        $content .= '<p class="aegis-t-a5">当前用户：' . esc_html($user->user_login) . '</p>';
+        $content .= '<p class="aegis-t-a6">角色：' . esc_html(implode(', ', array_intersect((array) $user->roles, AEGIS_System_Roles::get_business_roles()))) . '</p>';
+        $content .= '<div class="aegis-portal-layout" style="margin-top:16px;">';
+        $content .= $nav;
+        $content .= '<div class="aegis-portal-panel aegis-t-a6" style="margin-top:16px;border:1px solid #e5e5e5;padding:16px;border-radius:4px;">';
+        $content .= self::render_module_panel($requested, $visible[$requested]);
+        $content .= '</div></div></div>';
+
+        return $content;
     }
 
     /**
@@ -1036,6 +1060,89 @@ class AEGIS_Portal {
      */
     protected static function get_login_url() {
         return home_url('/aegislogin.php');
+    }
+
+    /**
+     * 获取模块状态（基于存储）。
+     *
+     * @return array
+     */
+    protected static function get_portal_module_states() {
+        $stored = get_option(AEGIS_System::OPTION_KEY, []);
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        $modules = AEGIS_System::get_registered_modules();
+        $states = [];
+        foreach ($modules as $slug => $module) {
+            $states[$slug] = [
+                'label'   => $module['label'] ?? $slug,
+                'enabled' => ($slug === 'core_manager') ? true : !empty($stored[$slug]),
+            ];
+        }
+
+        return $states;
+    }
+
+    /**
+     * 按角色过滤可见模块。
+     *
+     * @param WP_User $user
+     * @param array   $states
+     * @return array
+     */
+    protected static function get_visible_modules_for_user($user, $states) {
+        $roles = (array) $user->roles;
+        $all_modules = array_keys(AEGIS_System::get_registered_modules());
+
+        if (in_array('aegis_hq_admin', $roles, true)) {
+            $allowed = $all_modules;
+        } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
+            $allowed = ['sku', 'dealer_master', 'codes', 'shipments', 'public_query', 'reset_b'];
+        } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
+            $allowed = ['shipments', 'public_query'];
+        } elseif (in_array('aegis_dealer', $roles, true)) {
+            $allowed = ['reset_b'];
+            if (!empty($states['orders']['enabled'])) {
+                $allowed[] = 'orders';
+            }
+        } else {
+            $allowed = [];
+        }
+
+        $visible = [];
+        foreach ($allowed as $slug) {
+            if (isset($states[$slug])) {
+                $visible[$slug] = $states[$slug];
+            }
+        }
+
+        return $visible;
+    }
+
+    /**
+     * 渲染模块内容占位。
+     *
+     * @param string $slug
+     * @param array  $info
+     * @return string
+     */
+    protected static function render_module_panel($slug, $info) {
+        if (empty($info['enabled'])) {
+            return '<div class="aegis-t-a5">模块未启用。</div>';
+        }
+
+        switch ($slug) {
+            case 'shipments':
+                return '<div class="aegis-t-a5">出货管理前台界面尚未实现（占位）。</div>';
+            case 'public_query':
+                return '<div class="aegis-t-a5">防伪码查询内部入口占位，具体前台页面将在模块中实现。</div>';
+            case 'reset_b':
+                return '<div class="aegis-t-a5">清零系统占位，请根据权限在此执行 B 清零操作。</div>';
+            default:
+                return '<div class="aegis-t-a5">该模块前台界面尚未实现（占位）。</div>';
+        }
     }
 }
 
