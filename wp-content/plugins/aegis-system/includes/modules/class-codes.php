@@ -270,67 +270,173 @@ class AEGIS_Codes {
      * 处理生成请求。
      */
     protected static function handle_generate_request($post) {
-        global $wpdb;
-        $batch_table = $wpdb->prefix . AEGIS_System::CODE_BATCH_TABLE;
-        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
-        $sku_table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
-
         $ean = isset($post['ean']) ? sanitize_text_field(wp_unslash($post['ean'])) : '';
         $quantity = isset($post['quantity']) ? absint($post['quantity']) : 0;
         $batch_note = isset($post['batch_note']) ? sanitize_text_field(wp_unslash($post['batch_note'])) : '';
+        $items = [
+            [
+                'ean'      => $ean,
+                'quantity' => $quantity,
+            ],
+        ];
 
-        if ('' === $ean) {
-            return new WP_Error('ean_missing', '请选择 SKU。');
+        $result = self::create_batch_with_codes(
+            $items,
+            [
+                'batch_note' => $batch_note,
+                'source'     => 'admin',
+                'max_skus'   => 1,
+            ]
+        );
+
+        if (is_wp_error($result)) {
+            return $result;
         }
 
-        if ($quantity < 1) {
-            return new WP_Error('quantity_invalid', '数量需大于 0。');
+        return [
+            'messages' => ['批次 #' . $result['batch_id'] . ' 已生成，共 ' . $result['total_quantity'] . ' 条。'],
+        ];
+    }
+
+    /**
+     * 核心生成入口：校验输入、校验 SKU、事务插入批次和码。
+     *
+     * @param array $items [['ean' => string, 'quantity' => int], ...]
+     * @param array $options
+     * @return array|WP_Error
+     */
+    protected static function create_batch_with_codes($items, $options = []) {
+        global $wpdb;
+
+        $defaults = [
+            'batch_note' => '',
+            'source'     => 'portal',
+            'max_per_sku'=> 100,
+            'max_total'  => 300,
+            'max_skus'   => 3,
+        ];
+        $options = wp_parse_args($options, $defaults);
+
+        $prepared = self::prepare_generation_items($items, $options['max_per_sku'], $options['max_total'], $options['max_skus']);
+        if (is_wp_error($prepared)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_CODE_BATCH_CREATE,
+                'FAIL',
+                [
+                    'reason'   => 'validation',
+                    'message'  => $prepared->get_error_message(),
+                    'sku_count'=> 0,
+                    'total'    => 0,
+                    'source'   => $options['source'],
+                ]
+            );
+            return $prepared;
         }
 
-        if ($quantity > 100) {
-            return new WP_Error('quantity_exceed', '单个 SKU 生成数量不得超过 100。');
+        $sku_items = self::load_active_skus_by_ean($prepared);
+        if (is_wp_error($sku_items)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_CODE_BATCH_CREATE,
+                'FAIL',
+                [
+                    'reason'   => 'sku_validation',
+                    'message'  => $sku_items->get_error_message(),
+                    'sku_count'=> count($prepared),
+                    'total'    => array_sum(wp_list_pluck($prepared, 'quantity')),
+                    'source'   => $options['source'],
+                ]
+            );
+            return $sku_items;
         }
 
-        if ($quantity > 300) {
-            return new WP_Error('total_exceed', '单次生成总量不得超过 300。');
+        $total_quantity = 0;
+        foreach ($sku_items as $item) {
+            $total_quantity += (int) $item['quantity'];
         }
 
-        $sku = $wpdb->get_row($wpdb->prepare("SELECT id, ean, status FROM {$sku_table} WHERE ean = %s", $ean));
-        if (!$sku) {
-            return new WP_Error('sku_missing', '未找到对应 SKU。');
-        }
-
+        $batch_table = $wpdb->prefix . AEGIS_System::CODE_BATCH_TABLE;
+        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
         $now = current_time('mysql');
-        $wpdb->insert(
+        $primary_ean = (count($sku_items) === 1) ? $sku_items[0]['ean'] : 'MULTI';
+
+        $meta_data = [
+            'items'  => array_values($sku_items),
+            'note'   => $options['batch_note'] ? $options['batch_note'] : null,
+            'source' => $options['source'],
+        ];
+        $meta_data = array_filter($meta_data, static function ($value) {
+            return null !== $value && $value !== '' && $value !== [];
+        });
+        $meta_json = !empty($meta_data) ? wp_json_encode($meta_data) : null;
+
+        $transaction_started = $wpdb->query('START TRANSACTION');
+        $use_transaction = ($transaction_started !== false);
+        $inserted_codes = [];
+
+        $batch_inserted = $wpdb->insert(
             $batch_table,
             [
-                'ean'        => $ean,
-                'quantity'   => $quantity,
+                'ean'        => $primary_ean,
+                'quantity'   => $total_quantity,
                 'created_by' => get_current_user_id(),
                 'created_at' => $now,
-                'meta'       => $batch_note ? wp_json_encode(['note' => $batch_note]) : null,
+                'meta'       => $meta_json,
             ],
             ['%s', '%d', '%d', '%s', '%s']
         );
 
-        $batch_id = (int) $wpdb->insert_id;
-        $codes = self::generate_unique_codes($quantity);
-        if (is_wp_error($codes)) {
-            return $codes;
+        if (false === $batch_inserted) {
+            if ($use_transaction) {
+                $wpdb->query('ROLLBACK');
+            }
+
+            $error = new WP_Error('batch_insert_fail', '创建批次失败，请重试。');
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_CODE_BATCH_CREATE,
+                'FAIL',
+                [
+                    'reason'   => 'db_insert',
+                    'message'  => $wpdb->last_error,
+                    'sku_count'=> count($sku_items),
+                    'total'    => $total_quantity,
+                    'source'   => $options['source'],
+                ]
+            );
+            return $error;
         }
 
-        foreach ($codes as $code) {
-            $wpdb->insert(
-                $code_table,
-                [
-                    'batch_id'  => $batch_id,
-                    'ean'       => $ean,
-                    'code'      => $code,
-                    'status'    => self::STATUS_UNUSED,
-                    'created_at'=> $now,
-                ],
-                ['%d', '%s', '%s', '%s', '%s']
-            );
+        $batch_id = (int) $wpdb->insert_id;
+
+        foreach ($sku_items as $item) {
+            $ean = $item['ean'];
+            for ($i = 0; $i < $item['quantity']; $i++) {
+                $code_result = self::insert_code_with_retry($code_table, $batch_id, $ean, $now);
+                if (is_wp_error($code_result)) {
+                    if ($use_transaction) {
+                        $wpdb->query('ROLLBACK');
+                    } else {
+                        self::cleanup_batch_records($batch_id);
+                    }
+
+                    AEGIS_Access_Audit::record_event(
+                        AEGIS_System::ACTION_CODE_BATCH_CREATE,
+                        'FAIL',
+                        [
+                            'reason'    => 'code_insert',
+                            'message'   => $code_result->get_error_message(),
+                            'sku_count' => count($sku_items),
+                            'total'     => $total_quantity,
+                            'source'    => $options['source'],
+                        ]
+                    );
+                    return $code_result;
+                }
+                $inserted_codes[] = $code_result['id'];
+            }
+        }
+
+        if ($use_transaction) {
+            $wpdb->query('COMMIT');
         }
 
         AEGIS_Access_Audit::record_event(
@@ -338,43 +444,232 @@ class AEGIS_Codes {
             'SUCCESS',
             [
                 'batch_id' => $batch_id,
-                'ean'      => $ean,
-                'quantity' => $quantity,
+                'sku_count'=> count($sku_items),
+                'total'    => $total_quantity,
+                'source'   => $options['source'],
             ]
         );
 
         return [
-            'messages' => ['批次 #' . $batch_id . ' 已生成，共 ' . $quantity . ' 条。'],
+            'batch_id'       => $batch_id,
+            'sku_count'      => count($sku_items),
+            'total_quantity' => $total_quantity,
         ];
     }
 
     /**
-     * 生成唯一编码集合。
+     * 解析并聚合生成行，校验数量限制。
+     *
+     * @param array $items
+     * @param int   $max_per_sku
+     * @param int   $max_total
+     * @param int|null $max_skus
+     * @return array|WP_Error
      */
-    protected static function generate_unique_codes($quantity) {
+    protected static function prepare_generation_items($items, $max_per_sku, $max_total, $max_skus = null) {
+        $aggregated = [];
+
+        foreach ($items as $item) {
+            $ean = isset($item['ean']) ? sanitize_text_field(wp_unslash($item['ean'])) : '';
+            $quantity = isset($item['quantity']) ? absint($item['quantity']) : 0;
+
+            if ('' === $ean && 0 === $quantity) {
+                continue;
+            }
+
+            if ('' === $ean) {
+                return new WP_Error('ean_missing', '请选择 SKU。');
+            }
+
+            if ($quantity < 1) {
+                return new WP_Error('quantity_invalid', '数量需大于 0。');
+            }
+
+            if (!isset($aggregated[$ean])) {
+                $aggregated[$ean] = 0;
+            }
+            $aggregated[$ean] += $quantity;
+        }
+
+        if (empty($aggregated)) {
+            return new WP_Error('items_empty', '请至少填写一行 SKU 与数量。');
+        }
+
+        if (null !== $max_skus && count($aggregated) > $max_skus) {
+            return new WP_Error('sku_limit', '单次最多选择 ' . $max_skus . ' 个 SKU。');
+        }
+
+        $prepared = [];
+        $total = 0;
+        foreach ($aggregated as $ean => $qty) {
+            if ($qty > $max_per_sku) {
+                return new WP_Error('quantity_exceed', '单个 SKU 生成数量不得超过 ' . $max_per_sku . '。');
+            }
+            $total += $qty;
+            $prepared[] = [
+                'ean'      => $ean,
+                'quantity' => $qty,
+            ];
+        }
+
+        if ($total > $max_total) {
+            return new WP_Error('total_exceed', '单次生成总量不得超过 ' . $max_total . '。');
+        }
+
+        return $prepared;
+    }
+
+    /**
+     * 校验 SKU 是否存在且为启用状态，并补充名称。
+     *
+     * @param array $items
+     * @return array|WP_Error
+     */
+    protected static function load_active_skus_by_ean($items) {
         global $wpdb;
+        if (empty($items)) {
+            return new WP_Error('sku_missing', '未找到对应 SKU。');
+        }
+
+        $ean_values = wp_list_pluck($items, 'ean');
+        $ean_values = array_values(array_unique($ean_values));
+        $placeholders = implode(', ', array_fill(0, count($ean_values), '%s'));
+        $sku_table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare("SELECT ean, product_name, status FROM {$sku_table} WHERE ean IN ({$placeholders})", $ean_values),
+            OBJECT_K
+        );
+
+        $result = [];
+        foreach ($items as $item) {
+            $ean = $item['ean'];
+            if (!isset($rows[$ean])) {
+                return new WP_Error('sku_missing', '未找到对应 SKU。');
+            }
+
+            $row = $rows[$ean];
+            if (AEGIS_SKU::STATUS_ACTIVE !== $row->status) {
+                return new WP_Error('sku_inactive', 'SKU 已停用，无法生成防伪码。');
+            }
+
+            $result[] = [
+                'ean'          => $ean,
+                'quantity'     => (int) $item['quantity'],
+                'product_name' => $row->product_name,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * 生成强随机码。
+     *
+     * @return string
+     */
+    protected static function generate_secure_code_value() {
+        $bytes = random_bytes(10);
+        return strtoupper(substr(bin2hex($bytes), 0, 20));
+    }
+
+    /**
+     * 带唯一性重试的插入。
+     *
+     * @param string $table
+     * @param int    $batch_id
+     * @param string $ean
+     * @param string $now
+     * @param int    $max_attempts
+     * @return array|WP_Error
+     */
+    protected static function insert_code_with_retry($table, $batch_id, $ean, $now, $max_attempts = 12) {
+        global $wpdb;
+
+        for ($i = 0; $i < $max_attempts; $i++) {
+            $code = self::generate_secure_code_value();
+            $inserted = $wpdb->insert(
+                $table,
+                [
+                    'batch_id'   => $batch_id,
+                    'ean'        => $ean,
+                    'code'       => $code,
+                    'status'     => self::STATUS_UNUSED,
+                    'stock_status' => 'generated',
+                    'stocked_at'   => null,
+                    'stocked_by'   => null,
+                    'receipt_id'   => null,
+                    'created_at' => $now,
+                ],
+                ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+            );
+
+            if (false !== $inserted) {
+                return [
+                    'id'   => (int) $wpdb->insert_id,
+                    'code' => $code,
+                ];
+            }
+
+            $error = strtolower($wpdb->last_error);
+            if (false === strpos($error, 'duplicate')) {
+                return new WP_Error('code_insert_db', '写入防伪码失败，请重试。');
+            }
+        }
+
+        return new WP_Error('code_generate_fail', '生成唯一编码失败，请重试。');
+    }
+
+    /**
+     * 清理失败批次的残留数据。
+     *
+     * @param int $batch_id
+     */
+    protected static function cleanup_batch_records($batch_id) {
+        global $wpdb;
+        $batch_table = $wpdb->prefix . AEGIS_System::CODE_BATCH_TABLE;
         $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
-        $codes = [];
-        $attempts = 0;
 
-        while (count($codes) < $quantity && $attempts < $quantity * 10) {
-            $candidate = strtoupper(wp_generate_password(16, false, false));
-            $attempts++;
-            if (isset($codes[$candidate])) {
-                continue;
+        $wpdb->delete($code_table, ['batch_id' => $batch_id], ['%d']);
+        $wpdb->delete($batch_table, ['id' => $batch_id], ['%d']);
+    }
+
+    /**
+     * 解析批次 meta，补充 SKU 行数和 items 数据。
+     *
+     * @param object $batch
+     * @return object
+     */
+    protected static function enrich_batch_row($batch) {
+        $batch->items_data = [];
+        $batch->total_quantity = (int) $batch->quantity;
+
+        if (!empty($batch->meta)) {
+            $meta = json_decode($batch->meta, true);
+            if (is_array($meta) && !empty($meta['items']) && is_array($meta['items'])) {
+                foreach ($meta['items'] as $item) {
+                    if (empty($item['ean'])) {
+                        continue;
+                    }
+                    $batch->items_data[] = [
+                        'ean'          => sanitize_text_field($item['ean']),
+                        'quantity'     => isset($item['quantity']) ? (int) $item['quantity'] : 0,
+                        'product_name' => isset($item['product_name']) ? sanitize_text_field($item['product_name']) : '',
+                    ];
+                }
             }
-            $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$code_table} WHERE code = %s", $candidate));
-            if ($exists) {
-                continue;
-            }
-            $codes[$candidate] = $candidate;
         }
 
-        if (count($codes) < $quantity) {
-            return new WP_Error('code_generate_fail', '生成唯一编码失败，请重试。');
+        if (empty($batch->items_data)) {
+            $batch->items_data[] = [
+                'ean'      => $batch->ean,
+                'quantity' => (int) $batch->quantity,
+            ];
         }
 
-        return array_values($codes);
+        $batch->sku_count = count($batch->items_data);
+
+        return $batch;
     }
 
     /**
@@ -392,7 +687,7 @@ class AEGIS_Codes {
             )
         );
 
-        return $wpdb->get_results(
+        $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$batch_table} WHERE created_at BETWEEN %s AND %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
                 $start,
@@ -401,6 +696,12 @@ class AEGIS_Codes {
                 $offset
             )
         );
+
+        foreach ($rows as $row) {
+            self::enrich_batch_row($row);
+        }
+
+        return $rows;
     }
 
     /**
@@ -409,16 +710,44 @@ class AEGIS_Codes {
     protected static function get_batch($batch_id) {
         global $wpdb;
         $batch_table = $wpdb->prefix . AEGIS_System::CODE_BATCH_TABLE;
-        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$batch_table} WHERE id = %d", $batch_id));
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$batch_table} WHERE id = %d", $batch_id));
+        if ($row) {
+            self::enrich_batch_row($row);
+        }
+
+        return $row;
     }
 
     /**
      * 获取批次内码列表。
      */
-    protected static function get_codes_for_batch($batch_id) {
+    protected static function get_codes_for_batch($batch_id, $per_page = null, $paged = 1, &$total = null, $with_products = false) {
         global $wpdb;
         $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
-        return $wpdb->get_results($wpdb->prepare("SELECT id, code, status, created_at FROM {$code_table} WHERE batch_id = %d ORDER BY id ASC", $batch_id));
+        $sku_table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+
+        $paged = max(1, (int) $paged);
+        $limit_clause = '';
+        if (null !== $per_page) {
+            $per_page = max(1, (int) $per_page);
+            $offset = ($paged - 1) * $per_page;
+            $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$code_table} WHERE batch_id = %d", $batch_id));
+            $limit_clause = $wpdb->prepare(' LIMIT %d OFFSET %d', $per_page, $offset);
+        }
+
+        $fields = 'c.id, c.code, c.status, c.ean, c.created_at';
+        $join = '';
+        if ($with_products) {
+            $fields .= ', s.product_name';
+            $join = " LEFT JOIN {$sku_table} s ON c.ean = s.ean";
+        }
+
+        $sql = $wpdb->prepare(
+            "SELECT {$fields} FROM {$code_table} c{$join} WHERE c.batch_id = %d ORDER BY c.id DESC{$limit_clause}",
+            $batch_id
+        );
+
+        return $wpdb->get_results($sql);
     }
 
     /**
@@ -431,14 +760,30 @@ class AEGIS_Codes {
     }
 
     /**
+     * 获取启用的 SKU 选项。
+     */
+    protected static function get_active_sku_options() {
+        global $wpdb;
+        $sku_table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT ean, product_name FROM {$sku_table} WHERE status = %s ORDER BY product_name ASC, created_at DESC",
+                AEGIS_SKU::STATUS_ACTIVE
+            )
+        );
+    }
+
+    /**
      * 处理导出。
      */
     protected static function handle_export($batch_id) {
         if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_CODE_EXPORT, 'FAIL', ['batch_id' => $batch_id, 'reason' => 'capability']);
             return new WP_Error('forbidden', '权限不足');
         }
 
         if (!AEGIS_System::is_module_enabled('codes')) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_CODE_EXPORT, 'FAIL', ['batch_id' => $batch_id, 'reason' => 'module_disabled']);
             return new WP_Error('module_disabled', '模块未启用');
         }
 
@@ -453,15 +798,16 @@ class AEGIS_Codes {
             return new WP_Error('not_found', '批次不存在');
         }
 
-        $codes = self::get_codes_for_batch($batch_id);
+        $codes = self::get_codes_for_batch($batch_id, null, 1, $count, true);
         $filename = 'aegis-codes-batch-' . $batch_id . '.csv';
 
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=' . $filename);
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['code', 'ean', 'status']);
+        fputcsv($output, ['code', 'ean', 'product_name']);
         foreach ($codes as $code) {
-            fputcsv($output, [$code->code, $batch->ean, $code->status]);
+            $product = isset($code->product_name) ? $code->product_name : '';
+            fputcsv($output, [$code->code, $code->ean, $product]);
         }
         fclose($output);
 
@@ -469,7 +815,15 @@ class AEGIS_Codes {
         $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
         $wpdb->update($code_table, ['exported_at' => current_time('mysql')], ['batch_id' => $batch_id]);
 
-        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_CODE_EXPORT, 'SUCCESS', ['batch_id' => $batch_id, 'count' => count($codes)]);
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_CODE_EXPORT,
+            'SUCCESS',
+            [
+                'batch_id'  => $batch_id,
+                'count'     => count($codes),
+                'sku_count' => $batch->sku_count,
+            ]
+        );
         exit;
     }
 
@@ -478,10 +832,12 @@ class AEGIS_Codes {
      */
     protected static function handle_print($batch_id) {
         if (!AEGIS_System_Roles::user_can_manage_warehouse()) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_CODE_PRINT, 'FAIL', ['batch_id' => $batch_id, 'reason' => 'capability']);
             return new WP_Error('forbidden', '权限不足');
         }
 
         if (!AEGIS_System::is_module_enabled('codes')) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_CODE_PRINT, 'FAIL', ['batch_id' => $batch_id, 'reason' => 'module_disabled']);
             return new WP_Error('module_disabled', '模块未启用');
         }
 
@@ -496,26 +852,204 @@ class AEGIS_Codes {
             return new WP_Error('not_found', '批次不存在');
         }
 
-        $codes = self::get_codes_for_batch($batch_id);
+        $codes = self::get_codes_for_batch($batch_id, null, 1, $count, true);
 
         global $wpdb;
         $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
         $wpdb->update($code_table, ['printed_at' => current_time('mysql')], ['batch_id' => $batch_id]);
 
-        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_CODE_PRINT, 'SUCCESS', ['batch_id' => $batch_id, 'count' => count($codes)]);
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_CODE_PRINT,
+            'SUCCESS',
+            [
+                'batch_id'  => $batch_id,
+                'count'     => count($codes),
+                'sku_count' => $batch->sku_count,
+            ]
+        );
 
         echo '<html><head><meta charset="utf-8"><title>批次打印</title>';
         echo '<style>.aegis-print{font-family:Arial;margin:20px;} .aegis-print h1{font-size:20px;} .aegis-print table{width:100%;border-collapse:collapse;} .aegis-print th,.aegis-print td{border:1px solid #ddd;padding:6px;text-align:left;}</style>';
         echo '</head><body class="aegis-print">';
         echo '<h1>批次 #' . esc_html($batch->id) . ' 防伪码</h1>';
-        echo '<p>EAN：' . esc_html($batch->ean) . ' 数量：' . esc_html($batch->quantity) . '</p>';
-        echo '<table><thead><tr><th>ID</th><th>Code</th></tr></thead><tbody>';
+        echo '<p>创建时间：' . esc_html($batch->created_at) . ' · 总量：' . esc_html($batch->quantity) . '</p>';
+        echo '<table><thead><tr><th>ID</th><th>Code</th><th>EAN</th><th>产品</th></tr></thead><tbody>';
         foreach ($codes as $code) {
-            echo '<tr><td>' . esc_html($code->id) . '</td><td>' . esc_html($code->code) . '</td></tr>';
+            $product = isset($code->product_name) ? $code->product_name : '';
+            echo '<tr><td>' . esc_html($code->id) . '</td><td>' . esc_html($code->code) . '</td><td>' . esc_html($code->ean) . '</td><td>' . esc_html($product) . '</td></tr>';
         }
         echo '</tbody></table>';
         echo '</body></html>';
         exit;
+    }
+
+    /**
+     * Portal 前台面板。
+     */
+    public static function render_portal_panel($portal_url) {
+        if (!AEGIS_System::is_module_enabled('codes')) {
+            return '<div class="aegis-t-a5">防伪码模块未启用，请联系管理员。</div>';
+        }
+
+        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
+            return '<div class="aegis-t-a5">当前账号无权访问防伪码模块。</div>';
+        }
+
+        $can_generate = AEGIS_System_Roles::user_can_manage_warehouse();
+        $can_export = $can_generate;
+        $base_url = add_query_arg('m', 'codes', $portal_url);
+        $messages = [];
+        $errors = [];
+
+        wp_enqueue_script(
+            'aegis-system-portal-codes',
+            AEGIS_SYSTEM_URL . 'assets/js/portal-codes.js',
+            [],
+            AEGIS_Assets_Media::get_asset_version('assets/js/portal-codes.js'),
+            true
+        );
+
+        $requested_action = isset($_GET['codes_action']) ? sanitize_key(wp_unslash($_GET['codes_action'])) : '';
+        $action_batch_id = isset($_GET['batch_id']) ? (int) $_GET['batch_id'] : 0;
+        if ($requested_action && $action_batch_id) {
+            if (in_array($requested_action, ['export', 'print'], true)) {
+                if (!$can_export) {
+                    $errors[] = '当前账号无权导出或打印。';
+                } else {
+                    $result = ('export' === $requested_action) ? self::handle_export($action_batch_id) : self::handle_print($action_batch_id);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    }
+                }
+            }
+        }
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            if (!$can_generate) {
+                $errors[] = '当前账号无权生成防伪码。';
+            } else {
+                $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
+                        'nonce_field'     => 'aegis_codes_nonce',
+                        'nonce_action'    => 'aegis_codes_portal',
+                        'whitelist'       => ['codes_action', 'items', 'aegis_codes_nonce', '_wp_http_referer', '_aegis_idempotency'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $result = self::handle_portal_generate_request($_POST);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                    }
+                }
+            }
+        }
+
+        $default_start = gmdate('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
+        $default_end = gmdate('Y-m-d', current_time('timestamp'));
+        $start_date = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : $default_start;
+        $end_date = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : $default_end;
+        $start_datetime = self::normalize_date_boundary($start_date, 'start');
+        $end_datetime = self::normalize_date_boundary($end_date, 'end');
+
+        $per_page_options = [20, 50, 100];
+        $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 20;
+        if (!in_array($per_page, $per_page_options, true)) {
+            $per_page = 20;
+        }
+
+        $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
+        $total = 0;
+        $batches = self::query_batches($start_datetime, $end_datetime, $per_page, $paged, $total);
+        $sku_options = self::get_active_sku_options();
+
+        $view_batch = isset($_GET['view']) ? (int) $_GET['view'] : 0;
+        $codes_per_page = isset($_GET['codes_per_page']) ? (int) $_GET['codes_per_page'] : 20;
+        if (!in_array($codes_per_page, $per_page_options, true)) {
+            $codes_per_page = 20;
+        }
+        $codes_page = isset($_GET['codes_page']) ? max(1, (int) $_GET['codes_page']) : 1;
+        $view_batch_row = $view_batch ? self::get_batch($view_batch) : null;
+        $codes_total = 0;
+        $codes_total_pages = 1;
+        $view_codes = [];
+        if ($view_batch && $view_batch_row) {
+            $view_codes = self::get_codes_for_batch($view_batch, $codes_per_page, $codes_page, $codes_total, true);
+            $codes_total_pages = $codes_per_page > 0 ? max(1, (int) ceil($codes_total / $codes_per_page)) : 1;
+        } elseif ($view_batch && !$view_batch_row) {
+            $errors[] = '未找到指定的批次。';
+        }
+
+        $context = [
+            'base_url'       => $base_url,
+            'can_generate'   => $can_generate,
+            'can_export'     => $can_export,
+            'messages'       => $messages,
+            'errors'         => $errors,
+            'sku_options'    => $sku_options,
+            'filters'        => [
+                'start_date' => $start_date,
+                'end_date'   => $end_date,
+                'per_page'   => $per_page,
+                'paged'      => $paged,
+                'total'      => $total,
+                'per_options'=> $per_page_options,
+                'total_pages'=> $per_page > 0 ? max(1, (int) ceil($total / $per_page)) : 1,
+            ],
+            'batches'        => $batches,
+            'view'           => [
+                'batch'       => $view_batch_row,
+                'codes'       => $view_codes,
+                'page'        => $codes_page,
+                'per_page'    => $codes_per_page,
+                'total'       => $codes_total,
+                'total_pages' => $codes_total_pages,
+            ],
+        ];
+
+        return AEGIS_Portal::render_portal_template('codes', $context);
+    }
+
+    /**
+     * 处理 Portal 端生成请求。
+     */
+    protected static function handle_portal_generate_request($post) {
+        $items_input = isset($post['items']) && is_array($post['items']) ? $post['items'] : [];
+        $items = [];
+        foreach ($items_input as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $items[] = [
+                'ean'      => isset($item['ean']) ? $item['ean'] : '',
+                'quantity' => isset($item['quantity']) ? $item['quantity'] : 0,
+            ];
+        }
+
+        $result = self::create_batch_with_codes(
+            $items,
+            [
+                'batch_note' => '',
+                'source'     => 'portal',
+                'max_skus'   => 3,
+            ]
+        );
+
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        return [
+            'message' => '批次 #' . $result['batch_id'] . ' 已生成，共 ' . $result['total_quantity'] . ' 条（SKU 行数 ' . $result['sku_count'] . '）。',
+        ];
     }
 
     /**
