@@ -1037,11 +1037,25 @@ class AEGIS_Portal {
             return '<div class="aegis-system-root aegis-t-a5">当前账号无权访问 AEGIS Portal。</div>';
         }
 
+        wp_register_style('aegis-system-portal-style', false, [], '0.1.0');
+        wp_add_inline_style('aegis-system-portal-style', AEGIS_Assets_Media::build_typography_css());
+        wp_enqueue_style('aegis-system-portal-style');
+
         $portal_url = self::get_portal_url();
         $module_states = self::get_portal_module_states();
         $visible = self::get_visible_modules_for_user($user, $module_states);
         if (empty($visible)) {
             return '<div class="aegis-system-root aegis-t-a5">未找到可访问的模块。</div>';
+        }
+
+        if (AEGIS_System_Roles::user_can_manage_system($user)) {
+            $visible = array_merge([
+                'aegis_typography' => [
+                    'label'   => '系统设置/排版设置',
+                    'enabled' => true,
+                    'type'    => 'settings',
+                ],
+            ], $visible);
         }
 
         $requested = isset($_GET['m']) ? sanitize_key(wp_unslash($_GET['m'])) : '';
@@ -1191,6 +1205,8 @@ class AEGIS_Portal {
         }
 
         switch ($slug) {
+            case 'aegis_typography':
+                return self::render_typography_panel();
             case 'shipments':
                 return '<div class="aegis-t-a5">出货管理前台界面尚未实现（占位）。</div>';
             case 'public_query':
@@ -1200,6 +1216,75 @@ class AEGIS_Portal {
             default:
                 return '<div class="aegis-t-a5">该模块前台界面尚未实现（占位）。</div>';
         }
+    }
+
+    /**
+     * Portal 排版设置。
+     *
+     * @return string
+     */
+    protected static function render_typography_panel() {
+        if (!AEGIS_System_Roles::user_can_manage_system()) {
+            return '<div class="aegis-t-a5">当前账号无权访问排版设置。</div>';
+        }
+
+        $settings = AEGIS_Assets_Media::get_typography_settings();
+        $message = '';
+        $error = '';
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'   => AEGIS_System::CAP_MANAGE_SYSTEM,
+                    'nonce_field'  => 'aegis_typography_nonce',
+                    'nonce_action' => 'aegis_typography_save',
+                    'whitelist'    => array_merge(['aegis_typography_nonce', '_wp_http_referer'], AEGIS_Assets_Media::allowed_typography_keys()),
+                ]
+            );
+
+            if ($validation['success']) {
+                $settings = AEGIS_Assets_Media::parse_typography_post($_POST);
+                update_option(AEGIS_System::TYPOGRAPHY_OPTION, $settings);
+                $message = '排版配置已保存。';
+            } else {
+                $error = $validation['message'];
+            }
+        }
+
+        $portal_url = self::get_portal_url();
+        $action_url = add_query_arg('m', 'aegis_typography', $portal_url);
+
+        ob_start();
+        echo '<div class="aegis-t-a4" style="margin-bottom:12px;">排版设置（Typography）</div>';
+        if ($message) {
+            echo '<div class="aegis-t-a6" style="padding:8px 12px;border:1px solid #46b450;background:#f1fff0;margin-bottom:12px;">' . esc_html($message) . '</div>';
+        }
+        if ($error) {
+            echo '<div class="aegis-t-a6" style="padding:8px 12px;border:1px solid #dc3232;background:#fff5f5;margin-bottom:12px;">' . esc_html($error) . '</div>';
+        }
+
+        echo '<form method="post" class="aegis-t-a6" action="' . esc_url($action_url) . '" style="display:block;">';
+        wp_nonce_field('aegis_typography_save', 'aegis_typography_nonce');
+
+        echo '<div class="aegis-t-a6" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">';
+        foreach (AEGIS_Assets_Media::get_typography_defaults() as $key => $defaults) {
+            $size = isset($settings[$key]['size']) ? $settings[$key]['size'] : $defaults['size'];
+            $line = isset($settings[$key]['line']) ? $settings[$key]['line'] : $defaults['line'];
+            echo '<div style="border:1px solid #e5e5e5;padding:12px;border-radius:4px;background:#fafafa;">';
+            echo '<div class="aegis-t-a5" style="margin-bottom:8px;">' . esc_html(strtoupper($key)) . '</div>';
+            echo '<label class="aegis-t-a6" style="display:block;margin-bottom:6px;">字号 (rem)<input type="number" step="0.1" min="0.5" name="' . esc_attr($key) . '_size" value="' . esc_attr($size) . '" style="width:100%;margin-top:4px;" /></label>';
+            echo '<label class="aegis-t-a6" style="display:block;">行高 (rem)<input type="number" step="0.1" min="0.5" name="' . esc_attr($key) . '_line" value="' . esc_attr($line) . '" style="width:100%;margin-top:4px;" /></label>';
+            echo '</div>';
+        }
+        echo '</div>';
+
+        echo '<div style="margin-top:12px;">';
+        echo '<button type="submit" class="aegis-t-a6" style="padding:8px 16px;background:#2271b1;border:1px solid #1c5a8e;color:#fff;border-radius:4px;cursor:pointer;">保存配置</button>';
+        echo '</div>';
+        echo '</form>';
+
+        return ob_get_clean();
     }
 }
 
