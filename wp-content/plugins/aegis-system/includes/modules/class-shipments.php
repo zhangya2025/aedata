@@ -200,10 +200,10 @@ class AEGIS_Shipments {
         foreach ($validated_codes as $code) {
             $wpdb->update(
                 $code_table,
-                ['status' => 'used'],
-                ['id' => $code->id],
-                ['%s'],
-                ['%d']
+                ['status' => 'used', 'stock_status' => 'shipped'],
+                ['id' => $code->id, 'stock_status' => 'in_stock'],
+                ['%s', '%s'],
+                ['%d', '%s']
             );
         }
 
@@ -240,12 +240,18 @@ class AEGIS_Shipments {
 
         $invalid = [];
         foreach ($rows as $row) {
-            if ('unused' !== $row->status) {
-                $invalid[] = $row->code;
+            if ('in_stock' !== $row->stock_status) {
+                if ('generated' === $row->stock_status || !$row->stock_status) {
+                    $invalid[] = $row->code . '（未入库）';
+                } elseif ('shipped' === $row->stock_status) {
+                    $invalid[] = $row->code . '（已出库）';
+                } else {
+                    $invalid[] = $row->code . '（状态异常）';
+                }
             }
         }
         if (!empty($invalid)) {
-            return new WP_Error('code_used', '以下防伪码已出库或不可用：' . implode(', ', array_map('esc_html', $invalid)));
+            return new WP_Error('code_used', '以下防伪码不可出库：' . implode(', ', array_map('esc_html', $invalid)));
         }
 
         $code_ids = wp_list_pluck($rows, 'id');
