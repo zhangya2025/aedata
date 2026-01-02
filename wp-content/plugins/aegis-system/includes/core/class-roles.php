@@ -71,7 +71,21 @@ class AEGIS_System_Roles {
     }
 
     public static function user_can_reset_b() {
-        return current_user_can(AEGIS_System::CAP_RESET_B) || self::user_can_manage_system();
+        $user = wp_get_current_user();
+        if (!$user || empty($user->roles)) {
+            return false;
+        }
+
+        $roles = (array) $user->roles;
+        if (in_array('aegis_hq_admin', $roles, true) || self::user_can_manage_system()) {
+            return true;
+        }
+
+        if (in_array('aegis_dealer', $roles, true)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -147,7 +161,6 @@ class AEGIS_System_Roles {
                     AEGIS_System::CAP_ACCESS_ROOT          => true,
                     AEGIS_System::CAP_MANAGE_WAREHOUSE     => true,
                     AEGIS_System::CAP_USE_WAREHOUSE        => true,
-                    AEGIS_System::CAP_RESET_B              => true,
                 ],
             ],
             'aegis_warehouse_staff'   => [

@@ -557,7 +557,7 @@ class AEGIS_Portal {
         } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
             $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b'];
         } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
-            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query'];
+            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b'];
         } elseif (in_array('aegis_dealer', $roles, true)) {
             $allowed = ['reset_b'];
             if (!empty($states['orders']['enabled'])) {
@@ -613,7 +613,7 @@ class AEGIS_Portal {
                 }
                 return '<div class="aegis-t-a5">公共查询页面未就绪。</div>';
             case 'reset_b':
-                return '<div class="aegis-t-a5">清零系统占位，请根据权限在此执行 B 清零操作。</div>';
+                return AEGIS_Reset_B::render_portal_panel(self::get_portal_url());
             default:
                 return '<div class="aegis-t-a5">该模块前台界面尚未实现（占位）。</div>';
         }

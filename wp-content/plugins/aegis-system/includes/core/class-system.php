@@ -8,7 +8,7 @@ class AEGIS_System {
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
     const HQ_DISPLAY_OPTION = 'aegis_public_query_hq_label';
     const ORDER_SHIPMENT_LINK_OPTION = 'aegis_order_shipment_link';
-    const SCHEMA_VERSION = '1.7.0';
+    const SCHEMA_VERSION = '1.8.0';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -23,6 +23,7 @@ class AEGIS_System {
     const ORDER_TABLE = 'aegis_orders';
     const ORDER_ITEM_TABLE = 'aegis_order_items';
     const PAYMENT_TABLE = 'aegis_payment_proofs';
+    const RESET_LOG_TABLE = 'aegis_reset_logs';
 
     const CAP_ACCESS_ROOT = 'aegis_access_root';
     const CAP_MANAGE_SYSTEM = 'aegis_manage_system';

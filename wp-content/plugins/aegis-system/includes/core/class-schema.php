@@ -62,6 +62,7 @@ class AEGIS_System_Schema {
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $order_item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
         $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
+        $reset_log_table = $wpdb->prefix . AEGIS_System::RESET_LOG_TABLE;
 
         $audit_sql = "CREATE TABLE {$audit_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -294,7 +295,26 @@ class AEGIS_System_Schema {
             KEY status (status)
         ) {$charset_collate};";
 
-        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $payment_sql];
+        $reset_log_sql = "CREATE TABLE {$reset_log_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            code_id BIGINT(20) UNSIGNED NOT NULL,
+            code_value VARCHAR(128) NOT NULL,
+            dealer_id BIGINT(20) UNSIGNED NULL,
+            actor_user_id BIGINT(20) UNSIGNED NULL,
+            actor_role VARCHAR(60) NULL,
+            reset_at DATETIME NOT NULL,
+            before_b BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+            after_b BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+            reason VARCHAR(255) NULL,
+            ip VARCHAR(100) NULL,
+            PRIMARY KEY  (id),
+            KEY code_id (code_id),
+            KEY actor_user_id (actor_user_id),
+            KEY dealer_id (dealer_id),
+            KEY reset_at (reset_at)
+        ) {$charset_collate};";
+
+        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $payment_sql, $reset_log_sql];
     }
 
     /**
