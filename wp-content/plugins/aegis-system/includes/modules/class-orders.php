@@ -8,6 +8,7 @@ class AEGIS_Orders {
     const STATUS_CANCELLED_BY_DEALER = 'cancelled_by_dealer';
     const STATUS_PENDING_DEALER_CONFIRM = 'pending_dealer_confirm';
     const STATUS_PENDING_HQ_PAYMENT_REVIEW = 'pending_hq_payment_review';
+    const STATUS_APPROVED_PENDING_FULFILLMENT = 'approved_pending_fulfillment';
     const STATUS_VOIDED_BY_HQ = 'voided_by_hq';
 
     const PAYMENT_STATUS_NONE = 'none';
@@ -219,6 +220,90 @@ class AEGIS_Orders {
         if (is_wp_error($priced_items)) {
             return $priced_items;
         }
+    }
+
+    protected static function prepare_review_items($order_items, $posted_items) {
+        if (empty($posted_items)) {
+            return new WP_Error('no_items', '初审后至少需保留一条 SKU 行。');
+        }
+
+        $existing = [];
+        foreach ($order_items as $item) {
+            $existing[$item->ean] = $item;
+        }
+
+        $prepared = [];
+        $changes = [
+            'removed' => [],
+            'qty'     => [],
+        ];
+
+        foreach ($posted_items as $item) {
+            $ean = $item['ean'];
+            $qty = (int) $item['qty'];
+            if (!isset($existing[$ean])) {
+                return new WP_Error('invalid_item', '初审不允许新增 SKU：' . esc_html($ean));
+            }
+            $orig_qty = (int) $existing[$ean]->qty;
+            if ($qty < 1) {
+                return new WP_Error('invalid_qty', '数量必须大于0。');
+            }
+            if ($qty > $orig_qty) {
+                return new WP_Error('qty_increase_blocked', '初审阶段仅允许删减数量：' . esc_html($ean));
+            }
+
+            $prepared[] = [
+                'ean'                   => $ean,
+                'qty'                   => $qty,
+                'product_name_snapshot' => $existing[$ean]->product_name_snapshot,
+                'unit_price_snapshot'   => $existing[$ean]->unit_price_snapshot,
+                'price_source'          => $existing[$ean]->price_source,
+                'price_level_snapshot'  => $existing[$ean]->price_level_snapshot,
+            ];
+
+            if ($qty < $orig_qty) {
+                $changes['qty'][] = [
+                    'ean'     => $ean,
+                    'from'    => $orig_qty,
+                    'to'      => $qty,
+                ];
+            }
+        }
+
+        foreach ($existing as $ean => $item) {
+            $found = false;
+            foreach ($posted_items as $p) {
+                if ($p['ean'] === $ean) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $changes['removed'][] = $ean;
+            }
+        }
+
+        if (empty($prepared)) {
+            return new WP_Error('no_items_after_review', '初审后需至少保留一条明细。');
+        }
+
+        return [
+            'items'   => $prepared,
+            'changes' => $changes,
+        ];
+    }
+
+    protected static function create_portal_order($dealer, $items, $note = '') {
+        global $wpdb;
+        $priced_items = self::prepare_priced_items($dealer, $items);
+        if (is_wp_error($priced_items)) {
+            return $priced_items;
+        }
+
+        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $now = current_time('mysql');
+        $order_no = self::generate_order_no();
+        $totals = self::calculate_totals($priced_items);
 
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $now = current_time('mysql');
@@ -693,6 +778,92 @@ class AEGIS_Orders {
         return ['message' => '已提交确认，等待审核。'];
     }
 
+    protected static function review_payment_by_hq($order, $decision, $note = '') {
+        if (self::STATUS_PENDING_HQ_PAYMENT_REVIEW !== $order->status) {
+            return new WP_Error('bad_status', '仅待审核订单可进行付款审核。');
+        }
+
+        $payment = self::get_payment_record($order->id);
+        if (!$payment || self::PAYMENT_STATUS_SUBMITTED !== $payment->status) {
+            return new WP_Error('payment_missing', '未找到可审核的付款凭证。');
+        }
+
+        $decision = in_array($decision, ['approve', 'reject'], true) ? $decision : '';
+        if (!$decision) {
+            return new WP_Error('invalid_decision', '请选择审核结果。');
+        }
+
+        if ('reject' === $decision && '' === trim((string) $note)) {
+            return new WP_Error('missing_reason', '驳回必须填写原因。');
+        }
+
+        global $wpdb;
+        $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
+        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $now = current_time('mysql');
+
+        $payment_status = 'approve' === $decision ? self::PAYMENT_STATUS_APPROVED : self::PAYMENT_STATUS_REJECTED;
+        $order_status = 'approve' === $decision ? self::STATUS_APPROVED_PENDING_FULFILLMENT : self::STATUS_PENDING_DEALER_CONFIRM;
+
+        $wpdb->update(
+            $payment_table,
+            [
+                'status'       => $payment_status,
+                'review_note'  => ('reject' === $decision) ? $note : null,
+                'reviewed_at'  => $now,
+                'reviewed_by'  => get_current_user_id(),
+                'updated_at'   => $now,
+            ],
+            ['order_id' => (int) $order->id],
+            ['%s', '%s', '%s', '%d', '%s'],
+            ['%d']
+        );
+
+        $wpdb->update(
+            $order_table,
+            [
+                'status'                    => $order_status,
+                'payment_reviewed_at'       => $now,
+                'payment_reviewed_by'       => get_current_user_id(),
+                'ready_for_fulfillment_at'  => ('approve' === $decision) ? $now : null,
+                'updated_at'                => $now,
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s', '%d', '%s', '%s'],
+            ['%d']
+        );
+
+        $action = ('approve' === $decision) ? AEGIS_System::ACTION_PAYMENT_REVIEW_APPROVE : AEGIS_System::ACTION_PAYMENT_REVIEW_REJECT;
+        AEGIS_Access_Audit::record_event(
+            $action,
+            'SUCCESS',
+            [
+                'order_id'   => (int) $order->id,
+                'order_no'   => $order->order_no,
+                'dealer_id'  => (int) $order->dealer_id,
+                'decision'   => $decision,
+                'note'       => $note,
+            ]
+        );
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
+            'SUCCESS',
+            [
+                'order_id' => (int) $order->id,
+                'order_no' => $order->order_no,
+                'from'     => $order->status,
+                'to'       => $order_status,
+            ]
+        );
+
+        if ('approve' === $decision) {
+            return ['message' => '审核已通过，订单进入待出库。'];
+        }
+
+        return ['message' => '已驳回付款凭证，订单回到待确认。'];
+    }
+
     public static function is_shipment_link_enabled() {
         return AEGIS_System::is_module_enabled('orders') && (bool) get_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, false);
     }
@@ -702,6 +873,7 @@ class AEGIS_Orders {
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
         $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
 
         $where = ['o.created_at BETWEEN %s AND %s'];
         $params = [$args['start'], $args['end']];
@@ -732,8 +904,8 @@ class AEGIS_Orders {
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT o.*, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count FROM {$order_table} o \
-LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id WHERE {$where_sql} GROUP BY o.id ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
+                "SELECT o.*, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count, COALESCE(SUM(oi.qty * oi.unit_price_snapshot),0) AS total_amount, pay.status AS payment_status, pay.submitted_at AS payment_submitted_at, pay.review_note AS payment_review_note FROM {$order_table} o \
+LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id LEFT JOIN {$payment_table} pay ON pay.order_id = o.id WHERE {$where_sql} GROUP BY o.id ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
                 $params
             )
         );
@@ -795,20 +967,16 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $dealer_blocked = $is_dealer && (!$dealer_state || empty($dealer_state['allowed']));
 
         $view_mode = $is_hq ? (isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : 'review') : 'list';
-        if (!in_array($view_mode, ['review', 'list'], true)) {
+        if (!in_array($view_mode, ['review', 'payment_review', 'list'], true)) {
             $view_mode = $is_hq ? 'review' : 'list';
         }
-        $queue_view = $is_hq && 'review' === $view_mode;
+        $review_queue = $is_hq && 'review' === $view_mode;
+        $payment_queue = $is_hq && 'payment_review' === $view_mode;
+        $queue_view = $review_queue || $payment_queue;
 
         $messages = [];
         $errors = [];
-        $base_url = add_query_arg('m', 'orders', $portal_url);
-        if ($queue_view) {
-            $base_url = add_query_arg('view', 'review', $base_url);
-        } elseif ($is_hq) {
-            $base_url = add_query_arg('view', 'list', $base_url);
-        }
-        $view_id = isset($_GET['order_id']) ? (int) $_GET['order_id'] : 0;
+        $view_id = 0;
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
@@ -1003,7 +1171,50 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                         $view_mode = 'list';
                     }
                 }
+            } elseif ('review_payment' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', 'decision', 'review_note', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                $decision = isset($_POST['decision']) ? sanitize_key(wp_unslash($_POST['decision'])) : '';
+                $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } elseif (!$is_hq || !$order) {
+                    $errors[] = '无效的订单。';
+                } else {
+                    $result = self::review_payment_by_hq($order, $decision, $note);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                        $view_id = (int) $order_id;
+                        $view_mode = 'payment_review';
+                    }
+                }
             }
+        }
+
+        if (!$view_id) {
+            $view_id = isset($_GET['order_id']) ? (int) $_GET['order_id'] : 0;
+        }
+
+        $review_queue = $is_hq && 'review' === $view_mode;
+        $payment_queue = $is_hq && 'payment_review' === $view_mode;
+        $queue_view = $review_queue || $payment_queue;
+        $base_url = add_query_arg('m', 'orders', $portal_url);
+        if ($queue_view) {
+            $base_url = add_query_arg('view', $view_mode, $base_url);
+        } elseif ($is_hq) {
+            $base_url = add_query_arg('view', 'list', $base_url);
         }
 
         $queue_view = $is_hq && 'review' === $view_mode;
@@ -1029,7 +1240,12 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
 
         $dealer_filter = $is_dealer ? ($dealer_id > 0 ? $dealer_id : -1) : null;
-        $statuses_filter = $queue_view ? [self::STATUS_PENDING_INITIAL_REVIEW] : [];
+        $statuses_filter = [];
+        if ($review_queue) {
+            $statuses_filter = [self::STATUS_PENDING_INITIAL_REVIEW];
+        } elseif ($payment_queue) {
+            $statuses_filter = [self::STATUS_PENDING_HQ_PAYMENT_REVIEW];
+        }
         $total = 0;
         $orders = self::query_portal_orders(
             [
@@ -1058,6 +1274,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             self::STATUS_PENDING_INITIAL_REVIEW => '待初审',
             self::STATUS_PENDING_DEALER_CONFIRM => '待确认',
             self::STATUS_PENDING_HQ_PAYMENT_REVIEW => '待审核',
+            self::STATUS_APPROVED_PENDING_FULFILLMENT => '已通过（待出库）',
             self::STATUS_CANCELLED_BY_DEALER    => '已撤销',
             self::STATUS_VOIDED_BY_HQ           => '已作废',
         ];
@@ -1090,9 +1307,11 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 'is_dealer'      => $is_dealer,
                 'is_hq'          => $is_hq,
                 'queue_view'     => $queue_view,
+                'payment_queue'  => $payment_queue,
                 'can_manage'     => $can_manage,
                 'staff_readonly' => $is_staff_readonly,
             ],
+            'queue_mode'     => $queue_view ? $view_mode : '',
         ];
 
         return AEGIS_Portal::render_portal_template('orders', $context);

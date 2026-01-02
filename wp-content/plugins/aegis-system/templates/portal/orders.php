@@ -14,6 +14,7 @@ $dealer_blocked = $context['dealer_blocked'];
 $role_flags = $context['role_flags'];
 $price_map = $context['price_map'];
 $view_mode = $context['view_mode'];
+$queue_mode = $context['queue_mode'];
 $status_labels = $context['status_labels'];
 $payment_status_labels = [
     'none'      => '未提交',
@@ -25,7 +26,7 @@ $payment_status_labels = [
 ?>
 <div class="aegis-t-a4">
     <div class="aegis-t-a2" style="margin-bottom:12px;">订单</div>
-    <p class="aegis-t-a6">当前流程：经销商下单 → 待初审（HQ删减匹配）→ 待确认（上传付款凭证）→ 待审核 / 撤销 / 作废。价格来自等级/覆盖价快照，不影响其他系统。</p>
+    <p class="aegis-t-a6">当前流程：经销商下单 → 待初审（HQ删减匹配）→ 待确认（上传付款凭证）→ 待审核 → 已通过（待出库）/撤销/作废。价格来自等级/覆盖价快照，不影响其他系统。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -38,8 +39,10 @@ $payment_status_labels = [
         <div class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; align-items:center;">
             <span>视图：</span>
             <?php $review_url = add_query_arg(['view' => 'review'], $base_url); ?>
+            <?php $payment_review_url = add_query_arg(['view' => 'payment_review'], $base_url); ?>
             <?php $list_url = add_query_arg(['view' => 'list'], $base_url); ?>
             <a class="button <?php echo $view_mode === 'review' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($review_url); ?>">待初审队列</a>
+            <a class="button <?php echo $view_mode === 'payment_review' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($payment_review_url); ?>">待审核队列</a>
             <a class="button <?php echo $view_mode === 'list' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($list_url); ?>">全部订单</a>
         </div>
     <?php endif; ?>
@@ -88,7 +91,15 @@ $payment_status_labels = [
     <?php endif; ?>
 
     <div class="aegis-t-a4" style="margin-top:8px;">
-        <?php echo $role_flags['queue_view'] ? '待初审订单队列' : '订单列表'; ?>
+        <?php
+        if ($queue_mode === 'review') {
+            echo '待初审订单队列';
+        } elseif ($queue_mode === 'payment_review') {
+            echo '待审核订单队列';
+        } else {
+            echo '订单列表';
+        }
+        ?>
     </div>
     <form method="get" class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
         <input type="hidden" name="m" value="orders" />
@@ -103,28 +114,46 @@ $payment_status_labels = [
         <button type="submit" class="button">筛选</button>
     </form>
 
+    <?php $table_colspan = $role_flags['is_hq'] ? ($queue_mode === 'payment_review' ? 10 : 9) : 6; ?>
     <table class="aegis-table" style="width:100%;">
-        <thead><tr><th>订单号</th><th>下单时间</th><th>状态</th><th>SKU 种类数</th><th>总数量</th><th>操作</th></tr></thead>
+        <thead><tr>
+            <th>订单号</th>
+            <?php if ($role_flags['is_hq']) : ?><th>经销商</th><?php endif; ?>
+            <th>下单时间</th>
+            <?php if ($queue_mode === 'payment_review') : ?><th>提交确认时间</th><?php endif; ?>
+            <th>状态</th>
+            <?php if ($role_flags['is_hq']) : ?><th>付款状态</th><?php endif; ?>
+            <th>SKU 种类数</th>
+            <th>总数量</th>
+            <?php if ($role_flags['is_hq']) : ?><th>金额</th><?php endif; ?>
+            <th>操作</th></tr></thead>
         <tbody>
             <?php if (empty($orders)) : ?>
-                <tr><td colspan="6">暂无订单</td></tr>
+                <tr><td colspan="<?php echo esc_attr($table_colspan); ?>">暂无订单</td></tr>
             <?php else : ?>
                 <?php foreach ($orders as $row) : ?>
                     <?php $status_text = $status_labels[$row->status] ?? $row->status; ?>
                     <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
-                    <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => 'review', 'order_id' => $row->id], $base_url); } ?>
+                    <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => $view_mode, 'order_id' => $row->id], $base_url); } ?>
+                    <?php $payment_state_text = $row->payment_status && isset($payment_status_labels[$row->payment_status]) ? $payment_status_labels[$row->payment_status] : '-'; ?>
                     <tr>
                         <td><?php echo esc_html($row->order_no); ?></td>
+                        <?php if ($role_flags['is_hq']) : ?><td><?php echo esc_html($row->dealer_name ?? ''); ?></td><?php endif; ?>
                         <td><?php echo esc_html($row->created_at); ?></td>
+                        <?php if ($queue_mode === 'payment_review') : ?><td><?php echo esc_html($row->payment_submitted_at ?? '-'); ?></td><?php endif; ?>
                         <td><?php echo esc_html($status_text); ?></td>
+                        <?php if ($role_flags['is_hq']) : ?><td><?php echo esc_html($payment_state_text); ?></td><?php endif; ?>
                         <td><?php echo esc_html((int) ($row->sku_count ?? 0)); ?></td>
                         <td><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
+                        <?php if ($role_flags['is_hq']) : ?><td><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
                         <td>
                             <a class="button" href="<?php echo esc_url($row_link); ?>">查看</a>
                             <?php if ($role_flags['is_dealer'] && $row->status === 'pending_initial_review') : ?>
                                 <a class="button" href="<?php echo esc_url(add_query_arg('order_id', $row->id, $base_url)); ?>#order-edit">编辑</a>
                             <?php elseif ($role_flags['is_hq'] && $row->status === 'pending_initial_review') : ?>
                                 <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'review', 'order_id' => $row->id], $base_url)); ?>">审核</a>
+                            <?php elseif ($role_flags['is_hq'] && $row->status === 'pending_hq_payment_review') : ?>
+                                <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'payment_review', 'order_id' => $row->id], $base_url)); ?>">审核付款</a>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -192,6 +221,9 @@ $payment_status_labels = [
                     <?php if ($dealer_blocked) : ?>
                         <p class="aegis-t-a6" style="color:#d63638;">经销商账号当前不可操作，请联系管理员。</p>
                     <?php else : ?>
+                        <?php if ($payment && $payment->status === 'rejected' && !empty($payment->review_note)) : ?>
+                            <p class="aegis-t-a6" style="color:#d63638;">上次审核驳回原因：<?php echo esc_html($payment->review_note); ?></p>
+                        <?php endif; ?>
                         <form method="post" enctype="multipart/form-data" class="aegis-t-a6" style="margin-bottom:8px;">
                             <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
                             <input type="hidden" name="order_action" value="upload_payment" />
@@ -222,13 +254,43 @@ $payment_status_labels = [
                     <?php else : ?>
                         <p class="aegis-t-a6" style="color:#6b7280;">暂无付款凭证。</p>
                     <?php endif; ?>
+                    <?php if ($payment && $payment->status === 'rejected' && !empty($payment->review_note)) : ?>
+                        <p class="aegis-t-a6" style="color:#d63638;">驳回原因：<?php echo esc_html($payment->review_note); ?></p>
+                    <?php endif; ?>
                     <?php if ($order->status === 'pending_hq_payment_review') : ?>
                         <p class="aegis-t-a6" style="color:#6b7280;">已提交确认，等待审核。</p>
+                    <?php elseif ($order->status === 'approved_pending_fulfillment') : ?>
+                        <p class="aegis-t-a6" style="color:#15803d;">付款审核已通过，等待出库。</p>
                     <?php elseif ($order->status === 'voided_by_hq' || $order->status === 'cancelled_by_dealer') : ?>
                         <p class="aegis-t-a6" style="color:#6b7280;">订单已终止，凭证仅供查看。</p>
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
+
+            <?php if ($role_flags['is_hq'] && $order->status === 'pending_hq_payment_review') : ?>
+                <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
+                    <div class="aegis-t-a5" style="margin-bottom:8px;">付款审核</div>
+                    <form method="post" class="aegis-t-a6" style="margin-bottom:8px;">
+                        <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                        <input type="hidden" name="order_action" value="review_payment" />
+                        <input type="hidden" name="decision" value="approve" />
+                        <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <button type="submit" class="button button-primary">审核通过（待出库）</button>
+                    </form>
+                    <form method="post" class="aegis-t-a6">
+                        <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                        <input type="hidden" name="order_action" value="review_payment" />
+                        <input type="hidden" name="decision" value="reject" />
+                        <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">驳回原因（必填）<br />
+                            <input type="text" name="review_note" required style="width:100%;" />
+                        </label>
+                        <button type="submit" class="button" onclick="return confirm('确认驳回并退回经销商重新提交吗？');">驳回并退回经销商</button>
+                    </form>
+                </div>
+            <?php endif; ?>
 
             <?php if ($role_flags['is_hq'] && $order->status === 'pending_initial_review') : ?>
                 <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
@@ -334,6 +396,8 @@ $payment_status_labels = [
                 <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已由 HQ 调整并待确认，当前内容只读。</p>
             <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_hq_payment_review') : ?>
                 <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">已提交付款凭证，等待审核，当前内容只读。</p>
+            <?php elseif ($role_flags['is_dealer'] && $order->status === 'approved_pending_fulfillment') : ?>
+                <p class="aegis-t-a6" style="margin-top:8px; color:#15803d;">付款已通过，等待出库，内容只读。</p>
             <?php elseif ($order->status === 'cancelled_by_dealer') : ?>
                 <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已撤销，明细仅供查看。</p>
             <?php elseif ($order->status === 'voided_by_hq') : ?>
