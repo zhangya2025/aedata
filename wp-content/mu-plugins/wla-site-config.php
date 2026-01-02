@@ -15,4 +15,6 @@ return [
     'api.github.com',
     'raw.githubusercontent.com',
   ],
+  'allow_delete' => false,
+  'allow_delete_until' => 0,
 ];

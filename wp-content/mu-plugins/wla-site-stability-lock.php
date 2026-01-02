@@ -25,6 +25,8 @@ function wla_ssl_default_config() {
             'api.github.com',
             'raw.githubusercontent.com',
         ],
+        'allow_delete' => false,
+        'allow_delete_until' => 0,
     ];
 }
 
@@ -63,6 +65,17 @@ function wla_ssl_enabled() {
     return (bool) wla_ssl_cfg( 'enable', true );
 }
 
+function wla_ssl_allow_delete() {
+    $allow_flag = (bool) wla_ssl_cfg( 'allow_delete', false );
+    $allow_until = (int) wla_ssl_cfg( 'allow_delete_until', 0 );
+
+    if ( $allow_until > 0 && time() <= $allow_until ) {
+        return true;
+    }
+
+    return $allow_flag;
+}
+
 function wla_ssl_log( $message ) {
     if ( ! wla_ssl_cfg( 'log', false ) ) {
         return;
@@ -86,7 +99,7 @@ function wla_ssl_apply_file_mod_constants() {
         return;
     }
 
-    if ( ! defined( 'DISALLOW_FILE_MODS' ) ) {
+    if ( ! wla_ssl_allow_delete() && ! defined( 'DISALLOW_FILE_MODS' ) ) {
         define( 'DISALLOW_FILE_MODS', true );
     }
 
@@ -102,7 +115,7 @@ if ( ! wla_ssl_enabled() ) {
 }
 
 function wla_ssl_locked_caps() {
-    return [
+    $caps = [
         'update_plugins',
         'update_themes',
         'update_core',
@@ -113,6 +126,12 @@ function wla_ssl_locked_caps() {
         'edit_plugins',
         'edit_themes',
     ];
+
+    if ( wla_ssl_allow_delete() ) {
+        $caps = array_diff( $caps, [ 'delete_plugins', 'delete_themes' ] );
+    }
+
+    return $caps;
 }
 
 function wla_ssl_cap_filter( $allcaps ) {
