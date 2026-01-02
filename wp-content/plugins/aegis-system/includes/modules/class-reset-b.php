@@ -5,121 +5,201 @@ if (!defined('ABSPATH')) {
 
 class AEGIS_Reset_B {
     const DEALER_META_KEY = 'aegis_dealer_id';
+    const PER_PAGE_DEFAULT = 20;
 
     /**
-     * 渲染清零系统页面。
+     * Portal 渲染。
+     *
+     * @param string $portal_url
+     * @return string
+     */
+    public static function render_portal_panel($portal_url) {
+        if (!AEGIS_System::is_module_enabled('reset_b')) {
+            return '<div class="aegis-t-a5">清零模块未启用，请联系管理员。</div>';
+        }
+
+        $actor = self::get_actor_context();
+        if (!$actor['can_access']) {
+            return '<div class="aegis-t-a5">当前账号无权访问清零模块。</div>';
+        }
+
+        $messages = [];
+        $errors = [];
+        $query_result = null;
+        $reset_result = null;
+
+        $base_url = add_query_arg('m', 'reset_b', $portal_url);
+        $per_page_options = [20, 50, 100];
+        $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : self::PER_PAGE_DEFAULT;
+        if (!in_array($per_page, $per_page_options, true)) {
+            $per_page = self::PER_PAGE_DEFAULT;
+        }
+        $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                    'nonce_field'     => 'aegis_reset_b_nonce',
+                    'nonce_action'    => 'aegis_reset_b_action',
+                    'whitelist'       => ['aegis_reset_b_nonce', 'reset_b_action', 'code_value', 'reason', 'confirm_reset', '_wp_http_referer', '_aegis_idempotency'],
+                    'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
+                ]
+            );
+
+            if (!$validation['success']) {
+                $errors[] = $validation['message'];
+            } else {
+                $action = isset($_POST['reset_b_action']) ? sanitize_key(wp_unslash($_POST['reset_b_action'])) : '';
+                $code_value = isset($_POST['code_value']) ? sanitize_text_field(wp_unslash($_POST['code_value'])) : '';
+                $reason = isset($_POST['reason']) ? sanitize_text_field(wp_unslash($_POST['reason'])) : '';
+
+                if ('query' === $action) {
+                    $query_result = self::handle_portal_query($code_value, $actor);
+                    if (is_wp_error($query_result)) {
+                        $errors[] = $query_result->get_error_message();
+                        $query_result = null;
+                    }
+                } elseif ('reset' === $action) {
+                    $reset_result = self::handle_portal_reset($code_value, $reason, $actor, !empty($_POST['confirm_reset']));
+                    if (is_wp_error($reset_result)) {
+                        $errors[] = $reset_result->get_error_message();
+                        $reset_result = null;
+                    } else {
+                        $messages[] = 'B 查询次数已清零。';
+                        $query_result = self::handle_portal_query($code_value, $actor);
+                        if (is_wp_error($query_result)) {
+                            $query_result = null;
+                        }
+                    }
+                }
+            }
+        }
+
+        $total_logs = 0;
+        $logs = self::get_reset_logs($actor, $per_page, $paged, $total_logs);
+
+        $context = [
+            'base_url'       => $base_url,
+            'messages'       => $messages,
+            'errors'         => $errors,
+            'query_result'   => $query_result,
+            'reset_result'   => $reset_result,
+            'actor'          => $actor,
+            'per_page'       => $per_page,
+            'per_page_opts'  => $per_page_options,
+            'paged'          => $paged,
+            'logs'           => $logs,
+            'total_logs'     => $total_logs,
+            'idempotency'    => wp_generate_uuid4(),
+        ];
+
+        ob_start();
+        include AEGIS_SYSTEM_PATH . '/templates/portal/reset-b.php';
+        return ob_get_clean();
+    }
+
+    /**
+     * 后台页面保留：复用门户处理逻辑。
      */
     public static function render_admin_page() {
         if (!AEGIS_System_Roles::user_can_reset_b()) {
             wp_die(__('您无权访问该页面。'));
         }
 
-        $module_enabled = AEGIS_System::is_module_enabled('reset_b');
-        $messages = [];
-        $errors = [];
-        $result = null;
-        $dealer = self::get_current_dealer();
-        $is_dealer_user = AEGIS_System_Roles::is_dealer_only();
-
-        if (!$module_enabled) {
-            $errors[] = '清零系统模块未启用。';
-        }
-
-        if ($is_dealer_user && !$dealer) {
-            $errors[] = '未找到您的经销商档案，无法执行清零。';
-        } elseif ($is_dealer_user && $dealer && $dealer->status !== 'active') {
-            $errors[] = '当前经销商已停用，禁止清零操作。';
-        }
-
-        if ('POST' === $_SERVER['REQUEST_METHOD']) {
-            $validation = AEGIS_Access_Audit::validate_write_request(
-                $_POST,
-                [
-                    'capability'   => AEGIS_System::CAP_RESET_B,
-                    'nonce_field'  => 'aegis_reset_b_nonce',
-                    'nonce_action' => 'aegis_reset_b_action',
-                    'whitelist'    => ['aegis_reset_b_nonce', 'reset_b_action', 'code_value', 'reason', 'confirm_reset', '_wp_http_referer', '_aegis_idempotency'],
-                ]
-            );
-
-            if (!$validation['success']) {
-                $errors[] = $validation['message'];
-            } elseif (!$module_enabled) {
-                $errors[] = '清零系统模块未启用。';
-            } elseif ($is_dealer_user && (!$dealer || $dealer->status !== 'active')) {
-                $errors[] = '经销商状态异常，禁止清零。';
-            } elseif (empty($_POST['confirm_reset'])) {
-                $errors[] = '请勾选确认后再执行清零。';
-            } else {
-                $result = self::handle_reset($_POST, $dealer, $is_dealer_user);
-                if (is_wp_error($result)) {
-                    $errors[] = $result->get_error_message();
-                    $result = null;
-                } else {
-                    $messages[] = 'B 清零成功。';
-                }
-            }
-        }
-
+        $portal_url = admin_url('admin.php?page=aegis-system-reset-b');
         echo '<div class="wrap aegis-system-root">';
-        echo '<h1 class="aegis-t-a3">清零系统</h1>';
-
-        if (!empty($messages)) {
-            foreach ($messages as $msg) {
-                echo '<div class="updated"><p class="aegis-t-a6">' . esc_html($msg) . '</p></div>';
-            }
-        }
-
-        if (!empty($errors)) {
-            foreach ($errors as $err) {
-                echo '<div class="error"><p class="aegis-t-a6">' . esc_html($err) . '</p></div>';
-            }
-        }
-
-        if (!$module_enabled) {
-            echo '</div>';
-            return;
-        }
-
-        $idempotency_key = wp_generate_uuid4();
-        echo '<form method="post" class="aegis-t-a5" style="max-width:720px;">';
-        wp_nonce_field('aegis_reset_b_action', 'aegis_reset_b_nonce');
-        echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($idempotency_key) . '" />';
-        echo '<input type="hidden" name="reset_b_action" value="reset" />';
-
-        if ($is_dealer_user && $dealer) {
-            echo '<p class="aegis-t-a6"><strong>经销商：</strong>' . esc_html($dealer->dealer_name) . '（授权码 ' . esc_html($dealer->auth_code) . '）</p>';
-        }
-
-        echo '<p class="aegis-t-a6">请输入要清零 B 计数的防伪码，确认后将仅重置 B（内部计数），A 计数保持不变。</p>';
-        echo '<table class="form-table">';
-        echo '<tr><th><label class="aegis-t-a5" for="code_value">防伪码</label></th><td><input type="text" id="code_value" name="code_value" class="regular-text" required /></td></tr>';
-        echo '<tr><th><label class="aegis-t-a5" for="reason">原因（可选）</label></th><td><input type="text" id="reason" name="reason" class="regular-text" /></td></tr>';
-        echo '<tr><th></th><td><label class="aegis-t-a6"><input type="checkbox" name="confirm_reset" value="1" /> 我确认仅清零 B 计数，操作将被审计。</label></td></tr>';
-        echo '</table>';
-        submit_button('执行清零');
-        echo '</form>';
-
-        if ($result) {
-            echo '<h2 class="aegis-t-a4">清零结果</h2>';
-            echo '<p class="aegis-t-a6">防伪码：' . esc_html($result['code_value']) . '</p>';
-            echo '<p class="aegis-t-a6">清零前 B：' . esc_html($result['before_b']) . '，清零后 B：' . esc_html($result['after_b']) . '</p>';
-            if (!empty($result['dealer_name'])) {
-                echo '<p class="aegis-t-a6">归属经销商：' . esc_html($result['dealer_name']) . '</p>';
-            }
-        }
-
+        echo self::render_portal_panel($portal_url);
         echo '</div>';
     }
 
     /**
-     * 执行清零逻辑。
+     * 查询当前用户上下文。
+     *
+     * @return array
      */
-    protected static function handle_reset($post, $dealer, $is_dealer_user) {
-        global $wpdb;
-        $code_value = isset($post['code_value']) ? sanitize_text_field(wp_unslash($post['code_value'])) : '';
-        $reason = isset($post['reason']) ? sanitize_text_field(wp_unslash($post['reason'])) : '';
+    protected static function get_actor_context() {
+        $user = wp_get_current_user();
+        $roles = $user ? (array) $user->roles : [];
+        $dealer = self::get_current_dealer();
+        $is_hq = in_array('aegis_hq_admin', $roles, true) || AEGIS_System_Roles::user_can_manage_system();
+        $is_dealer = in_array('aegis_dealer', $roles, true);
+        $is_warehouse_manager = in_array('aegis_warehouse_manager', $roles, true);
+        $is_warehouse_staff = in_array('aegis_warehouse_staff', $roles, true);
 
+        $can_access = $is_hq || $is_dealer || $is_warehouse_manager || $is_warehouse_staff;
+
+        return [
+            'user'                => $user,
+            'user_id'             => $user ? (int) $user->ID : 0,
+            'roles'               => $roles,
+            'is_hq'               => $is_hq,
+            'is_dealer'           => $is_dealer,
+            'is_warehouse'        => $is_warehouse_manager || $is_warehouse_staff,
+            'dealer'              => $dealer,
+            'dealer_active'       => $dealer && 'active' === $dealer->status,
+            'can_access'          => $can_access,
+            'warehouse_readonly'  => ($is_warehouse_manager || $is_warehouse_staff) && !$is_hq,
+        ];
+    }
+
+    /**
+     * 处理查询。
+     *
+     * @param string $code_value
+     * @param array  $actor
+     * @return array|WP_Error
+     */
+    protected static function handle_portal_query($code_value, $actor) {
+        $code_value = trim((string) $code_value);
+        if ('' === $code_value) {
+            return new WP_Error('empty_code', '请输入防伪码。');
+        }
+
+        $record = self::get_code_record($code_value);
+        if (!$record) {
+            return new WP_Error('code_not_found', '未找到对应防伪码。');
+        }
+
+        $counts = self::calculate_b_display($record);
+        $shipment = self::get_latest_shipment((int) $record->id);
+        $dealer_label = $shipment && $shipment->dealer_name ? $shipment->dealer_name : self::get_hq_label();
+
+        $permission = self::evaluate_permission($actor, $record, $shipment);
+        if ($actor['is_dealer'] && $permission['can_reset']) {
+            $dealer_label = '本经销商 / 已归属';
+        }
+
+        return [
+            'code'             => $record->code,
+            'ean'              => $record->ean,
+            'b_display'        => $counts['b_display'],
+            'dealer_label'     => $dealer_label,
+            'owner_dealer_id'  => $shipment ? (int) $shipment->dealer_id : 0,
+            'owner_dealer_name'=> $shipment && $shipment->dealer_name ? $shipment->dealer_name : '',
+            'can_reset'        => $permission['can_reset'],
+            'restriction'      => $permission['reason'],
+            'before_b'         => $counts['b_display'],
+            'stock_status'     => $record->stock_status ? $record->stock_status : 'generated',
+        ];
+    }
+
+    /**
+     * 处理清零。
+     *
+     * @param string $code_value
+     * @param string $reason
+     * @param array  $actor
+     * @param bool   $confirmed
+     * @return array|WP_Error
+     */
+    protected static function handle_portal_reset($code_value, $reason, $actor, $confirmed) {
+        if (!$confirmed) {
+            return new WP_Error('confirm_required', '请确认后再执行清零。');
+        }
+
+        $code_value = trim((string) $code_value);
         if ('' === $code_value) {
             return new WP_Error('empty_code', '请输入防伪码。');
         }
@@ -130,56 +210,203 @@ class AEGIS_Reset_B {
             return new WP_Error('code_not_found', '未找到对应防伪码。');
         }
 
-        $shipment = self::get_latest_shipment($record->id);
-
-        if ($is_dealer_user) {
-            if (!$dealer) {
-                AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RESET_B, 'FAIL', ['code_id' => (int) $record->id, 'reason' => 'dealer_missing']);
-                return new WP_Error('dealer_missing', '未配置经销商资料，无法清零。');
-            }
-            if ($dealer->status !== 'active') {
-                AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RESET_B, 'FAIL', ['code_id' => (int) $record->id, 'reason' => 'dealer_inactive', 'dealer_id' => (int) $dealer->id]);
-                return new WP_Error('dealer_inactive', '经销商已停用，禁止清零。');
-            }
-            if (!$shipment || (int) $shipment->dealer_id !== (int) $dealer->id) {
-                AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RESET_B, 'FAIL', ['code_id' => (int) $record->id, 'reason' => 'not_owned', 'dealer_id' => (int) $dealer->id]);
-                return new WP_Error('not_owned', '该防伪码未出库至您或尚未出库，禁止清零。');
-            }
+        $shipment = self::get_latest_shipment((int) $record->id);
+        $permission = self::evaluate_permission($actor, $record, $shipment);
+        if (!$permission['can_reset']) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_RESET_B,
+                'FAIL',
+                [
+                    'code_id'   => (int) $record->id,
+                    'code'      => $code_value,
+                    'reason'    => $permission['reason'],
+                    'actor_id'  => $actor['user_id'],
+                ]
+            );
+            return new WP_Error('not_allowed', $permission['reason']);
         }
 
-        $table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+        $counts = self::calculate_b_display($record);
         $raw_b = (int) $record->query_b_count;
-        $offset = (int) $record->query_b_offset;
-        $before_b = max(0, $raw_b - $offset);
-        $update = $wpdb->update($table, ['query_b_offset' => $raw_b], ['id' => $record->id], ['%d'], ['%d']);
+        $table = self::get_code_table();
 
-        if (false === $update) {
-            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RESET_B, 'FAIL', ['code_id' => (int) $record->id, 'reason' => 'db_error', 'db_error' => $wpdb->last_error]);
+        global $wpdb;
+        $updated = $wpdb->update(
+            $table,
+            ['query_b_offset' => $raw_b],
+            ['id' => (int) $record->id],
+            ['%d'],
+            ['%d']
+        );
+
+        if (false === $updated) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_RESET_B,
+                'FAIL',
+                [
+                    'code_id'  => (int) $record->id,
+                    'code'     => $code_value,
+                    'db_error' => $wpdb->last_error,
+                ]
+            );
             return new WP_Error('db_error', '清零失败：数据库错误。');
         }
 
-        $audit_payload = [
-            'code_id'        => (int) $record->id,
-            'code'           => $code_value,
-            'before_b'       => $before_b,
-            'after_b'        => 0,
-            'raw_b'          => $raw_b,
-            'prior_offset'   => $offset,
-            'reason'         => $reason,
-            'shipment_id'    => $shipment ? (int) $shipment->shipment_id : null,
-            'dealer_id'      => $shipment ? (int) $shipment->dealer_id : null,
-            'dealer_name'    => $shipment && isset($shipment->dealer_name) ? $shipment->dealer_name : null,
-            'actor_dealer'   => $dealer ? (int) $dealer->id : null,
+        $after_b = 0;
+        $log_payload = [
+            'code_id'       => (int) $record->id,
+            'code_value'    => $code_value,
+            'dealer_id'     => $shipment ? (int) $shipment->dealer_id : null,
+            'actor_user_id' => $actor['user_id'],
+            'actor_role'    => implode(',', $actor['roles']),
+            'before_b'      => $counts['b_display'],
+            'after_b'       => $after_b,
+            'reason'        => $reason,
+            'ip'            => self::get_client_ip(),
         ];
 
-        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RESET_B, 'SUCCESS', $audit_payload);
+        self::insert_reset_log($log_payload);
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_RESET_B,
+            'SUCCESS',
+            array_merge($log_payload, [
+                'raw_b'        => $raw_b,
+                'prior_offset' => (int) $record->query_b_offset,
+            ])
+        );
 
         return [
-            'code_value' => $code_value,
-            'before_b'   => $before_b,
-            'after_b'    => 0,
-            'dealer_name'=> $shipment && isset($shipment->dealer_name) ? $shipment->dealer_name : '',
+            'code'           => $code_value,
+            'before_b'       => $counts['b_display'],
+            'after_b'        => $after_b,
+            'dealer_label'   => $permission['dealer_label'] ?? ($shipment && $shipment->dealer_name ? $shipment->dealer_name : ''),
         ];
+    }
+
+    /**
+     * 权限判断。
+     *
+     * @param array      $actor
+     * @param object     $record
+     * @param object|nil $shipment
+     * @return array
+     */
+    protected static function evaluate_permission($actor, $record, $shipment) {
+        $dealer_label = $shipment && $shipment->dealer_name ? $shipment->dealer_name : self::get_hq_label();
+        $reason = '';
+        $can_reset = false;
+
+        if ($actor['is_hq']) {
+            $can_reset = true;
+        } elseif ($actor['is_dealer']) {
+            if (!$actor['dealer']) {
+                $reason = '未找到经销商资料，禁止清零。';
+            } elseif (!$actor['dealer_active']) {
+                $reason = '经销商已停用，禁止清零。';
+            } elseif ('shipped' !== ($record->stock_status ? $record->stock_status : 'generated') || !$shipment) {
+                $reason = '未出库不可清零。';
+            } elseif ((int) $shipment->dealer_id !== (int) $actor['dealer']->id) {
+                $reason = '该防伪码未出库至本经销商，禁止清零。';
+            } else {
+                $can_reset = true;
+            }
+        } else {
+            $reason = '当前角色不可清零。';
+        }
+
+        if (!$can_reset && '' === $reason) {
+            $reason = '无权限执行清零。';
+        }
+
+        return [
+            'can_reset'    => $can_reset,
+            'reason'       => $reason,
+            'dealer_label' => $dealer_label,
+        ];
+    }
+
+    /**
+     * 计算 B 显示值。
+     *
+     * @param object $record
+     * @return array
+     */
+    protected static function calculate_b_display($record) {
+        $raw_b = (int) $record->query_b_count;
+        $offset = (int) $record->query_b_offset;
+        return [
+            'b_display' => max(0, $raw_b - $offset),
+            'raw_b'     => $raw_b,
+            'offset'    => $offset,
+        ];
+    }
+
+    /**
+     * 查询日志。
+     *
+     * @param array $actor
+     * @param int   $per_page
+     * @param int   $paged
+     * @param int   $total
+     * @return array
+     */
+    protected static function get_reset_logs($actor, $per_page, $paged, &$total) {
+        if ($actor['warehouse_readonly']) {
+            $total = 0;
+            return [];
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::RESET_LOG_TABLE;
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $code_table = self::get_code_table();
+
+        $where = '1=1';
+        $params = [];
+        if (!$actor['is_hq'] && $actor['user_id']) {
+            $where .= ' AND rl.actor_user_id = %d';
+            $params[] = $actor['user_id'];
+        }
+
+        $offset = ($paged - 1) * $per_page;
+        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} rl WHERE {$where}", $params));
+
+        $sql = "SELECT rl.*, d.dealer_name, c.ean FROM {$table} rl
+            LEFT JOIN {$dealer_table} d ON rl.dealer_id = d.id
+            LEFT JOIN {$code_table} c ON rl.code_id = c.id
+            WHERE {$where}
+            ORDER BY rl.reset_at DESC
+            LIMIT %d OFFSET %d";
+
+        $params_with_limit = array_merge($params, [$per_page, $offset]);
+        return $wpdb->get_results($wpdb->prepare($sql, $params_with_limit));
+    }
+
+    /**
+     * 写入清零日志。
+     *
+     * @param array $payload
+     */
+    protected static function insert_reset_log($payload) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::RESET_LOG_TABLE;
+        $wpdb->insert(
+            $table,
+            [
+                'code_id'       => $payload['code_id'],
+                'code_value'    => $payload['code_value'],
+                'dealer_id'     => $payload['dealer_id'],
+                'actor_user_id' => $payload['actor_user_id'],
+                'actor_role'    => $payload['actor_role'],
+                'reset_at'      => current_time('mysql'),
+                'before_b'      => $payload['before_b'],
+                'after_b'       => $payload['after_b'],
+                'reason'        => $payload['reason'],
+                'ip'            => $payload['ip'],
+            ],
+            ['%d', '%s', '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s']
+        );
     }
 
     /**
@@ -206,7 +433,7 @@ class AEGIS_Reset_B {
      */
     protected static function get_code_record($code_value) {
         global $wpdb;
-        $table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+        $table = self::get_code_table();
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE code = %s", $code_value));
     }
 
@@ -226,6 +453,35 @@ class AEGIS_Reset_B {
             )
         );
     }
-}
 
-new AEGIS_System();
+    /**
+     * 获取总部显示名。
+     */
+    protected static function get_hq_label() {
+        $label = get_option(AEGIS_System::HQ_DISPLAY_OPTION, '总部销售');
+        if (!is_string($label) || '' === trim($label)) {
+            $label = '总部销售';
+        }
+        return $label;
+    }
+
+    /**
+     * 客户端 IP。
+     *
+     * @return string
+     */
+    protected static function get_client_ip() {
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) wp_unslash($_SERVER['REMOTE_ADDR']) : '';
+        return sanitize_text_field($ip);
+    }
+
+    /**
+     * 码表名。
+     *
+     * @return string
+     */
+    protected static function get_code_table() {
+        global $wpdb;
+        return $wpdb->prefix . AEGIS_System::CODE_TABLE;
+    }
+}

@@ -299,6 +299,50 @@
     background: #f8f9fb;
 }
 
+.aegis-dealer-table {
+    table-layout: auto;
+}
+
+.aegis-dealer-table .col-auth-code {
+    width: 12ch;
+    max-width: 12ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-contact {
+    width: 6ch;
+    max-width: 8ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-phone {
+    width: 13ch;
+    max-width: 15ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-date {
+    width: 12ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-address {
+    max-width: 36ch;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aegis-dealer-table .col-license {
+    width: 9ch;
+    white-space: nowrap;
+}
+
+.aegis-dealer-table .col-actions {
+    width: 14ch;
+    white-space: nowrap;
+}
+
 .aegis-portal-table .col-auth-code {
     width: 140px;
     max-width: 160px;
@@ -471,4 +515,173 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.aegis-codes-form .aegis-code-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.aegis-codes-form .aegis-code-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.aegis-codes-form .aegis-code-row .aegis-code-remove {
+    align-self: flex-end;
+    padding: 8px 10px;
+}
+
+.aegis-code-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.aegis-code-actions .limit-note {
+    color: #555;
+}
+
+.codes-summary {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 8px 0 12px;
+}
+
+.codes-summary .chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f0f4ff;
+    border: 1px solid #d9e3ff;
+}
+
+.aegis-reset-b .aegis-reset-form {
+    padding: 12px 14px;
+    border: 1px solid #e5e8ef;
+    border-radius: 8px;
+    background: #f9fbff;
+    margin-bottom: 16px;
+}
+
+.aegis-reset-b .aegis-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.aegis-reset-b .aegis-form-row input {
+    padding: 8px 10px;
+    border: 1px solid #d6dbe3;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.aegis-reset-b .aegis-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.aegis-reset-b .aegis-btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #c4c9d4;
+    background: #fff;
+    cursor: pointer;
+}
+
+.aegis-reset-b .aegis-btn.primary {
+    background: #2a7df5;
+    color: #fff;
+    border-color: #2a7df5;
+}
+
+.aegis-reset-b .aegis-btn:disabled {
+    background: #f0f2f5;
+    color: #9aa1ad;
+    cursor: not-allowed;
+}
+
+.aegis-reset-b .aegis-card {
+    border: 1px solid #e6e9f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fff;
+}
+
+.aegis-reset-b .aegis-reset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px 14px;
+}
+
+.aegis-reset-b .aegis-reset-table {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #edf0f5;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.aegis-reset-b .aegis-reset-head,
+.aegis-reset-b .aegis-reset-row {
+    display: grid;
+    grid-template-columns: 150px 180px 180px 200px 1fr;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+.aegis-reset-b .aegis-reset-head {
+    background: #f3f5fa;
+    font-weight: 600;
+}
+
+.aegis-reset-b .aegis-reset-row:nth-child(odd) {
+    background: #fafbfe;
+}
+
+.aegis-reset-b .aegis-pagination {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.aegis-reset-b .aegis-pagination a {
+    padding: 6px 10px;
+    border: 1px solid #d9dde5;
+    border-radius: 4px;
+    color: #2f3a4c;
+    text-decoration: none;
+}
+
+.aegis-reset-b .aegis-pagination a.active {
+    background: #2a7df5;
+    color: #fff;
+    border-color: #2a7df5;
+}
+
+.aegis-reset-b .aegis-alert {
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.aegis-reset-b .aegis-alert.success {
+    background: #e8f6ef;
+    border: 1px solid #b7e3c8;
+    color: #207245;
+}
+
+.aegis-reset-b .aegis-alert.error {
+    background: #fff2f0;
+    border: 1px solid #f2c5bf;
+    color: #b63c2c;
 }

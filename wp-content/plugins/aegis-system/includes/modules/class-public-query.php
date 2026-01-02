@@ -6,6 +6,69 @@ if (!defined('ABSPATH')) {
 class AEGIS_Public_Query {
     const CONTEXT_PUBLIC = 'public';
     const CONTEXT_INTERNAL = 'internal';
+    const PAGE_SLUG = 'aegis-query';
+    const PAGE_TITLE = '防伪码查询';
+
+    /**
+     * 确保公共查询页面存在。
+     *
+     * @param bool $force
+     * @return int|null
+     */
+    public static function ensure_public_page($force = false) {
+        $page = get_page_by_path(self::PAGE_SLUG);
+        if ($page && 'trash' === $page->post_status) {
+            wp_untrash_post($page->ID);
+            $page = get_post($page->ID);
+        }
+
+        if (!$page) {
+            $page_id = wp_insert_post(
+                [
+                    'post_title'   => self::PAGE_TITLE,
+                    'post_name'    => self::PAGE_SLUG,
+                    'post_status'  => 'publish',
+                    'post_type'    => 'page',
+                    'post_content' => '[aegis_query]',
+                ],
+                true
+            );
+
+            if (!is_wp_error($page_id)) {
+                return (int) $page_id;
+            }
+
+            return null;
+        }
+
+        if ($force && false === strpos((string) $page->post_content, '[aegis_query]')) {
+            wp_update_post(
+                [
+                    'ID'           => $page->ID,
+                    'post_content' => '[aegis_query]',
+                ]
+            );
+        }
+
+        return (int) $page->ID;
+    }
+
+    /**
+     * 获取公共查询页链接。
+     *
+     * @return string
+     */
+    public static function get_public_page_url() {
+        $page_id = self::ensure_public_page();
+        if ($page_id) {
+            $link = get_permalink($page_id);
+            if ($link) {
+                return $link;
+            }
+        }
+
+        return home_url('/' . self::PAGE_SLUG . '/');
+    }
 
     /**
      * 后台内部查询页面。
@@ -71,7 +134,7 @@ class AEGIS_Public_Query {
         echo '</form>';
 
         if ($result) {
-            self::render_result($result, true);
+            self::render_result($result);
         }
 
         echo '</div>';
@@ -91,10 +154,12 @@ class AEGIS_Public_Query {
         $errors = [];
         $result = null;
         $context = self::CONTEXT_PUBLIC;
-        $is_internal = is_user_logged_in() && AEGIS_System_Roles::user_can_manage_warehouse() && isset($_GET['internal']);
-        if ($is_internal) {
+        $is_internal = false;
+        if (is_user_logged_in() && AEGIS_System_Roles::user_can_manage_warehouse()) {
             $context = self::CONTEXT_INTERNAL;
+            $is_internal = true;
         }
+        $is_public_user = self::is_public_user();
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $nonce = isset($_POST['aegis_public_query_nonce']) ? $_POST['aegis_public_query_nonce'] : '';
@@ -102,33 +167,62 @@ class AEGIS_Public_Query {
                 $errors[] = '安全校验失败，请重试。';
             } else {
                 $code_value = isset($_POST['code_value']) ? sanitize_text_field(wp_unslash($_POST['code_value'])) : '';
-                $result = self::handle_query($code_value, $context, self::CONTEXT_PUBLIC === $context);
-                if (is_wp_error($result)) {
-                    $errors[] = $result->get_error_message();
-                    $result = null;
+                $handled = self::handle_query($code_value, $context, self::CONTEXT_PUBLIC === $context);
+                if (is_wp_error($handled)) {
+                    if ($is_public_user && 'code_not_found' === $handled->get_error_code()) {
+                        $result = self::build_public_result(null, 0, true);
+                    } else {
+                        $errors[] = $handled->get_error_message();
+                    }
+                } else {
+                    $result = $handled;
+                    if ($is_public_user) {
+                        $display_value = 0;
+                        if (isset($result['counts']['b'])) {
+                            $display_value = max(0, (int) $result['counts']['b']);
+                        }
+                        $result = self::build_public_result($handled, $display_value, false);
+                    }
                 }
             }
         }
 
         ob_start();
-        echo '<div class="aegis-system-root aegis-t-a6" style="padding:12px;">';
-        echo '<h2 class="aegis-t-a4">防伪码查询</h2>';
-        foreach ($messages as $msg) {
-            echo '<div class="updated"><p>' . esc_html($msg) . '</p></div>';
+        echo '<div class="aegis-system-root aegis-query-root">';
+        echo '<div class="aegis-query-card">';
+        echo '<div class="aegis-t-a3" style="margin-bottom:4px;">防伪码查询</div>';
+        echo '<div class="aegis-t-a6" style="color:#506176;">输入或扫码防伪码，查询出库经销商与产品信息。</div>';
+
+        if (!empty($messages)) {
+            foreach ($messages as $msg) {
+                echo '<div class="updated aegis-t-a6" style="margin-top:10px;"><p>' . esc_html($msg) . '</p></div>';
+            }
         }
-        foreach ($errors as $err) {
-            echo '<div class="error"><p>' . esc_html($err) . '</p></div>';
+
+        if (!empty($errors)) {
+            foreach ($errors as $err) {
+                echo '<div class="aegis-query-error aegis-t-a6">' . esc_html($err) . '</div>';
+            }
         }
-        echo '<form method="post" class="aegis-public-query-form" style="margin-top:8px;">';
+
+        echo '<form method="post" class="aegis-query-form" novalidate>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         wp_nonce_field('aegis_public_query_action', 'aegis_public_query_nonce');
-        echo '<label class="aegis-t-a6" for="aegis-code-input">请输入防伪码：</label><br />';
-        echo '<input id="aegis-code-input" type="text" name="code_value" required style="min-width:260px;" /> ';
-        echo '<button type="submit">查询</button>';
+        echo '<input type="hidden" name="public_query_action" value="query" />';
+        echo '<label class="aegis-t-a6" for="aegis-code-input">防伪码</label>';
+        echo '<input id="aegis-code-input" type="text" name="code_value" value="" placeholder="请输入或扫码防伪码" required />';
+        echo '<div class="aegis-query-actions">';
+        echo '<button type="submit" class="aegis-t-a6">查询</button>';
+        if ($is_internal) {
+            echo '<div class="aegis-query-helper">内部模式：仅计入 A 计数</div>';
+        }
+        echo '</div>';
         echo '</form>';
 
         if ($result) {
-            self::render_result($result, false);
+            self::render_result($result);
         }
+
+        echo '</div>';
         echo '</div>';
 
         return ob_get_clean();
@@ -137,30 +231,49 @@ class AEGIS_Public_Query {
     /**
      * 展示查询结果。
      */
-    protected static function render_result($result, $is_internal) {
-        echo '<div class="aegis-public-query-result" style="margin-top:16px;">';
-        echo '<h3 class="aegis-t-a4">查询结果</h3>';
-        echo '<ul class="aegis-t-a6">';
-        echo '<li><strong>防伪码：</strong>' . esc_html($result['code']) . '</li>';
-        echo '<li><strong>产品：</strong>' . esc_html($result['product']) . '</li>';
-        echo '<li><strong>状态：</strong>' . esc_html($result['status_label']) . '</li>';
-        echo '<li><strong>经销商：</strong>' . esc_html($result['dealer_label']) . '</li>';
-        if (!empty($result['shipment_no'])) {
-            echo '<li><strong>出库单号：</strong>' . esc_html($result['shipment_no']) . '</li>';
-            echo '<li><strong>出库时间：</strong>' . esc_html($result['shipment_time']) . '</li>';
+    protected static function render_result($result) {
+        if (!empty($result['public_mode'])) {
+            $display_value = isset($result['display_value']) ? (int) $result['display_value'] : 0;
+            echo '<div class="aegis-query-result">';
+            if (!empty($result['not_found'])) {
+                echo '<div class="aegis-t-a4" style="margin-top:8px;">' . esc_html($display_value) . '</div>';
+                echo '</div>';
+                return;
+            }
+
+            echo '<div class="aegis-t-a5" style="margin-top:4px;">已查询到产品</div>';
+            echo '<div class="aegis-query-meta aegis-t-a6">';
+            echo '<div><span class="aegis-label">产品名称：</span>' . esc_html($result['product_label']) . '</div>';
+            echo '<div><span class="aegis-label">防伪码：</span>' . esc_html($result['code']) . '</div>';
+            echo '<div><span class="aegis-label">SKU：</span>' . esc_html($result['ean']) . '</div>';
+            echo '<div><span class="aegis-label">查询次数：</span>' . esc_html($display_value) . '</div>';
+            echo '<div><span class="aegis-label">经销商：</span>' . esc_html($result['dealer_label']) . '</div>';
+            if (!empty($result['certificate'])) {
+                echo '<div class="aegis-query-cert"><span class="aegis-label">质检证书：</span><a href="' . esc_url($result['certificate']['url']) . '" target="_blank" rel="noopener">查看质检证书</a></div>';
+            }
+            echo '</div>';
+            echo '</div>';
+            return;
         }
-        echo '<li><strong>A 计数：</strong>' . esc_html($result['counts']['a']) . '</li>';
-        echo '<li><strong>B 计数：</strong>' . esc_html($result['counts']['b']) . '</li>';
-        if (!empty($result['last_query_at'])) {
-            echo '<li><strong>最近查询：</strong>' . esc_html($result['last_query_at']) . '</li>';
+
+        $status_class = !empty($result['status_class']) ? $result['status_class'] : 'status-warn';
+        echo '<div class="aegis-query-result">';
+        echo '<div class="aegis-status-badge ' . esc_attr($status_class) . ' aegis-t-a6">' . esc_html($result['status_label']) . '</div>';
+        echo '<div class="aegis-t-a5" style="margin-top:8px;">防伪码：' . esc_html($result['code']) . '</div>';
+        echo '<div class="aegis-query-meta aegis-t-a6">';
+        echo '<div><span class="aegis-label">产品：</span>' . esc_html($result['product']);
+        if (!empty($result['sku_meta'])) {
+            echo '（' . esc_html($result['sku_meta']) . '）';
         }
+        echo '</div>';
+        echo '<div><span class="aegis-label">EAN：</span>' . esc_html($result['ean']) . '</div>';
+        echo '<div><span class="aegis-label">经销商：</span>' . esc_html($result['dealer_label']) . '</div>';
+        echo '<div><span class="aegis-label">查询计数：</span>A=' . esc_html($result['counts']['a']) . ' / B=' . esc_html($result['counts']['b']) . '</div>';
         if (!empty($result['certificate'])) {
-            echo '<li><strong>证书：</strong><a href="' . esc_url($result['certificate']['url']) . '" target="_blank" rel="noopener">下载</a></li>';
+            echo '<div class="aegis-query-cert"><span class="aegis-label">证书：</span><a href="' . esc_url($result['certificate']['url']) . '" target="_blank" rel="noopener">查看证书</a></div>';
         }
-        if ($is_internal && !empty($result['raw_b'])) {
-            echo '<li><strong>B 原始累积：</strong>' . esc_html($result['raw_b']) . '</li>';
-        }
-        echo '</ul>';
+        echo '</div>';
+        echo '<div class="aegis-query-helper aegis-t-a6">' . esc_html($result['message']) . '</div>';
         echo '</div>';
     }
 
@@ -179,7 +292,7 @@ class AEGIS_Public_Query {
                 'FAIL',
                 ['ip' => self::get_client_ip()]
             );
-            return new WP_Error('rate_limited', '查询过于频繁，请稍后再试。');
+            return new WP_Error('rate_limited', '请求过于频繁，请稍后再试。');
         }
 
         $record = self::get_code_record($code_value);
@@ -189,48 +302,63 @@ class AEGIS_Public_Query {
                 'FAIL',
                 ['code' => $code_value, 'reason' => 'not_found', 'context' => $context]
             );
-            return new WP_Error('code_not_found', '未找到对应防伪码。');
+            return new WP_Error('code_not_found', '未查询到该防伪码。');
         }
 
         $counts = self::increment_counters((int) $record->id, $record->code, $context);
-        $shipment = self::get_latest_shipment((int) $record->id);
         $sku = self::get_sku($record->ean);
         $certificate = self::get_public_certificate($sku ? $sku->certificate_id : 0);
 
+        $stock_status = $record->stock_status ? $record->stock_status : 'generated';
+        $result_type = 'not_shipped';
         $dealer_label = self::get_hq_label();
-        $shipment_no = '';
-        $shipment_time = '';
-        $dealer_id = null;
-        if ($shipment) {
-            $dealer_label = $shipment->dealer_name ? $shipment->dealer_name : $dealer_label;
-            $shipment_no = $shipment->shipment_no;
-            $shipment_time = $shipment->scanned_at;
-            $dealer_id = $shipment->dealer_id;
+        $shipment = null;
+
+        if ('shipped' === $stock_status) {
+            $shipment = self::get_latest_shipment((int) $record->id);
+            if ($shipment && $shipment->dealer_name) {
+                $dealer_label = $shipment->dealer_name;
+            }
+            $result_type = 'shipped';
         }
 
+        $product_name = $sku ? $sku->product_name : '未知产品';
+        $sku_meta_parts = [];
+        if ($sku && !empty($sku->size_label)) {
+            $sku_meta_parts[] = $sku->size_label;
+        }
+        if ($sku && !empty($sku->color_label)) {
+            $sku_meta_parts[] = $sku->color_label;
+        }
+
+        $status_label = 'shipped' === $stock_status ? '已出库' : '未出库';
+        $status_class = 'shipped' === $stock_status ? 'status-safe' : 'status-warn';
+        $message = 'shipped' === $stock_status ? '该防伪码已出库。' : '该防伪码已生成但未出库。';
+
         $result = [
-            'code'          => $record->code,
-            'ean'           => $record->ean,
-            'product'       => $sku ? $sku->product_name : '未知产品',
-            'status_label'  => 'used' === $record->status ? '已出库' : '未出库',
-            'dealer_label'  => $dealer_label,
-            'shipment_no'   => $shipment_no,
-            'shipment_time' => $shipment_time,
-            'counts'        => $counts,
-            'raw_b'         => $counts['raw_b'],
-            'last_query_at' => $counts['last_query_at'],
-            'certificate'   => $certificate,
+            'code'         => $record->code,
+            'ean'          => $record->ean,
+            'product'      => $product_name,
+            'sku_meta'     => implode(' / ', $sku_meta_parts),
+            'status_label' => $status_label,
+            'status_class' => $status_class,
+            'dealer_label' => $dealer_label,
+            'counts'       => $counts,
+            'certificate'  => $certificate,
+            'message'      => $message,
+            'result_type'  => $result_type,
         ];
 
         AEGIS_Access_Audit::record_event(
             AEGIS_System::ACTION_PUBLIC_QUERY,
             'SUCCESS',
             [
-                'code_id'  => (int) $record->id,
-                'context'  => $context,
-                'ean'      => $record->ean,
-                'dealer'   => $dealer_id,
-                'counts'   => $counts,
+                'code_id'     => (int) $record->id,
+                'context'     => $context,
+                'ean'         => $record->ean,
+                'dealer'      => $shipment ? $shipment->dealer_id : null,
+                'counts'      => $counts,
+                'result_type' => $result_type,
             ]
         );
 
@@ -394,11 +522,59 @@ class AEGIS_Public_Query {
     }
 
     /**
+     * 构建公共用户展示数据。
+     *
+     * @param array|null $handled
+     * @param int        $display_value
+     * @param bool       $not_found
+     * @return array
+     */
+    protected static function build_public_result($handled, $display_value, $not_found) {
+        if ($not_found || !$handled) {
+            return [
+                'public_mode'   => true,
+                'not_found'     => true,
+                'display_value' => (int) $display_value,
+            ];
+        }
+
+        $product_label = isset($handled['product']) ? (string) $handled['product'] : '';
+        if (!empty($handled['sku_meta'])) {
+            $product_label .= '（' . $handled['sku_meta'] . '）';
+        }
+
+        return [
+            'public_mode'   => true,
+            'not_found'     => false,
+            'display_value' => (int) $display_value,
+            'product_label' => $product_label,
+            'code'          => isset($handled['code']) ? $handled['code'] : '',
+            'ean'           => isset($handled['ean']) ? $handled['ean'] : '',
+            'dealer_label'  => isset($handled['dealer_label']) ? $handled['dealer_label'] : self::get_hq_label(),
+            'certificate'   => !empty($handled['certificate']) ? $handled['certificate'] : null,
+        ];
+    }
+
+    /**
      * 获取客户端 IP。
      */
     protected static function get_client_ip() {
         $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) wp_unslash($_SERVER['REMOTE_ADDR']) : '';
         return sanitize_text_field($ip);
+    }
+
+    /**
+     * 是否为公共访问用户（游客或非业务角色）。
+     *
+     * @return bool
+     */
+    protected static function is_public_user() {
+        if (!is_user_logged_in()) {
+            return true;
+        }
+
+        $user = wp_get_current_user();
+        return !AEGIS_System_Roles::is_business_user($user);
     }
 }
 

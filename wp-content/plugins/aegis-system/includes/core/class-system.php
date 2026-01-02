@@ -8,7 +8,7 @@ class AEGIS_System {
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
     const HQ_DISPLAY_OPTION = 'aegis_public_query_hq_label';
     const ORDER_SHIPMENT_LINK_OPTION = 'aegis_order_shipment_link';
-    const SCHEMA_VERSION = '1.5.0';
+    const SCHEMA_VERSION = '1.8.0';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -17,10 +17,13 @@ class AEGIS_System {
     const CODE_TABLE = 'aegis_codes';
     const SHIPMENT_TABLE = 'aegis_shipments';
     const SHIPMENT_ITEM_TABLE = 'aegis_shipment_items';
+    const RECEIPT_TABLE = 'aegis_receipts';
+    const RECEIPT_ITEM_TABLE = 'aegis_receipt_items';
     const QUERY_LOG_TABLE = 'aegis_query_logs';
     const ORDER_TABLE = 'aegis_orders';
     const ORDER_ITEM_TABLE = 'aegis_order_items';
     const PAYMENT_TABLE = 'aegis_payment_proofs';
+    const RESET_LOG_TABLE = 'aegis_reset_logs';
 
     const CAP_ACCESS_ROOT = 'aegis_access_root';
     const CAP_MANAGE_SYSTEM = 'aegis_manage_system';
@@ -49,8 +52,14 @@ class AEGIS_System {
     const ACTION_CODE_BATCH_CREATE = 'CODE_BATCH_CREATE';
     const ACTION_CODE_EXPORT = 'CODE_EXPORT';
     const ACTION_CODE_PRINT = 'CODE_PRINT';
+    const ACTION_RECEIPT_CREATE = 'RECEIPT_CREATE';
+    const ACTION_RECEIPT_ITEM_ADD = 'RECEIPT_ITEM_ADD';
+    const ACTION_RECEIPT_COMPLETE = 'RECEIPT_COMPLETE';
+    const ACTION_RECEIPT_EXPORT = 'RECEIPT_EXPORT_DETAIL';
+    const ACTION_RECEIPT_PRINT = 'RECEIPT_PRINT_SUMMARY';
     const ACTION_SHIPMENT_CREATE = 'SHIPMENT_CREATE';
-    const ACTION_SHIPMENT_EXPORT = 'SHIPMENT_EXPORT';
+    const ACTION_SHIPMENT_EXPORT_SUMMARY = 'SHIPMENT_EXPORT_SUMMARY';
+    const ACTION_SHIPMENT_EXPORT_DETAIL = 'SHIPMENT_EXPORT_DETAIL';
     const ACTION_PUBLIC_QUERY = 'PUBLIC_QUERY';
     const ACTION_PUBLIC_QUERY_RATE_LIMIT = 'PUBLIC_QUERY_RATE_LIMIT';
     const ACTION_RESET_B = 'RESET_B';
@@ -74,6 +83,7 @@ class AEGIS_System {
             'sku'            => ['label' => 'SKU', 'default' => false],
             'dealer_master'  => ['label' => '经销商主数据', 'default' => false],
             'codes'          => ['label' => '编码管理', 'default' => false],
+            'inbound'        => ['label' => '扫码入库', 'default' => false],
             'shipments'      => ['label' => '出货管理', 'default' => false],
             'public_query'   => ['label' => '公开查询', 'default' => false],
             'reset_b'        => ['label' => '重置 B', 'default' => false],
@@ -99,6 +109,7 @@ class AEGIS_System {
         add_action('wp_enqueue_scripts', ['AEGIS_Assets_Media', 'enqueue_front_assets']);
         add_action('init', ['AEGIS_System_Roles', 'sync_roles']);
         add_action('init', ['AEGIS_Portal', 'ensure_portal_page']);
+        add_action('init', ['AEGIS_Public_Query', 'ensure_public_page']);
         add_filter('login_redirect', ['AEGIS_Portal', 'filter_login_redirect'], 9999, 3);
         add_filter('login_url', ['AEGIS_Portal', 'filter_login_url'], 10, 3);
         add_filter('login_message', ['AEGIS_Portal', 'render_login_notice']);
@@ -117,6 +128,7 @@ class AEGIS_System {
         AEGIS_System_Schema::maybe_upgrade();
         AEGIS_Assets_Media::ensure_upload_structure();
         AEGIS_Portal::ensure_portal_page(true);
+        AEGIS_Public_Query::ensure_public_page(true);
         if (null === get_option(self::ORDER_SHIPMENT_LINK_OPTION, null)) {
             update_option(self::ORDER_SHIPMENT_LINK_OPTION, false, true);
         }
