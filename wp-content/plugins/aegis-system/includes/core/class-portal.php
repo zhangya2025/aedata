@@ -363,7 +363,17 @@ class AEGIS_Portal {
         }
 
         if (!isset($modules[$requested])) {
-            $requested = 'dashboard';
+            $registered = AEGIS_System::get_registered_modules();
+            if (isset($registered[$requested])) {
+                $state = $module_states[$requested] ?? ['label' => $requested, 'enabled' => false];
+                $modules[$requested] = [
+                    'label'   => $state['label'] ?? $requested,
+                    'enabled' => !empty($state['enabled']),
+                    'href'    => add_query_arg('m', $requested, $portal_url),
+                ];
+            } else {
+                $requested = 'dashboard';
+            }
         }
 
         $context = [
@@ -614,6 +624,8 @@ class AEGIS_Portal {
                 return '<div class="aegis-t-a5">公共查询页面未就绪。</div>';
             case 'reset_b':
                 return AEGIS_Reset_B::render_portal_panel(self::get_portal_url());
+            case 'orders':
+                return AEGIS_Orders::render_portal_panel(self::get_portal_url());
             default:
                 return '<div class="aegis-t-a5">该模块前台界面尚未实现（占位）。</div>';
         }
