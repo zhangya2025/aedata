@@ -362,6 +362,16 @@ class AEGIS_Portal {
             $requested = 'system_settings';
         }
 
+        $unavailable_panel = '';
+        if ('payments' === $requested) {
+            $modules['payments'] = [
+                'label'   => '支付',
+                'enabled' => false,
+                'href'    => add_query_arg('m', 'payments', $portal_url),
+            ];
+            $unavailable_panel = '<div class="aegis-t-a5">模块不存在或已并入订单流程。</div>';
+        }
+
         if (!isset($modules[$requested])) {
             $registered = AEGIS_System::get_registered_modules();
             if (isset($registered[$requested])) {
@@ -376,13 +386,15 @@ class AEGIS_Portal {
             }
         }
 
+        $current_panel = $unavailable_panel ?: self::render_module_panel($requested, $modules[$requested]);
+
         $context = [
             'user'          => $user,
             'portal_url'    => $portal_url,
             'modules'       => $modules,
             'current'       => $requested,
             'logout_url'    => wp_logout_url(self::get_login_url()),
-            'current_panel' => self::render_module_panel($requested, $modules[$requested]),
+            'current_panel' => $current_panel,
             'role_labels'   => implode(' / ', self::get_role_labels_for_user($user)),
             'dealer_notice' => $dealer_notice,
         ];
@@ -519,19 +531,19 @@ class AEGIS_Portal {
         }
 
         $label_map = [
-            'core_manager'  => '系统设置',
+            'core_manager'     => '系统设置',
             'aegis_typography' => '排版设置',
-            'sku'           => 'SKU 管理',
-            'dealer_master' => '经销商管理',
-            'codes'         => '防伪码生成',
-            'inbound'       => '扫码入库',
-            'shipments'     => '出库管理',
-            'public_query'  => '公共查询',
-            'reset_b'       => '清零B',
-            'orders'        => '订单',
-            'payments'      => '支付',
-            'reports'       => '报表',
-            'monitoring'    => '监控',
+            'sku'              => 'SKU 管理',
+            'dealer_master'    => '经销商管理',
+            'codes'            => '防伪码生成',
+            'inbound'          => '扫码入库',
+            'shipments'        => '出库管理',
+            'public_query'     => '公共查询',
+            'reset_b'          => '清零B',
+            'orders'           => '订单',
+            'reports'          => '报表',
+            'monitoring'       => '监控',
+            'access_audit'     => '访问审计',
         ];
 
         foreach ($visible as $slug => $info) {
@@ -564,6 +576,8 @@ class AEGIS_Portal {
 
         if (in_array('aegis_hq_admin', $roles, true)) {
             $allowed = $all_modules;
+        } elseif (in_array('aegis_sales', $roles, true) || in_array('aegis_finance', $roles, true)) {
+            $allowed = ['orders', 'access_audit'];
         } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
             $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b'];
         } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
@@ -616,6 +630,8 @@ class AEGIS_Portal {
                 return AEGIS_Inbound::render_portal_panel(self::get_portal_url());
             case 'shipments':
                 return AEGIS_Shipments::render_portal_panel(self::get_portal_url());
+            case 'access_audit':
+                return AEGIS_Access_Audit_Module::render_portal_panel(self::get_portal_url());
             case 'public_query':
                 $public_url = AEGIS_Public_Query::get_public_page_url();
                 if ($public_url) {
@@ -791,6 +807,15 @@ class AEGIS_Portal {
             if ($validation['success']) {
                 $settings = AEGIS_Assets_Media::parse_typography_post($_POST);
                 update_option(AEGIS_System::TYPOGRAPHY_OPTION, $settings);
+                AEGIS_Access_Audit::log(
+                    AEGIS_System::ACTION_SETTINGS_UPDATE,
+                    [
+                        'result'      => 'SUCCESS',
+                        'entity_type' => 'typography',
+                        'message'     => 'Typography updated via portal',
+                        'meta'        => ['keys' => array_keys($settings)],
+                    ]
+                );
                 $message = '排版配置已保存。';
             } else {
                 $error = $validation['message'];
@@ -849,10 +874,6 @@ class AEGIS_Portal {
             $clean[$slug] = !empty($states[$slug]);
         }
 
-        if (!empty($clean['payments']) && empty($clean['orders'])) {
-            $clean['payments'] = false;
-        }
-
         update_option(AEGIS_System::OPTION_KEY, $clean);
 
         foreach ($clean as $slug => $enabled) {
@@ -861,14 +882,26 @@ class AEGIS_Portal {
                 continue;
             }
             $action = $enabled ? AEGIS_System::ACTION_MODULE_ENABLE : AEGIS_System::ACTION_MODULE_DISABLE;
-            AEGIS_Access_Audit::record_event(
+            AEGIS_Access_Audit::log(
                 $action,
-                'SUCCESS',
                 [
-                    'module' => $slug,
+                    'result'      => 'SUCCESS',
+                    'entity_type' => 'module',
+                    'entity_id'   => $slug,
+                    'meta'        => ['module' => $slug],
                 ]
             );
         }
+
+        AEGIS_Access_Audit::log(
+            AEGIS_System::ACTION_SETTINGS_UPDATE,
+            [
+                'result'      => 'SUCCESS',
+                'entity_type' => 'module_states',
+                'message'     => 'Portal module toggles saved',
+                'meta'        => ['states' => $clean],
+            ]
+        );
     }
 
     /**
@@ -879,10 +912,12 @@ class AEGIS_Portal {
      */
     protected static function get_role_labels_for_user($user) {
         $map = [
-            'aegis_hq_admin'         => '总部管理员',
-            'aegis_warehouse_manager'=> '仓库管理员',
-            'aegis_warehouse_staff'  => '仓库员工',
-            'aegis_dealer'           => '经销商',
+            'aegis_hq_admin'          => '总部管理员',
+            'aegis_sales'             => '销售人员',
+            'aegis_finance'           => '财务人员',
+            'aegis_warehouse_manager' => '仓库管理员',
+            'aegis_warehouse_staff'   => '仓库员工',
+            'aegis_dealer'            => '经销商',
         ];
 
         $labels = [];

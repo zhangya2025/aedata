@@ -8,7 +8,7 @@ class AEGIS_System {
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
     const HQ_DISPLAY_OPTION = 'aegis_public_query_hq_label';
     const ORDER_SHIPMENT_LINK_OPTION = 'aegis_order_shipment_link';
-    const SCHEMA_VERSION = '2.4.0';
+    const SCHEMA_VERSION = '2.5.0';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -32,14 +32,22 @@ class AEGIS_System {
     const CAP_USE_WAREHOUSE = 'aegis_use_warehouse';
     const CAP_RESET_B = 'aegis_reset_b';
     const CAP_ORDERS = 'aegis_orders';
+    const CAP_ORDERS_VIEW_ALL = 'aegis_orders_view_all';
+    const CAP_ORDERS_INITIAL_REVIEW = 'aegis_orders_initial_review';
+    const CAP_ORDERS_PAYMENT_REVIEW = 'aegis_orders_payment_review';
+    const CAP_ORDERS_MANAGE_ALL = self::CAP_ORDERS;
 
     const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
     const ACTION_MODULE_DISABLE = 'MODULE_DISABLE';
     const ACTION_MODULE_UNINSTALL = 'MODULE_UNINSTALL';
+    const ACTION_SETTINGS_UPDATE = 'SETTINGS_UPDATE';
     const ACTION_SCHEMA_UPGRADE = 'SCHEMA_UPGRADE';
     const ACTION_MEDIA_UPLOAD = 'MEDIA_UPLOAD';
-    const ACTION_MEDIA_DOWNLOAD = 'MEDIA_DOWNLOAD';
-    const ACTION_MEDIA_DOWNLOAD_DENY = 'MEDIA_DOWNLOAD_DENY';
+    const ACTION_MEDIA_ACCESS = 'MEDIA_ACCESS';
+    const ACTION_MEDIA_DOWNLOAD = self::ACTION_MEDIA_ACCESS;
+    const ACTION_MEDIA_ACCESS_DENY = 'MEDIA_ACCESS_DENY';
+    const ACTION_MEDIA_DOWNLOAD_DENY = self::ACTION_MEDIA_ACCESS_DENY;
+    const ACTION_MEDIA_EXPORT = 'MEDIA_EXPORT';
     const ACTION_SKU_CREATE = 'SKU_CREATE';
     const ACTION_SKU_UPDATE = 'SKU_UPDATE';
     const ACTION_SKU_PRICE_UPDATE = 'SKU_PRICE_UPDATE';
@@ -64,14 +72,18 @@ class AEGIS_System {
     const ACTION_RECEIPT_EXPORT = 'RECEIPT_EXPORT_DETAIL';
     const ACTION_RECEIPT_PRINT = 'RECEIPT_PRINT_SUMMARY';
     const ACTION_SHIPMENT_CREATE = 'SHIPMENT_CREATE';
+    const ACTION_SHIPMENT_ITEM_ADD = 'SHIPMENT_ITEM_ADD';
     const ACTION_SHIPMENT_EXPORT_SUMMARY = 'SHIPMENT_EXPORT_SUMMARY';
     const ACTION_SHIPMENT_EXPORT_DETAIL = 'SHIPMENT_EXPORT_DETAIL';
+    const ACTION_SHIPMENT_PRINT_SUMMARY = 'SHIPMENT_PRINT_SUMMARY';
     const ACTION_PUBLIC_QUERY = 'PUBLIC_QUERY';
     const ACTION_PUBLIC_QUERY_RATE_LIMIT = 'PUBLIC_QUERY_RATE_LIMIT';
-    const ACTION_RESET_B = 'RESET_B';
+    const ACTION_RESET_B = 'RESET_B_EXECUTED';
     const ACTION_ORDER_CREATE = 'ORDER_CREATE';
     const ACTION_ORDER_UPDATE = 'ORDER_UPDATE';
+    const ACTION_ORDER_UPDATE_BY_DEALER = 'ORDER_UPDATE_BY_DEALER';
     const ACTION_ORDER_STATUS_CHANGE = 'ORDER_STATUS_CHANGE';
+    const ACTION_ORDER_CANCEL_BY_DEALER = 'ORDER_CANCEL_BY_DEALER';
     const ACTION_ORDER_INITIAL_REVIEW_PASS = 'ORDER_INITIAL_REVIEW_PASS';
     const ACTION_ORDER_INITIAL_REVIEW_EDIT = 'ORDER_INITIAL_REVIEW_EDIT';
     const ACTION_ORDER_VOID_BY_HQ = 'ORDER_VOID_BY_HQ';
@@ -92,7 +104,7 @@ class AEGIS_System {
     public static function get_registered_modules() {
         return [
             'core_manager'   => ['label' => '核心管理', 'default' => true],
-            'access_audit'   => ['label' => '访问审计', 'default' => false],
+            'access_audit'   => ['label' => '访问审计', 'default' => true],
             'assets_media'   => ['label' => '资产与媒体', 'default' => false],
             'sku'            => ['label' => 'SKU', 'default' => false],
             'dealer_master'  => ['label' => '经销商主数据', 'default' => false],
@@ -102,7 +114,6 @@ class AEGIS_System {
             'public_query'   => ['label' => '公开查询', 'default' => false],
             'reset_b'        => ['label' => '重置 B', 'default' => false],
             'orders'         => ['label' => '订单', 'default' => false],
-            'payments'       => ['label' => '支付', 'default' => false],
             'reports'        => ['label' => '报表', 'default' => false],
             'monitoring'     => ['label' => '监控', 'default' => false],
         ];
@@ -166,22 +177,30 @@ class AEGIS_System {
      */
     public function register_admin_menu() {
         $states = $this->get_module_states();
+        $can_view_orders = AEGIS_System_Roles::user_can_manage_warehouse()
+            || current_user_can(AEGIS_System::CAP_ORDERS_VIEW_ALL)
+            || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
 
         $has_visible = false;
         if (AEGIS_System_Roles::user_can_manage_system()) {
             $has_visible = true;
         }
-        if (AEGIS_System_Roles::user_can_manage_warehouse() && (!empty($states['sku']) || !empty($states['dealer_master']) || !empty($states['codes']) || !empty($states['shipments']) || !empty($states['public_query']) || !empty($states['orders']) || !empty($states['payments']))
+        if (AEGIS_System_Roles::user_can_manage_warehouse() && (!empty($states['sku']) || !empty($states['dealer_master']) || !empty($states['codes']) || !empty($states['shipments']) || !empty($states['public_query']) || !empty($states['orders']))
         ) {
             $has_visible = true;
         }
         if (AEGIS_System_Roles::user_can_use_warehouse() && !AEGIS_System_Roles::user_can_manage_warehouse() && (!empty($states['shipments']) || !empty($states['orders']))) {
             $has_visible = true;
         }
+        if ($can_view_orders && !AEGIS_System_Roles::user_can_manage_warehouse() && !AEGIS_System_Roles::user_can_use_warehouse()) {
+            $has_visible = true;
+        }
         if (AEGIS_System_Roles::user_can_reset_b() && !empty($states['reset_b'])) {
             $has_visible = true;
         }
-        if (AEGIS_System_Roles::is_dealer_only() && (!empty($states['orders']) || !empty($states['payments']) || !empty($states['reset_b']))) {
+        if (AEGIS_System_Roles::is_dealer_only() && (!empty($states['orders']) || !empty($states['reset_b']))) {
             $has_visible = true;
         }
 
@@ -254,7 +273,7 @@ class AEGIS_System {
             );
         }
 
-        if (!empty($states['orders']) && (AEGIS_System_Roles::user_can_manage_warehouse() || current_user_can(AEGIS_System::CAP_ORDERS) || AEGIS_System_Roles::is_dealer_only())) {
+        if (!empty($states['orders']) && ($can_view_orders || AEGIS_System_Roles::is_dealer_only())) {
             add_submenu_page(
                 'aegis-system',
                 '订单管理',
@@ -477,10 +496,6 @@ class AEGIS_System {
                 continue;
             }
             $clean[$slug] = !empty($states[$slug]);
-        }
-
-        if (!empty($clean['payments']) && empty($clean['orders'])) {
-            $clean['payments'] = false;
         }
 
         update_option(self::OPTION_KEY, $clean);
