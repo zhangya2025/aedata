@@ -260,7 +260,7 @@ class AEGIS_System_Schema {
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             order_no VARCHAR(120) NOT NULL,
             dealer_id BIGINT(20) UNSIGNED NOT NULL,
-            status VARCHAR(40) NOT NULL DEFAULT 'submitted',
+            status VARCHAR(40) NOT NULL DEFAULT 'pending_initial_review',
             total_amount DECIMAL(20,4) NULL,
             created_by BIGINT(20) UNSIGNED NULL,
             created_at DATETIME NOT NULL,
@@ -284,18 +284,15 @@ class AEGIS_System_Schema {
             order_id BIGINT(20) UNSIGNED NOT NULL,
             ean VARCHAR(64) NOT NULL,
             product_name_snapshot VARCHAR(191) NULL,
-            quantity INT(11) NOT NULL DEFAULT 1,
-            unit_price DECIMAL(20,4) NULL,
-            unit_price_snapshot DECIMAL(20,4) NULL,
-            price_source VARCHAR(32) NULL,
+            qty INT(11) NOT NULL DEFAULT 1,
+            unit_price_snapshot DECIMAL(20,4) NOT NULL,
+            price_source VARCHAR(32) NOT NULL,
             price_level_snapshot VARCHAR(20) NULL,
-            status VARCHAR(40) NOT NULL DEFAULT 'open',
             created_at DATETIME NOT NULL,
             meta LONGTEXT NULL,
             PRIMARY KEY  (id),
             KEY order_id (order_id),
-            KEY ean (ean),
-            KEY status (status)
+            KEY ean (ean)
         ) {$charset_collate};";
 
         $payment_sql = "CREATE TABLE {$payment_table} (
