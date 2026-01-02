@@ -220,6 +220,90 @@ class AEGIS_Orders {
         if (is_wp_error($priced_items)) {
             return $priced_items;
         }
+    }
+
+    protected static function prepare_review_items($order_items, $posted_items) {
+        if (empty($posted_items)) {
+            return new WP_Error('no_items', '初审后至少需保留一条 SKU 行。');
+        }
+
+        $existing = [];
+        foreach ($order_items as $item) {
+            $existing[$item->ean] = $item;
+        }
+
+        $prepared = [];
+        $changes = [
+            'removed' => [],
+            'qty'     => [],
+        ];
+
+        foreach ($posted_items as $item) {
+            $ean = $item['ean'];
+            $qty = (int) $item['qty'];
+            if (!isset($existing[$ean])) {
+                return new WP_Error('invalid_item', '初审不允许新增 SKU：' . esc_html($ean));
+            }
+            $orig_qty = (int) $existing[$ean]->qty;
+            if ($qty < 1) {
+                return new WP_Error('invalid_qty', '数量必须大于0。');
+            }
+            if ($qty > $orig_qty) {
+                return new WP_Error('qty_increase_blocked', '初审阶段仅允许删减数量：' . esc_html($ean));
+            }
+
+            $prepared[] = [
+                'ean'                   => $ean,
+                'qty'                   => $qty,
+                'product_name_snapshot' => $existing[$ean]->product_name_snapshot,
+                'unit_price_snapshot'   => $existing[$ean]->unit_price_snapshot,
+                'price_source'          => $existing[$ean]->price_source,
+                'price_level_snapshot'  => $existing[$ean]->price_level_snapshot,
+            ];
+
+            if ($qty < $orig_qty) {
+                $changes['qty'][] = [
+                    'ean'     => $ean,
+                    'from'    => $orig_qty,
+                    'to'      => $qty,
+                ];
+            }
+        }
+
+        foreach ($existing as $ean => $item) {
+            $found = false;
+            foreach ($posted_items as $p) {
+                if ($p['ean'] === $ean) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $changes['removed'][] = $ean;
+            }
+        }
+
+        if (empty($prepared)) {
+            return new WP_Error('no_items_after_review', '初审后需至少保留一条明细。');
+        }
+
+        return [
+            'items'   => $prepared,
+            'changes' => $changes,
+        ];
+    }
+
+    protected static function create_portal_order($dealer, $items, $note = '') {
+        global $wpdb;
+        $priced_items = self::prepare_priced_items($dealer, $items);
+        if (is_wp_error($priced_items)) {
+            return $priced_items;
+        }
+
+        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $now = current_time('mysql');
+        $order_no = self::generate_order_no();
+        $totals = self::calculate_totals($priced_items);
 
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $now = current_time('mysql');
