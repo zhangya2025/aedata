@@ -353,14 +353,17 @@ class AEGIS_Orders {
             ['%d']
         );
 
-        AEGIS_Access_Audit::record_event(
-            AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
-            'SUCCESS',
+        AEGIS_Access_Audit::log(
+            AEGIS_System::ACTION_ORDER_CANCEL_BY_DEALER,
             [
-                'order_id' => (int) $order->id,
-                'order_no' => $order->order_no,
-                'from'     => $order->status,
-                'to'       => self::STATUS_CANCELLED_BY_DEALER,
+                'result'      => 'SUCCESS',
+                'entity_type' => 'order',
+                'entity_id'   => $order->order_no,
+                'meta'        => [
+                    'order_id' => (int) $order->id,
+                    'from'     => $order->status,
+                    'to'       => self::STATUS_CANCELLED_BY_DEALER,
+                ],
             ]
         );
 

@@ -577,7 +577,15 @@ class AEGIS_Assets_Media {
         $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
 
         if (!$record) {
-            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_DOWNLOAD_DENY, 'FAIL', ['id' => $id, 'reason' => 'not_found']);
+            AEGIS_Access_Audit::log(
+                AEGIS_System::ACTION_MEDIA_ACCESS_DENY,
+                [
+                    'result'      => 'FAIL',
+                    'entity_type' => 'media',
+                    'entity_id'   => $id,
+                    'message'     => 'not_found',
+                ]
+            );
             status_header(404);
             exit;
         }
@@ -596,25 +604,44 @@ class AEGIS_Assets_Media {
         }
 
         if (!$is_public_certificate && !$can_manage_media && !$can_reset_media && !$can_view_payment) {
-            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_DOWNLOAD_DENY, 'FAIL', ['id' => $id, 'reason' => 'forbidden']);
+            AEGIS_Access_Audit::log(
+                AEGIS_System::ACTION_MEDIA_ACCESS_DENY,
+                [
+                    'result'      => 'FAIL',
+                    'entity_type' => 'media',
+                    'entity_id'   => $id,
+                    'message'     => 'forbidden',
+                ]
+            );
             status_header(403);
             exit;
         }
 
         $file_full_path = trailingslashit(wp_upload_dir()['basedir']) . $record->file_path;
         if (!file_exists($file_full_path)) {
-            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_MEDIA_DOWNLOAD_DENY, 'FAIL', ['id' => $id, 'reason' => 'missing_file']);
+            AEGIS_Access_Audit::log(
+                AEGIS_System::ACTION_MEDIA_ACCESS_DENY,
+                [
+                    'result'      => 'FAIL',
+                    'entity_type' => 'media',
+                    'entity_id'   => $id,
+                    'message'     => 'missing_file',
+                ]
+            );
             status_header(404);
             exit;
         }
 
-        AEGIS_Access_Audit::record_event(
-            AEGIS_System::ACTION_MEDIA_DOWNLOAD,
-            'SUCCESS',
+        AEGIS_Access_Audit::log(
+            AEGIS_System::ACTION_MEDIA_ACCESS,
             [
-                'id'         => $id,
-                'visibility' => $record->visibility,
-                'owner_type' => $record->owner_type,
+                'result'      => 'SUCCESS',
+                'entity_type' => 'media',
+                'entity_id'   => $id,
+                'meta'        => [
+                    'visibility' => $record->visibility,
+                    'owner_type' => $record->owner_type,
+                ],
             ]
         );
 

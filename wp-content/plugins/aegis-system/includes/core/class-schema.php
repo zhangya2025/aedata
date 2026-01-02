@@ -67,15 +67,26 @@ class AEGIS_System_Schema {
 
         $audit_sql = "CREATE TABLE {$audit_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            actor_id BIGINT(20) UNSIGNED NULL,
+            event_key VARCHAR(64) NOT NULL,
+            severity VARCHAR(20) NOT NULL DEFAULT 'INFO',
+            actor_user_id BIGINT(20) UNSIGNED NULL,
+            actor_role VARCHAR(191) NULL,
             actor_login VARCHAR(60) NULL,
-            action VARCHAR(64) NOT NULL,
+            ip_hash VARCHAR(128) NULL,
+            user_agent_hash VARCHAR(128) NULL,
+            request_path VARCHAR(255) NULL,
+            request_id VARCHAR(64) NULL,
+            entity_type VARCHAR(64) NULL,
+            entity_id VARCHAR(191) NULL,
             result VARCHAR(20) NOT NULL,
-            object_data LONGTEXT NULL,
+            message TEXT NULL,
+            meta_json LONGTEXT NULL,
             created_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
-            KEY action (action),
-            KEY created_at (created_at)
+            KEY event_key (event_key),
+            KEY created_at (created_at),
+            KEY actor_user_id (actor_user_id),
+            KEY request_id (request_id)
         ) {$charset_collate};";
 
         $media_sql = "CREATE TABLE {$media_table} (

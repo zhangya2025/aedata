@@ -206,21 +206,32 @@ class AEGIS_Reset_B {
 
         $record = self::get_code_record($code_value);
         if (!$record) {
-            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RESET_B, 'FAIL', ['code' => $code_value, 'reason' => 'not_found']);
+            AEGIS_Access_Audit::log(
+                AEGIS_System::ACTION_RESET_B,
+                [
+                    'result'      => 'FAIL',
+                    'entity_type' => 'code',
+                    'entity_id'   => $code_value,
+                    'message'     => 'not_found',
+                ]
+            );
             return new WP_Error('code_not_found', '未找到对应防伪码。');
         }
 
         $shipment = self::get_latest_shipment((int) $record->id);
         $permission = self::evaluate_permission($actor, $record, $shipment);
         if (!$permission['can_reset']) {
-            AEGIS_Access_Audit::record_event(
+            AEGIS_Access_Audit::log(
                 AEGIS_System::ACTION_RESET_B,
-                'FAIL',
                 [
-                    'code_id'   => (int) $record->id,
-                    'code'      => $code_value,
-                    'reason'    => $permission['reason'],
-                    'actor_id'  => $actor['user_id'],
+                    'result'      => 'BLOCKED',
+                    'entity_type' => 'code',
+                    'entity_id'   => $code_value,
+                    'message'     => $permission['reason'],
+                    'meta'        => [
+                        'code_id'  => (int) $record->id,
+                        'actor_id' => $actor['user_id'],
+                    ],
                 ]
             );
             return new WP_Error('not_allowed', $permission['reason']);
@@ -240,13 +251,16 @@ class AEGIS_Reset_B {
         );
 
         if (false === $updated) {
-            AEGIS_Access_Audit::record_event(
+            AEGIS_Access_Audit::log(
                 AEGIS_System::ACTION_RESET_B,
-                'FAIL',
                 [
-                    'code_id'  => (int) $record->id,
-                    'code'     => $code_value,
-                    'db_error' => $wpdb->last_error,
+                    'result'      => 'FAIL',
+                    'entity_type' => 'code',
+                    'entity_id'   => $code_value,
+                    'meta'        => [
+                        'code_id'  => (int) $record->id,
+                        'db_error' => $wpdb->last_error,
+                    ],
                 ]
             );
             return new WP_Error('db_error', '清零失败：数据库错误。');
