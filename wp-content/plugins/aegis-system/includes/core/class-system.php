@@ -32,6 +32,10 @@ class AEGIS_System {
     const CAP_USE_WAREHOUSE = 'aegis_use_warehouse';
     const CAP_RESET_B = 'aegis_reset_b';
     const CAP_ORDERS = 'aegis_orders';
+    const CAP_ORDERS_VIEW_ALL = 'aegis_orders_view_all';
+    const CAP_ORDERS_INITIAL_REVIEW = 'aegis_orders_initial_review';
+    const CAP_ORDERS_PAYMENT_REVIEW = 'aegis_orders_payment_review';
+    const CAP_ORDERS_MANAGE_ALL = self::CAP_ORDERS;
 
     const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
     const ACTION_MODULE_DISABLE = 'MODULE_DISABLE';
@@ -102,7 +106,6 @@ class AEGIS_System {
             'public_query'   => ['label' => '公开查询', 'default' => false],
             'reset_b'        => ['label' => '重置 B', 'default' => false],
             'orders'         => ['label' => '订单', 'default' => false],
-            'payments'       => ['label' => '支付', 'default' => false],
             'reports'        => ['label' => '报表', 'default' => false],
             'monitoring'     => ['label' => '监控', 'default' => false],
         ];
@@ -166,22 +169,30 @@ class AEGIS_System {
      */
     public function register_admin_menu() {
         $states = $this->get_module_states();
+        $can_view_orders = AEGIS_System_Roles::user_can_manage_warehouse()
+            || current_user_can(AEGIS_System::CAP_ORDERS_VIEW_ALL)
+            || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
 
         $has_visible = false;
         if (AEGIS_System_Roles::user_can_manage_system()) {
             $has_visible = true;
         }
-        if (AEGIS_System_Roles::user_can_manage_warehouse() && (!empty($states['sku']) || !empty($states['dealer_master']) || !empty($states['codes']) || !empty($states['shipments']) || !empty($states['public_query']) || !empty($states['orders']) || !empty($states['payments']))
+        if (AEGIS_System_Roles::user_can_manage_warehouse() && (!empty($states['sku']) || !empty($states['dealer_master']) || !empty($states['codes']) || !empty($states['shipments']) || !empty($states['public_query']) || !empty($states['orders']))
         ) {
             $has_visible = true;
         }
         if (AEGIS_System_Roles::user_can_use_warehouse() && !AEGIS_System_Roles::user_can_manage_warehouse() && (!empty($states['shipments']) || !empty($states['orders']))) {
             $has_visible = true;
         }
+        if ($can_view_orders && !AEGIS_System_Roles::user_can_manage_warehouse() && !AEGIS_System_Roles::user_can_use_warehouse()) {
+            $has_visible = true;
+        }
         if (AEGIS_System_Roles::user_can_reset_b() && !empty($states['reset_b'])) {
             $has_visible = true;
         }
-        if (AEGIS_System_Roles::is_dealer_only() && (!empty($states['orders']) || !empty($states['payments']) || !empty($states['reset_b']))) {
+        if (AEGIS_System_Roles::is_dealer_only() && (!empty($states['orders']) || !empty($states['reset_b']))) {
             $has_visible = true;
         }
 
@@ -254,7 +265,7 @@ class AEGIS_System {
             );
         }
 
-        if (!empty($states['orders']) && (AEGIS_System_Roles::user_can_manage_warehouse() || current_user_can(AEGIS_System::CAP_ORDERS) || AEGIS_System_Roles::is_dealer_only())) {
+        if (!empty($states['orders']) && ($can_view_orders || AEGIS_System_Roles::is_dealer_only())) {
             add_submenu_page(
                 'aegis-system',
                 '订单管理',
@@ -477,10 +488,6 @@ class AEGIS_System {
                 continue;
             }
             $clean[$slug] = !empty($states[$slug]);
-        }
-
-        if (!empty($clean['payments']) && empty($clean['orders'])) {
-            $clean['payments'] = false;
         }
 
         update_option(self::OPTION_KEY, $clean);

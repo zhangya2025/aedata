@@ -21,11 +21,11 @@ class AEGIS_System_Roles {
             }
 
             foreach ($def['caps'] as $cap => $grant) {
-                if ($grant) {
-                    $role->add_cap($cap);
-                }
+            if ($grant) {
+                $role->add_cap($cap);
             }
         }
+    }
 
         $admin_role = get_role('administrator');
         if ($admin_role) {
@@ -35,6 +35,10 @@ class AEGIS_System_Roles {
                 AEGIS_System::CAP_MANAGE_WAREHOUSE,
                 AEGIS_System::CAP_USE_WAREHOUSE,
                 AEGIS_System::CAP_RESET_B,
+                AEGIS_System::CAP_ORDERS_VIEW_ALL,
+                AEGIS_System::CAP_ORDERS_INITIAL_REVIEW,
+                AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW,
+                AEGIS_System::CAP_ORDERS_MANAGE_ALL,
             ];
 
             foreach ($fallback_caps as $cap) {
@@ -54,7 +58,10 @@ class AEGIS_System_Roles {
             || current_user_can(AEGIS_System::CAP_MANAGE_WAREHOUSE)
             || current_user_can(AEGIS_System::CAP_USE_WAREHOUSE)
             || current_user_can(AEGIS_System::CAP_RESET_B)
-            || current_user_can(AEGIS_System::CAP_ORDERS);
+            || current_user_can(AEGIS_System::CAP_ORDERS_VIEW_ALL)
+            || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
     }
 
     public static function user_can_manage_system() {
@@ -113,6 +120,8 @@ class AEGIS_System_Roles {
             'aegis_warehouse_manager',
             'aegis_warehouse_staff',
             'aegis_dealer',
+            'aegis_sales',
+            'aegis_finance',
         ];
     }
 
@@ -152,6 +161,28 @@ class AEGIS_System_Roles {
                     AEGIS_System::CAP_USE_WAREHOUSE        => true,
                     AEGIS_System::CAP_RESET_B              => true,
                     AEGIS_System::CAP_ORDERS               => true,
+                    AEGIS_System::CAP_ORDERS_VIEW_ALL      => true,
+                    AEGIS_System::CAP_ORDERS_INITIAL_REVIEW => true,
+                    AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW => true,
+                    AEGIS_System::CAP_ORDERS_MANAGE_ALL    => true,
+                ],
+            ],
+            'aegis_sales'            => [
+                'label' => 'AEGIS 销售人员',
+                'caps'  => [
+                    'read'                                   => true,
+                    AEGIS_System::CAP_ACCESS_ROOT            => true,
+                    AEGIS_System::CAP_ORDERS_VIEW_ALL        => true,
+                    AEGIS_System::CAP_ORDERS_INITIAL_REVIEW  => true,
+                ],
+            ],
+            'aegis_finance'          => [
+                'label' => 'AEGIS 财务人员',
+                'caps'  => [
+                    'read'                                   => true,
+                    AEGIS_System::CAP_ACCESS_ROOT            => true,
+                    AEGIS_System::CAP_ORDERS_VIEW_ALL        => true,
+                    AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW  => true,
                 ],
             ],
             'aegis_warehouse_manager' => [

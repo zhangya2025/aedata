@@ -362,6 +362,16 @@ class AEGIS_Portal {
             $requested = 'system_settings';
         }
 
+        $unavailable_panel = '';
+        if ('payments' === $requested) {
+            $modules['payments'] = [
+                'label'   => '支付',
+                'enabled' => false,
+                'href'    => add_query_arg('m', 'payments', $portal_url),
+            ];
+            $unavailable_panel = '<div class="aegis-t-a5">模块不存在或已并入订单流程。</div>';
+        }
+
         if (!isset($modules[$requested])) {
             $registered = AEGIS_System::get_registered_modules();
             if (isset($registered[$requested])) {
@@ -376,13 +386,15 @@ class AEGIS_Portal {
             }
         }
 
+        $current_panel = $unavailable_panel ?: self::render_module_panel($requested, $modules[$requested]);
+
         $context = [
             'user'          => $user,
             'portal_url'    => $portal_url,
             'modules'       => $modules,
             'current'       => $requested,
             'logout_url'    => wp_logout_url(self::get_login_url()),
-            'current_panel' => self::render_module_panel($requested, $modules[$requested]),
+            'current_panel' => $current_panel,
             'role_labels'   => implode(' / ', self::get_role_labels_for_user($user)),
             'dealer_notice' => $dealer_notice,
         ];
@@ -529,7 +541,6 @@ class AEGIS_Portal {
             'public_query'  => '公共查询',
             'reset_b'       => '清零B',
             'orders'        => '订单',
-            'payments'      => '支付',
             'reports'       => '报表',
             'monitoring'    => '监控',
         ];
@@ -564,6 +575,8 @@ class AEGIS_Portal {
 
         if (in_array('aegis_hq_admin', $roles, true)) {
             $allowed = $all_modules;
+        } elseif (in_array('aegis_sales', $roles, true) || in_array('aegis_finance', $roles, true)) {
+            $allowed = ['orders'];
         } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
             $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b'];
         } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
@@ -849,10 +862,6 @@ class AEGIS_Portal {
             $clean[$slug] = !empty($states[$slug]);
         }
 
-        if (!empty($clean['payments']) && empty($clean['orders'])) {
-            $clean['payments'] = false;
-        }
-
         update_option(AEGIS_System::OPTION_KEY, $clean);
 
         foreach ($clean as $slug => $enabled) {
@@ -879,10 +888,12 @@ class AEGIS_Portal {
      */
     protected static function get_role_labels_for_user($user) {
         $map = [
-            'aegis_hq_admin'         => '总部管理员',
-            'aegis_warehouse_manager'=> '仓库管理员',
-            'aegis_warehouse_staff'  => '仓库员工',
-            'aegis_dealer'           => '经销商',
+            'aegis_hq_admin'          => '总部管理员',
+            'aegis_sales'             => '销售人员',
+            'aegis_finance'           => '财务人员',
+            'aegis_warehouse_manager' => '仓库管理员',
+            'aegis_warehouse_staff'   => '仓库员工',
+            'aegis_dealer'            => '经销商',
         ];
 
         $labels = [];
