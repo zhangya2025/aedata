@@ -6,6 +6,7 @@ $errors = $context['errors'];
 $orders = $context['orders'];
 $order = $context['order'];
 $items = $context['items'];
+$payment = $context['payment'];
 $filters = $context['filters'];
 $skus = $context['skus'];
 $dealer = $context['dealer'];
@@ -14,10 +15,17 @@ $role_flags = $context['role_flags'];
 $price_map = $context['price_map'];
 $view_mode = $context['view_mode'];
 $status_labels = $context['status_labels'];
+$payment_status_labels = [
+    'none'      => '未提交',
+    'submitted' => '已提交，待审核',
+    'approved'  => '已通过',
+    'rejected'  => '已驳回',
+    'need_more' => '需补充',
+];
 ?>
 <div class="aegis-t-a4">
     <div class="aegis-t-a2" style="margin-bottom:12px;">订单</div>
-    <p class="aegis-t-a6">当前流程：经销商下单 → 待初审（HQ删减匹配）→ 待确认 / 撤销 / 作废。价格来自等级/覆盖价快照，不影响其他系统。</p>
+    <p class="aegis-t-a6">当前流程：经销商下单 → 待初审（HQ删减匹配）→ 待确认（上传付款凭证）→ 待审核 / 撤销 / 作废。价格来自等级/覆盖价快照，不影响其他系统。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -173,6 +181,55 @@ $status_labels = $context['status_labels'];
                 </tbody>
             </table>
 
+            <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
+                <div class="aegis-t-a5" style="margin-bottom:8px;">付款凭证</div>
+                <?php $has_payment = $payment && !empty($payment->media_id); ?>
+                <?php $payment_url = $has_payment ? AEGIS_Orders::get_media_gateway_url($payment->media_id) : ''; ?>
+                <?php $payment_status_text = $payment && isset($payment_status_labels[$payment->status]) ? $payment_status_labels[$payment->status] : ($has_payment ? '已上传' : '未上传'); ?>
+                <?php if ($order->status === 'pending_initial_review') : ?>
+                    <p class="aegis-t-a6" style="color:#6b7280;">等待 HQ 初审通过后可上传付款凭证。</p>
+                <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_dealer_confirm') : ?>
+                    <?php if ($dealer_blocked) : ?>
+                        <p class="aegis-t-a6" style="color:#d63638;">经销商账号当前不可操作，请联系管理员。</p>
+                    <?php else : ?>
+                        <form method="post" enctype="multipart/form-data" class="aegis-t-a6" style="margin-bottom:8px;">
+                            <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                            <input type="hidden" name="order_action" value="upload_payment" />
+                            <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                            <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">选择付款凭证（图片或 PDF）<br />
+                                <input type="file" name="payment_file" accept="image/*,.pdf" required />
+                            </label>
+                            <button type="submit" class="button">上传凭证</button>
+                            <?php if ($has_payment) : ?>
+                                <span class="aegis-t-a6" style="margin-left:8px;">当前：<a href="<?php echo esc_url($payment_url); ?>" target="_blank">查看凭证</a>（<?php echo esc_html($payment_status_text); ?>）</span>
+                            <?php endif; ?>
+                        </form>
+                        <form method="post" class="aegis-t-a6">
+                            <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                            <input type="hidden" name="order_action" value="submit_payment" />
+                            <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                            <button type="submit" class="button button-primary" <?php echo $has_payment ? '' : 'disabled'; ?>>提交确认（待审核）</button>
+                            <?php if (!$has_payment) : ?>
+                                <span class="aegis-t-a6" style="margin-left:8px; color:#d63638;">请先上传凭证后再提交。</span>
+                            <?php endif; ?>
+                        </form>
+                    <?php endif; ?>
+                <?php else : ?>
+                    <?php if ($has_payment) : ?>
+                        <p class="aegis-t-a6" style="margin-bottom:4px;">凭证状态：<?php echo esc_html($payment_status_text); ?> <?php if ($payment_url) : ?><a class="button" href="<?php echo esc_url($payment_url); ?>" target="_blank">查看凭证</a><?php endif; ?></p>
+                    <?php else : ?>
+                        <p class="aegis-t-a6" style="color:#6b7280;">暂无付款凭证。</p>
+                    <?php endif; ?>
+                    <?php if ($order->status === 'pending_hq_payment_review') : ?>
+                        <p class="aegis-t-a6" style="color:#6b7280;">已提交确认，等待审核。</p>
+                    <?php elseif ($order->status === 'voided_by_hq' || $order->status === 'cancelled_by_dealer') : ?>
+                        <p class="aegis-t-a6" style="color:#6b7280;">订单已终止，凭证仅供查看。</p>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+
             <?php if ($role_flags['is_hq'] && $order->status === 'pending_initial_review') : ?>
                 <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
                     <div class="aegis-t-a5" style="margin-bottom:8px;">HQ 初审（可删减/下调数量，不改价）</div>
@@ -218,7 +275,7 @@ $status_labels = $context['status_labels'];
                 </div>
             <?php endif; ?>
 
-            <?php if ($role_flags['is_hq'] && $order->status === 'pending_dealer_confirm') : ?>
+            <?php if ($role_flags['is_hq'] && in_array($order->status, ['pending_dealer_confirm', 'pending_hq_payment_review'], true)) : ?>
                 <form method="post" class="aegis-t-a6" style="margin-top:12px;" onsubmit="return confirm('确认作废该订单吗？作废后不可恢复。');">
                     <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
                     <input type="hidden" name="order_action" value="void_order" />
@@ -275,6 +332,8 @@ $status_labels = $context['status_labels'];
                 </div>
             <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_dealer_confirm') : ?>
                 <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已由 HQ 调整并待确认，当前内容只读。</p>
+            <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_hq_payment_review') : ?>
+                <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">已提交付款凭证，等待审核，当前内容只读。</p>
             <?php elseif ($order->status === 'cancelled_by_dealer') : ?>
                 <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已撤销，明细仅供查看。</p>
             <?php elseif ($order->status === 'voided_by_hq') : ?>
