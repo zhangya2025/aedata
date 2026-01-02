@@ -247,6 +247,12 @@ class AEGIS_Assets_Media {
 
         if (has_shortcode($post->post_content, self::FRONT_SHORTCODE) || has_shortcode($post->post_content, 'aegis_query')) {
             self::enqueue_typography_style('aegis-system-frontend-style');
+            wp_enqueue_style(
+                'aegis-public-query',
+                AEGIS_SYSTEM_URL . 'assets/css/public-query.css',
+                ['aegis-system-frontend-style'],
+                self::get_asset_version('assets/css/public-query.css')
+            );
         }
     }
 

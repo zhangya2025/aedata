@@ -56,6 +56,8 @@ class AEGIS_System_Schema {
         $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
         $shipment_table = $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE;
         $shipment_item_table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
+        $receipt_table = $wpdb->prefix . AEGIS_System::RECEIPT_TABLE;
+        $receipt_item_table = $wpdb->prefix . AEGIS_System::RECEIPT_ITEM_TABLE;
         $query_log_table = $wpdb->prefix . AEGIS_System::QUERY_LOG_TABLE;
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $order_item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
@@ -152,6 +154,10 @@ class AEGIS_System_Schema {
             ean VARCHAR(64) NOT NULL,
             code VARCHAR(128) NOT NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'unused',
+            stock_status VARCHAR(32) NOT NULL DEFAULT 'generated',
+            stocked_at DATETIME NULL,
+            stocked_by BIGINT(20) UNSIGNED NULL,
+            receipt_id BIGINT(20) UNSIGNED NULL,
             created_at DATETIME NOT NULL,
             printed_at DATETIME NULL,
             exported_at DATETIME NULL,
@@ -165,6 +171,7 @@ class AEGIS_System_Schema {
             KEY batch_id (batch_id),
             KEY ean (ean),
             KEY status (status),
+            KEY stock_status (stock_status),
             KEY created_at (created_at),
             KEY last_query_at (last_query_at)
         ) {$charset_collate};";
@@ -175,6 +182,8 @@ class AEGIS_System_Schema {
             dealer_id BIGINT(20) UNSIGNED NOT NULL,
             created_by BIGINT(20) UNSIGNED NULL,
             created_at DATETIME NOT NULL,
+            qty INT(11) NOT NULL DEFAULT 0,
+            note VARCHAR(255) NULL,
             order_ref VARCHAR(100) NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'created',
             meta LONGTEXT NULL,
@@ -199,6 +208,31 @@ class AEGIS_System_Schema {
             KEY code_value (code_value),
             KEY ean (ean),
             KEY scanned_at (scanned_at)
+        ) {$charset_collate};";
+
+        $receipt_sql = "CREATE TABLE {$receipt_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            receipt_no VARCHAR(120) NOT NULL,
+            created_by BIGINT(20) UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            qty INT(11) NOT NULL DEFAULT 0,
+            note VARCHAR(255) NULL,
+            batch_id BIGINT(20) UNSIGNED NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY receipt_no (receipt_no),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
+        $receipt_item_sql = "CREATE TABLE {$receipt_item_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            receipt_id BIGINT(20) UNSIGNED NOT NULL,
+            code_id BIGINT(20) UNSIGNED NOT NULL,
+            ean VARCHAR(64) NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY code_unique (code_id),
+            KEY receipt_id (receipt_id),
+            KEY ean (ean)
         ) {$charset_collate};";
 
         $query_log_sql = "CREATE TABLE {$query_log_table} (
@@ -260,7 +294,7 @@ class AEGIS_System_Schema {
             KEY status (status)
         ) {$charset_collate};";
 
-        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $query_log_sql, $order_sql, $order_item_sql, $payment_sql];
+        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $payment_sql];
     }
 
     /**

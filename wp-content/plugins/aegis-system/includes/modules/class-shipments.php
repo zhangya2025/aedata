@@ -4,6 +4,404 @@ if (!defined('ABSPATH')) {
 }
 
 class AEGIS_Shipments {
+    const MAX_PER_SHIPMENT = 300;
+
+    public static function render_portal_panel($portal_url) {
+        if (!AEGIS_System::is_module_enabled('shipments')) {
+            return '<div class="aegis-t-a5">出库模块未启用，请联系管理员。</div>';
+        }
+
+        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
+            return '<div class="aegis-t-a5">当前账号无权访问出库模块。</div>';
+        }
+
+        $base_url = add_query_arg('m', 'shipments', $portal_url);
+        $messages = [];
+        $errors = [];
+        $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
+        $shipment_id = isset($_GET['shipment']) ? (int) $_GET['shipment'] : 0;
+
+        if (isset($_GET['shipments_action'])) {
+            $action = sanitize_key(wp_unslash($_GET['shipments_action']));
+            $target = isset($_GET['shipment']) ? (int) $_GET['shipment'] : 0;
+            if ('export_summary' === $action) {
+                $result = self::handle_export_summary($target);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                }
+            } elseif ('export_detail' === $action) {
+                $result = self::handle_export_detail($target);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                }
+            } elseif ('print' === $action && $target) {
+                $result = self::handle_print_summary($target);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                }
+            }
+        }
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $whitelist = ['shipments_action', 'dealer_id', 'note', 'shipment_id', 'code', '_wp_http_referer', 'aegis_shipments_nonce', '_aegis_idempotency'];
+            $validation = AEGIS_Access_Audit::validate_write_request(
+                $_POST,
+                [
+                    'capability'      => AEGIS_System::CAP_USE_WAREHOUSE,
+                    'nonce_field'     => 'aegis_shipments_nonce',
+                    'nonce_action'    => 'aegis_shipments_action',
+                    'whitelist'       => $whitelist,
+                    'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
+                ]
+            );
+
+            if (!$validation['success']) {
+                $errors[] = $validation['message'];
+            } else {
+                $action = isset($_POST['shipments_action']) ? sanitize_key(wp_unslash($_POST['shipments_action'])) : '';
+                if ('start' === $action) {
+                    $dealer_id = isset($_POST['dealer_id']) ? (int) $_POST['dealer_id'] : 0;
+                    $note = isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '';
+                    $result = self::handle_portal_start($dealer_id, $note);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        wp_safe_redirect(add_query_arg('shipment', (int) $result['shipment_id'], $base_url));
+                        exit;
+                    }
+                } elseif ('add' === $action) {
+                    $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
+                    $code_value = isset($_POST['code']) ? sanitize_text_field(wp_unslash($_POST['code'])) : '';
+                    $result = self::handle_portal_add_code($shipment_id, $code_value);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                    }
+                } elseif ('complete' === $action) {
+                    $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
+                    $result = self::handle_portal_complete($shipment_id);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                    }
+                }
+            }
+        }
+
+        $default_start = gmdate('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
+        $default_end = gmdate('Y-m-d', current_time('timestamp'));
+        $start_date = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : $default_start;
+        $end_date = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : $default_end;
+        $dealer_filter = isset($_GET['dealer_id']) ? (int) $_GET['dealer_id'] : 0;
+        $start_datetime = self::normalize_date_boundary($start_date, 'start');
+        $end_datetime = self::normalize_date_boundary($end_date, 'end');
+
+        $per_page_options = [20, 50, 100];
+        $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 20;
+        if (!in_array($per_page, $per_page_options, true)) {
+            $per_page = 20;
+        }
+        $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
+        $total = 0;
+        $shipments = self::query_shipments($start_datetime, $end_datetime, $per_page, $paged, $total, $dealer_filter);
+
+        $shipment = $shipment_id ? self::get_shipment($shipment_id) : null;
+        $items = $shipment ? self::get_items_by_shipment($shipment_id, true) : [];
+        $summary = $shipment ? self::get_shipment_summary($shipment_id) : null;
+        $sku_summary = $shipment ? self::group_items_by_sku($items) : [];
+        $dealers = self::get_active_dealers();
+
+        $context = [
+            'base_url'     => $base_url,
+            'messages'     => $messages,
+            'errors'       => $errors,
+            'shipment'     => $shipment,
+            'items'        => $items,
+            'summary'      => $summary,
+            'sku_summary'  => $sku_summary,
+            'dealers'      => $dealers,
+            'filters'      => [
+                'start_date'  => $start_date,
+                'end_date'    => $end_date,
+                'per_page'    => $per_page,
+                'paged'       => $paged,
+                'total'       => $total,
+                'per_options' => $per_page_options,
+                'dealer_id'   => $dealer_filter,
+                'total_pages' => $per_page > 0 ? max(1, (int) ceil($total / $per_page)) : 1,
+            ],
+            'shipments'    => $shipments,
+        ];
+
+        return AEGIS_Portal::render_portal_template('shipments', $context);
+    }
+
+    protected static function handle_portal_start($dealer_id, $note = '') {
+        global $wpdb;
+        if ($dealer_id <= 0) {
+            return new WP_Error('invalid_dealer', '请选择经销商。');
+        }
+        $dealer = self::get_dealer($dealer_id);
+        if (!$dealer) {
+            return new WP_Error('dealer_missing', '经销商不存在。');
+        }
+        if ('active' !== $dealer->status) {
+            return new WP_Error('dealer_inactive', '该经销商已停用，禁止出库。');
+        }
+
+        $shipment_no = 'SHP-' . gmdate('Ymd-His', current_time('timestamp'));
+        $meta = [];
+        if ($note) {
+            $meta['note'] = $note;
+        }
+
+        $inserted = $wpdb->insert(
+            $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE,
+            [
+                'shipment_no' => $shipment_no,
+                'dealer_id'   => $dealer_id,
+                'created_by'  => get_current_user_id(),
+                'created_at'  => current_time('mysql'),
+                'qty'         => 0,
+                'note'        => $note,
+                'status'      => 'draft',
+                'meta'        => !empty($meta) ? wp_json_encode($meta) : null,
+            ],
+            ['%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s']
+        );
+
+        if (!$inserted) {
+            AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_CREATE, 'FAIL', ['dealer_id' => $dealer_id, 'error' => $wpdb->last_error]);
+            return new WP_Error('create_fail', '出库单创建失败，请重试。');
+        }
+
+        $shipment_id = (int) $wpdb->insert_id;
+        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_CREATE, 'SUCCESS', ['shipment_id' => $shipment_id, 'dealer_id' => $dealer_id, 'phase' => 'draft']);
+        return ['shipment_id' => $shipment_id];
+    }
+
+    protected static function handle_portal_add_code($shipment_id, $code_value) {
+        global $wpdb;
+        if ($shipment_id <= 0 || '' === $code_value) {
+            return new WP_Error('invalid_input', '出库单或防伪码无效。');
+        }
+
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('shipment_missing', '出库单不存在。');
+        }
+        if ('completed' === $shipment->status) {
+            return new WP_Error('shipment_closed', '出库单已完成。');
+        }
+
+        $dealer = self::get_dealer($shipment->dealer_id);
+        if (!$dealer || 'active' !== $dealer->status) {
+            return new WP_Error('dealer_inactive', '经销商已停用，禁止出库。');
+        }
+
+        $items = self::get_items_by_shipment($shipment_id);
+        if (count($items) >= self::MAX_PER_SHIPMENT) {
+            return new WP_Error('shipment_full', '单次最多出库 300 条。');
+        }
+
+        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+        $shipment_item_table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
+
+        $code = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$code_table} WHERE code = %s", $code_value));
+        if (!$code) {
+            return new WP_Error('code_missing', '防伪码不存在。');
+        }
+        if ('in_stock' !== $code->stock_status) {
+            if ('generated' === $code->stock_status || !$code->stock_status) {
+                return new WP_Error('code_not_stocked', '未入库，不可出库。');
+            }
+            if ('shipped' === $code->stock_status) {
+                return new WP_Error('code_shipped', '该防伪码已出库。');
+            }
+            return new WP_Error('code_invalid', '该防伪码状态异常。');
+        }
+
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(1) FROM {$shipment_item_table} WHERE code_id = %d", (int) $code->id));
+        if ($exists) {
+            return new WP_Error('duplicate_code', '该防伪码已在出库单中。');
+        }
+
+        $now = current_time('mysql');
+        $wpdb->query('START TRANSACTION');
+        $inserted = $wpdb->insert(
+            $shipment_item_table,
+            [
+                'shipment_id' => $shipment_id,
+                'code_id'     => $code->id,
+                'code_value'  => $code->code,
+                'ean'         => $code->ean,
+                'scanned_at'  => $now,
+                'meta'        => null,
+            ],
+            ['%d', '%d', '%s', '%s', '%s', '%s']
+        );
+        if (!$inserted) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('item_fail', '写入出库明细失败。');
+        }
+
+        $updated = $wpdb->update(
+            $code_table,
+            [
+                'status'       => 'used',
+                'stock_status' => 'shipped',
+            ],
+            ['id' => $code->id, 'stock_status' => 'in_stock'],
+            ['%s', '%s'],
+            ['%d', '%s']
+        );
+        if (!$updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('code_update_fail', '更新防伪码状态失败。');
+        }
+
+        $wpdb->query('COMMIT');
+        return ['message' => '已出库：' . $code_value];
+    }
+
+    protected static function handle_portal_complete($shipment_id) {
+        global $wpdb;
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('shipment_missing', '出库单不存在。');
+        }
+        $items = self::get_items_by_shipment($shipment_id);
+        $count = count($items);
+        if ($count <= 0) {
+            return new WP_Error('empty_shipment', '请先扫码或录入防伪码。');
+        }
+        $wpdb->update(
+            $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE,
+            [
+                'qty'    => $count,
+                'status' => 'completed',
+            ],
+            ['id' => $shipment_id],
+            ['%d', '%s'],
+            ['%d']
+        );
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_SHIPMENT_CREATE,
+            'SUCCESS',
+            [
+                'shipment_id' => $shipment_id,
+                'dealer_id'   => $shipment->dealer_id,
+                'qty'         => $count,
+            ]
+        );
+        return ['message' => '出库完成，共 ' . $count . ' 条。'];
+    }
+
+    protected static function handle_export_summary($shipment_id) {
+        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
+            return new WP_Error('no_permission', '无权导出出库汇总。');
+        }
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('missing_shipment', '出库单不存在。');
+        }
+        $items = self::get_items_by_shipment($shipment_id, true);
+        $summary = self::group_items_by_sku($items);
+        if (empty($summary)) {
+            return new WP_Error('empty', '没有可导出的汇总。');
+        }
+
+        $dealer = self::get_dealer($shipment->dealer_id);
+        $dealer_label = $dealer ? $dealer->dealer_name : '';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="shipment-' . $shipment->shipment_no . '-summary.csv"');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['shipment_no', 'dealer', 'ean', 'product_name', 'quantity']);
+        foreach ($summary as $row) {
+            fputcsv($output, [$shipment->shipment_no, $dealer_label, $row['ean'], $row['product_name'], $row['count']]);
+        }
+        fclose($output);
+        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_EXPORT_SUMMARY, 'SUCCESS', ['shipment_id' => $shipment_id, 'sku_lines' => count($summary)]);
+        exit;
+    }
+
+    protected static function handle_export_detail($shipment_id) {
+        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
+            return new WP_Error('no_permission', '无权导出出库明细。');
+        }
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('missing_shipment', '出库单不存在。');
+        }
+        $items = self::get_items_by_shipment($shipment_id, true);
+        if (empty($items)) {
+            return new WP_Error('empty', '没有可导出的明细。');
+        }
+
+        $dealer = self::get_dealer($shipment->dealer_id);
+        $dealer_label = $dealer ? $dealer->dealer_name : '';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="shipment-' . $shipment->shipment_no . '-detail.csv"');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['shipment_no', 'dealer', 'code', 'ean', 'product_name', 'scanned_at']);
+        foreach ($items as $item) {
+            fputcsv($output, [$shipment->shipment_no, $dealer_label, $item->code_value, $item->ean, $item->product_name, $item->scanned_at]);
+        }
+        fclose($output);
+        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_EXPORT_DETAIL, 'SUCCESS', ['shipment_id' => $shipment_id, 'count' => count($items)]);
+        exit;
+    }
+
+    protected static function handle_print_summary($shipment_id) {
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('missing_shipment', '出库单不存在。');
+        }
+        $items = self::get_items_by_shipment($shipment_id, true);
+        $summary = self::group_items_by_sku($items);
+        $dealer = self::get_dealer($shipment->dealer_id);
+        $dealer_label = $dealer ? $dealer->dealer_name : '';
+
+        echo '<html><head><title>出库单打印</title></head><body class="aegis-t-a5">';
+        echo '<h2 class="aegis-t-a3">出库单汇总</h2>';
+        echo '<p class="aegis-t-a6">出库单号：' . esc_html($shipment->shipment_no) . ' 经销商：' . esc_html($dealer_label) . ' 出库时间：' . esc_html($shipment->created_at) . '</p>';
+        echo '<table class="aegis-table" style="width:100%; border:1px solid #ccc;" cellspacing="0" cellpadding="6">';
+        echo '<thead><tr><th>EAN</th><th>产品名</th><th>数量</th></tr></thead><tbody>';
+        foreach ($summary as $row) {
+            echo '<tr><td>' . esc_html($row['ean']) . '</td><td>' . esc_html($row['product_name']) . '</td><td>' . esc_html($row['count']) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+        echo '</body></html>';
+        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_EXPORT_SUMMARY, 'SUCCESS', ['shipment_id' => $shipment_id, 'mode' => 'print']);
+        exit;
+    }
+
+    protected static function get_shipment_summary($shipment_id) {
+        global $wpdb;
+        $item_table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
+        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+        return $wpdb->get_row($wpdb->prepare("SELECT COUNT(si.id) as total, COUNT(DISTINCT c.ean) as sku_count FROM {$item_table} si JOIN {$code_table} c ON si.code_id = c.id WHERE si.shipment_id = %d", $shipment_id));
+    }
+
+    protected static function group_items_by_sku($items) {
+        $grouped = [];
+        foreach ($items as $item) {
+            $key = $item->ean;
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'ean'          => $item->ean,
+                    'product_name' => $item->product_name ?? '',
+                    'count'        => 0,
+                ];
+            }
+            $grouped[$key]['count']++;
+        }
+        return array_values($grouped);
+    }
     /**
      * 渲染扫码出库页面。
      */
@@ -147,6 +545,10 @@ class AEGIS_Shipments {
             return new WP_Error('no_codes', '请输入要出库的防伪码。');
         }
 
+        if (count($codes) > self::MAX_PER_SHIPMENT) {
+            return new WP_Error('too_many', '单次最多出库 300 条。');
+        }
+
         $validated_codes = self::validate_codes($codes);
         if (is_wp_error($validated_codes)) {
             return $validated_codes;
@@ -167,11 +569,13 @@ class AEGIS_Shipments {
                 'dealer_id'   => $dealer_id,
                 'created_by'  => get_current_user_id(),
                 'created_at'  => current_time('mysql'),
+                'qty'         => count($validated_codes),
+                'note'        => null,
                 'order_ref'   => $order_ref ? $order_ref : null,
                 'status'      => 'created',
                 'meta'        => wp_json_encode(['count' => count($validated_codes), 'order_ref' => $order_ref]),
             ],
-            ['%s', '%d', '%d', '%s', '%s', '%s', '%s']
+            ['%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s']
         );
 
         if (!$inserted) {
@@ -200,10 +604,10 @@ class AEGIS_Shipments {
         foreach ($validated_codes as $code) {
             $wpdb->update(
                 $code_table,
-                ['status' => 'used'],
-                ['id' => $code->id],
-                ['%s'],
-                ['%d']
+                ['status' => 'used', 'stock_status' => 'shipped'],
+                ['id' => $code->id, 'stock_status' => 'in_stock'],
+                ['%s', '%s'],
+                ['%d', '%s']
             );
         }
 
@@ -240,12 +644,18 @@ class AEGIS_Shipments {
 
         $invalid = [];
         foreach ($rows as $row) {
-            if ('unused' !== $row->status) {
-                $invalid[] = $row->code;
+            if ('in_stock' !== $row->stock_status) {
+                if ('generated' === $row->stock_status || !$row->stock_status) {
+                    $invalid[] = $row->code . '（未入库）';
+                } elseif ('shipped' === $row->stock_status) {
+                    $invalid[] = $row->code . '（已出库）';
+                } else {
+                    $invalid[] = $row->code . '（状态异常）';
+                }
             }
         }
         if (!empty($invalid)) {
-            return new WP_Error('code_used', '以下防伪码已出库或不可用：' . implode(', ', array_map('esc_html', $invalid)));
+            return new WP_Error('code_used', '以下防伪码不可出库：' . implode(', ', array_map('esc_html', $invalid)));
         }
 
         $code_ids = wp_list_pluck($rows, 'id');
@@ -452,7 +862,7 @@ class AEGIS_Shipments {
         }
         fclose($output);
 
-        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_EXPORT, 'SUCCESS', [
+        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_EXPORT_DETAIL, 'SUCCESS', [
             'shipment_id' => $shipment->id,
             'count'       => count($items),
         ]);
@@ -462,21 +872,26 @@ class AEGIS_Shipments {
     /**
      * 获取出库单列表。
      */
-    protected static function query_shipments($start, $end, $per_page, $paged, &$total) {
+    protected static function query_shipments($start, $end, $per_page, $paged, &$total, $dealer_id = 0) {
         global $wpdb;
         $shipment_table = $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE;
         $shipment_item_table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
 
-        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$shipment_table} WHERE created_at BETWEEN %s AND %s", $start, $end));
+        $where_parts = ['s.created_at BETWEEN %s AND %s'];
+        $params = [$start, $end];
+        if ($dealer_id > 0) {
+            $where_parts[] = 's.dealer_id = %d';
+            $params[] = $dealer_id;
+        }
+        $where = implode(' AND ', $where_parts);
+
+        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$shipment_table} s WHERE {$where}", $params));
         $offset = ($paged - 1) * $per_page;
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT s.*, COUNT(i.id) as item_count FROM {$shipment_table} s LEFT JOIN {$shipment_item_table} i ON s.id = i.shipment_id WHERE s.created_at BETWEEN %s AND %s GROUP BY s.id ORDER BY s.created_at DESC LIMIT %d OFFSET %d",
-                $start,
-                $end,
-                $per_page,
-                $offset
+                "SELECT s.*, COUNT(i.id) as item_count FROM {$shipment_table} s LEFT JOIN {$shipment_item_table} i ON s.id = i.shipment_id WHERE {$where} GROUP BY s.id ORDER BY s.created_at DESC LIMIT %d OFFSET %d",
+                array_merge($params, [$per_page, $offset])
             )
         );
     }
@@ -493,9 +908,18 @@ class AEGIS_Shipments {
     /**
      * 获取出库单的扫码明细。
      */
-    protected static function get_items_by_shipment($id) {
+    protected static function get_items_by_shipment($id, $with_product = false) {
         global $wpdb;
         $table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
+        if ($with_product) {
+            $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+            $sku_table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+            $sql = $wpdb->prepare(
+                "SELECT si.*, c.code as code_value, c.ean, s.product_name FROM {$table} si JOIN {$code_table} c ON si.code_id = c.id LEFT JOIN {$sku_table} s ON c.ean = s.ean WHERE si.shipment_id = %d ORDER BY si.id ASC",
+                $id
+            );
+            return $wpdb->get_results($sql);
+        }
         return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE shipment_id = %d ORDER BY scanned_at DESC", $id));
     }
 
