@@ -332,6 +332,7 @@ class AEGIS_Dealer {
                 'bucket'     => 'dealer',
                 'owner_type' => 'business_license',
                 'owner_id'   => $dealer_id,
+                'kind'       => 'business_license',
                 'visibility' => AEGIS_Assets_Media::VISIBILITY_SENSITIVE,
                 'meta'       => ['type' => 'business_license', 'dealer_code' => $auth_code_to_use],
             ]);
@@ -1115,6 +1116,7 @@ class AEGIS_Dealer {
                 'bucket'     => 'dealer',
                 'owner_type' => 'dealer_license',
                 'owner_id'   => $dealer_id,
+                'kind'       => 'dealer_license',
                 'visibility' => AEGIS_Assets_Media::VISIBILITY_SENSITIVE,
                 'meta'       => ['type' => 'dealer_license', 'auth_code' => $auth_code_to_use],
             ]);
@@ -1360,11 +1362,7 @@ class AEGIS_Dealer {
      * @return string
      */
     public static function get_media_gateway_url($media_id) {
-        if (!$media_id) {
-            return '';
-        }
-
-        return add_query_arg('aegis_media', (int) $media_id, home_url('/'));
+        return AEGIS_Assets_Media::get_media_gateway_url($media_id);
     }
 
 }

@@ -543,11 +543,7 @@ class AEGIS_Orders {
     }
 
     public static function get_media_gateway_url($media_id) {
-        if (!$media_id) {
-            return '';
-        }
-
-        return add_query_arg('aegis_media', (int) $media_id, home_url('/'));
+        return AEGIS_Assets_Media::get_media_gateway_url($media_id);
     }
 
     protected static function upload_payment_proof($dealer_state, $order) {
@@ -564,18 +560,13 @@ class AEGIS_Orders {
             return new WP_Error('missing_file', '请先选择付款凭证文件。');
         }
 
-        $filetype = wp_check_filetype($_FILES['payment_file']['name']);
-        $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'webp'];
-        if (empty($filetype['ext']) || !in_array(strtolower($filetype['ext']), $allowed_ext, true)) {
-            return new WP_Error('invalid_type', '仅支持上传图片或 PDF 凭证。');
-        }
-
         $upload = AEGIS_Assets_Media::handle_admin_upload(
             $_FILES['payment_file'],
             [
                 'bucket'                => 'payments',
                 'owner_type'            => 'order_payment_proof',
                 'owner_id'              => (int) $order->id,
+                'kind'                  => 'payment_proof',
                 'visibility'            => AEGIS_Assets_Media::VISIBILITY_SENSITIVE,
                 'allow_dealer_payment'  => true,
                 'permission_callback'   => function () use ($dealer_state, $order) {

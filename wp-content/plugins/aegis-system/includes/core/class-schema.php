@@ -92,11 +92,16 @@ class AEGIS_System_Schema {
         $media_sql = "CREATE TABLE {$media_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             owner_type VARCHAR(64) NOT NULL,
-            owner_id BIGINT(20) UNSIGNED NULL,
+            owner_id VARCHAR(191) NULL,
+            kind VARCHAR(64) NULL,
             file_path TEXT NOT NULL,
             mime VARCHAR(191) NULL,
             file_hash VARCHAR(128) NULL,
-            visibility VARCHAR(32) NOT NULL DEFAULT 'private',
+            hash VARCHAR(128) NULL,
+            size_bytes BIGINT(20) UNSIGNED NULL,
+            visibility VARCHAR(32) NOT NULL DEFAULT 'internal',
+            created_by BIGINT(20) UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
             uploaded_by BIGINT(20) UNSIGNED NULL,
             uploaded_at DATETIME NOT NULL,
             deleted_at DATETIME NULL,
@@ -104,6 +109,7 @@ class AEGIS_System_Schema {
             PRIMARY KEY  (id),
             KEY owner (owner_type, owner_id),
             KEY visibility (visibility),
+            KEY media_hash (hash),
             KEY uploaded_at (uploaded_at)
         ) {$charset_collate};";
 
