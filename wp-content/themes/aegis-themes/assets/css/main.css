@@ -1,0 +1,8 @@
+/* Base editor and front-end tweaks */
+a {
+  text-underline-offset: 0.15em;
+}
+
+.wp-site-blocks {
+  min-height: 100vh;
+}
