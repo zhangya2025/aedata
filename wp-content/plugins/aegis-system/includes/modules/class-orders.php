@@ -220,85 +220,6 @@ class AEGIS_Orders {
         if (is_wp_error($priced_items)) {
             return $priced_items;
         }
-    }
-
-    protected static function prepare_review_items($order_items, $posted_items) {
-        if (empty($posted_items)) {
-            return new WP_Error('no_items', '初审后至少需保留一条 SKU 行。');
-        }
-
-        $existing = [];
-        foreach ($order_items as $item) {
-            $existing[$item->ean] = $item;
-        }
-
-        $prepared = [];
-        $changes = [
-            'removed' => [],
-            'qty'     => [],
-        ];
-
-        foreach ($posted_items as $item) {
-            $ean = $item['ean'];
-            $qty = (int) $item['qty'];
-            if (!isset($existing[$ean])) {
-                return new WP_Error('invalid_item', '初审不允许新增 SKU：' . esc_html($ean));
-            }
-            $orig_qty = (int) $existing[$ean]->qty;
-            if ($qty < 1) {
-                return new WP_Error('invalid_qty', '数量必须大于0。');
-            }
-            if ($qty > $orig_qty) {
-                return new WP_Error('qty_increase_blocked', '初审阶段仅允许删减数量：' . esc_html($ean));
-            }
-
-            $prepared[] = [
-                'ean'                   => $ean,
-                'qty'                   => $qty,
-                'product_name_snapshot' => $existing[$ean]->product_name_snapshot,
-                'unit_price_snapshot'   => $existing[$ean]->unit_price_snapshot,
-                'price_source'          => $existing[$ean]->price_source,
-                'price_level_snapshot'  => $existing[$ean]->price_level_snapshot,
-            ];
-
-            if ($qty < $orig_qty) {
-                $changes['qty'][] = [
-                    'ean'     => $ean,
-                    'from'    => $orig_qty,
-                    'to'      => $qty,
-                ];
-            }
-        }
-
-        foreach ($existing as $ean => $item) {
-            $found = false;
-            foreach ($posted_items as $p) {
-                if ($p['ean'] === $ean) {
-                    $found = true;
-                    break;
-                }
-            }
-            if (!$found) {
-                $changes['removed'][] = $ean;
-            }
-        }
-
-        if (empty($prepared)) {
-            return new WP_Error('no_items_after_review', '初审后需至少保留一条明细。');
-        }
-
-        return [
-            'items'   => $prepared,
-            'changes' => $changes,
-        ];
-    }
-
-    protected static function create_portal_order($dealer, $items, $note = '') {
-        global $wpdb;
-        $priced_items = self::prepare_priced_items($dealer, $items);
-        if (is_wp_error($priced_items)) {
-            return $priced_items;
-        }
 
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $now = current_time('mysql');
@@ -432,14 +353,17 @@ class AEGIS_Orders {
             ['%d']
         );
 
-        AEGIS_Access_Audit::record_event(
-            AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
-            'SUCCESS',
+        AEGIS_Access_Audit::log(
+            AEGIS_System::ACTION_ORDER_CANCEL_BY_DEALER,
             [
-                'order_id' => (int) $order->id,
-                'order_no' => $order->order_no,
-                'from'     => $order->status,
-                'to'       => self::STATUS_CANCELLED_BY_DEALER,
+                'result'      => 'SUCCESS',
+                'entity_type' => 'order',
+                'entity_id'   => $order->order_no,
+                'meta'        => [
+                    'order_id' => (int) $order->id,
+                    'from'     => $order->status,
+                    'to'       => self::STATUS_CANCELLED_BY_DEALER,
+                ],
             ]
         );
 
@@ -554,7 +478,12 @@ class AEGIS_Orders {
     }
 
     public static function current_user_can_view_order($order) {
-        if (AEGIS_System_Roles::user_can_manage_warehouse() || current_user_can(AEGIS_System::CAP_ORDERS)) {
+        if (AEGIS_System_Roles::user_can_manage_warehouse()
+            || current_user_can(AEGIS_System::CAP_ORDERS_VIEW_ALL)
+            || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW)
+            || current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL)
+        ) {
             return true;
         }
         $dealer = self::get_current_dealer();
@@ -614,11 +543,7 @@ class AEGIS_Orders {
     }
 
     public static function get_media_gateway_url($media_id) {
-        if (!$media_id) {
-            return '';
-        }
-
-        return add_query_arg('aegis_media', (int) $media_id, home_url('/'));
+        return AEGIS_Assets_Media::get_media_gateway_url($media_id);
     }
 
     protected static function upload_payment_proof($dealer_state, $order) {
@@ -635,18 +560,13 @@ class AEGIS_Orders {
             return new WP_Error('missing_file', '请先选择付款凭证文件。');
         }
 
-        $filetype = wp_check_filetype($_FILES['payment_file']['name']);
-        $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'webp'];
-        if (empty($filetype['ext']) || !in_array(strtolower($filetype['ext']), $allowed_ext, true)) {
-            return new WP_Error('invalid_type', '仅支持上传图片或 PDF 凭证。');
-        }
-
         $upload = AEGIS_Assets_Media::handle_admin_upload(
             $_FILES['payment_file'],
             [
                 'bucket'                => 'payments',
                 'owner_type'            => 'order_payment_proof',
                 'owner_id'              => (int) $order->id,
+                'kind'                  => 'payment_proof',
                 'visibility'            => AEGIS_Assets_Media::VISIBILITY_SENSITIVE,
                 'allow_dealer_payment'  => true,
                 'permission_callback'   => function () use ($dealer_state, $order) {
@@ -957,8 +877,15 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $user = wp_get_current_user();
         $roles = (array) ($user ? $user->roles : []);
         $is_dealer = in_array('aegis_dealer', $roles, true);
-        $is_hq = current_user_can(AEGIS_System::CAP_ORDERS);
-        $can_manage = AEGIS_System_Roles::user_can_manage_warehouse() || $is_hq;
+        $can_manage_all = current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
+        $can_initial_review = $can_manage_all || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW);
+        $can_payment_review = $can_manage_all || current_user_can(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW);
+        $can_view_all = $can_manage_all
+            || current_user_can(AEGIS_System::CAP_ORDERS_VIEW_ALL)
+            || $can_initial_review
+            || $can_payment_review
+            || AEGIS_System_Roles::user_can_manage_warehouse();
+        $can_manage = AEGIS_System_Roles::user_can_manage_warehouse() || $can_manage_all;
         $is_staff_readonly = in_array('aegis_warehouse_staff', $roles, true) && !$can_manage;
 
         $dealer_state = $is_dealer ? AEGIS_Dealer::evaluate_dealer_access($user) : null;
@@ -966,12 +893,26 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $dealer_id = $dealer ? (int) $dealer->id : 0;
         $dealer_blocked = $is_dealer && (!$dealer_state || empty($dealer_state['allowed']));
 
-        $view_mode = $is_hq ? (isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : 'review') : 'list';
-        if (!in_array($view_mode, ['review', 'payment_review', 'list'], true)) {
-            $view_mode = $is_hq ? 'review' : 'list';
+        $allowed_views = ['list'];
+        $default_view = 'list';
+        if ($can_manage_all || ($can_initial_review && $can_payment_review)) {
+            $allowed_views = ['review', 'payment_review', 'list'];
+            $default_view = 'review';
+        } elseif ($can_initial_review) {
+            $allowed_views = ['review'];
+            $default_view = 'review';
+        } elseif ($can_payment_review) {
+            $allowed_views = ['payment_review'];
+            $default_view = 'payment_review';
         }
-        $review_queue = $is_hq && 'review' === $view_mode;
-        $payment_queue = $is_hq && 'payment_review' === $view_mode;
+
+        $view_mode = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : $default_view;
+        if (!in_array($view_mode, $allowed_views, true)) {
+            $view_mode = $default_view;
+        }
+
+        $review_queue = $can_initial_review && 'review' === $view_mode;
+        $payment_queue = $can_payment_review && 'payment_review' === $view_mode;
         $queue_view = $review_queue || $payment_queue;
 
         $messages = [];
@@ -1076,7 +1017,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
-                } elseif (!$is_hq || !$order) {
+                } elseif (!$can_initial_review || !$order) {
                     $errors[] = '无效的订单。';
                 } else {
                     $items = self::parse_item_post($_POST);
@@ -1105,7 +1046,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
-                } elseif (!$is_hq || !$order) {
+                } elseif (!$can_initial_review || !$order) {
                     $errors[] = '无效的订单。';
                 } else {
                     $reason = isset($_POST['void_reason']) ? sanitize_text_field(wp_unslash($_POST['void_reason'])) : '';
@@ -1188,7 +1129,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
-                } elseif (!$is_hq || !$order) {
+                } elseif (!$can_payment_review || !$order) {
                     $errors[] = '无效的订单。';
                 } else {
                     $result = self::review_payment_by_hq($order, $decision, $note);
@@ -1207,21 +1148,13 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $view_id = isset($_GET['order_id']) ? (int) $_GET['order_id'] : 0;
         }
 
-        $review_queue = $is_hq && 'review' === $view_mode;
-        $payment_queue = $is_hq && 'payment_review' === $view_mode;
+        $review_queue = $can_initial_review && 'review' === $view_mode;
+        $payment_queue = $can_payment_review && 'payment_review' === $view_mode;
         $queue_view = $review_queue || $payment_queue;
         $base_url = add_query_arg('m', 'orders', $portal_url);
         if ($queue_view) {
             $base_url = add_query_arg('view', $view_mode, $base_url);
-        } elseif ($is_hq) {
-            $base_url = add_query_arg('view', 'list', $base_url);
-        }
-
-        $queue_view = $is_hq && 'review' === $view_mode;
-        $base_url = add_query_arg('m', 'orders', $portal_url);
-        if ($queue_view) {
-            $base_url = add_query_arg('view', 'review', $base_url);
-        } elseif ($is_hq) {
+        } elseif ($can_view_all) {
             $base_url = add_query_arg('view', 'list', $base_url);
         }
 
@@ -1304,12 +1237,15 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             'view_mode'      => $view_mode,
             'status_labels'  => $status_labels,
             'role_flags'     => [
-                'is_dealer'      => $is_dealer,
-                'is_hq'          => $is_hq,
-                'queue_view'     => $queue_view,
-                'payment_queue'  => $payment_queue,
-                'can_manage'     => $can_manage,
-                'staff_readonly' => $is_staff_readonly,
+                'is_dealer'          => $is_dealer,
+                'can_view_all'       => $can_view_all,
+                'can_initial_review' => $can_initial_review,
+                'can_payment_review' => $can_payment_review,
+                'can_manage_all'     => $can_manage_all,
+                'queue_view'         => $queue_view,
+                'payment_queue'      => $payment_queue,
+                'can_manage'         => $can_manage,
+                'staff_readonly'     => $is_staff_readonly,
             ],
             'queue_mode'     => $queue_view ? $view_mode : '',
         ];

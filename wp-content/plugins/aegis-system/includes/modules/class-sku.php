@@ -155,7 +155,7 @@ class AEGIS_SKU {
 
             echo '<tr><th>证书上传</th><td>';
             echo '<input type="file" name="certificate_file" />';
-            $visibility = isset($_POST['certificate_visibility']) ? sanitize_key(wp_unslash($_POST['certificate_visibility'])) : AEGIS_Assets_Media::VISIBILITY_PRIVATE;
+            $visibility = isset($_POST['certificate_visibility']) ? sanitize_key(wp_unslash($_POST['certificate_visibility'])) : AEGIS_Assets_Media::VISIBILITY_INTERNAL;
             echo '<p class="aegis-t-a6">证书可设置公开（public）或内部可见（internal=private）。</p>';
             echo '<label><input type="radio" name="certificate_visibility" value="private" ' . checked($visibility, 'private', false) . ' /> 内部</label> ';
             echo '<label><input type="radio" name="certificate_visibility" value="public" ' . checked($visibility, 'public', false) . ' /> 公开</label>';
@@ -296,7 +296,8 @@ class AEGIS_SKU {
                     'bucket'     => 'sku',
                     'owner_type' => 'sku_image',
                     'owner_id'   => $sku_id,
-                    'visibility' => AEGIS_Assets_Media::VISIBILITY_PRIVATE,
+                    'kind'       => 'product_image',
+                    'visibility' => AEGIS_Assets_Media::VISIBILITY_INTERNAL,
                     'meta'       => ['type' => 'product_image', 'sku' => $ean_to_use],
                 ]);
 
@@ -309,11 +310,12 @@ class AEGIS_SKU {
             }
 
             if (isset($files['certificate_file']) && is_array($files['certificate_file']) && !empty($files['certificate_file']['name'])) {
-                $visibility = isset($post['certificate_visibility']) && 'public' === sanitize_key($post['certificate_visibility']) ? AEGIS_Assets_Media::VISIBILITY_PUBLIC : AEGIS_Assets_Media::VISIBILITY_PRIVATE;
+                $visibility = isset($post['certificate_visibility']) && 'public' === sanitize_key($post['certificate_visibility']) ? AEGIS_Assets_Media::VISIBILITY_PUBLIC : AEGIS_Assets_Media::VISIBILITY_INTERNAL;
                 $upload = AEGIS_Assets_Media::handle_admin_upload($files['certificate_file'], [
                     'bucket'     => 'certificate',
                     'owner_type' => 'certificate',
                     'owner_id'   => $sku_id,
+                    'kind'       => 'sku_certificate',
                     'visibility' => $visibility,
                     'meta'       => ['type' => 'sku_certificate', 'sku' => $ean_to_use],
                 ]);
@@ -703,11 +705,7 @@ class AEGIS_SKU {
      * @return string
      */
     public static function get_media_gateway_url($media_id) {
-        if (!$media_id) {
-            return '';
-        }
-
-        return add_query_arg('aegis_media', (int) $media_id, home_url('/'));
+        return AEGIS_Assets_Media::get_media_gateway_url($media_id);
     }
 }
 

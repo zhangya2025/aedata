@@ -376,7 +376,7 @@ class AEGIS_Shipments {
         }
         echo '</tbody></table>';
         echo '</body></html>';
-        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_EXPORT_SUMMARY, 'SUCCESS', ['shipment_id' => $shipment_id, 'mode' => 'print']);
+        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SHIPMENT_PRINT_SUMMARY, 'SUCCESS', ['shipment_id' => $shipment_id, 'mode' => 'print']);
         exit;
     }
 
