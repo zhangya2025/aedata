@@ -335,6 +335,10 @@ class AEGIS_Public_Query {
         $status_class = 'shipped' === $stock_status ? 'status-safe' : 'status-warn';
         $message = 'shipped' === $stock_status ? '该防伪码已出库。' : '该防伪码已生成但未出库。';
 
+        $status_label = 'shipped' === $stock_status ? '已出库' : '未出库';
+        $status_class = 'shipped' === $stock_status ? 'status-safe' : 'status-warn';
+        $message = 'shipped' === $stock_status ? '该防伪码已出库。' : '该防伪码已生成但未出库。';
+
         $result = [
             'code'         => $record->code,
             'ean'          => $record->ean,
