@@ -544,6 +544,7 @@ class AEGIS_Portal {
             'reports'          => '报表',
             'monitoring'       => '监控',
             'access_audit'     => '访问审计',
+            'assets_media'     => '资产与媒体',
         ];
 
         foreach ($visible as $slug => $info) {
@@ -632,6 +633,8 @@ class AEGIS_Portal {
                 return AEGIS_Shipments::render_portal_panel(self::get_portal_url());
             case 'access_audit':
                 return AEGIS_Access_Audit_Module::render_portal_panel(self::get_portal_url());
+            case 'assets_media':
+                return AEGIS_Assets_Media::render_portal_panel(self::get_portal_url());
             case 'public_query':
                 $public_url = AEGIS_Public_Query::get_public_page_url();
                 if ($public_url) {

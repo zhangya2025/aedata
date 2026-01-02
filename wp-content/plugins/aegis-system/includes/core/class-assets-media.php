@@ -453,6 +453,55 @@ class AEGIS_Assets_Media {
     }
 
     /**
+     * Portal 面板。
+     *
+     * @param string $portal_url
+     * @return string
+     */
+    public static function render_portal_panel($portal_url) {
+        if (!AEGIS_System::is_module_enabled('assets_media')) {
+            return '<div class=\"aegis-t-a5\">模块未启用。</div>';
+        }
+
+        $user = wp_get_current_user();
+        if (!$user || !AEGIS_System_Roles::user_can_manage_system($user)) {
+            return '<div class=\"aegis-t-a5\">当前账号无权访问资产与媒体面板。</div>';
+        }
+
+        $upload_dir = wp_upload_dir();
+        $base_dir = trailingslashit($upload_dir['basedir']) . self::UPLOAD_ROOT;
+        $allowed_types = array_keys(self::get_allowed_mime_types());
+        $max_size_mb = round(self::get_max_upload_size() / MB_IN_BYTES, 2);
+
+        $context = [
+            'portal_url'  => $portal_url,
+            'base_dir'    => $base_dir,
+            'allowed'     => $allowed_types,
+            'max_size_mb' => $max_size_mb,
+            'checks'      => [
+                'path_exists'   => file_exists($base_dir),
+                'path_writable' => is_dir($base_dir) && wp_is_writable($base_dir),
+                'table_exists'  => self::media_table_exists(),
+            ],
+        ];
+
+        return AEGIS_Portal::render_portal_template('assets-media', $context);
+    }
+
+    /**
+     * 判断媒体表是否存在。
+     *
+     * @return bool
+     */
+    protected static function media_table_exists() {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
+        $query = $wpdb->prepare('SHOW TABLES LIKE %s', $table);
+
+        return (string) $wpdb->get_var($query) === $table;
+    }
+
+    /**
      * 注册 REST 路由。
      */
     public static function register_rest_routes() {
