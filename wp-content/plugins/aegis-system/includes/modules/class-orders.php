@@ -4,10 +4,10 @@ if (!defined('ABSPATH')) {
 }
 
 class AEGIS_Orders {
-    const STATUS_SUBMITTED = 'submitted';
-    const STATUS_CONFIRMED = 'confirmed';
-    const STATUS_CANCELLED = 'cancelled';
-    const STATUS_CLOSED = 'closed';
+    const STATUS_PENDING_INITIAL_REVIEW = 'pending_initial_review';
+    const STATUS_CANCELLED_BY_DEALER = 'cancelled_by_dealer';
+    const STATUS_PENDING_DEALER_CONFIRM = 'pending_dealer_confirm';
+    const STATUS_VOIDED_BY_HQ = 'voided_by_hq';
 
     protected static function parse_item_post($post) {
         $eans = isset($post['order_item_ean']) ? (array) $post['order_item_ean'] : [];
@@ -27,29 +27,43 @@ class AEGIS_Orders {
         return $items;
     }
 
-    protected static function create_portal_order($dealer, $items, $note = '') {
+    protected static function generate_order_no() {
         global $wpdb;
-        if (empty($items)) {
-            return new WP_Error('no_items', '请至少添加一条 SKU 行。');
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        for ($i = 0; $i < 5; $i++) {
+            $order_no = 'ORD-' . gmdate('Ymd-His', current_time('timestamp')) . '-' . wp_rand(100, 999);
+            $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE order_no = %s", $order_no));
+            if (!$exists) {
+                return $order_no;
+            }
         }
-        if (!$dealer) {
-            return new WP_Error('dealer_missing', '未找到经销商信息。');
+        return uniqid('ORD-', false);
+    }
+
+    protected static function load_skus($eans) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        if (empty($eans)) {
+            return [];
         }
-
-        $sku_table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
-        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
-        $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
-
-        $unique_eans = array_values(array_unique(wp_list_pluck($items, 'ean')));
-        $placeholders = implode(',', array_fill(0, count($unique_eans), '%s'));
-        $sku_rows = $wpdb->get_results(
+        $placeholders = implode(',', array_fill(0, count($eans), '%s'));
+        $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT ean, product_name, status FROM {$sku_table} WHERE ean IN ({$placeholders})",
-                $unique_eans
+                "SELECT ean, product_name, status FROM {$table} WHERE ean IN ({$placeholders})",
+                $eans
             ),
             OBJECT_K
         );
+        return $rows ?: [];
+    }
 
+    protected static function prepare_priced_items($dealer, $items) {
+        if (empty($items)) {
+            return new WP_Error('no_items', '请至少添加一条 SKU 行。');
+        }
+
+        $unique_eans = array_values(array_unique(wp_list_pluck($items, 'ean')));
+        $sku_rows = self::load_skus($unique_eans);
         foreach ($unique_eans as $ean) {
             if (!isset($sku_rows[$ean])) {
                 return new WP_Error('sku_missing', 'SKU 不存在：' . esc_html($ean));
@@ -59,31 +73,173 @@ class AEGIS_Orders {
             }
         }
 
+        $priced = [];
+        foreach ($items as $item) {
+            $ean = $item['ean'];
+            $qty = (int) $item['qty'];
+            $quote = AEGIS_Pricing::get_quote((int) $dealer->id, $ean);
+            if (is_wp_error($quote)) {
+                return $quote;
+            }
+            if (empty($quote['unit_price'])) {
+                return new WP_Error('missing_price', 'SKU 无可用价格，禁止下单：' . esc_html($ean));
+            }
+            $priced[] = [
+                'ean'                   => $ean,
+                'qty'                   => $qty,
+                'product_name_snapshot' => $sku_rows[$ean]->product_name,
+                'unit_price_snapshot'   => number_format((float) $quote['unit_price'], 4, '.', ''),
+                'price_source'          => $quote['price_source'],
+                'price_level_snapshot'  => $quote['price_level_used'],
+            ];
+        }
+
+        return $priced;
+    }
+
+    protected static function calculate_totals($items) {
+        $total_qty = 0;
+        $total_amount = 0.0;
+        foreach ($items as $item) {
+            $qty = (int) $item['qty'];
+            $total_qty += $qty;
+            $total_amount += ((float) $item['unit_price_snapshot']) * $qty;
+        }
+        return [
+            'item_count'   => count($items),
+            'total_qty'    => $total_qty,
+            'total_amount' => $total_amount,
+        ];
+    }
+
+    protected static function persist_items($order_id, $items, $timestamp) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
+        $wpdb->delete($table, ['order_id' => $order_id], ['%d']);
+        foreach ($items as $item) {
+            $wpdb->insert(
+                $table,
+                [
+                    'order_id'              => $order_id,
+                    'ean'                   => $item['ean'],
+                    'product_name_snapshot' => $item['product_name_snapshot'],
+                    'qty'                   => (int) $item['qty'],
+                    'unit_price_snapshot'   => $item['unit_price_snapshot'],
+                    'price_source'          => $item['price_source'],
+                    'price_level_snapshot'  => $item['price_level_snapshot'],
+                    'created_at'            => $timestamp,
+                    'meta'                  => null,
+                ],
+                ['%d', '%s', '%s', '%d', '%f', '%s', '%s', '%s', '%s']
+            );
+        }
+    }
+
+    protected static function prepare_review_items($order_items, $posted_items) {
+        if (empty($posted_items)) {
+            return new WP_Error('no_items', '初审后至少需保留一条 SKU 行。');
+        }
+
+        $existing = [];
+        foreach ($order_items as $item) {
+            $existing[$item->ean] = $item;
+        }
+
+        $prepared = [];
+        $changes = [
+            'removed' => [],
+            'qty'     => [],
+        ];
+
+        foreach ($posted_items as $item) {
+            $ean = $item['ean'];
+            $qty = (int) $item['qty'];
+            if (!isset($existing[$ean])) {
+                return new WP_Error('invalid_item', '初审不允许新增 SKU：' . esc_html($ean));
+            }
+            $orig_qty = (int) $existing[$ean]->qty;
+            if ($qty < 1) {
+                return new WP_Error('invalid_qty', '数量必须大于0。');
+            }
+            if ($qty > $orig_qty) {
+                return new WP_Error('qty_increase_blocked', '初审阶段仅允许删减数量：' . esc_html($ean));
+            }
+
+            $prepared[] = [
+                'ean'                   => $ean,
+                'qty'                   => $qty,
+                'product_name_snapshot' => $existing[$ean]->product_name_snapshot,
+                'unit_price_snapshot'   => $existing[$ean]->unit_price_snapshot,
+                'price_source'          => $existing[$ean]->price_source,
+                'price_level_snapshot'  => $existing[$ean]->price_level_snapshot,
+            ];
+
+            if ($qty < $orig_qty) {
+                $changes['qty'][] = [
+                    'ean'     => $ean,
+                    'from'    => $orig_qty,
+                    'to'      => $qty,
+                ];
+            }
+        }
+
+        foreach ($existing as $ean => $item) {
+            $found = false;
+            foreach ($posted_items as $p) {
+                if ($p['ean'] === $ean) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $changes['removed'][] = $ean;
+            }
+        }
+
+        if (empty($prepared)) {
+            return new WP_Error('no_items_after_review', '初审后需至少保留一条明细。');
+        }
+
+        return [
+            'items'   => $prepared,
+            'changes' => $changes,
+        ];
+    }
+
+    protected static function create_portal_order($dealer, $items, $note = '') {
+        global $wpdb;
+        $priced_items = self::prepare_priced_items($dealer, $items);
+        if (is_wp_error($priced_items)) {
+            return $priced_items;
+        }
+
+        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $now = current_time('mysql');
         $order_no = self::generate_order_no();
-        $item_count = count($items);
-        $total_qty = 0;
-        foreach ($items as $item) {
-            $total_qty += (int) $item['qty'];
-        }
+        $totals = self::calculate_totals($priced_items);
 
         $inserted = $wpdb->insert(
             $order_table,
             [
-                'order_no'             => $order_no,
-                'dealer_id'            => (int) $dealer->id,
-                'status'               => self::STATUS_SUBMITTED,
-                'total_amount'         => null,
-                'created_by'           => get_current_user_id(),
-                'created_at'           => $now,
-                'updated_at'           => $now,
-                'confirmed_at'         => null,
-                'confirmed_by'         => null,
-                'note'                 => $note,
-                'snapshot_dealer_name' => $dealer->dealer_name,
-                'meta'                 => wp_json_encode(['item_count' => $item_count, 'total_qty' => $total_qty]),
+                'order_no'               => $order_no,
+                'dealer_id'              => (int) $dealer->id,
+                'status'                 => self::STATUS_PENDING_INITIAL_REVIEW,
+                'total_amount'           => $totals['total_amount'],
+                'created_by'             => get_current_user_id(),
+                'created_at'             => $now,
+                'updated_at'             => $now,
+                'confirmed_at'           => null,
+                'confirmed_by'           => null,
+                'note'                   => $note,
+                'snapshot_dealer_name'   => $dealer->dealer_name,
+                'dealer_name_snapshot'   => $dealer->dealer_name,
+                'sales_user_id_snapshot' => $dealer->sales_user_id,
+                'meta'                   => wp_json_encode([
+                    'item_count' => $totals['item_count'],
+                    'total_qty'  => $totals['total_qty'],
+                ]),
             ],
-            ['%s', '%d', '%s', '%f', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s']
+            ['%s', '%d', '%s', '%f', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s']
         );
 
         if (!$inserted) {
@@ -91,24 +247,7 @@ class AEGIS_Orders {
         }
 
         $order_id = (int) $wpdb->insert_id;
-        foreach ($items as $item) {
-            $ean = $item['ean'];
-            $sku = $sku_rows[$ean];
-            $wpdb->insert(
-                $item_table,
-                [
-                    'order_id'              => $order_id,
-                    'ean'                   => $ean,
-                    'product_name_snapshot' => $sku->product_name,
-                    'quantity'              => (int) $item['qty'],
-                    'unit_price'            => null,
-                    'status'                => 'open',
-                    'created_at'            => $now,
-                    'meta'                  => null,
-                ],
-                ['%d', '%s', '%s', '%d', '%f', '%s', '%s', '%s']
-            );
-        }
+        self::persist_items($order_id, $priced_items, $now);
 
         AEGIS_Access_Audit::record_event(
             AEGIS_System::ACTION_ORDER_CREATE,
@@ -116,8 +255,8 @@ class AEGIS_Orders {
             [
                 'order_id'  => $order_id,
                 'order_no'  => $order_no,
-                'lines'     => $item_count,
-                'total_qty' => $total_qty,
+                'lines'     => $totals['item_count'],
+                'total_qty' => $totals['total_qty'],
             ]
         );
 
@@ -127,266 +266,199 @@ class AEGIS_Orders {
         ];
     }
 
-    protected static function generate_order_no() {
-        return 'ORD-' . gmdate('Ymd-His', current_time('timestamp')) . '-' . wp_rand(100, 999);
-    }
-
-    protected static function update_order_status($order_id, $target_status) {
+    protected static function update_portal_order($dealer, $order, $items, $note = '') {
         global $wpdb;
-        if ($order_id <= 0) {
-            return new WP_Error('order_missing', '订单不存在。');
+        if ((int) $order->dealer_id !== (int) $dealer->id) {
+            return new WP_Error('forbidden', '无权操作该订单。');
         }
-        $allowed = [self::STATUS_SUBMITTED, self::STATUS_CONFIRMED, self::STATUS_CANCELLED, self::STATUS_CLOSED];
-        if (!in_array($target_status, $allowed, true)) {
-            return new WP_Error('bad_status', '无效的目标状态。');
-        }
-
-        $order = self::get_order($order_id);
-        if (!$order) {
-            return new WP_Error('order_missing', '订单不存在。');
+        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+            return new WP_Error('bad_status', '仅待初审订单可编辑。');
         }
 
-        $transition = [
-            self::STATUS_SUBMITTED => [self::STATUS_CONFIRMED, self::STATUS_CANCELLED],
-            self::STATUS_CONFIRMED => [self::STATUS_CLOSED, self::STATUS_CANCELLED],
-            self::STATUS_CANCELLED => [],
-            self::STATUS_CLOSED    => [],
-        ];
-
-        $current = $order->status;
-        if (!isset($transition[$current]) || !in_array($target_status, $transition[$current], true)) {
-            return new WP_Error('invalid_transition', '不支持的状态流转。');
-        }
-
-        $update = [
-            'status'     => $target_status,
-            'updated_at' => current_time('mysql'),
-        ];
-        $formats = ['%s', '%s'];
-        if (self::STATUS_CONFIRMED === $target_status) {
-            $update['confirmed_at'] = current_time('mysql');
-            $update['confirmed_by'] = get_current_user_id();
-            $formats[] = '%s';
-            $formats[] = '%d';
+        $priced_items = self::prepare_priced_items($dealer, $items);
+        if (is_wp_error($priced_items)) {
+            return $priced_items;
         }
 
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
-        $wpdb->update($order_table, $update, ['id' => $order_id], $formats, ['%d']);
+        $now = current_time('mysql');
+        $totals = self::calculate_totals($priced_items);
+        $updated = $wpdb->update(
+            $order_table,
+            [
+                'updated_at'   => $now,
+                'note'         => $note,
+                'total_amount' => $totals['total_amount'],
+                'meta'         => wp_json_encode([
+                    'item_count' => $totals['item_count'],
+                    'total_qty'  => $totals['total_qty'],
+                ]),
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s', '%f', '%s'],
+            ['%d']
+        );
+
+        if (false === $updated) {
+            return new WP_Error('update_failed', '订单更新失败，请稍后再试。');
+        }
+
+        self::persist_items((int) $order->id, $priced_items, $now);
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_UPDATE,
+            'SUCCESS',
+            [
+                'order_id'  => (int) $order->id,
+                'order_no'  => $order->order_no,
+                'lines'     => $totals['item_count'],
+                'total_qty' => $totals['total_qty'],
+            ]
+        );
+
+        return ['message' => '订单已更新。'];
+    }
+
+    protected static function cancel_portal_order($dealer, $order) {
+        global $wpdb;
+        if ((int) $order->dealer_id !== (int) $dealer->id) {
+            return new WP_Error('forbidden', '无权操作该订单。');
+        }
+        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+            return new WP_Error('bad_status', '仅待初审订单可撤销。');
+        }
+
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $wpdb->update(
+            $table,
+            [
+                'status'     => self::STATUS_CANCELLED_BY_DEALER,
+                'updated_at' => current_time('mysql'),
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s'],
+            ['%d']
+        );
 
         AEGIS_Access_Audit::record_event(
             AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
             'SUCCESS',
             [
-                'order_id' => $order_id,
-                'from'     => $current,
-                'to'       => $target_status,
+                'order_id' => (int) $order->id,
+                'order_no' => $order->order_no,
+                'from'     => $order->status,
+                'to'       => self::STATUS_CANCELLED_BY_DEALER,
             ]
         );
 
-        return ['message' => '订单状态已更新。'];
+        return ['message' => '订单已撤销。'];
     }
 
-    protected static function query_portal_orders($args, &$total = 0) {
+    protected static function review_order_by_hq($order, $items, $review_note = '') {
         global $wpdb;
+        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+            return new WP_Error('bad_status', '仅待初审订单可审核。');
+        }
+
+        $existing_items = self::get_items($order->id);
+        $prepared = self::prepare_review_items($existing_items, $items);
+        if (is_wp_error($prepared)) {
+            return $prepared;
+        }
+
+        $now = current_time('mysql');
+        $totals = self::calculate_totals($prepared['items']);
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
-        $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
-        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
-
-        $start = $args['start'] ?? '';
-        $end = $args['end'] ?? '';
-        $dealer_id = $args['dealer_id'] ?? null;
-        $order_no = $args['order_no'] ?? '';
-        $per_page = $args['per_page'] ?? 20;
-        $paged = $args['paged'] ?? 1;
-        $offset = ($paged - 1) * $per_page;
-
-        $where = ['o.created_at BETWEEN %s AND %s'];
-        $params = [$start, $end];
-        if ($dealer_id) {
-            $where[] = 'o.dealer_id = %d';
-            $params[] = $dealer_id;
-        }
-        if ($order_no) {
-            $where[] = 'o.order_no LIKE %s';
-            $params[] = '%' . $wpdb->esc_like($order_no) . '%';
-        }
-        $where_sql = implode(' AND ', $where);
-
-        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$order_table} o WHERE {$where_sql}", $params));
-
-        $params[] = $per_page;
-        $params[] = $offset;
-
-        return $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT o.*, d.dealer_name, COALESCE(SUM(oi.quantity),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count FROM {$order_table} o LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id WHERE {$where_sql} GROUP BY o.id ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
-                $params
-            )
+        $updated = $wpdb->update(
+            $order_table,
+            [
+                'status'       => self::STATUS_PENDING_DEALER_CONFIRM,
+                'updated_at'   => $now,
+                'review_note'  => $review_note,
+                'reviewed_by'  => get_current_user_id(),
+                'reviewed_at'  => $now,
+                'total_amount' => $totals['total_amount'],
+                'meta'         => wp_json_encode([
+                    'item_count' => $totals['item_count'],
+                    'total_qty'  => $totals['total_qty'],
+                ]),
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s', '%s', '%d', '%s', '%f', '%s'],
+            ['%d']
         );
+
+        if (false === $updated) {
+            return new WP_Error('update_failed', '初审更新失败，请稍后再试。');
+        }
+
+        self::persist_items((int) $order->id, $prepared['items'], $now);
+
+        if (!empty($prepared['changes']['removed']) || !empty($prepared['changes']['qty'])) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_ORDER_INITIAL_REVIEW_EDIT,
+                'SUCCESS',
+                [
+                    'order_id' => (int) $order->id,
+                    'order_no' => $order->order_no,
+                    'removed'  => $prepared['changes']['removed'],
+                    'qty'      => $prepared['changes']['qty'],
+                ]
+            );
+        }
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_INITIAL_REVIEW_PASS,
+            'SUCCESS',
+            [
+                'order_id'  => (int) $order->id,
+                'order_no'  => $order->order_no,
+                'dealer_id' => (int) $order->dealer_id,
+                'status_to' => self::STATUS_PENDING_DEALER_CONFIRM,
+            ]
+        );
+
+        return ['message' => '初审已通过，等待经销商确认。'];
     }
 
-    protected static function list_active_skus() {
+    protected static function void_order_by_hq($order, $reason = '') {
         global $wpdb;
-        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
-        return $wpdb->get_results($wpdb->prepare("SELECT ean, product_name FROM {$table} WHERE status = %s ORDER BY product_name ASC", AEGIS_SKU::STATUS_ACTIVE));
-    }
-
-    /**
-     * 渲染订单与付款页面。
-     */
-    public static function render_admin_page() {
-        $orders_enabled = AEGIS_System::is_module_enabled('orders');
-        $payments_enabled = $orders_enabled && AEGIS_System::is_module_enabled('payments');
-        $is_dealer_user = AEGIS_System_Roles::is_dealer_only();
-
-        if (!$orders_enabled) {
-            wp_die(__('订单模块未启用。'));
+        if (!in_array($order->status, [self::STATUS_PENDING_INITIAL_REVIEW, self::STATUS_PENDING_DEALER_CONFIRM], true)) {
+            return new WP_Error('bad_status', '仅待初审/待确认订单可作废。');
         }
 
-        if (!$is_dealer_user && !AEGIS_System_Roles::user_can_manage_warehouse() && !current_user_can(AEGIS_System::CAP_ORDERS)) {
-            wp_die(__('您无权访问该页面。'));
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $updated = $wpdb->update(
+            $table,
+            [
+                'status'      => self::STATUS_VOIDED_BY_HQ,
+                'updated_at'  => current_time('mysql'),
+                'voided_at'   => current_time('mysql'),
+                'voided_by'   => get_current_user_id(),
+                'void_reason' => $reason,
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s', '%s', '%d', '%s'],
+            ['%d']
+        );
+
+        if (false === $updated) {
+            return new WP_Error('void_failed', '订单作废失败，请稍后再试。');
         }
 
-        $messages = [];
-        $errors = [];
-        $dealer = $is_dealer_user ? self::get_current_dealer() : null;
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_VOID_BY_HQ,
+            'SUCCESS',
+            [
+                'order_id'  => (int) $order->id,
+                'order_no'  => $order->order_no,
+                'dealer_id' => (int) $order->dealer_id,
+                'status'    => $order->status,
+                'reason'    => $reason,
+            ]
+        );
 
-        if ($is_dealer_user && !$dealer) {
-            $errors[] = '未找到您的经销商档案。';
-        }
-
-        if ('POST' === $_SERVER['REQUEST_METHOD']) {
-            $action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
-            $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
-
-            if ('create_order' === $action) {
-                $validation = AEGIS_Access_Audit::validate_write_request(
-                    $_POST,
-                    [
-                        'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
-                        'nonce_field'     => 'aegis_orders_nonce',
-                        'nonce_action'    => 'aegis_orders_action',
-                        'whitelist'       => ['order_action', 'dealer_id', 'order_no', 'order_status', 'order_items', 'order_total', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
-                        'idempotency_key' => $idempotency,
-                    ]
-                );
-
-                if (!$validation['success']) {
-                    $errors[] = $validation['message'];
-                } else {
-                    $result = self::handle_create_order($_POST);
-                    if (is_wp_error($result)) {
-                        $errors[] = $result->get_error_message();
-                    } else {
-                        $messages[] = $result['message'];
-                    }
-                }
-            } elseif ('upload_payment' === $action && $payments_enabled) {
-                $capability = $is_dealer_user ? AEGIS_System::CAP_ACCESS_ROOT : AEGIS_System::CAP_MANAGE_WAREHOUSE;
-                $validation = AEGIS_Access_Audit::validate_write_request(
-                    $_POST,
-                    [
-                        'capability'      => $capability,
-                        'nonce_field'     => 'aegis_orders_nonce',
-                        'nonce_action'    => 'aegis_orders_action',
-                        'whitelist'       => ['order_action', 'order_id', 'payment_status', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
-                        'idempotency_key' => $idempotency,
-                    ]
-                );
-
-                if (!$validation['success']) {
-                    $errors[] = $validation['message'];
-                } elseif (!isset($_FILES['payment_proof'])) {
-                    $errors[] = '请上传付款凭证。';
-                } else {
-                    $result = self::handle_payment_upload($_POST, $_FILES);
-                    if (is_wp_error($result)) {
-                        $errors[] = $result->get_error_message();
-                    } else {
-                        $messages[] = $result['message'];
-                    }
-                }
-            } elseif ('toggle_link' === $action) {
-                $validation = AEGIS_Access_Audit::validate_write_request(
-                    $_POST,
-                    [
-                        'capability'      => AEGIS_System::CAP_MANAGE_SYSTEM,
-                        'nonce_field'     => 'aegis_orders_nonce',
-                        'nonce_action'    => 'aegis_orders_action',
-                        'whitelist'       => ['order_action', 'enable_order_link', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
-                        'idempotency_key' => $idempotency,
-                    ]
-                );
-
-                if (!$validation['success']) {
-                    $errors[] = $validation['message'];
-                } else {
-                    $link_enabled = !empty($_POST['enable_order_link']);
-                    update_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, $link_enabled, true);
-                    $messages[] = $link_enabled ? '已开启订单-出库关联。' : '已关闭订单-出库关联。';
-                }
-            }
-        }
-
-        $default_start = gmdate('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
-        $default_end = gmdate('Y-m-d', current_time('timestamp'));
-        $start_date = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : $default_start;
-        $end_date = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : $default_end;
-        $start_datetime = self::normalize_date_boundary($start_date, 'start');
-        $end_datetime = self::normalize_date_boundary($end_date, 'end');
-
-        $per_page_options = [20, 50, 100];
-        $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 20;
-        if (!in_array($per_page, $per_page_options, true)) {
-            $per_page = 20;
-        }
-
-        $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
-        $total = 0;
-        $dealer_filter = $is_dealer_user && $dealer ? (int) $dealer->id : null;
-        $orders = self::query_orders($start_datetime, $end_datetime, $per_page, $paged, $total, $dealer_filter);
-        $view_order_id = isset($_GET['view']) ? (int) $_GET['view'] : 0;
-        $view_order = $view_order_id ? self::get_order($view_order_id) : null;
-        $order_items = $view_order ? self::get_items($view_order_id) : [];
-        $dealer_options = self::list_dealers();
-        $link_enabled = self::is_shipment_link_enabled();
-
-        echo '<div class="wrap aegis-system-root">';
-        echo '<h1 class="aegis-t-a2">订单管理</h1>';
-        echo '<p class="aegis-t-a6">模块默认关闭，启用后可创建订单与上传付款凭证。经销商仅可查看自身订单。</p>';
-
-        foreach ($messages as $msg) {
-            echo '<div class="updated"><p class="aegis-t-a6">' . esc_html($msg) . '</p></div>';
-        }
-        foreach ($errors as $msg) {
-            echo '<div class="error"><p class="aegis-t-a6">' . esc_html($msg) . '</p></div>';
-        }
-
-        echo '<div style="display:flex;gap:20px;align-items:flex-start;">';
-        echo '<div style="flex:2;">';
-        self::render_filters($start_date, $end_date, $per_page, $per_page_options);
-        self::render_orders_table($orders, $per_page, $paged, $total, $start_date, $end_date, $dealer_filter);
-
-        if ($view_order && self::current_user_can_view_order($view_order)) {
-            self::render_order_detail($view_order, $order_items, $payments_enabled);
-        }
-        echo '</div>';
-
-        echo '<div style="flex:1;">';
-        if (!$is_dealer_user) {
-            self::render_create_form($dealer_options);
-            self::render_link_toggle($link_enabled);
-        }
-
-        if ($payments_enabled && $view_order && self::current_user_can_view_order($view_order)) {
-            self::render_payment_form($view_order);
-        } elseif ($payments_enabled && $is_dealer_user) {
-            echo '<div class="notice notice-info"><p class="aegis-t-a6">请选择订单以提交付款凭证。</p></div>';
-        }
-        echo '</div>';
-        echo '</div>';
-
-        echo '</div>';
+        return ['message' => '订单已作废。'];
     }
 
     public static function current_user_can_view_order($order) {
@@ -409,386 +481,83 @@ class AEGIS_Orders {
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE order_no = %s", $order_no));
     }
 
+    public static function get_items($order_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
+        return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE order_id = %d", $order_id));
+    }
+
     public static function is_shipment_link_enabled() {
         return AEGIS_System::is_module_enabled('orders') && (bool) get_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, false);
     }
 
-    protected static function render_filters($start, $end, $per_page, $per_page_options) {
-        echo '<form method="get" class="aegis-t-a6" style="margin:12px 0;">';
-        echo '<input type="hidden" name="page" value="aegis-system-orders" />';
-        echo '起始：<input type="date" name="start_date" value="' . esc_attr($start) . '" /> ';
-        echo '结束：<input type="date" name="end_date" value="' . esc_attr($end) . '" /> ';
-        echo '每页：<select name="per_page">';
-        foreach ($per_page_options as $opt) {
-            $sel = $opt === $per_page ? 'selected' : '';
-            echo '<option value="' . esc_attr($opt) . '" ' . $sel . '>' . esc_html($opt) . '</option>';
-        }
-        echo '</select> ';
-        submit_button('筛选', 'primary', '', false);
-        echo '</form>';
-    }
-
-    protected static function render_orders_table($orders, $per_page, $paged, $total, $start_date, $end_date, $dealer_filter) {
-        echo '<table class="widefat fixed striped">';
-        echo '<thead><tr class="aegis-t-a6"><th>ID</th><th>订单号</th><th>经销商</th><th>状态</th><th>金额</th><th>创建时间</th><th></th></tr></thead>';
-        echo '<tbody class="aegis-t-a6">';
-        if (empty($orders)) {
-            echo '<tr><td colspan="7">暂无记录</td></tr>';
-        }
-        foreach ($orders as $order) {
-            $view_url = esc_url(add_query_arg([
-                'page'       => 'aegis-system-orders',
-                'view'       => $order->id,
-                'start_date' => $start_date,
-                'end_date'   => $end_date,
-                'per_page'   => $per_page,
-            ], admin_url('admin.php')));
-            echo '<tr>';
-            echo '<td>' . esc_html($order->id) . '</td>';
-            echo '<td>' . esc_html($order->order_no) . '</td>';
-            echo '<td>' . esc_html($order->dealer_name) . '</td>';
-            echo '<td>' . esc_html($order->status) . '</td>';
-            echo '<td>' . esc_html(number_format((float) $order->total_amount, 2)) . '</td>';
-            echo '<td>' . esc_html($order->created_at) . '</td>';
-            echo '<td><a class="button" href="' . $view_url . '">查看</a></td>';
-            echo '</tr>';
-        }
-        echo '</tbody>';
-        echo '</table>';
-
-        $total_pages = $per_page > 0 ? ceil($total / $per_page) : 1;
-        if ($total_pages > 1) {
-            echo '<div class="tablenav"><div class="tablenav-pages">';
-            if ($paged > 1) {
-                $prev_url = esc_url(add_query_arg([
-                    'page'       => 'aegis-system-orders',
-                    'paged'      => $paged - 1,
-                    'start_date' => $start_date,
-                    'end_date'   => $end_date,
-                    'per_page'   => $per_page,
-                ], admin_url('admin.php')));
-                echo '<a class="button" href="' . $prev_url . '">上一页</a> ';
-            }
-            echo '<span class="aegis-t-a6">第 ' . esc_html($paged) . ' / ' . esc_html($total_pages) . ' 页</span> ';
-            if ($paged < $total_pages) {
-                $next_url = esc_url(add_query_arg([
-                    'page'       => 'aegis-system-orders',
-                    'paged'      => $paged + 1,
-                    'start_date' => $start_date,
-                    'end_date'   => $end_date,
-                    'per_page'   => $per_page,
-                ], admin_url('admin.php')));
-                echo '<a class="button" href="' . $next_url . '">下一页</a>';
-            }
-            echo '</div></div>';
-        }
-    }
-
-    protected static function render_create_form($dealers) {
-        $idempotency_key = wp_generate_uuid4();
-        echo '<div class="postbox" style="padding:12px;">';
-        echo '<h2 class="aegis-t-a4">创建订单</h2>';
-        echo '<form method="post">';
-        wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce');
-        echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($idempotency_key) . '" />';
-        echo '<input type="hidden" name="order_action" value="create_order" />';
-        echo '<table class="form-table aegis-t-a6">';
-        echo '<tr><th><label for="dealer_id">经销商</label></th><td><select name="dealer_id" id="dealer_id">';
-        foreach ($dealers as $dealer) {
-            echo '<option value="' . esc_attr($dealer->id) . '">' . esc_html($dealer->dealer_name) . ' (' . esc_html($dealer->auth_code) . ')</option>';
-        }
-        echo '</select></td></tr>';
-        echo '<tr><th><label for="order_no">订单号（可选）</label></th><td><input type="text" name="order_no" id="order_no" class="regular-text" /></td></tr>';
-        echo '<tr><th><label for="order_total">金额（可选）</label></th><td><input type="number" step="0.01" name="order_total" id="order_total" class="regular-text" /></td></tr>';
-        echo '<tr><th><label for="order_items">明细</label></th><td><textarea name="order_items" id="order_items" rows="6" class="large-text" placeholder="每行：EAN|数量"></textarea><p class="description">支持 A1-A6 排版类名，数量默认 1。</p></td></tr>';
-        echo '</table>';
-        submit_button('创建订单');
-        echo '</form>';
-        echo '</div>';
-    }
-
-    protected static function render_order_detail($order, $items, $payments_enabled) {
-        echo '<div class="postbox" style="margin-top:16px; padding:12px;">';
-        echo '<h2 class="aegis-t-a4">订单 #' . esc_html($order->id) . '</h2>';
-        echo '<p class="aegis-t-a6">订单号：' . esc_html($order->order_no) . ' | 状态：' . esc_html($order->status) . ' | 经销商 ID：' . esc_html($order->dealer_id) . '</p>';
-        echo '<p class="aegis-t-a6">金额：' . esc_html(number_format((float) $order->total_amount, 2)) . ' | 创建：' . esc_html($order->created_at) . '</p>';
-
-        echo '<table class="widefat fixed striped">';
-        echo '<thead><tr class="aegis-t-a6"><th>ID</th><th>EAN</th><th>数量</th><th>状态</th></tr></thead>';
-        echo '<tbody class="aegis-t-a6">';
-        if (empty($items)) {
-            echo '<tr><td colspan="4">暂无明细</td></tr>';
-        }
-        foreach ($items as $item) {
-            echo '<tr>';
-            echo '<td>' . esc_html($item->id) . '</td>';
-            echo '<td>' . esc_html($item->ean) . '</td>';
-            echo '<td>' . esc_html($item->quantity) . '</td>';
-            echo '<td>' . esc_html($item->status) . '</td>';
-            echo '</tr>';
-        }
-        echo '</tbody>';
-        echo '</table>';
-
-        if ($payments_enabled) {
-            $proofs = self::get_payments($order->id);
-            echo '<h3 class="aegis-t-a5" style="margin-top:12px;">付款凭证</h3>';
-            echo '<ul class="aegis-t-a6">';
-            if (empty($proofs)) {
-                echo '<li>暂无凭证</li>';
-            }
-            foreach ($proofs as $proof) {
-                $download_url = esc_url(add_query_arg(['rest_route' => '/aegis-system/media', 'id' => $proof->media_id], site_url('/')));
-                echo '<li>凭证 #' . esc_html($proof->id) . ' 状态：' . esc_html($proof->status) . ' <a href="' . $download_url . '" target="_blank">下载</a></li>';
-            }
-            echo '</ul>';
-        }
-
-        echo '</div>';
-    }
-
-    protected static function render_payment_form($order) {
-        $idempotency_key = wp_generate_uuid4();
-        echo '<div class="postbox" style="padding:12px; margin-top:16px;">';
-        echo '<h2 class="aegis-t-a4">上传付款凭证</h2>';
-        echo '<form method="post" enctype="multipart/form-data">';
-        wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce');
-        echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($idempotency_key) . '" />';
-        echo '<input type="hidden" name="order_action" value="upload_payment" />';
-        echo '<input type="hidden" name="order_id" value="' . esc_attr($order->id) . '" />';
-        echo '<table class="form-table aegis-t-a6">';
-        echo '<tr><th><label for="payment_proof">凭证文件</label></th><td><input type="file" name="payment_proof" id="payment_proof" required /></td></tr>';
-        echo '<tr><th><label for="payment_status">状态</label></th><td><select name="payment_status" id="payment_status">';
-        echo '<option value="submitted">已提交</option>';
-        echo '<option value="confirmed">已确认</option>';
-        echo '</select></td></tr>';
-        echo '</table>';
-        submit_button('上传凭证');
-        echo '</form>';
-        echo '</div>';
-    }
-
-    protected static function render_link_toggle($enabled) {
-        $idempotency_key = wp_generate_uuid4();
-        echo '<div class="postbox" style="padding:12px; margin-top:16px;">';
-        echo '<h2 class="aegis-t-a4">订单-出库关联</h2>';
-        echo '<form method="post">';
-        wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce');
-        echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($idempotency_key) . '" />';
-        echo '<input type="hidden" name="order_action" value="toggle_link" />';
-        echo '<label class="aegis-t-a6"><input type="checkbox" name="enable_order_link" value="1" ' . checked($enabled, true, false) . ' /> 启用出库选择订单（默认关闭）。</label>';
-        submit_button('保存设置');
-        echo '</form>';
-        echo '</div>';
-    }
-
-    protected static function handle_create_order($post) {
+    protected static function query_portal_orders($args, &$total = 0) {
         global $wpdb;
-        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
-        $order_no = isset($post['order_no']) ? sanitize_text_field(wp_unslash($post['order_no'])) : '';
-        $order_items = isset($post['order_items']) ? (string) wp_unslash($post['order_items']) : '';
-        $order_total = isset($post['order_total']) ? (float) $post['order_total'] : null;
-
-        if ($dealer_id <= 0) {
-            return new WP_Error('bad_dealer', '请选择经销商。');
-        }
-
-        $dealer = self::get_dealer($dealer_id);
-        if (!$dealer || $dealer->status !== 'active') {
-            return new WP_Error('dealer_inactive', '经销商不存在或已停用。');
-        }
-
-        if ('' === $order_no) {
-            $order_no = 'ORD-' . gmdate('Ymd-His', current_time('timestamp'));
-        }
-
-        $items = self::parse_items($order_items);
-        $now = current_time('mysql');
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
-
-        $wpdb->insert(
-            $order_table,
-            [
-                'order_no'     => $order_no,
-                'dealer_id'    => $dealer_id,
-                'status'       => self::STATUS_SUBMITTED,
-                'total_amount' => $order_total,
-                'created_by'   => get_current_user_id(),
-                'created_at'   => $now,
-                'updated_at'   => $now,
-                'snapshot_dealer_name' => $dealer->dealer_name,
-                'meta'                 => $items ? wp_json_encode(['item_count' => count($items)]) : null,
-            ],
-            ['%s', '%d', '%s', '%f', '%d', '%s', '%s', '%s', '%s']
-        );
-
-        if (!$wpdb->insert_id) {
-            return new WP_Error('order_failed', '订单创建失败。');
-        }
-
-        $order_id = (int) $wpdb->insert_id;
-        foreach ($items as $item) {
-            $wpdb->insert(
-                $item_table,
-                [
-                    'order_id'   => $order_id,
-                    'ean'        => $item['ean'],
-                    'quantity'   => $item['qty'],
-                    'status'     => 'open',
-                    'created_at' => $now,
-                    'meta'       => null,
-                ],
-                ['%d', '%s', '%d', '%s', '%s', '%s']
-            );
-        }
-
-        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_ORDER_CREATE, 'SUCCESS', ['order_id' => $order_id, 'dealer_id' => $dealer_id]);
-
-        return ['message' => '订单已创建，编号 ' . $order_no];
-    }
-
-    protected static function handle_payment_upload($post, $files) {
-        global $wpdb;
-        $order_id = isset($post['order_id']) ? (int) $post['order_id'] : 0;
-        $status = isset($post['payment_status']) ? sanitize_key($post['payment_status']) : 'submitted';
-
-        if ($order_id <= 0) {
-            return new WP_Error('order_missing', '订单不存在。');
-        }
-
-        if (!AEGIS_System::is_module_enabled('payments')) {
-            return new WP_Error('module_disabled', '支付模块未启用。');
-        }
-
-        $order = self::get_order($order_id);
-        if (!$order) {
-            return new WP_Error('order_missing', '订单不存在。');
-        }
-
-        if (!self::current_user_can_view_order($order)) {
-            return new WP_Error('forbidden', '无权上传该订单凭证。');
-        }
-
-        $upload = AEGIS_Assets_Media::handle_admin_upload(
-            $files['payment_proof'],
-            [
-                'bucket'              => 'payments',
-                'owner_type'          => 'payment_proof',
-                'owner_id'            => $order_id,
-                'visibility'          => AEGIS_Assets_Media::VISIBILITY_SENSITIVE,
-                'allow_dealer_payment'=> true,
-                'capability'          => AEGIS_System::CAP_MANAGE_WAREHOUSE,
-                'permission_callback' => function () use ($order) {
-                    return AEGIS_Orders::current_user_can_view_order($order);
-                },
-            ]
-        );
-
-        if (is_wp_error($upload)) {
-            return $upload;
-        }
-
-        $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
-        $wpdb->insert(
-            $payment_table,
-            [
-                'order_id'   => $order_id,
-                'dealer_id'  => $order->dealer_id,
-                'media_id'   => isset($upload['id']) ? (int) $upload['id'] : 0,
-                'status'     => $status,
-                'created_by' => get_current_user_id(),
-                'created_at' => current_time('mysql'),
-            ],
-            ['%d', '%d', '%d', '%s', '%d', '%s']
-        );
-
-        AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_PAYMENT_UPLOAD, 'SUCCESS', ['order_id' => $order_id, 'media_id' => isset($upload['id']) ? (int) $upload['id'] : 0]);
-
-        return ['message' => '付款凭证已上传。'];
-    }
-
-    protected static function parse_items($input) {
-        $items = [];
-        $lines = preg_split('/\r?\n/', $input);
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ('' === $line) {
-                continue;
-            }
-            $parts = explode('|', $line);
-            $ean = sanitize_text_field($parts[0]);
-            $qty = isset($parts[1]) ? (int) $parts[1] : 1;
-            if ($qty <= 0) {
-                $qty = 1;
-            }
-            $items[] = ['ean' => $ean, 'qty' => $qty];
-        }
-        return $items;
-    }
-
-    protected static function query_orders($start, $end, $per_page, $paged, &$total, $dealer_id = null) {
-        global $wpdb;
-        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
-        $offset = ($paged - 1) * $per_page;
-        $where = 'created_at BETWEEN %s AND %s';
-        $params = [$start, $end];
-        if ($dealer_id) {
-            $where .= ' AND dealer_id = %d';
-            $params[] = $dealer_id;
+
+        $where = ['o.created_at BETWEEN %s AND %s'];
+        $params = [$args['start'], $args['end']];
+
+        if (!empty($args['dealer_id'])) {
+            $where[] = 'o.dealer_id = %d';
+            $params[] = (int) $args['dealer_id'];
         }
-        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$order_table} WHERE {$where}", $params));
+        if (!empty($args['order_no'])) {
+            $where[] = 'o.order_no LIKE %s';
+            $params[] = '%' . $wpdb->esc_like($args['order_no']) . '%';
+        }
+        if (!empty($args['statuses']) && is_array($args['statuses'])) {
+            $placeholders = implode(',', array_fill(0, count($args['statuses']), '%s'));
+            $where[] = "o.status IN ({$placeholders})";
+            $params = array_merge($params, $args['statuses']);
+        }
+
+        $where_sql = implode(' AND ', $where);
+        $per_page = $args['per_page'];
+        $paged = $args['paged'];
+        $offset = ($paged - 1) * $per_page;
+
+        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$order_table} o WHERE {$where_sql}", $params));
 
         $params[] = $per_page;
         $params[] = $offset;
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT o.*, d.dealer_name FROM {$order_table} o LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id WHERE {$where} ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
+                "SELECT o.*, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count FROM {$order_table} o \
+LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id WHERE {$where_sql} GROUP BY o.id ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
                 $params
             )
         );
     }
 
-    protected static function get_items($order_id) {
+    protected static function list_active_skus() {
         global $wpdb;
-        $table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
-        return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE order_id = %d", $order_id));
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        return $wpdb->get_results($wpdb->prepare("SELECT ean, product_name FROM {$table} WHERE status = %s ORDER BY product_name ASC", AEGIS_SKU::STATUS_ACTIVE));
     }
 
-    protected static function get_payments($order_id) {
-        global $wpdb;
-        $table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
-        return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE order_id = %d ORDER BY created_at DESC", $order_id));
-    }
-
-    protected static function list_dealers() {
-        global $wpdb;
-        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
-        return $wpdb->get_results("SELECT * FROM {$table} ORDER BY dealer_name ASC");
-    }
-
-    protected static function get_dealer($id) {
-        global $wpdb;
-        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
-        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+    protected static function build_price_map($dealer, $skus) {
+        $map = [];
+        foreach ($skus as $sku) {
+            $quote = AEGIS_Pricing::get_quote((int) $dealer->id, $sku->ean);
+            if (is_wp_error($quote)) {
+                continue;
+            }
+            $map[$sku->ean] = [
+                'unit_price' => $quote['unit_price'],
+                'price_source' => $quote['price_source'],
+                'price_level_used' => $quote['price_level_used'],
+                'label' => $quote['unit_price'] ? ('¥' . number_format((float) $quote['unit_price'], 2) . ' · ' . ('override' === $quote['price_source'] ? '覆盖价' : '等级价')) : '无价',
+            ];
+        }
+        return $map;
     }
 
     protected static function get_current_dealer() {
-        $user = wp_get_current_user();
-        if (!$user || !$user->ID) {
-            return null;
-        }
-        $dealer_id = get_user_meta($user->ID, AEGIS_Reset_B::DEALER_META_KEY, true);
-        $dealer_id = (int) $dealer_id;
-        if ($dealer_id <= 0) {
-            return null;
-        }
-
-        global $wpdb;
-        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
-        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $dealer_id));
+        return AEGIS_Dealer::get_dealer_for_user();
     }
 
     protected static function normalize_date_boundary($date, $type) {
@@ -810,7 +579,8 @@ class AEGIS_Orders {
         $user = wp_get_current_user();
         $roles = (array) ($user ? $user->roles : []);
         $is_dealer = in_array('aegis_dealer', $roles, true);
-        $can_manage = AEGIS_System_Roles::user_can_manage_warehouse() || current_user_can(AEGIS_System::CAP_ORDERS);
+        $is_hq = current_user_can(AEGIS_System::CAP_ORDERS);
+        $can_manage = AEGIS_System_Roles::user_can_manage_warehouse() || $is_hq;
         $is_staff_readonly = in_array('aegis_warehouse_staff', $roles, true) && !$can_manage;
 
         $dealer_state = $is_dealer ? AEGIS_Dealer::evaluate_dealer_access($user) : null;
@@ -818,9 +588,20 @@ class AEGIS_Orders {
         $dealer_id = $dealer ? (int) $dealer->id : 0;
         $dealer_blocked = $is_dealer && (!$dealer_state || empty($dealer_state['allowed']));
 
+        $view_mode = $is_hq ? (isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : 'review') : 'list';
+        if (!in_array($view_mode, ['review', 'list'], true)) {
+            $view_mode = $is_hq ? 'review' : 'list';
+        }
+        $queue_view = $is_hq && 'review' === $view_mode;
+
         $messages = [];
         $errors = [];
         $base_url = add_query_arg('m', 'orders', $portal_url);
+        if ($queue_view) {
+            $base_url = add_query_arg('view', 'review', $base_url);
+        } elseif ($is_hq) {
+            $base_url = add_query_arg('view', 'list', $base_url);
+        }
         $view_id = isset($_GET['order_id']) ? (int) $_GET['order_id'] : 0;
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
@@ -852,33 +633,126 @@ class AEGIS_Orders {
                         $view_id = (int) $result['order_id'];
                     }
                 }
-            } elseif ('change_status' === $action) {
+            } elseif ('update_order' === $action) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
-                        'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
+                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
-                        'whitelist'       => ['order_action', 'target_status', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'whitelist'       => ['order_action', 'order_id', 'note', 'order_item_ean', 'order_item_qty', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
                         'idempotency_key' => $idempotency,
                     ]
                 );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
-                } elseif ($is_staff_readonly) {
-                    $errors[] = '当前账号仅可查看订单。';
+                } elseif (!$is_dealer || !$order) {
+                    $errors[] = '无效的订单。';
                 } else {
-                    $target_status = isset($_POST['target_status']) ? sanitize_key(wp_unslash($_POST['target_status'])) : '';
-                    $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
-                    $result = self::update_order_status($order_id, $target_status);
+                    $items = self::parse_item_post($_POST);
+                    $note = isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '';
+                    $result = self::update_portal_order($dealer, $order, $items, $note);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
                         $messages[] = $result['message'];
-                        $view_id = $order_id;
+                        $view_id = (int) $order_id;
+                    }
+                }
+            } elseif ('cancel_order' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } elseif (!$is_dealer || !$order) {
+                    $errors[] = '无效的订单。';
+                } else {
+                    $result = self::cancel_portal_order($dealer, $order);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                        $view_id = (int) $order_id;
+                    }
+                }
+            } elseif ('review_order' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', 'review_note', 'order_item_ean', 'order_item_qty', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } elseif (!$is_hq || !$order) {
+                    $errors[] = '无效的订单。';
+                } else {
+                    $items = self::parse_item_post($_POST);
+                    $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
+                    $result = self::review_order_by_hq($order, $items, $note);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                        $view_id = (int) $order_id;
+                        $view_mode = 'list';
+                    }
+                }
+            } elseif ('void_order' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', 'void_reason', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } elseif (!$is_hq || !$order) {
+                    $errors[] = '无效的订单。';
+                } else {
+                    $reason = isset($_POST['void_reason']) ? sanitize_text_field(wp_unslash($_POST['void_reason'])) : '';
+                    $result = self::void_order_by_hq($order, $reason);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                        $view_id = (int) $order_id;
+                        $view_mode = 'list';
                     }
                 }
             }
+        }
+
+        $queue_view = $is_hq && 'review' === $view_mode;
+        $base_url = add_query_arg('m', 'orders', $portal_url);
+        if ($queue_view) {
+            $base_url = add_query_arg('view', 'review', $base_url);
+        } elseif ($is_hq) {
+            $base_url = add_query_arg('view', 'list', $base_url);
         }
 
         $default_start = gmdate('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
@@ -896,6 +770,7 @@ class AEGIS_Orders {
         $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
 
         $dealer_filter = $is_dealer ? ($dealer_id > 0 ? $dealer_id : -1) : null;
+        $statuses_filter = $queue_view ? [self::STATUS_PENDING_INITIAL_REVIEW] : [];
         $total = 0;
         $orders = self::query_portal_orders(
             [
@@ -903,6 +778,7 @@ class AEGIS_Orders {
                 'end'       => $end_datetime,
                 'order_no'  => $search_no,
                 'dealer_id' => $dealer_filter,
+                'statuses'  => $statuses_filter,
                 'per_page'  => $per_page,
                 'paged'     => $paged,
             ],
@@ -916,15 +792,23 @@ class AEGIS_Orders {
         }
         $items = $order ? self::get_items($order->id) : [];
         $skus = $is_dealer ? self::list_active_skus() : [];
+        $price_map = ($is_dealer && $dealer && $skus) ? self::build_price_map($dealer, $skus) : [];
+
+        $status_labels = [
+            self::STATUS_PENDING_INITIAL_REVIEW => '待初审',
+            self::STATUS_PENDING_DEALER_CONFIRM => '待确认',
+            self::STATUS_CANCELLED_BY_DEALER    => '已撤销',
+            self::STATUS_VOIDED_BY_HQ           => '已作废',
+        ];
 
         $context = [
-            'base_url'    => $base_url,
-            'messages'    => $messages,
-            'errors'      => $errors,
-            'orders'      => $orders,
-            'order'       => $order,
-            'items'       => $items,
-            'filters'     => [
+            'base_url'       => $base_url,
+            'messages'       => $messages,
+            'errors'         => $errors,
+            'orders'         => $orders,
+            'order'          => $order,
+            'items'          => $items,
+            'filters'        => [
                 'start_date'  => $start_date,
                 'end_date'    => $end_date,
                 'order_no'    => $search_no,
@@ -934,12 +818,17 @@ class AEGIS_Orders {
                 'total'       => $total,
                 'total_pages' => $per_page > 0 ? max(1, (int) ceil($total / $per_page)) : 1,
             ],
-            'skus'        => $skus,
-            'dealer'      => $dealer,
+            'skus'           => $skus,
+            'dealer'         => $dealer,
             'dealer_blocked' => $dealer_blocked,
-            'role_flags'  => [
-                'is_dealer'    => $is_dealer,
-                'can_manage'   => $can_manage,
+            'price_map'      => $price_map,
+            'view_mode'      => $view_mode,
+            'status_labels'  => $status_labels,
+            'role_flags'     => [
+                'is_dealer'      => $is_dealer,
+                'is_hq'          => $is_hq,
+                'queue_view'     => $queue_view,
+                'can_manage'     => $can_manage,
                 'staff_readonly' => $is_staff_readonly,
             ],
         ];
@@ -947,5 +836,10 @@ class AEGIS_Orders {
         return AEGIS_Portal::render_portal_template('orders', $context);
     }
 
+    public static function render_admin_page() {
+        echo '<div class="wrap aegis-system-root">';
+        echo '<h1 class="aegis-t-a2">订单</h1>';
+        echo '<p class="aegis-t-a6">订单创建与经销商编辑请在前台 Portal 使用 ?m=orders。</p>';
+        echo '</div>';
+    }
 }
-
