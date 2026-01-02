@@ -159,6 +159,7 @@ class AEGIS_Public_Query {
             $context = self::CONTEXT_INTERNAL;
             $is_internal = true;
         }
+        $is_public_user = self::is_public_user();
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $nonce = isset($_POST['aegis_public_query_nonce']) ? $_POST['aegis_public_query_nonce'] : '';
@@ -166,10 +167,28 @@ class AEGIS_Public_Query {
                 $errors[] = '安全校验失败，请重试。';
             } else {
                 $code_value = isset($_POST['code_value']) ? sanitize_text_field(wp_unslash($_POST['code_value'])) : '';
-                $result = self::handle_query($code_value, $context, self::CONTEXT_PUBLIC === $context);
-                if (is_wp_error($result)) {
-                    $errors[] = $result->get_error_message();
-                    $result = null;
+                $handled = self::handle_query($code_value, $context, self::CONTEXT_PUBLIC === $context);
+                if (is_wp_error($handled)) {
+                    if ($is_public_user && 'code_not_found' === $handled->get_error_code()) {
+                        $result = [
+                            'public_minimal' => true,
+                            'display_value'  => 0,
+                        ];
+                    } else {
+                        $errors[] = $handled->get_error_message();
+                    }
+                } else {
+                    $result = $handled;
+                    if ($is_public_user) {
+                        $display_value = 0;
+                        if (isset($result['counts']['b'])) {
+                            $display_value = max(0, (int) $result['counts']['b']);
+                        }
+                        $result = [
+                            'public_minimal' => true,
+                            'display_value'  => $display_value,
+                        ];
+                    }
                 }
             }
         }
@@ -219,6 +238,14 @@ class AEGIS_Public_Query {
      * 展示查询结果。
      */
     protected static function render_result($result) {
+        if (!empty($result['public_minimal'])) {
+            $display_value = isset($result['display_value']) ? (int) $result['display_value'] : 0;
+            echo '<div class="aegis-query-result">';
+            echo '<div class="aegis-t-a4" style="margin-top:8px;">' . esc_html($display_value) . '</div>';
+            echo '</div>';
+            return;
+        }
+
         $status_class = !empty($result['status_class']) ? $result['status_class'] : 'status-warn';
         echo '<div class="aegis-query-result">';
         echo '<div class="aegis-status-badge ' . esc_attr($status_class) . ' aegis-t-a6">' . esc_html($result['status_label']) . '</div>';
@@ -490,6 +517,20 @@ class AEGIS_Public_Query {
     protected static function get_client_ip() {
         $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) wp_unslash($_SERVER['REMOTE_ADDR']) : '';
         return sanitize_text_field($ip);
+    }
+
+    /**
+     * 是否为公共访问用户（游客或非业务角色）。
+     *
+     * @return bool
+     */
+    protected static function is_public_user() {
+        if (!is_user_logged_in()) {
+            return true;
+        }
+
+        $user = wp_get_current_user();
+        return !AEGIS_System_Roles::is_business_user($user);
     }
 }
 
