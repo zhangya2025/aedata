@@ -367,7 +367,7 @@ class AEGIS_Assets_Media {
             $visibility = self::VISIBILITY_PRIVATE;
         }
 
-        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher'];
+        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher', 'payment_proof', 'order_payment_proof'];
         if (in_array($owner_type, $sensitive_types, true)) {
             $visibility = self::VISIBILITY_SENSITIVE;
         }
@@ -490,7 +490,7 @@ class AEGIS_Assets_Media {
             $visibility = self::VISIBILITY_PRIVATE;
         }
 
-        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher'];
+        $sensitive_types = ['business_license', 'dealer_license', 'payment_receipt', 'payment_voucher', 'payment_proof', 'order_payment_proof'];
         if (in_array($owner_type, $sensitive_types, true)) {
             $visibility = self::VISIBILITY_SENSITIVE;
         }
@@ -585,7 +585,7 @@ class AEGIS_Assets_Media {
         $is_public_certificate = (self::VISIBILITY_PUBLIC === $record->visibility && 'certificate' === $record->owner_type);
         $can_manage_media = AEGIS_System_Roles::user_can_manage_warehouse();
         $can_reset_media = AEGIS_System_Roles::user_can_reset_b() && in_array($record->owner_type, ['reset_b'], true);
-        $is_payment_media = in_array($record->owner_type, ['payment_receipt', 'payment_voucher', 'payment_proof'], true);
+        $is_payment_media = in_array($record->owner_type, ['payment_receipt', 'payment_voucher', 'payment_proof', 'order_payment_proof'], true);
         $can_view_payment = false;
 
         if ($is_payment_media && class_exists('AEGIS_Orders')) {

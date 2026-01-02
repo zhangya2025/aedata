@@ -43,6 +43,8 @@ class AEGIS_Dealer {
                 'address',
                 'auth_start_date',
                 'auth_end_date',
+                'price_level',
+                'sales_user_id',
                 'status',
                 'target_status',
                 '_wp_http_referer',
@@ -117,6 +119,11 @@ class AEGIS_Dealer {
         $address = $dealer ? $dealer->address : '';
         $auth_start_date = $dealer ? $dealer->auth_start_date : '';
         $auth_end_date = $dealer ? $dealer->auth_end_date : '';
+        $price_level = $dealer ? $dealer->price_level : '';
+        $sales_user_id = $dealer ? (int) $dealer->sales_user_id : 0;
+        $price_levels = AEGIS_Pricing::get_price_levels();
+        $sales_users = self::get_sales_user_options();
+        $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
         $status = $dealer ? $dealer->status : self::STATUS_ACTIVE;
         $idempotency_key = wp_generate_uuid4();
 
@@ -142,6 +149,26 @@ class AEGIS_Dealer {
         echo '<tr><th><label for="aegis-address">地址</label></th><td><input type="text" id="aegis-address" name="address" value="' . esc_attr($address) . '" class="regular-text" /></td></tr>';
         echo '<tr><th><label for="aegis-authorized-start">授权开始日期</label></th><td><input type="date" id="aegis-authorized-start" name="auth_start_date" value="' . esc_attr(self::format_date_input($auth_start_date)) . '" required /></td></tr>';
         echo '<tr><th><label for="aegis-authorized-end">授权截止日期</label></th><td><input type="date" id="aegis-authorized-end" name="auth_end_date" value="' . esc_attr(self::format_date_input($auth_end_date)) . '" required /></td></tr>';
+        echo '<tr><th>订货属性</th><td>';
+        echo '<label>价格等级：';
+        echo '<select name="price_level" ' . ($can_edit_pricing ? '' : 'disabled') . '>';
+        echo '<option value="">— 未设置 —</option>';
+        foreach ($price_levels as $value => $label) {
+            $selected = selected($price_level, $value, false);
+            echo '<option value="' . esc_attr($value) . '" ' . $selected . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<p class="description aegis-t-a6">仅 HQ 可编辑，决定默认命中的订货价层级。</p>';
+        echo '<label style="display:block; margin-top:8px;">所属销售人员：';
+        echo '<select name="sales_user_id" ' . ($can_edit_pricing ? '' : 'disabled') . '>';
+        echo '<option value="">— 未分配 —</option>';
+        foreach ($sales_users as $user) {
+            $selected = selected($sales_user_id, (int) $user->ID, false);
+            $display = $user->display_name ? $user->display_name : $user->user_login;
+            echo '<option value="' . esc_attr($user->ID) . '" ' . $selected . '>' . esc_html($display) . '</option>';
+        }
+        echo '</select></label>';
+        echo '</td></tr>';
 
         if ($assets_enabled) {
             echo '<tr><th>营业执照</th><td>';
@@ -179,7 +206,11 @@ class AEGIS_Dealer {
         $address = isset($post['address']) ? sanitize_text_field(wp_unslash($post['address'])) : '';
         $auth_start_raw = isset($post['auth_start_date']) ? sanitize_text_field(wp_unslash($post['auth_start_date'])) : '';
         $auth_end_raw = isset($post['auth_end_date']) ? sanitize_text_field(wp_unslash($post['auth_end_date'])) : '';
+        $price_level_input = isset($post['price_level']) ? sanitize_key($post['price_level']) : '';
+        $sales_user_id_input = isset($post['sales_user_id']) ? (int) $post['sales_user_id'] : 0;
         $status_raw = isset($post['status']) ? sanitize_key($post['status']) : '';
+        $price_level_input = isset($post['price_level']) ? sanitize_key($post['price_level']) : '';
+        $sales_user_id_input = isset($post['sales_user_id']) ? (int) $post['sales_user_id'] : 0;
 
         $is_new = $dealer_id === 0;
         $existing = $is_new ? null : self::get_dealer($dealer_id);
@@ -221,6 +252,15 @@ class AEGIS_Dealer {
             $status = self::STATUS_ACTIVE;
         }
 
+        $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
+        $price_levels = array_keys(AEGIS_Pricing::get_price_levels());
+        $price_level = $existing ? $existing->price_level : null;
+        $sales_user_id = $existing ? (int) $existing->sales_user_id : null;
+        if ($can_edit_pricing) {
+            $price_level = in_array($price_level_input, $price_levels, true) ? $price_level_input : null;
+            $sales_user_id = $sales_user_id_input > 0 && get_user_by('id', $sales_user_id_input) ? $sales_user_id_input : null;
+        }
+
         $now = current_time('mysql');
 
         $data = [
@@ -234,6 +274,27 @@ class AEGIS_Dealer {
             'status'       => $status,
             'updated_at'   => $now,
         ];
+
+        $attr_changes = [];
+        if ($can_edit_pricing) {
+            $data['price_level'] = $price_level;
+            $data['sales_user_id'] = $sales_user_id;
+            if (!$is_new) {
+                if ($existing->price_level !== $price_level) {
+                    $attr_changes['price_level'] = ['from' => $existing->price_level, 'to' => $price_level];
+                }
+                if ((int) $existing->sales_user_id !== (int) $sales_user_id) {
+                    $attr_changes['sales_user_id'] = ['from' => (int) $existing->sales_user_id, 'to' => (int) $sales_user_id];
+                }
+            } else {
+                if ($price_level) {
+                    $attr_changes['price_level'] = ['from' => null, 'to' => $price_level];
+                }
+                if ($sales_user_id) {
+                    $attr_changes['sales_user_id'] = ['from' => null, 'to' => $sales_user_id];
+                }
+            }
+        }
 
         $messages = [];
 
@@ -253,6 +314,17 @@ class AEGIS_Dealer {
                 $action = self::STATUS_ACTIVE === $status ? AEGIS_System::ACTION_DEALER_ENABLE : AEGIS_System::ACTION_DEALER_DISABLE;
                 AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $dealer_id, 'from' => $existing->status, 'to' => $status]);
             }
+        }
+
+        if ($can_edit_pricing && !empty($attr_changes)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_DEALER_TRADE_ATTR_UPDATE,
+                'SUCCESS',
+                [
+                    'dealer_id' => $dealer_id,
+                    'changes'   => $attr_changes,
+                ]
+            );
         }
 
         if ($assets_enabled && isset($files['business_license']) && is_array($files['business_license']) && !empty($files['business_license']['name'])) {
@@ -310,6 +382,208 @@ class AEGIS_Dealer {
     }
 
     /**
+     * 维护经销商专属价（新增/更新）。
+     *
+     * @param array $post
+     * @return array|WP_Error
+     */
+    protected static function handle_override_save($post) {
+        if (!AEGIS_System_Roles::user_can_manage_system()) {
+            return new WP_Error('forbidden', '当前账号无权维护专属价。');
+        }
+
+        global $wpdb;
+        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
+        $override_id = isset($post['override_id']) ? (int) $post['override_id'] : 0;
+        $ean = isset($post['override_ean']) ? sanitize_text_field(wp_unslash($post['override_ean'])) : '';
+        $price_raw = isset($post['price_override']) ? wp_unslash($post['price_override']) : '';
+
+        if ($dealer_id <= 0 || '' === $ean) {
+            return new WP_Error('bad_params', '请选择经销商并填写 EAN。');
+        }
+
+        $dealer = self::get_dealer($dealer_id);
+        if (!$dealer) {
+            return new WP_Error('dealer_missing', '未找到对应经销商。');
+        }
+
+        $sku = self::get_sku_row_by_ean($ean);
+        if (!$sku) {
+            return new WP_Error('sku_missing', 'SKU 不存在。');
+        }
+        if (AEGIS_SKU::STATUS_ACTIVE !== $sku->status) {
+            return new WP_Error('sku_inactive', 'SKU 已停用，无法设置专属价。');
+        }
+
+        $normalized = AEGIS_Pricing::normalize_price_input($price_raw);
+        if (!$normalized['valid']) {
+            return new WP_Error('bad_price', $normalized['message']);
+        }
+        if (null === $normalized['value']) {
+            return new WP_Error('price_required', '覆盖价不能为空。');
+        }
+
+        $table = $wpdb->prefix . AEGIS_System::DEALER_PRICE_TABLE;
+        $existing = AEGIS_Pricing::get_dealer_override($dealer_id, $ean);
+        $now = current_time('mysql');
+        $user_id = get_current_user_id();
+
+        if ($existing) {
+            $wpdb->update(
+                $table,
+                [
+                    'price_override' => $normalized['value'],
+                    'updated_at'     => $now,
+                    'updated_by'     => $user_id,
+                ],
+                ['id' => (int) $existing->id]
+            );
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_DEALER_PRICE_OVERRIDE_UPDATE,
+                'SUCCESS',
+                [
+                    'dealer_id' => $dealer_id,
+                    'ean'       => $ean,
+                    'from'      => $existing->price_override,
+                    'to'        => $normalized['value'],
+                ]
+            );
+
+            return ['message' => '专属价已更新。', 'dealer_id' => $dealer_id, 'override_id' => (int) $existing->id];
+        }
+
+        $wpdb->insert(
+            $table,
+            [
+                'dealer_id'      => $dealer_id,
+                'ean'            => $ean,
+                'price_override' => $normalized['value'],
+                'created_at'     => $now,
+                'created_by'     => $user_id,
+                'updated_at'     => $now,
+                'updated_by'     => $user_id,
+            ],
+            ['%d', '%s', '%s', '%s', '%d', '%s', '%d']
+        );
+        $new_id = (int) $wpdb->insert_id;
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_DEALER_PRICE_OVERRIDE_CREATE,
+            'SUCCESS',
+            [
+                'dealer_id' => $dealer_id,
+                'ean'       => $ean,
+                'price'     => $normalized['value'],
+            ]
+        );
+
+        return ['message' => '专属价已创建。', 'dealer_id' => $dealer_id, 'override_id' => $new_id];
+    }
+
+    /**
+     * 删除经销商专属价。
+     *
+     * @param array $post
+     * @return array|WP_Error
+     */
+    protected static function handle_override_delete($post) {
+        if (!AEGIS_System_Roles::user_can_manage_system()) {
+            return new WP_Error('forbidden', '当前账号无权维护专属价。');
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_PRICE_TABLE;
+        $override_id = isset($post['override_id']) ? (int) $post['override_id'] : 0;
+        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
+
+        if ($override_id <= 0 || $dealer_id <= 0) {
+            return new WP_Error('bad_params', '缺少专属价标识。');
+        }
+
+        $record = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND dealer_id = %d", $override_id, $dealer_id)
+        );
+
+        if (!$record) {
+            return new WP_Error('not_found', '未找到对应的专属价记录。');
+        }
+
+        $wpdb->delete($table, ['id' => $override_id]);
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_DEALER_PRICE_OVERRIDE_DELETE,
+            'SUCCESS',
+            [
+                'dealer_id' => $dealer_id,
+                'ean'       => $record->ean,
+                'price'     => $record->price_override,
+            ]
+        );
+
+        return ['message' => '专属价已删除。', 'dealer_id' => $dealer_id];
+    }
+
+    /**
+     * 报价查询。
+     *
+     * @param array $post
+     * @return array|WP_Error
+     */
+    protected static function handle_price_lookup($post) {
+        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
+        $ean = isset($post['price_lookup_ean']) ? sanitize_text_field(wp_unslash($post['price_lookup_ean'])) : '';
+
+        if ($dealer_id <= 0 || '' === $ean) {
+            return new WP_Error('lookup_missing', '请先选择经销商并填写 EAN。');
+        }
+
+        $quote = AEGIS_Pricing::get_quote($dealer_id, $ean);
+        if (is_wp_error($quote)) {
+            return $quote;
+        }
+
+        return [
+            'dealer_id' => $dealer_id,
+            'ean'       => $ean,
+            'quote'     => $quote,
+        ];
+    }
+
+    /**
+     * 获取可用 SKU 选项。
+     *
+     * @param string $search
+     * @param int    $limit
+     * @return array
+     */
+    protected static function get_active_sku_choices($search = '', $limit = 50) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        $where = $wpdb->prepare('WHERE status = %s', AEGIS_SKU::STATUS_ACTIVE);
+        $params = [];
+        if ($search) {
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $where .= $wpdb->prepare(' AND (ean LIKE %s OR product_name LIKE %s)', $like, $like);
+        }
+
+        $sql = "SELECT ean, product_name FROM {$table} {$where} ORDER BY updated_at DESC LIMIT %d";
+        $params[] = $limit;
+
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
+    }
+
+    /**
+     * 获取 SKU 行。
+     *
+     * @param string $ean
+     * @return object|null
+     */
+    protected static function get_sku_row_by_ean($ean) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::SKU_TABLE;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE ean = %s", $ean));
+    }
+
+    /**
      * 列出经销商。
      *
      * @return array
@@ -318,6 +592,22 @@ class AEGIS_Dealer {
         global $wpdb;
         $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
         return $wpdb->get_results("SELECT * FROM {$table} ORDER BY created_at DESC");
+    }
+
+    /**
+     * 可选销售人员列表。
+     *
+     * @return array
+     */
+    protected static function get_sales_user_options() {
+        $roles = ['aegis_hq_admin', 'aegis_warehouse_manager', 'aegis_warehouse_staff', 'administrator'];
+        $query = new WP_User_Query([
+            'role__in' => $roles,
+            'orderby'  => 'display_name',
+            'number'   => 200,
+        ]);
+
+        return $query->get_results();
     }
 
     /**
@@ -494,6 +784,7 @@ class AEGIS_Dealer {
         }
 
         $can_edit = AEGIS_System_Roles::user_can_manage_warehouse();
+        $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
         $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
         $base_url = add_query_arg('m', 'dealer_master', $portal_url);
 
@@ -510,6 +801,13 @@ class AEGIS_Dealer {
         $current_dealer = $current_id ? self::get_dealer($current_id) : null;
         $messages = [];
         $errors = [];
+        $price_lookup_result = null;
+        $price_levels = AEGIS_Pricing::get_price_levels();
+        $sales_users = self::get_sales_user_options();
+        $sales_user_map = [];
+        foreach ($sales_users as $user) {
+            $sales_user_map[$user->ID] = $user->display_name ? $user->display_name : $user->user_login;
+        }
 
         if ('POST' === $_SERVER['REQUEST_METHOD'] && $can_edit) {
             $request_action = isset($_POST['dealer_action']) ? sanitize_key(wp_unslash($_POST['dealer_action'])) : '';
@@ -524,6 +822,12 @@ class AEGIS_Dealer {
                 'address',
                 'auth_start_date',
                 'auth_end_date',
+                'price_level',
+                'sales_user_id',
+                'price_override',
+                'override_id',
+                'override_ean',
+                'price_lookup_ean',
                 'target_status',
                 '_wp_http_referer',
                 '_aegis_idempotency',
@@ -561,6 +865,41 @@ class AEGIS_Dealer {
                 } else {
                     $messages[] = $result['message'];
                 }
+            } elseif (in_array($request_action, ['add_override', 'update_override'], true)) {
+                if (!$can_edit_pricing) {
+                    $errors[] = '当前账号无权维护专属价。';
+                } else {
+                    $result = self::handle_override_save($_POST);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                        $current_dealer = self::get_dealer((int) $result['dealer_id']);
+                        $current_id = $current_dealer ? (int) $current_dealer->id : 0;
+                        $action = $current_dealer ? 'edit' : $action;
+                    }
+                }
+            } elseif ('delete_override' === $request_action) {
+                if (!$can_edit_pricing) {
+                    $errors[] = '当前账号无权维护专属价。';
+                } else {
+                    $result = self::handle_override_delete($_POST);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                        $current_dealer = self::get_dealer((int) $result['dealer_id']);
+                        $current_id = $current_dealer ? (int) $current_dealer->id : 0;
+                        $action = $current_dealer ? 'edit' : $action;
+                    }
+                }
+            } elseif ('lookup_price' === $request_action) {
+                $result = self::handle_price_lookup($_POST);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    $price_lookup_result = $result;
+                }
             }
         }
 
@@ -593,6 +932,8 @@ class AEGIS_Dealer {
             $license = $dealer->business_license_id && isset($licenses[$dealer->business_license_id]) ? $licenses[$dealer->business_license_id] : null;
             $dealer->license_url = $license ? self::get_media_gateway_url($license->id) : '';
             $dealer->license_mime = $license && !empty($license->mime) ? $license->mime : '';
+            $dealer->price_level_label = $dealer->price_level && isset($price_levels[$dealer->price_level]) ? $price_levels[$dealer->price_level] : '';
+            $dealer->sales_user_name = $dealer->sales_user_id && isset($sales_user_map[$dealer->sales_user_id]) ? $sales_user_map[$dealer->sales_user_id] : '';
         }
 
         $total = self::count_portal_dealers(['search' => $search]);
@@ -601,10 +942,15 @@ class AEGIS_Dealer {
         $current_license = $current_dealer && $current_dealer->business_license_id ? self::get_media_records_by_ids([$current_dealer->business_license_id]) : [];
         $current_license_record = $current_license ? reset($current_license) : null;
 
+        $sku_search = isset($_GET['sku_search']) ? sanitize_text_field(wp_unslash($_GET['sku_search'])) : '';
+        $sku_choices = self::get_active_sku_choices($sku_search);
+        $overrides = $current_dealer ? AEGIS_Pricing::list_overrides((int) $current_dealer->id) : [];
+
         $context = [
             'base_url'       => $base_url,
             'action'         => $action,
             'can_edit'       => $can_edit,
+            'can_edit_pricing' => $can_edit_pricing,
             'assets_enabled' => $assets_enabled,
             'messages'       => $messages,
             'errors'         => $errors,
@@ -612,6 +958,13 @@ class AEGIS_Dealer {
             'status_labels'  => self::get_status_labels(),
             'current_dealer' => $current_dealer,
             'current_media'  => $current_license_record,
+            'price_levels'   => $price_levels,
+            'sales_users'    => $sales_users,
+            'sales_user_map' => $sales_user_map,
+            'sku_choices'    => $sku_choices,
+            'sku_search'     => $sku_search,
+            'overrides'      => $overrides,
+            'price_lookup'   => $price_lookup_result,
             'list'           => [
                 'search'      => $search,
                 'page'        => $page,
@@ -684,6 +1037,15 @@ class AEGIS_Dealer {
             $status = self::STATUS_ACTIVE;
         }
 
+        $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
+        $price_levels = array_keys(AEGIS_Pricing::get_price_levels());
+        $price_level = $existing ? $existing->price_level : null;
+        $sales_user_id = $existing ? (int) $existing->sales_user_id : null;
+        if ($can_edit_pricing) {
+            $price_level = in_array($price_level_input, $price_levels, true) ? $price_level_input : null;
+            $sales_user_id = $sales_user_id_input > 0 && get_user_by('id', $sales_user_id_input) ? $sales_user_id_input : null;
+        }
+
         $data = [
             'dealer_name'  => $dealer_name,
             'contact_name' => $contact_name,
@@ -695,6 +1057,27 @@ class AEGIS_Dealer {
             'status'       => $status,
             'updated_at'   => $now,
         ];
+
+        $attr_changes = [];
+        if ($can_edit_pricing) {
+            $data['price_level'] = $price_level;
+            $data['sales_user_id'] = $sales_user_id;
+            if (!$is_new) {
+                if ($existing->price_level !== $price_level) {
+                    $attr_changes['price_level'] = ['from' => $existing->price_level, 'to' => $price_level];
+                }
+                if ((int) $existing->sales_user_id !== (int) $sales_user_id) {
+                    $attr_changes['sales_user_id'] = ['from' => (int) $existing->sales_user_id, 'to' => (int) $sales_user_id];
+                }
+            } else {
+                if ($price_level) {
+                    $attr_changes['price_level'] = ['from' => null, 'to' => $price_level];
+                }
+                if ($sales_user_id) {
+                    $attr_changes['sales_user_id'] = ['from' => null, 'to' => $sales_user_id];
+                }
+            }
+        }
 
         $messages = [];
 
@@ -714,6 +1097,17 @@ class AEGIS_Dealer {
                 $action = self::STATUS_ACTIVE === $status ? AEGIS_System::ACTION_DEALER_ENABLE : AEGIS_System::ACTION_DEALER_DISABLE;
                 AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $dealer_id, 'from' => $existing->status, 'to' => $status]);
             }
+        }
+
+        if ($can_edit_pricing && !empty($attr_changes)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_DEALER_TRADE_ATTR_UPDATE,
+                'SUCCESS',
+                [
+                    'dealer_id' => $dealer_id,
+                    'changes'   => $attr_changes,
+                ]
+            );
         }
 
         if ($assets_enabled && isset($files['business_license']) && is_array($files['business_license']) && !empty($files['business_license']['name'])) {
