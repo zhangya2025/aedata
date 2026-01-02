@@ -63,6 +63,7 @@ class AEGIS_System_Schema {
         $order_item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
         $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
         $reset_log_table = $wpdb->prefix . AEGIS_System::RESET_LOG_TABLE;
+        $dealer_price_table = $wpdb->prefix . AEGIS_System::DEALER_PRICE_TABLE;
 
         $audit_sql = "CREATE TABLE {$audit_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -104,6 +105,9 @@ class AEGIS_System_Schema {
             status VARCHAR(20) NOT NULL DEFAULT 'active',
             product_image_id BIGINT(20) UNSIGNED NULL,
             certificate_id BIGINT(20) UNSIGNED NULL,
+            price_tier_agent DECIMAL(14,2) NULL,
+            price_tier_dealer DECIMAL(14,2) NULL,
+            price_tier_core DECIMAL(14,2) NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
@@ -125,6 +129,8 @@ class AEGIS_System_Schema {
             authorized_at DATETIME NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'active',
             business_license_id BIGINT(20) UNSIGNED NULL,
+            price_level VARCHAR(20) NULL,
+            sales_user_id BIGINT(20) UNSIGNED NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
@@ -263,6 +269,8 @@ class AEGIS_System_Schema {
             confirmed_by BIGINT(20) UNSIGNED NULL,
             note VARCHAR(255) NULL,
             snapshot_dealer_name VARCHAR(191) NULL,
+            dealer_name_snapshot VARCHAR(191) NULL,
+            sales_user_id_snapshot BIGINT(20) UNSIGNED NULL,
             meta LONGTEXT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY order_no (order_no),
@@ -278,6 +286,9 @@ class AEGIS_System_Schema {
             product_name_snapshot VARCHAR(191) NULL,
             quantity INT(11) NOT NULL DEFAULT 1,
             unit_price DECIMAL(20,4) NULL,
+            unit_price_snapshot DECIMAL(20,4) NULL,
+            price_source VARCHAR(32) NULL,
+            price_level_snapshot VARCHAR(20) NULL,
             status VARCHAR(40) NOT NULL DEFAULT 'open',
             created_at DATETIME NOT NULL,
             meta LONGTEXT NULL,
@@ -321,7 +332,23 @@ class AEGIS_System_Schema {
             KEY reset_at (reset_at)
         ) {$charset_collate};";
 
-        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $payment_sql, $reset_log_sql];
+        $dealer_price_sql = "CREATE TABLE {$dealer_price_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            dealer_id BIGINT(20) UNSIGNED NOT NULL,
+            ean VARCHAR(64) NOT NULL,
+            price_override DECIMAL(14,2) NOT NULL,
+            created_at DATETIME NOT NULL,
+            created_by BIGINT(20) UNSIGNED NULL,
+            updated_at DATETIME NOT NULL,
+            updated_by BIGINT(20) UNSIGNED NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY dealer_sku (dealer_id, ean),
+            KEY dealer_id (dealer_id),
+            KEY ean (ean),
+            KEY updated_at (updated_at)
+        ) {$charset_collate};";
+
+        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $dealer_price_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $payment_sql, $reset_log_sql];
     }
 
     /**

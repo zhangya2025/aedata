@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 $base_url       = $context_data['base_url'] ?? '';
 $action         = $context_data['action'] ?? '';
 $can_edit       = !empty($context_data['can_edit']);
+$can_edit_pricing = !empty($context_data['can_edit_pricing']);
 $assets_enabled = !empty($context_data['assets_enabled']);
 $messages       = $context_data['messages'] ?? [];
 $errors         = $context_data['errors'] ?? [];
@@ -13,6 +14,13 @@ $dealers        = $context_data['dealers'] ?? [];
 $status_labels  = $context_data['status_labels'] ?? [];
 $current_dealer = $context_data['current_dealer'] ?? null;
 $current_media  = $context_data['current_media'] ?? null;
+$price_levels   = $context_data['price_levels'] ?? [];
+$sales_users    = $context_data['sales_users'] ?? [];
+$sales_user_map = $context_data['sales_user_map'] ?? [];
+$sku_choices    = $context_data['sku_choices'] ?? [];
+$sku_search     = $context_data['sku_search'] ?? '';
+$overrides      = $context_data['overrides'] ?? [];
+$price_lookup   = $context_data['price_lookup'] ?? null;
 $list           = $context_data['list'] ?? [];
 $search         = $list['search'] ?? '';
 $page           = $list['page'] ?? 1;
@@ -56,6 +64,8 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
     $address = $current_dealer ? $current_dealer->address : '';
     $auth_start_date = $current_dealer ? AEGIS_Dealer::format_date_input($current_dealer->auth_start_date) : '';
     $auth_end_date = $current_dealer ? AEGIS_Dealer::format_date_input($current_dealer->auth_end_date) : '';
+    $price_level_value = $current_dealer ? $current_dealer->price_level : '';
+    $sales_user_id_value = $current_dealer ? (int) $current_dealer->sales_user_id : 0;
     $license_url = $current_media ? AEGIS_Dealer::get_media_gateway_url($current_media->id) : '';
 ?>
 <div class="aegis-portal-card sku-form-card">
@@ -99,6 +109,27 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
                 <span>授权截止日期</span>
                 <input class="aegis-portal-input" type="date" name="auth_end_date" value="<?php echo esc_attr($auth_end_date); ?>" <?php disabled(!$can_edit); ?> required />
             </label>
+            <label class="aegis-portal-field">
+                <span>价格等级</span>
+                <select class="aegis-portal-select" name="price_level" <?php disabled(!$can_edit_pricing); ?>>
+                    <option value="">— 未设置 —</option>
+                    <?php foreach ($price_levels as $value => $label) : ?>
+                        <option value="<?php echo esc_attr($value); ?>" <?php selected($price_level_value, $value); ?>><?php echo esc_html($label); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <span class="aegis-t-a6" style="color:#666;">仅 HQ 可编辑，用于默认取价。</span>
+            </label>
+            <label class="aegis-portal-field">
+                <span>所属销售人员</span>
+                <select class="aegis-portal-select" name="sales_user_id" <?php disabled(!$can_edit_pricing); ?>>
+                    <option value="">— 未分配 —</option>
+                    <?php foreach ($sales_users as $user) :
+                        $display = $user->display_name ? $user->display_name : $user->user_login;
+                    ?>
+                        <option value="<?php echo esc_attr($user->ID); ?>" <?php selected($sales_user_id_value, (int) $user->ID); ?>><?php echo esc_html($display); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
         </div>
         <div class="aegis-portal-form-grid" style="margin-top:12px;">
             <div class="aegis-portal-field">
@@ -119,6 +150,138 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
             </div>
         <?php endif; ?>
     </form>
+</div>
+<?php endif; ?>
+
+<?php if ($current_dealer) : ?>
+<div class="aegis-portal-card">
+    <div class="portal-action-bar">
+        <div>
+            <div class="aegis-t-a4" style="margin:0;">专属价格</div>
+            <div class="aegis-t-a6" style="color:#555;">同一经销商同一 SKU 仅一条覆盖价，优先于等级价。</div>
+        </div>
+    </div>
+
+    <div class="aegis-t-a6" style="margin-bottom:10px; color:#666;">
+        <?php echo $can_edit_pricing ? 'HQ 可维护；仓库管理员仅查看。' : '当前账号仅可查看，需 HQ 编辑。'; ?>
+    </div>
+
+    <div class="aegis-table-wrap">
+        <table class="aegis-portal-table aegis-t-a6">
+            <thead>
+                <tr>
+                    <th>EAN</th>
+                    <th>产品名称</th>
+                    <th>覆盖价</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($overrides)) : ?>
+                    <tr><td colspan="5" class="aegis-t-a6" style="text-align:center;">尚未配置专属价</td></tr>
+                <?php endif; ?>
+                <?php foreach ($overrides as $override) : ?>
+                    <tr>
+                        <td class="aegis-t-a5" style="font-weight:600;">&nbsp;<?php echo esc_html($override->ean); ?></td>
+                        <td><?php echo esc_html($override->product_name ?: ''); ?></td>
+                        <td><?php echo esc_html(number_format((float) $override->price_override, 2)); ?></td>
+                        <td><?php echo esc_html(mysql2date('Y-m-d H:i', $override->updated_at)); ?></td>
+                        <td>
+                            <?php if ($can_edit_pricing) : ?>
+                                <div class="table-actions">
+                                    <form method="post" class="inline-form">
+                                        <?php wp_nonce_field('aegis_dealer_action', 'aegis_dealer_nonce'); ?>
+                                        <input type="hidden" name="dealer_action" value="update_override" />
+                                        <input type="hidden" name="dealer_id" value="<?php echo esc_attr($current_dealer->id); ?>" />
+                                        <input type="hidden" name="override_id" value="<?php echo esc_attr($override->id); ?>" />
+                                        <input type="hidden" name="override_ean" value="<?php echo esc_attr($override->ean); ?>" />
+                                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                        <input class="aegis-portal-input" style="width:120px;" type="number" step="0.01" min="0" name="price_override" value="<?php echo esc_attr(number_format((float) $override->price_override, 2, '.', '')); ?>" />
+                                        <button type="submit" class="aegis-portal-button is-secondary">更新</button>
+                                    </form>
+                                    <form method="post" class="inline-form" onsubmit="return confirm('确认删除该专属价？');">
+                                        <?php wp_nonce_field('aegis_dealer_action', 'aegis_dealer_nonce'); ?>
+                                        <input type="hidden" name="dealer_action" value="delete_override" />
+                                        <input type="hidden" name="dealer_id" value="<?php echo esc_attr($current_dealer->id); ?>" />
+                                        <input type="hidden" name="override_id" value="<?php echo esc_attr($override->id); ?>" />
+                                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                        <button type="submit" class="aegis-portal-button is-link">删除</button>
+                                    </form>
+                                </div>
+                            <?php else : ?>
+                                <span class="aegis-t-a6" style="color:#666;">仅 HQ 可编辑</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <?php if ($can_edit_pricing) : ?>
+        <div class="aegis-portal-subtitle aegis-t-a5" style="margin-top:14px;">新增专属价</div>
+        <form method="post" class="aegis-portal-form-grid">
+            <?php wp_nonce_field('aegis_dealer_action', 'aegis_dealer_nonce'); ?>
+            <input type="hidden" name="dealer_action" value="add_override" />
+            <input type="hidden" name="dealer_id" value="<?php echo esc_attr($current_dealer->id); ?>" />
+            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+            <label class="aegis-portal-field">
+                <span>SKU EAN</span>
+                <input class="aegis-portal-input" list="override-skus" type="text" name="override_ean" placeholder="输入或选择 EAN" />
+            </label>
+            <label class="aegis-portal-field">
+                <span>覆盖价</span>
+                <input class="aegis-portal-input" type="number" step="0.01" min="0" name="price_override" required />
+            </label>
+            <div class="aegis-portal-field" style="align-self:flex-end;">
+                <button type="submit" class="aegis-portal-button is-primary">新增专属价</button>
+            </div>
+        </form>
+    <?php endif; ?>
+
+    <div class="aegis-portal-subtitle aegis-t-a5" style="margin-top:16px;">报价查询</div>
+    <form method="post" class="aegis-portal-form-grid" style="margin-bottom:8px;">
+        <?php wp_nonce_field('aegis_dealer_action', 'aegis_dealer_nonce'); ?>
+        <input type="hidden" name="dealer_action" value="lookup_price" />
+        <input type="hidden" name="dealer_id" value="<?php echo esc_attr($current_dealer->id); ?>" />
+        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+        <label class="aegis-portal-field">
+            <span>SKU EAN</span>
+            <input class="aegis-portal-input" list="override-skus" type="text" name="price_lookup_ean" placeholder="输入 EAN" />
+        </label>
+        <div class="aegis-portal-field" style="align-self:flex-end;">
+            <button type="submit" class="aegis-portal-button">查询报价</button>
+        </div>
+    </form>
+    <?php
+    if ($price_lookup && (int) $price_lookup['dealer_id'] === (int) $current_dealer->id) {
+        $quote = $price_lookup['quote'];
+        $price_value = isset($quote['unit_price']) ? $quote['unit_price'] : null;
+        $source = $quote['price_source'] ?? '';
+        $source_label = 'tier' === $source ? '等级价' : ('override' === $source ? '专属价' : '未配置');
+        $level_used = $quote['price_level_used'] ?? '';
+        echo '<div class="aegis-t-a6" style="color:#333;">';
+        echo 'SKU ' . esc_html($price_lookup['ean']) . ' 报价：';
+        if (null === $price_value) {
+            echo '<strong>未配置</strong>（不可下单）';
+        } else {
+            echo '<strong>' . esc_html(number_format((float) $price_value, 2)) . '</strong> · 来源：' . esc_html($source_label);
+        }
+        if ($level_used) {
+        echo ' · 等级：' . esc_html($level_used);
+        }
+        echo '</div>';
+    }
+    ?>
+    <datalist id="override-skus">
+        <?php foreach ($sku_choices as $choice) : ?>
+            <option value="<?php echo esc_attr($choice->ean); ?>"><?php echo esc_html($choice->ean . ' / ' . $choice->product_name); ?></option>
+        <?php endforeach; ?>
+    </datalist>
+    <?php if ($sku_search) : ?>
+        <div class="aegis-t-a6" style="color:#666;">SKU 过滤：<?php echo esc_html($sku_search); ?></div>
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 
@@ -152,6 +315,8 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
                 <th class="col-contact">联系人</th>
                 <th class="col-phone">联系电话</th>
                 <th class="col-address">地址</th>
+                <th>价格等级</th>
+                <th>销售归属</th>
                 <th class="col-date">授权开始</th>
                 <th class="col-date">授权截止</th>
                 <th>状态</th>
@@ -162,7 +327,7 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
         </thead>
         <tbody>
             <?php if (empty($dealers)) : ?>
-                <tr><td colspan="11" class="aegis-t-a6" style="text-align:center;">暂无记录</td></tr>
+                <tr><td colspan="13" class="aegis-t-a6" style="text-align:center;">暂无记录</td></tr>
             <?php endif; ?>
             <?php foreach ($dealers as $dealer) :
                 $status_label = isset($status_labels[$dealer->status]) ? $status_labels[$dealer->status] : $dealer->status;
@@ -187,6 +352,8 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
                     <td class="col-contact"><?php echo esc_html($dealer->contact_name); ?></td>
                     <td class="col-phone"><?php echo esc_html($dealer->phone); ?></td>
                     <td class="col-address" title="<?php echo esc_attr($dealer->address); ?>"><?php echo esc_html($dealer->address); ?></td>
+                    <td><?php echo esc_html($dealer->price_level_label ?: '—'); ?></td>
+                    <td><?php echo esc_html($dealer->sales_user_name ?: '—'); ?></td>
                     <td class="col-date"><?php echo esc_html(AEGIS_Dealer::format_date_display($dealer->auth_start_date)); ?></td>
                     <td class="col-date"><?php echo esc_html(AEGIS_Dealer::format_date_display($dealer->auth_end_date)); ?></td>
                     <td><span class="status-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>

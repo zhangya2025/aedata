@@ -7,6 +7,7 @@ $base_url       = $context_data['base_url'] ?? '';
 $action         = $context_data['action'] ?? '';
 $can_edit       = !empty($context_data['can_edit']);
 $assets_enabled = !empty($context_data['assets_enabled']);
+$can_edit_pricing = !empty($context_data['can_edit_pricing']);
 $messages       = $context_data['messages'] ?? [];
 $errors         = $context_data['errors'] ?? [];
 $skus           = $context_data['skus'] ?? [];
@@ -43,6 +44,9 @@ $list_url = add_query_arg('m', 'sku', $base_url);
     $product_name = $current_sku ? $current_sku->product_name : '';
     $size_label = $current_sku ? $current_sku->size_label : '';
     $color_label = $current_sku ? $current_sku->color_label : '';
+    $price_agent = $current_sku ? $current_sku->price_tier_agent : '';
+    $price_dealer = $current_sku ? $current_sku->price_tier_dealer : '';
+    $price_core = $current_sku ? $current_sku->price_tier_core : '';
     $status_value = $current_sku ? $current_sku->status : 'active';
     $image_record = $current_media['product_image'] ?? null;
     $certificate_record = $current_media['certificate'] ?? null;
@@ -79,6 +83,19 @@ $list_url = add_query_arg('m', 'sku', $base_url);
             <label class="aegis-portal-field">
                 <span>颜色</span>
                 <input class="aegis-portal-input" type="text" name="color_label" value="<?php echo esc_attr($color_label); ?>" <?php disabled(!$can_edit); ?> />
+            </label>
+            <label class="aegis-portal-field">
+                <span>一级代理商价</span>
+                <input class="aegis-portal-input" type="number" step="0.01" min="0" name="price_tier_agent" value="<?php echo esc_attr($price_agent); ?>" <?php disabled(!$can_edit_pricing); ?> />
+                <span class="aegis-t-a6" style="color:#666;">仅 HQ 可编辑，留空表示不可下单。</span>
+            </label>
+            <label class="aegis-portal-field">
+                <span>一级经销商价</span>
+                <input class="aegis-portal-input" type="number" step="0.01" min="0" name="price_tier_dealer" value="<?php echo esc_attr($price_dealer); ?>" <?php disabled(!$can_edit_pricing); ?> />
+            </label>
+            <label class="aegis-portal-field">
+                <span>核心合作商价</span>
+                <input class="aegis-portal-input" type="number" step="0.01" min="0" name="price_tier_core" value="<?php echo esc_attr($price_core); ?>" <?php disabled(!$can_edit_pricing); ?> />
             </label>
             <label class="aegis-portal-field">
                 <span>状态</span>

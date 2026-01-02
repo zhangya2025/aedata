@@ -21,6 +21,7 @@ class AEGIS_SKU {
         }
 
         $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
+        $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
         $messages = [];
         $errors = [];
         $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
@@ -33,7 +34,7 @@ class AEGIS_SKU {
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['sku_action']) ? sanitize_key(wp_unslash($_POST['sku_action'])) : '';
             $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
-            $whitelist = ['sku_action', 'sku_id', 'ean', 'product_name', 'size_label', 'color_label', 'status', 'certificate_visibility', 'target_status', 'aegis_sku_nonce', '_wp_http_referer', '_aegis_idempotency'];
+            $whitelist = ['sku_action', 'sku_id', 'ean', 'product_name', 'size_label', 'color_label', 'status', 'certificate_visibility', 'target_status', 'price_tier_agent', 'price_tier_dealer', 'price_tier_core', 'aegis_sku_nonce', '_wp_http_referer', '_aegis_idempotency'];
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
@@ -82,7 +83,7 @@ class AEGIS_SKU {
             echo '<div class="notice notice-warning"><p class="aegis-t-a6">附件上传依赖“资产与媒体”模块，请确保已启用。</p></div>';
         }
 
-        self::render_form($current_edit, $assets_enabled);
+        self::render_form($current_edit, $assets_enabled, $can_edit_pricing);
         self::render_table($skus);
         echo '</div>';
     }
@@ -93,13 +94,16 @@ class AEGIS_SKU {
      * @param object|null $sku
      * @param bool        $assets_enabled
      */
-    protected static function render_form($sku, $assets_enabled) {
+    protected static function render_form($sku, $assets_enabled, $can_edit_pricing) {
         $id = $sku ? (int) $sku->id : 0;
         $ean = $sku ? $sku->ean : '';
         $product_name = $sku ? $sku->product_name : '';
         $size_label = $sku ? $sku->size_label : '';
         $color_label = $sku ? $sku->color_label : '';
         $status = $sku ? $sku->status : self::STATUS_ACTIVE;
+        $price_agent = $sku ? $sku->price_tier_agent : '';
+        $price_dealer = $sku ? $sku->price_tier_dealer : '';
+        $price_core = $sku ? $sku->price_tier_core : '';
         $idempotency_key = wp_generate_uuid4();
 
         echo '<div class="aegis-t-a5" style="margin-top:20px;">';
@@ -122,6 +126,17 @@ class AEGIS_SKU {
         echo '<tr><th><label for="aegis-name">产品名称</label></th><td><input type="text" id="aegis-name" name="product_name" value="' . esc_attr($product_name) . '" class="regular-text" required /></td></tr>';
         echo '<tr><th><label for="aegis-size">尺码</label></th><td><input type="text" id="aegis-size" name="size_label" value="' . esc_attr($size_label) . '" class="regular-text" /></td></tr>';
         echo '<tr><th><label for="aegis-color">颜色</label></th><td><input type="text" id="aegis-color" name="color_label" value="' . esc_attr($color_label) . '" class="regular-text" /></td></tr>';
+        echo '<tr><th colspan="2"><h3>订货定价（仅 HQ 可编辑）</h3></th></tr>';
+        echo '<tr><th><label for="aegis-price-agent">一级代理商价</label></th><td>';
+        echo '<input type="number" step="0.01" min="0" id="aegis-price-agent" name="price_tier_agent" value="' . esc_attr($price_agent) . '" class="regular-text" ' . ($can_edit_pricing ? '' : 'readonly') . ' />';
+        echo '<p class="description aegis-t-a6">非负，最多两位小数；为空则禁止下单。</p>';
+        echo '</td></tr>';
+        echo '<tr><th><label for="aegis-price-dealer">一级经销商价</label></th><td>';
+        echo '<input type="number" step="0.01" min="0" id="aegis-price-dealer" name="price_tier_dealer" value="' . esc_attr($price_dealer) . '" class="regular-text" ' . ($can_edit_pricing ? '' : 'readonly') . ' />';
+        echo '</td></tr>';
+        echo '<tr><th><label for="aegis-price-core">核心合作商价</label></th><td>';
+        echo '<input type="number" step="0.01" min="0" id="aegis-price-core" name="price_tier_core" value="' . esc_attr($price_core) . '" class="regular-text" ' . ($can_edit_pricing ? '' : 'readonly') . ' />';
+        echo '</td></tr>';
 
         echo '<tr><th>状态</th><td><select name="status">';
         foreach (self::get_status_labels() as $value => $label) {
@@ -182,6 +197,9 @@ class AEGIS_SKU {
         $size_label = isset($post['size_label']) ? sanitize_text_field(wp_unslash($post['size_label'])) : '';
         $color_label = isset($post['color_label']) ? sanitize_text_field(wp_unslash($post['color_label'])) : '';
         $status_raw = isset($post['status']) ? sanitize_key($post['status']) : '';
+        $price_agent_input = isset($post['price_tier_agent']) ? wp_unslash($post['price_tier_agent']) : '';
+        $price_dealer_input = isset($post['price_tier_dealer']) ? wp_unslash($post['price_tier_dealer']) : '';
+        $price_core_input = isset($post['price_tier_core']) ? wp_unslash($post['price_tier_core']) : '';
         $status = $status_raw && array_key_exists($status_raw, self::get_status_labels()) ? $status_raw : self::STATUS_ACTIVE;
 
         $now = current_time('mysql');
@@ -204,6 +222,23 @@ class AEGIS_SKU {
             return new WP_Error('ean_exists', 'EAN 已存在，无法重复。');
         }
 
+        $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
+        $price_values = [];
+        if ($can_edit_pricing) {
+            $price_inputs = [
+                'price_tier_agent'  => $price_agent_input,
+                'price_tier_dealer' => $price_dealer_input,
+                'price_tier_core'   => $price_core_input,
+            ];
+            foreach ($price_inputs as $field => $raw_value) {
+                $normalized = AEGIS_Pricing::normalize_price_input($raw_value);
+                if (!$normalized['valid']) {
+                    return new WP_Error('bad_price', $normalized['message']);
+                }
+                $price_values[$field] = $normalized['value'];
+            }
+        }
+
         $data = [
             'product_name' => $product_name,
             'size_label'   => $size_label,
@@ -212,12 +247,23 @@ class AEGIS_SKU {
             'updated_at'   => $now,
         ];
 
+        $price_changes = [];
+        if ($can_edit_pricing) {
+            foreach ($price_values as $field => $value) {
+                $data[$field] = $value;
+                $before = $existing ? $existing->$field : null;
+                if ($before != $value) { // phpcs:ignore loose comparison intentional for null vs ''
+                    $price_changes[$field] = ['from' => $before, 'to' => $value];
+                }
+            }
+        }
+
         $messages = [];
 
         if ($is_new) {
             $data['ean'] = $ean_to_use;
             $data['created_at'] = $now;
-            $wpdb->insert($table, $data, ['%s', '%s', '%s', '%s', '%s', '%s', '%s']);
+            $wpdb->insert($table, $data, array_fill(0, count($data), '%s'));
             $sku_id = (int) $wpdb->insert_id;
             AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_SKU_CREATE, 'SUCCESS', ['id' => $sku_id, 'ean' => $ean_to_use]);
             $messages[] = 'SKU 已创建。';
@@ -230,6 +276,18 @@ class AEGIS_SKU {
                 $action = self::STATUS_ACTIVE === $status ? AEGIS_System::ACTION_SKU_ENABLE : AEGIS_System::ACTION_SKU_DISABLE;
                 AEGIS_Access_Audit::record_event($action, 'SUCCESS', ['id' => $sku_id, 'from' => $existing->status, 'to' => $status]);
             }
+        }
+
+        if ($can_edit_pricing && !empty($price_changes)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_SKU_PRICE_UPDATE,
+                'SUCCESS',
+                [
+                    'sku_id' => $sku_id,
+                    'ean'    => $ean_to_use,
+                    'change' => $price_changes,
+                ]
+            );
         }
 
         if ($assets_enabled) {
@@ -499,6 +557,7 @@ class AEGIS_SKU {
         }
 
         $can_edit = AEGIS_System_Roles::user_can_manage_warehouse();
+        $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
         $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
         $base_url = add_query_arg('m', 'sku', $portal_url);
         wp_enqueue_script(
@@ -527,6 +586,9 @@ class AEGIS_SKU {
                 'status',
                 'certificate_visibility',
                 'target_status',
+                'price_tier_agent',
+                'price_tier_dealer',
+                'price_tier_core',
                 'aegis_sku_nonce',
                 '_wp_http_referer',
                 '_aegis_idempotency',
@@ -597,6 +659,7 @@ class AEGIS_SKU {
             'base_url'        => $base_url,
             'action'          => $action,
             'can_edit'        => $can_edit,
+            'can_edit_pricing'=> $can_edit_pricing,
             'assets_enabled'  => $assets_enabled,
             'messages'        => $messages,
             'errors'         => $errors,
