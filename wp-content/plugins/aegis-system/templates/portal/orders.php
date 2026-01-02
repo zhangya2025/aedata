@@ -12,10 +12,12 @@ $dealer = $context['dealer'];
 $dealer_blocked = $context['dealer_blocked'];
 $role_flags = $context['role_flags'];
 $price_map = $context['price_map'];
+$view_mode = $context['view_mode'];
+$status_labels = $context['status_labels'];
 ?>
 <div class="aegis-t-a4">
     <div class="aegis-t-a2" style="margin-bottom:12px;">订单</div>
-    <p class="aegis-t-a6">当前仅支持经销商下单 → 待初审 → 经销商编辑/撤销。价格来自等级/覆盖价快照，不影响其他系统。</p>
+    <p class="aegis-t-a6">当前流程：经销商下单 → 待初审（HQ删减匹配）→ 待确认 / 撤销 / 作废。价格来自等级/覆盖价快照，不影响其他系统。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -23,6 +25,16 @@ $price_map = $context['price_map'];
     <?php foreach ($errors as $msg) : ?>
         <div class="notice notice-error"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
     <?php endforeach; ?>
+
+    <?php if ($role_flags['is_hq']) : ?>
+        <div class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; align-items:center;">
+            <span>视图：</span>
+            <?php $review_url = add_query_arg(['view' => 'review'], $base_url); ?>
+            <?php $list_url = add_query_arg(['view' => 'list'], $base_url); ?>
+            <a class="button <?php echo $view_mode === 'review' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($review_url); ?>">待初审队列</a>
+            <a class="button <?php echo $view_mode === 'list' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($list_url); ?>">全部订单</a>
+        </div>
+    <?php endif; ?>
 
     <?php if ($role_flags['is_dealer']) : ?>
         <div class="aegis-t-a5" style="border:1px solid #d9dce3; padding:12px; border-radius:8px; background:#f8f9fb; margin-bottom:16px;">
@@ -67,7 +79,9 @@ $price_map = $context['price_map'];
         </div>
     <?php endif; ?>
 
-    <div class="aegis-t-a4" style="margin-top:8px;">订单列表</div>
+    <div class="aegis-t-a4" style="margin-top:8px;">
+        <?php echo $role_flags['queue_view'] ? '待初审订单队列' : '订单列表'; ?>
+    </div>
     <form method="get" class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
         <input type="hidden" name="m" value="orders" />
         <label>开始 <input type="date" name="start_date" value="<?php echo esc_attr($filters['start_date']); ?>" /></label>
@@ -88,16 +102,21 @@ $price_map = $context['price_map'];
                 <tr><td colspan="6">暂无订单</td></tr>
             <?php else : ?>
                 <?php foreach ($orders as $row) : ?>
+                    <?php $status_text = $status_labels[$row->status] ?? $row->status; ?>
+                    <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
+                    <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => 'review', 'order_id' => $row->id], $base_url); } ?>
                     <tr>
                         <td><?php echo esc_html($row->order_no); ?></td>
                         <td><?php echo esc_html($row->created_at); ?></td>
-                        <td><?php echo esc_html($row->status); ?></td>
+                        <td><?php echo esc_html($status_text); ?></td>
                         <td><?php echo esc_html((int) ($row->sku_count ?? 0)); ?></td>
                         <td><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
                         <td>
-                            <a class="button" href="<?php echo esc_url(add_query_arg('order_id', $row->id, $base_url)); ?>">查看</a>
+                            <a class="button" href="<?php echo esc_url($row_link); ?>">查看</a>
                             <?php if ($role_flags['is_dealer'] && $row->status === 'pending_initial_review') : ?>
                                 <a class="button" href="<?php echo esc_url(add_query_arg('order_id', $row->id, $base_url)); ?>#order-edit">编辑</a>
+                            <?php elseif ($role_flags['is_hq'] && $row->status === 'pending_initial_review') : ?>
+                                <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'review', 'order_id' => $row->id], $base_url)); ?>">审核</a>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -120,11 +139,18 @@ $price_map = $context['price_map'];
     <?php if ($order) : ?>
         <div class="aegis-t-a5" style="margin-top:16px; border:1px solid #d9dce3; padding:12px; border-radius:8px;" id="order-detail">
             <div class="aegis-t-a4" style="margin-bottom:8px;">订单详情</div>
-            <div class="aegis-t-a6">订单号：<?php echo esc_html($order->order_no); ?> | 状态：<?php echo esc_html($order->status); ?></div>
+            <?php $status_text = $status_labels[$order->status] ?? $order->status; ?>
+            <div class="aegis-t-a6">订单号：<?php echo esc_html($order->order_no); ?> | 状态：<?php echo esc_html($status_text); ?></div>
             <div class="aegis-t-a6" style="margin-top:4px;">下单时间：<?php echo esc_html($order->created_at); ?></div>
             <div class="aegis-t-a6" style="margin-top:4px;">经销商：<?php echo esc_html($order->dealer_name_snapshot ?: $order->dealer_id); ?></div>
             <?php if (!empty($order->note)) : ?>
                 <div class="aegis-t-a6" style="margin-top:4px;">备注：<?php echo esc_html($order->note); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($order->review_note)) : ?>
+                <div class="aegis-t-a6" style="margin-top:4px;">初审备注：<?php echo esc_html($order->review_note); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($order->void_reason)) : ?>
+                <div class="aegis-t-a6" style="margin-top:4px;">作废原因：<?php echo esc_html($order->void_reason); ?></div>
             <?php endif; ?>
 
             <table class="aegis-table" style="width:100%; margin-top:10px;">
@@ -146,6 +172,64 @@ $price_map = $context['price_map'];
                     <?php endif; ?>
                 </tbody>
             </table>
+
+            <?php if ($role_flags['is_hq'] && $order->status === 'pending_initial_review') : ?>
+                <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
+                    <div class="aegis-t-a5" style="margin-bottom:8px;">HQ 初审（可删减/下调数量，不改价）</div>
+                    <form method="post" id="aegis-order-review-form">
+                        <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                        <input type="hidden" name="order_action" value="review_order" />
+                        <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">初审备注（可选）<br />
+                            <input type="text" name="review_note" value="<?php echo esc_attr($order->review_note ?? ''); ?>" style="width:100%;" />
+                        </label>
+                        <div id="aegis-order-review-items" class="aegis-t-a6" style="display:flex; flex-direction:column; gap:8px;">
+                            <?php foreach ($items as $line) : ?>
+                                <div class="order-review-row" style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; align-items:end;">
+                                    <label class="aegis-t-a6">SKU
+                                        <input type="text" name="order_item_ean[]" value="<?php echo esc_attr($line->ean); ?>" readonly />
+                                    </label>
+                                    <label class="aegis-t-a6">数量（可下调）
+                                        <input type="number" name="order_item_qty[]" min="1" max="<?php echo esc_attr((int) $line->qty); ?>" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required />
+                                        <span class="aegis-t-a6" style="display:block; color:#6b7280;">当前最大：<?php echo esc_html((int) $line->qty); ?></span>
+                                    </label>
+                                    <div class="aegis-t-a6">单价快照
+                                        <div class="aegis-t-a6" style="font-weight:bold;">¥<?php echo esc_html(number_format((float) $line->unit_price_snapshot, 2)); ?></div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div style="margin:8px 0; display:flex; gap:8px;">
+                            <button type="button" class="button" id="review-remove-order-item">删除末行</button>
+                        </div>
+                        <button type="submit" class="button button-primary">匹配通过（待确认）</button>
+                    </form>
+                    <form method="post" style="margin-top:8px;" onsubmit="return confirm('确认作废该订单吗？作废后不可恢复。');">
+                        <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                        <input type="hidden" name="order_action" value="void_order" />
+                        <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">作废原因（可选）<br />
+                            <input type="text" name="void_reason" style="width:100%;" />
+                        </label>
+                        <button type="submit" class="button">作废订单</button>
+                    </form>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($role_flags['is_hq'] && $order->status === 'pending_dealer_confirm') : ?>
+                <form method="post" class="aegis-t-a6" style="margin-top:12px;" onsubmit="return confirm('确认作废该订单吗？作废后不可恢复。');">
+                    <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                    <input type="hidden" name="order_action" value="void_order" />
+                    <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">作废原因（可选）<br />
+                        <input type="text" name="void_reason" style="width:100%;" />
+                    </label>
+                    <button type="submit" class="button">删除/作废订单</button>
+                </form>
+            <?php endif; ?>
 
             <?php if ($role_flags['is_dealer'] && $order->status === 'pending_initial_review') : ?>
                 <div id="order-edit" class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
@@ -189,8 +273,12 @@ $price_map = $context['price_map'];
                         <button type="submit" class="button">撤销订单</button>
                     </form>
                 </div>
+            <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_dealer_confirm') : ?>
+                <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已由 HQ 调整并待确认，当前内容只读。</p>
             <?php elseif ($order->status === 'cancelled_by_dealer') : ?>
                 <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已撤销，明细仅供查看。</p>
+            <?php elseif ($order->status === 'voided_by_hq') : ?>
+                <p class="aegis-t-a6" style="margin-top:8px; color:#d63638;">订单已作废，无法继续操作。</p>
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -262,3 +350,19 @@ $price_map = $context['price_map'];
 })();
 </script>
 <?php endif; ?>
+
+<script>
+(function() {
+    const reviewContainer = document.getElementById('aegis-order-review-items');
+    if (reviewContainer) {
+        const removeBtn = document.getElementById('review-remove-order-item');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                if (reviewContainer.children.length > 1) {
+                    reviewContainer.removeChild(reviewContainer.lastElementChild);
+                }
+            });
+        }
+    }
+})();
+</script>
