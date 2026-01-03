@@ -302,10 +302,7 @@
 
 .aegis-mega__columns {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(var(--aegis-mega-col-min), var(--aegis-mega-col-max))
-  );
+  grid-template-columns: repeat(4, minmax(var(--aegis-mega-col-min), 1fr));
   column-gap: 24px;
   row-gap: 16px;
   align-items: start;
@@ -358,6 +355,26 @@
 .aegis-mega-header__promo-note {
   color: #475569;
   font-size: 13px;
+}
+
+@media (max-width: 1280px) {
+  .aegis-mega-header__panel-grid {
+    grid-template-columns: var(--aegis-mega-sidebar) 1fr;
+  }
+
+  .aegis-mega__promo {
+    grid-column: 1 / -1;
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .aegis-mega__columns {
+    grid-template-columns: repeat(3, minmax(var(--aegis-mega-col-min), 1fr));
+  }
 }
 
 .aegis-mega-header__panel-empty {
