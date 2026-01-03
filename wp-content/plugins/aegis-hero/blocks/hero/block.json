@@ -10,7 +10,8 @@
   "style": "aegis-hero-style",
   "viewScript": "aegis-hero-view",
   "supports": {
-    "anchor": true
+    "anchor": true,
+    "align": ["wide", "full"]
   },
   "attributes": {
     "slides": {
@@ -40,6 +41,10 @@
     "intervalMs": {
       "type": "number",
       "default": 6000
+    },
+    "hidePageTitleHint": {
+      "type": "boolean",
+      "default": false
     }
   }
 }
