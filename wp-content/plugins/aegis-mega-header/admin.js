@@ -1,4 +1,11 @@
 (function () {
+    function generateId() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return 'item_' + crypto.randomUUID();
+        }
+        return 'item_' + Date.now() + Math.floor(Math.random() * 10000);
+    }
+
     function bindMediaButtons(context) {
         const selects = context.querySelectorAll('.aegis-media-select');
         const clears = context.querySelectorAll('.aegis-media-clear');
@@ -53,8 +60,23 @@
         });
     }
 
+    function renumberItems(container) {
+        const items = container.querySelectorAll('.aegis-main-item');
+
+        items.forEach((item, index) => {
+            item.dataset.index = index;
+            item.querySelectorAll('[data-indexed-name]').forEach((field) => {
+                const templateName = field.getAttribute('data-indexed-name');
+                if (!templateName) {
+                    return;
+                }
+                field.name = templateName.replace(/__INDEX__/g, index);
+            });
+        });
+    }
+
     function bindPanelToggles(context) {
-        const rows = context.querySelectorAll('.aegis-nav-item');
+        const rows = context.querySelectorAll('.aegis-main-item');
 
         rows.forEach((row) => {
             const panel = row.querySelector('.aegis-mega-panel-settings');
@@ -77,12 +99,84 @@
         });
     }
 
+    function addItem(container, template) {
+        if (!template) {
+            return;
+        }
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = template.innerHTML.trim().replace(/__ID__/g, generateId());
+        const newItem = wrapper.firstElementChild;
+        if (!newItem) {
+            return;
+        }
+        container.appendChild(newItem);
+        renumberItems(container);
+        bindPanelToggles(container);
+    }
+
+    function bindListControls(container) {
+        container.addEventListener('click', (event) => {
+            const target = event.target;
+            const row = target.closest('.aegis-main-item');
+
+            if (!row) {
+                return;
+            }
+
+            if (target.classList.contains('aegis-delete-item')) {
+                event.preventDefault();
+                if (window.confirm('Delete this item?')) {
+                    row.remove();
+                    renumberItems(container);
+                    bindPanelToggles(container);
+                }
+                return;
+            }
+
+            if (target.classList.contains('aegis-move-up')) {
+                event.preventDefault();
+                const prev = row.previousElementSibling;
+                if (prev) {
+                    container.insertBefore(row, prev);
+                    renumberItems(container);
+                    bindPanelToggles(container);
+                }
+                return;
+            }
+
+            if (target.classList.contains('aegis-move-down')) {
+                event.preventDefault();
+                const next = row.nextElementSibling ? row.nextElementSibling.nextElementSibling : null;
+                container.insertBefore(row, next);
+                renumberItems(container);
+                bindPanelToggles(container);
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const adminWrap = document.querySelector('.wrap');
         if (!adminWrap || typeof wp === 'undefined' || !wp.media) {
             return;
         }
+
         bindMediaButtons(adminWrap);
-        bindPanelToggles(adminWrap);
+
+        const mainContainer = adminWrap.querySelector('#aegis-main-items');
+        const template = document.getElementById('aegis-main-item-template');
+        const addButton = adminWrap.querySelector('.aegis-add-main-item');
+
+        if (mainContainer) {
+            renumberItems(mainContainer);
+            bindPanelToggles(mainContainer);
+            bindListControls(mainContainer);
+        }
+
+        if (addButton && mainContainer && template) {
+            addButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                addItem(mainContainer, template);
+            });
+        }
     });
 })();
