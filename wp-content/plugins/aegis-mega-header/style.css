@@ -334,14 +334,15 @@
 }
 
 .aegis-mega-header__promo-card {
-  background: #ffffff;
+  background: #f3f4f6;
   border: 1px dashed #cbd5e1;
   border-radius: 0;
-  padding: 18px;
-  min-height: 120px;
+  padding: 0;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
 .aegis-mega-header .aegis-mega__sidebar,
@@ -349,6 +350,27 @@
 .aegis-mega-header .aegis-mega__promo,
 .aegis-mega-header .aegis-mega-header__promo-card {
   border-radius: 0 !important;
+}
+
+.aegis-mega-header__promo-image {
+  flex: 1;
+  overflow: hidden;
+}
+
+.aegis-mega-header__promo-image img,
+.aegis-mega-header__promo-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  max-width: none;
+  border-radius: 0;
+}
+
+.aegis-mega-header__promo-label,
+.aegis-mega-header__promo-note {
+  padding: 10px 12px 0 12px;
 }
 
 .aegis-mega-header__promo-label {
