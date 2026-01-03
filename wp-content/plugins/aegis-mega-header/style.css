@@ -94,9 +94,9 @@
   box-sizing: border-box;
   border: 0;
   background: transparent;
-  height: 56px;
+  height: 64px;
   padding: 0 22px;
-  border-radius: 2px;
+  border-radius: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -119,14 +119,26 @@
   background: #111111;
   color: #ffffff;
   outline: none;
-  border-radius: 2px;
 }
 
 .aegis-header__nav-item[aria-expanded="true"],
 .aegis-header__nav-item.is-active {
   background: #111111;
   color: #ffffff;
-  border-radius: 2px;
+}
+
+.aegis-mega-header .aegis-header__nav-item,
+.aegis-mega-header .aegis-header__nav-item:hover,
+.aegis-mega-header .aegis-header__nav-item:focus,
+.aegis-mega-header .aegis-header__nav-item:active,
+.aegis-mega-header .aegis-header__nav-item[aria-expanded="true"],
+.aegis-mega-header .aegis-header__nav-item.is-active {
+  text-decoration: none !important;
+  border-radius: 0 !important;
+}
+
+.aegis-mega-header .aegis-header__nav-item * {
+  text-decoration: none !important;
 }
 
 .aegis-header__tools {
@@ -167,7 +179,7 @@
 
 .aegis-header__cart {
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: 0;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
 }
@@ -187,6 +199,13 @@
 
 .aegis-header__mega-inner {
   width: 100%;
+}
+
+.aegis-mega-header .aegis-header__mega,
+.aegis-mega-header .aegis-header__mega-inner,
+.aegis-mega-header .aegis-mega-header__panel,
+.aegis-mega-header .aegis-mega-header__panel-grid {
+  border-radius: 0 !important;
 }
 
 .aegis-header__mega.is-open {
@@ -211,7 +230,7 @@
 .aegis-mega__sidebar {
   background: #f5f5f5;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 0;
 }
 
 .aegis-mega__sidebar-inner {
@@ -273,12 +292,19 @@
 .aegis-mega-header__promo-card {
   background: #f8fafc;
   border: 1px dashed #cbd5e1;
-  border-radius: 10px;
+  border-radius: 0;
   padding: 18px;
   min-height: 120px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.aegis-mega-header .aegis-mega__sidebar,
+.aegis-mega-header .aegis-mega__sidebar-inner,
+.aegis-mega-header .aegis-mega__promo,
+.aegis-mega-header .aegis-mega-header__promo-card {
+  border-radius: 0 !important;
 }
 
 .aegis-mega-header__promo-label {
