@@ -1206,9 +1206,6 @@ function aegis_mega_header_render_settings_page() {
 
             <h2>Main Navigation</h2>
             <p>Manage the top-level menu items. Mega items open panels on hover/focus; link items behave as links only.</p>
-            <div class="aegis-main-actions">
-                <button type="button" class="button aegis-add-main-item">Add Item</button>
-            </div>
             <div id="aegis-main-items" class="aegis-main-items">
                 <?php foreach ( $nav_items as $index => $item ) :
                     if ( ! is_array( $item ) ) {
@@ -1294,6 +1291,10 @@ function aegis_mega_header_render_settings_page() {
                         </details>
                     </div>
                 <?php endforeach; ?>
+            </div>
+
+            <div class="aegis-main-actions">
+                <button type="button" class="button" data-aegis-add-item>Add Item</button>
             </div>
 
             <template id="aegis-main-item-template">

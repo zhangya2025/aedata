@@ -131,6 +131,16 @@
         container.appendChild(newItem);
         renumberItems(container);
         bindPanelToggles(container);
+
+        const labelInput = newItem.querySelector('.aegis-main-item__field-label input');
+
+        if (labelInput) {
+            labelInput.focus();
+        }
+
+        if (typeof newItem.scrollIntoView === 'function') {
+            newItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     function bindListControls(container) {
@@ -183,7 +193,7 @@
 
         const mainContainer = adminWrap.querySelector('#aegis-main-items');
         const template = document.getElementById('aegis-main-item-template');
-        const addButton = adminWrap.querySelector('.aegis-add-main-item');
+        const addButtons = adminWrap.querySelectorAll('[data-aegis-add-item]');
 
         if (mainContainer) {
             renumberItems(mainContainer);
@@ -191,10 +201,12 @@
             bindListControls(mainContainer);
         }
 
-        if (addButton && mainContainer && template) {
-            addButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                addItem(mainContainer, template);
+        if (addButtons.length && mainContainer && template) {
+            addButtons.forEach((button) => {
+                button.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    addItem(mainContainer, template);
+                });
             });
         }
     });
