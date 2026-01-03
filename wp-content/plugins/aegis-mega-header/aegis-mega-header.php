@@ -20,7 +20,29 @@ __DIR__,
 }
 add_action( 'init', 'aegis_mega_header_register_block' );
 
+function aegis_mega_header_default_nav() {
+    return [
+        'top'  => [
+            'enabled' => true,
+            'links'   => [
+                [ 'label' => '中文', 'url' => '#' ],
+                [ 'label' => 'English', 'url' => '#' ],
+            ],
+        ],
+        'main' => [
+            'home'               => [ 'label' => 'HOME', 'type' => 'mega', 'url' => '#' ],
+            'cloth'              => [ 'label' => 'CLOTH', 'type' => 'mega', 'url' => '#' ],
+            'equipment'          => [ 'label' => 'EQUIPMENT', 'type' => 'mega', 'url' => '#' ],
+            'technology'         => [ 'label' => 'TECHNOLOGY', 'type' => 'mega', 'url' => '#' ],
+            'contact-us'         => [ 'label' => 'CONTACT US', 'type' => 'mega', 'url' => '#' ],
+            'query-verification' => [ 'label' => 'QUERY VERIFICATION', 'type' => 'mega', 'url' => '#' ],
+        ],
+    ];
+}
+
 function aegis_mega_header_default_settings() {
+    $nav_defaults = aegis_mega_header_default_nav();
+
     return [
         'branding' => [
             'logo_source'    => 'wp_site_logo',
@@ -44,6 +66,8 @@ function aegis_mega_header_default_settings() {
                 'new_tab'  => false,
             ],
         ],
+        'top' => $nav_defaults['top'],
+        'nav' => $nav_defaults['main'],
     ];
 }
 
@@ -59,14 +83,16 @@ function aegis_mega_header_get_settings() {
 }
 
 function aegis_mega_header_sanitize_settings( $settings ) {
-    $defaults = aegis_mega_header_default_settings();
+    $defaults     = aegis_mega_header_default_settings();
+    $nav_defaults = aegis_mega_header_default_nav();
 
     if ( ! is_array( $settings ) ) {
         return $defaults;
     }
 
-    $branding = isset( $settings['branding'] ) && is_array( $settings['branding'] ) ? $settings['branding'] : [];
-
+    $branding    = isset( $settings['branding'] ) && is_array( $settings['branding'] ) ? $settings['branding'] : [];
+    $top_input   = isset( $settings['top'] ) && is_array( $settings['top'] ) ? $settings['top'] : [];
+    $nav_input   = isset( $settings['nav'] ) && is_array( $settings['nav'] ) ? $settings['nav'] : [];
     $logo_source = isset( $branding['logo_source'] ) && in_array( $branding['logo_source'], [ 'wp_site_logo', 'plugin_logo' ], true ) ? $branding['logo_source'] : 'wp_site_logo';
 
     $clean = [
@@ -77,7 +103,33 @@ function aegis_mega_header_sanitize_settings( $settings ) {
             'logo_alt'       => isset( $branding['logo_alt'] ) ? sanitize_text_field( $branding['logo_alt'] ) : '',
         ],
         'ad_slots' => [],
+        'top'      => [
+            'enabled' => ! empty( $top_input['enabled'] ),
+            'links'   => [],
+        ],
+        'nav'      => [],
     ];
+
+    $top_links_default = isset( $nav_defaults['top']['links'] ) ? $nav_defaults['top']['links'] : [];
+    foreach ( $top_links_default as $index => $link_default ) {
+        $link_input = isset( $top_input['links'][ $index ] ) ? $top_input['links'][ $index ] : [];
+        $clean['top']['links'][ $index ] = [
+            'label' => isset( $link_input['label'] ) && '' !== $link_input['label'] ? sanitize_text_field( $link_input['label'] ) : $link_default['label'],
+            'url'   => ! empty( $link_input['url'] ) ? esc_url_raw( $link_input['url'] ) : $link_default['url'],
+        ];
+    }
+
+    $main_defaults = isset( $nav_defaults['main'] ) ? $nav_defaults['main'] : [];
+    foreach ( $main_defaults as $slug => $item_default ) {
+        $item_input = isset( $nav_input[ $slug ] ) ? $nav_input[ $slug ] : [];
+        $type       = isset( $item_input['type'] ) && in_array( $item_input['type'], [ 'mega', 'link' ], true ) ? $item_input['type'] : $item_default['type'];
+
+        $clean['nav'][ $slug ] = [
+            'label' => isset( $item_input['label'] ) && '' !== $item_input['label'] ? sanitize_text_field( $item_input['label'] ) : $item_default['label'],
+            'type'  => $type,
+            'url'   => ! empty( $item_input['url'] ) ? esc_url_raw( $item_input['url'] ) : $item_default['url'],
+        ];
+    }
 
     $slot_defaults = $defaults['ad_slots'];
 
@@ -97,14 +149,12 @@ function aegis_mega_header_sanitize_settings( $settings ) {
 }
 
 function aegis_mega_header_register_settings_page() {
-    add_menu_page(
+    add_theme_page(
         'Aegis Mega Header',
         'Aegis Mega Header',
         'manage_options',
         'aegis-mega-header',
-        'aegis_mega_header_render_settings_page',
-        'dashicons-menu',
-        59
+        'aegis_mega_header_render_settings_page'
     );
 }
 add_action( 'admin_menu', 'aegis_mega_header_register_settings_page' );
@@ -123,7 +173,7 @@ function aegis_mega_header_admin_init() {
 add_action( 'admin_init', 'aegis_mega_header_admin_init' );
 
 function aegis_mega_header_admin_assets( $hook ) {
-    if ( 'toplevel_page_aegis-mega-header' !== $hook ) {
+    if ( 'appearance_page_aegis-mega-header' !== $hook ) {
         return;
     }
 
@@ -139,94 +189,57 @@ function aegis_mega_header_admin_assets( $hook ) {
 add_action( 'admin_enqueue_scripts', 'aegis_mega_header_admin_assets' );
 
 function aegis_mega_header_placeholder_data() {
-    $items = [
+    return [
         'home'              => [
-            'label' => 'HOME',
-            'panel' => [
-                'left'    => [ 'title' => 'Collections', 'links' => [ 'Featured Stories', 'New Season', 'Editor Picks', 'Community' ] ],
-                'columns' => [
-                    [ 'title' => 'Highlights', 'links' => [ 'Latest Drops', 'Sustainability', 'Lookbook', 'Events' ] ],
-                    [ 'title' => 'Explore', 'links' => [ 'About Aegis', 'Our Mission', 'Heritage', 'Care & Repair' ] ],
-                ],
-                'promos'  => [ [ 'title' => 'Welcome Home', 'note' => 'Placeholder promo card' ] ],
+            'left'    => [ 'title' => 'Collections', 'links' => [ 'Featured Stories', 'New Season', 'Editor Picks', 'Community' ] ],
+            'columns' => [
+                [ 'title' => 'Highlights', 'links' => [ 'Latest Drops', 'Sustainability', 'Lookbook', 'Events' ] ],
+                [ 'title' => 'Explore', 'links' => [ 'About Aegis', 'Our Mission', 'Heritage', 'Care & Repair' ] ],
             ],
+            'promos'  => [ [ 'title' => 'Welcome Home', 'note' => 'Placeholder promo card' ] ],
         ],
         'cloth'             => [
-            'label' => 'CLOTH',
-            'panel' => [
-                'left'    => [ 'title' => 'Collections', 'links' => [ 'Urban Line', 'Outdoor Line', 'Travel Ready', 'Seasonal Picks', 'Basics' ] ],
-                'columns' => [
-                    [ 'title' => 'Categories', 'links' => [ 'Jackets', 'Tops', 'Bottoms', 'Layering', 'Accessories' ] ],
-                    [ 'title' => 'Shop By', 'links' => [ 'Activity', 'Weather', 'Fabric', 'Fit' ] ],
-                    [ 'title' => 'Featured', 'links' => [ 'New Arrivals', 'Limited', 'Best Sellers', 'Care Guide' ] ],
-                ],
-                'promos'  => [ [ 'title' => 'Style Edit', 'note' => 'Placeholder promo card' ] ],
+            'left'    => [ 'title' => 'Collections', 'links' => [ 'Urban Line', 'Outdoor Line', 'Travel Ready', 'Seasonal Picks', 'Basics' ] ],
+            'columns' => [
+                [ 'title' => 'Categories', 'links' => [ 'Jackets', 'Tops', 'Bottoms', 'Layering', 'Accessories' ] ],
+                [ 'title' => 'Shop By', 'links' => [ 'Activity', 'Weather', 'Fabric', 'Fit' ] ],
+                [ 'title' => 'Featured', 'links' => [ 'New Arrivals', 'Limited', 'Best Sellers', 'Care Guide' ] ],
             ],
+            'promos'  => [ [ 'title' => 'Style Edit', 'note' => 'Placeholder promo card' ] ],
         ],
         'equipment'         => [
-            'label' => 'EQUIPMENT',
-            'panel' => [
-                'left'    => [ 'title' => 'Shop by Use', 'links' => [ 'Climbing', 'Camping', 'Snow', 'Travel', 'Trail' ] ],
-                'columns' => [
-                    [ 'title' => 'Packs & Bags', 'links' => [ 'Daypacks', 'Duffels', 'Technical Packs', 'Travel Bags' ] ],
-                    [ 'title' => 'Shelter & Sleep', 'links' => [ 'Tents', 'Sleeping Bags', 'Pads', 'Camp Furniture' ] ],
-                    [ 'title' => 'Accessories', 'links' => [ 'Lighting', 'Poles', 'Tools', 'Repair' ] ],
-                ],
-                'promos'  => [ [ 'title' => 'Gear Spotlight', 'note' => 'Placeholder promo card' ] ],
+            'left'    => [ 'title' => 'Shop by Use', 'links' => [ 'Climbing', 'Camping', 'Snow', 'Travel', 'Trail' ] ],
+            'columns' => [
+                [ 'title' => 'Packs & Bags', 'links' => [ 'Daypacks', 'Duffels', 'Technical Packs', 'Travel Bags' ] ],
+                [ 'title' => 'Shelter & Sleep', 'links' => [ 'Tents', 'Sleeping Bags', 'Pads', 'Camp Furniture' ] ],
+                [ 'title' => 'Accessories', 'links' => [ 'Lighting', 'Poles', 'Tools', 'Repair' ] ],
             ],
+            'promos'  => [ [ 'title' => 'Gear Spotlight', 'note' => 'Placeholder promo card' ] ],
         ],
         'technology'        => [
-            'label' => 'TECHNOLOGY',
-            'panel' => [
-                'left'    => [ 'title' => 'Innovations', 'links' => [ 'Fabric Science', 'Weatherproofing', 'Insulation', 'Comfort Systems' ] ],
-                'columns' => [
-                    [ 'title' => 'Learn', 'links' => [ 'Material Guides', 'Performance Labs', 'Testing', 'Design Notes' ] ],
-                    [ 'title' => 'Programs', 'links' => [ 'Sustainability', 'Repair & Care', 'Warranty', 'Recycling' ] ],
-                ],
-                'promos'  => [ [ 'title' => 'Tech Preview', 'note' => 'Placeholder promo card' ] ],
+            'left'    => [ 'title' => 'Innovations', 'links' => [ 'Fabric Science', 'Weatherproofing', 'Insulation', 'Comfort Systems' ] ],
+            'columns' => [
+                [ 'title' => 'Learn', 'links' => [ 'Material Guides', 'Performance Labs', 'Testing', 'Design Notes' ] ],
+                [ 'title' => 'Programs', 'links' => [ 'Sustainability', 'Repair & Care', 'Warranty', 'Recycling' ] ],
             ],
+            'promos'  => [ [ 'title' => 'Tech Preview', 'note' => 'Placeholder promo card' ] ],
         ],
         'contact-us'        => [
-            'label' => 'CONTACT US',
-            'panel' => [
-                'left'    => [ 'title' => 'Support', 'links' => [ 'Help Center', 'Store Locator', 'Size Guide', 'Warranty' ] ],
-                'columns' => [
-                    [ 'title' => 'Get in Touch', 'links' => [ 'Chat', 'Email', 'Phone', 'Feedback' ] ],
-                    [ 'title' => 'Resources', 'links' => [ 'Shipping', 'Returns', 'Repairs', 'FAQ' ] ],
-                ],
-                'promos'  => [ [ 'title' => 'We are here', 'note' => 'Placeholder promo card' ] ],
+            'left'    => [ 'title' => 'Support', 'links' => [ 'Help Center', 'Store Locator', 'Size Guide', 'Warranty' ] ],
+            'columns' => [
+                [ 'title' => 'Get in Touch', 'links' => [ 'Chat', 'Email', 'Phone', 'Feedback' ] ],
+                [ 'title' => 'Resources', 'links' => [ 'Shipping', 'Returns', 'Repairs', 'FAQ' ] ],
             ],
+            'promos'  => [ [ 'title' => 'We are here', 'note' => 'Placeholder promo card' ] ],
         ],
         'query-verification' => [
-            'label' => 'QUERY VERIFICATION',
-            'panel' => [
-                'left'    => [ 'title' => 'Verification', 'links' => [ 'Order Status', 'Authenticity', 'Warranty Check', 'Service Request' ] ],
-                'columns' => [
-                    [ 'title' => 'Look Up', 'links' => [ 'Order Number', 'Email', 'Serial', 'Support Ticket' ] ],
-                    [ 'title' => 'More Help', 'links' => [ 'Guides', 'Policies', 'Security', 'Contact Team' ] ],
-                ],
-                'promos'  => [ [ 'title' => 'Check & Confirm', 'note' => 'Placeholder promo card' ] ],
+            'left'    => [ 'title' => 'Verification', 'links' => [ 'Order Status', 'Authenticity', 'Warranty Check', 'Service Request' ] ],
+            'columns' => [
+                [ 'title' => 'Look Up', 'links' => [ 'Order Number', 'Email', 'Serial', 'Support Ticket' ] ],
+                [ 'title' => 'More Help', 'links' => [ 'Guides', 'Policies', 'Security', 'Contact Team' ] ],
             ],
+            'promos'  => [ [ 'title' => 'Check & Confirm', 'note' => 'Placeholder promo card' ] ],
         ],
-    ];
-
-    $menu_items = [];
-    $panels     = [];
-
-    foreach ( $items as $key => $data ) {
-        $menu_items[] = [
-            'key'   => $key,
-            'label' => isset( $data['label'] ) ? $data['label'] : strtoupper( $key ),
-        ];
-
-        if ( isset( $data['panel'] ) ) {
-            $panels[ $key ] = $data['panel'];
-        }
-    }
-
-    return [
-        'menu_items' => $menu_items,
-        'panels'     => $panels,
     ];
 }
 
@@ -423,28 +436,53 @@ $attributes = wp_parse_args( $attributes, $defaults );
 
 $placeholder = ! empty( $attributes['placeholder'] );
 
-$data       = aegis_mega_header_placeholder_data();
-$menu_items = isset( $data['menu_items'] ) ? $data['menu_items'] : [];
-$panels     = isset( $data['panels'] ) ? $data['panels'] : [];
-$settings   = aegis_mega_header_get_settings();
-$brand      = aegis_mega_header_render_brand( $settings );
-$promo_slots = aegis_mega_header_promo_slots( $settings );
+$panel_data   = aegis_mega_header_placeholder_data();
+$settings     = aegis_mega_header_get_settings();
+$brand        = aegis_mega_header_render_brand( $settings );
+$promo_slots  = aegis_mega_header_promo_slots( $settings );
+$nav_defaults = aegis_mega_header_default_nav();
+$nav_settings = isset( $settings['nav'] ) ? $settings['nav'] : $nav_defaults['main'];
+$top_settings = isset( $settings['top'] ) ? $settings['top'] : $nav_defaults['top'];
 
 $panel_ids = [];
-    foreach ( $menu_items as $item ) {
-        $key               = isset( $item['key'] ) ? $item['key'] : uniqid( 'item' );
-        $panel_ids[ $key ] = 'aegis-mega-panel-' . sanitize_key( $key );
+$menu_items = [];
+$order      = array_keys( $nav_defaults['main'] );
+
+foreach ( $order as $slug ) {
+    $item_default = $nav_defaults['main'][ $slug ];
+    $item_setting = isset( $nav_settings[ $slug ] ) ? $nav_settings[ $slug ] : $item_default;
+
+    $label = isset( $item_setting['label'] ) && '' !== $item_setting['label'] ? $item_setting['label'] : $item_default['label'];
+    $type  = isset( $item_setting['type'] ) && in_array( $item_setting['type'], [ 'mega', 'link' ], true ) ? $item_setting['type'] : $item_default['type'];
+    $url   = ! empty( $item_setting['url'] ) ? $item_setting['url'] : $item_default['url'];
+
+    $menu_items[] = [
+        'key'   => $slug,
+        'label' => $label,
+        'type'  => $type,
+        'url'   => $url,
+    ];
+
+    if ( 'mega' === $type ) {
+        $panel_ids[ $slug ] = 'aegis-mega-panel-' . sanitize_key( $slug );
     }
+}
 
 ob_start();
 ?>
 <header class="aegis-mega-header" data-placeholder="<?php echo $placeholder ? 'true' : 'false'; ?>">
-<?php if ( ! empty( $attributes['showUtilityBar'] ) ) : ?>
+<?php if ( ! empty( $attributes['showUtilityBar'] ) && ! empty( $top_settings['enabled'] ) ) :
+    $top_links = isset( $top_settings['links'] ) ? $top_settings['links'] : [];
+    ?>
 <div class="aegis-header__top">
 <div class="aegis-header__top-inner">
                 <div class="aegis-header__top-links" aria-label="Utility">
-                    <a class="aegis-header__top-link" href="#">中文</a>
-                    <a class="aegis-header__top-link" href="#">English</a>
+<?php foreach ( $top_links as $link ) :
+    $label = isset( $link['label'] ) ? $link['label'] : '';
+    $url   = isset( $link['url'] ) ? $link['url'] : '#';
+    ?>
+                    <a class="aegis-header__top-link" href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a>
+<?php endforeach; ?>
 </div>
 </div>
 </div>
@@ -461,18 +499,24 @@ ob_start();
 <?php foreach ( $menu_items as $index => $item ) :
 $key      = isset( $item['key'] ) ? $item['key'] : 'item-' . $index;
 $label    = isset( $item['label'] ) ? $item['label'] : 'Item';
-$panel_id = isset( $panel_ids[ $key ] ) ? $panel_ids[ $key ] : wp_unique_id( 'aegis-mega-panel-' );
+$type     = isset( $item['type'] ) ? $item['type'] : 'mega';
+$url      = isset( $item['url'] ) ? $item['url'] : '#';
+$panel_id = isset( $panel_ids[ $key ] ) ? $panel_ids[ $key ] : '';
+$is_mega  = 'mega' === $type && $panel_id;
 ?>
-<button
+<a
 class="aegis-header__nav-item"
-type="button"
+href="<?php echo esc_url( $url ); ?>"
+<?php if ( $is_mega ) : ?>
 data-mega-trigger="<?php echo esc_attr( $key ); ?>"
 data-panel-target="<?php echo esc_attr( $panel_id ); ?>"
 aria-expanded="false"
 aria-controls="<?php echo esc_attr( $panel_id ); ?>"
+aria-haspopup="true"
+<?php endif; ?>
 >
 <span><?php echo esc_html( $label ); ?></span>
-</button>
+</a>
 <?php endforeach; ?>
 </nav>
 <div class="aegis-header__tools">
@@ -496,8 +540,14 @@ aria-controls="<?php echo esc_attr( $panel_id ); ?>"
 <?php foreach ( $menu_items as $index => $item ) :
 $key      = isset( $item['key'] ) ? $item['key'] : 'item-' . $index;
 $label    = isset( $item['label'] ) ? $item['label'] : 'Item';
-$panel_id = isset( $panel_ids[ $key ] ) ? $panel_ids[ $key ] : wp_unique_id( 'aegis-mega-panel-' );
-$panel    = $placeholder && isset( $panels[ $key ] ) ? $panels[ $key ] : [];
+$type     = isset( $item['type'] ) ? $item['type'] : 'link';
+
+if ( 'mega' !== $type || ! isset( $panel_ids[ $key ] ) ) {
+    continue;
+}
+
+$panel_id = $panel_ids[ $key ];
+$panel    = $placeholder && isset( $panel_data[ $key ] ) ? $panel_data[ $key ] : [];
 ?>
 <div
 class="aegis-mega-header__panel"
@@ -570,14 +620,88 @@ function aegis_mega_header_render_settings_page() {
         return;
     }
 
-    $settings = aegis_mega_header_get_settings();
-    $branding = isset( $settings['branding'] ) ? $settings['branding'] : [];
-    $ad_slots = isset( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
+    $settings     = aegis_mega_header_get_settings();
+    $branding     = isset( $settings['branding'] ) ? $settings['branding'] : [];
+    $ad_slots     = isset( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
+    $nav_defaults = aegis_mega_header_default_nav();
+    $top_defaults = $nav_defaults['top'];
+    $main_default = $nav_defaults['main'];
+    $top_settings = isset( $settings['top'] ) ? $settings['top'] : $top_defaults;
+    $nav_settings = isset( $settings['nav'] ) ? $settings['nav'] : $main_default;
     ?>
     <div class="wrap">
         <h1>Aegis Mega Header</h1>
         <form method="post" action="options.php">
             <?php settings_fields( 'aegis_mega_header_settings_group' ); ?>
+
+            <h2>Top Bar</h2>
+            <table class="form-table" role="presentation">
+                <tbody>
+                    <tr>
+                        <th scope="row">Enable TOP</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="aegis_mega_header_settings[top][enabled]" value="1" <?php checked( ! empty( $top_settings['enabled'] ) ); ?> />
+                                Show top utility bar
+                            </label>
+                        </td>
+                    </tr>
+                    <?php
+                    $top_links = isset( $top_settings['links'] ) ? $top_settings['links'] : $top_defaults['links'];
+                    foreach ( $top_links as $index => $link ) {
+                        $label = isset( $link['label'] ) ? $link['label'] : $top_defaults['links'][ $index ]['label'];
+                        $url   = isset( $link['url'] ) ? $link['url'] : $top_defaults['links'][ $index ]['url'];
+                        ?>
+                        <tr>
+                            <th scope="row">Link <?php echo esc_html( $index + 1 ); ?></th>
+                            <td>
+                                <label>Label<br />
+                                    <input type="text" class="regular-text" name="aegis_mega_header_settings[top][links][<?php echo esc_attr( $index ); ?>][label]" value="<?php echo esc_attr( $label ); ?>" />
+                                </label>
+                                <br />
+                                <label>URL<br />
+                                    <input type="url" class="regular-text" name="aegis_mega_header_settings[top][links][<?php echo esc_attr( $index ); ?>][url]" value="<?php echo esc_attr( $url ); ?>" />
+                                </label>
+                            </td>
+                        </tr>
+                        <?php
+                    }
+                    ?>
+                </tbody>
+            </table>
+
+            <h2>Main Navigation</h2>
+            <table class="form-table" role="presentation">
+                <tbody>
+                    <?php foreach ( $main_default as $slug => $defaults ) :
+                        $item        = isset( $nav_settings[ $slug ] ) ? $nav_settings[ $slug ] : $defaults;
+                        $label_value = isset( $item['label'] ) ? $item['label'] : $defaults['label'];
+                        $type_value  = isset( $item['type'] ) ? $item['type'] : $defaults['type'];
+                        $url_value   = isset( $item['url'] ) ? $item['url'] : $defaults['url'];
+                        ?>
+                        <tr>
+                            <th scope="row"><?php echo esc_html( $defaults['label'] ); ?></th>
+                            <td>
+                                <p>
+                                    <label>Label<br />
+                                        <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][<?php echo esc_attr( $slug ); ?>][label]" value="<?php echo esc_attr( $label_value ); ?>" />
+                                    </label>
+                                </p>
+                                <p>
+                                    <label><input type="radio" name="aegis_mega_header_settings[nav][<?php echo esc_attr( $slug ); ?>][type]" value="link" <?php checked( $type_value, 'link' ); ?> /> Link</label><br />
+                                    <label><input type="radio" name="aegis_mega_header_settings[nav][<?php echo esc_attr( $slug ); ?>][type]" value="mega" <?php checked( $type_value, 'mega' ); ?> /> Mega</label>
+                                </p>
+                                <p>
+                                    <label>URL<br />
+                                        <input type="url" class="regular-text" name="aegis_mega_header_settings[nav][<?php echo esc_attr( $slug ); ?>][url]" value="<?php echo esc_attr( $url_value ); ?>" />
+                                    </label>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
             <h2>Branding</h2>
             <table class="form-table" role="presentation">
                 <tbody>
