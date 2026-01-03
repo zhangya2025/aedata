@@ -955,8 +955,9 @@ if ( empty( $nav_items ) && isset( $nav_defaults['main']['items'] ) ) {
     $nav_items = $nav_defaults['main']['items'];
 }
 
-$panel_ids = [];
-$menu_items = [];
+$panel_ids   = [];
+$menu_items  = [];
+$mobile_data = [];
 
 foreach ( $nav_items as $index => $item ) {
     if ( ! is_array( $item ) ) {
@@ -985,6 +986,64 @@ foreach ( $nav_items as $index => $item ) {
     if ( $panel_id ) {
         $panel_ids[ $item_id ] = $panel_id;
     }
+
+    if ( 'mega' === $type ) {
+        $sidebar_links = [];
+
+        if ( ! empty( $panel['sidebar']['links'] ) && is_array( $panel['sidebar']['links'] ) ) {
+            foreach ( $panel['sidebar']['links'] as $plink ) {
+                if ( empty( $plink['label'] ) ) {
+                    continue;
+                }
+
+                $sidebar_links[] = [
+                    'label' => sanitize_text_field( $plink['label'] ),
+                    'url'   => isset( $plink['url'] ) && '' !== $plink['url'] ? esc_url_raw( $plink['url'] ) : '#',
+                ];
+            }
+        }
+
+        $groups_data = [];
+
+        if ( ! empty( $panel['groups'] ) && is_array( $panel['groups'] ) ) {
+            foreach ( $panel['groups'] as $group ) {
+                $group_title = isset( $group['title'] ) ? sanitize_text_field( $group['title'] ) : '';
+                $group_links = [];
+
+                if ( ! empty( $group['links'] ) && is_array( $group['links'] ) ) {
+                    foreach ( $group['links'] as $g_link ) {
+                        if ( empty( $g_link['label'] ) ) {
+                            continue;
+                        }
+
+                        $group_links[] = [
+                            'label' => sanitize_text_field( $g_link['label'] ),
+                            'url'   => isset( $g_link['url'] ) && '' !== $g_link['url'] ? esc_url_raw( $g_link['url'] ) : '#',
+                        ];
+                    }
+                }
+
+                if ( '' === $group_title && empty( $group_links ) ) {
+                    continue;
+                }
+
+                $groups_data[] = [
+                    'title' => $group_title,
+                    'links' => $group_links,
+                ];
+            }
+        }
+
+        $mobile_data[ $item_id ] = [
+            'label'   => $label,
+            'url'     => $url,
+            'sidebar' => [
+                'title' => isset( $panel['sidebar']['title'] ) ? sanitize_text_field( $panel['sidebar']['title'] ) : '',
+                'links' => $sidebar_links,
+            ],
+            'groups'  => $groups_data,
+        ];
+    }
 }
 
 ob_start();
@@ -1011,6 +1070,29 @@ $header_style = sprintf(
 </div>
 </div>
 </div>
+<?php endif; ?>
+
+<div class="aegis-mobile-topbar" aria-label="Mobile menu bar">
+    <button class="aegis-mobile-btn" data-mobile-open aria-label="Open menu">&#9776;</button>
+    <div class="aegis-mobile-logo">
+        <a href="<?php echo esc_url( $brand['url'] ); ?>" class="aegis-header__brand-link">
+            <?php echo $brand['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </a>
+    </div>
+    <div class="aegis-mobile-icons">
+        <a class="aegis-mobile-icon" href="#" aria-label="Account">&#128100;</a>
+        <?php if ( ! empty( $attributes['showCart'] ) ) : ?>
+            <a class="aegis-mobile-icon" href="#" aria-label="Cart">&#128722;</a>
+        <?php endif; ?>
+    </div>
+</div>
+
+<?php if ( ! empty( $attributes['showSearch'] ) ) : ?>
+    <form class="aegis-mobile-search" role="search" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
+        <label class="screen-reader-text" for="aegis-mobile-search">Search</label>
+        <input id="aegis-mobile-search" type="search" name="s" placeholder="What are you looking for?" />
+        <button type="submit" class="aegis-mobile-search-btn" aria-label="Search">&#128269;</button>
+    </form>
 <?php endif; ?>
 
 <div class="aegis-header__main">
@@ -1092,8 +1174,55 @@ echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscap
 ?>
 </div>
 <?php endforeach; ?>
-</div>
-</div>
+        </div>
+    </div>
+
+    <div class="aegis-mobile-overlay" data-mobile-close hidden></div>
+    <aside class="aegis-mobile-drawer" hidden aria-hidden="true">
+        <div class="aegis-mobile-drawer__header">
+            <button class="aegis-mobile-btn" data-mobile-close aria-label="Close">&#10005;</button>
+            <div class="aegis-mobile-drawer__title">Main Menu</div>
+            <button class="aegis-mobile-btn" data-mobile-close aria-label="Close">&#10005;</button>
+        </div>
+
+        <div class="aegis-mobile-view aegis-mobile-view--root" data-view="root">
+            <ul class="aegis-mobile-list">
+                <?php foreach ( $menu_items as $index => $item ) :
+                    $key   = isset( $item['key'] ) ? $item['key'] : 'item-' . $index;
+                    $label = isset( $item['label'] ) ? $item['label'] : 'Item';
+                    $type  = isset( $item['type'] ) ? $item['type'] : 'link';
+                    $url   = isset( $item['url'] ) ? $item['url'] : '#';
+                    ?>
+                    <?php if ( 'mega' === $type ) : ?>
+                        <li>
+                            <button class="aegis-mobile-row" data-enter="<?php echo esc_attr( $key ); ?>">
+                                <span class="aegis-mobile-row__label"><?php echo esc_html( $label ); ?></span>
+                                <span class="aegis-mobile-row__chev" aria-hidden="true">&#8250;</span>
+                            </button>
+                        </li>
+                    <?php else : ?>
+                        <li>
+                            <a class="aegis-mobile-row" href="<?php echo esc_url( $url ); ?>">
+                                <span class="aegis-mobile-row__label"><?php echo esc_html( $label ); ?></span>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+
+        <div class="aegis-mobile-view aegis-mobile-view--sub" data-view="sub" hidden>
+            <div class="aegis-mobile-subheader">
+                <button class="aegis-mobile-back" data-back aria-label="Back">&#8249; Back</button>
+                <div class="aegis-mobile-subtitle" data-subtitle></div>
+            </div>
+            <div class="aegis-mobile-subcontent" data-subcontent></div>
+        </div>
+
+        <script type="application/json" class="aegis-mobile-panels" data-mobile-panels>
+            <?php echo wp_json_encode( $mobile_data ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </script>
+    </aside>
 </header>
 <?php
 

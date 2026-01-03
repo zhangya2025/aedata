@@ -4,7 +4,23 @@ const panelShell = header.querySelector('[data-mega-panels]');
 const panels = header.querySelectorAll('.aegis-mega-header__panel');
 const nav = header.querySelector('.aegis-header__nav');
 const navItems = header.querySelectorAll('.aegis-header__nav-item');
+const mobileOverlay = header.querySelector('.aegis-mobile-overlay');
+const mobileDrawer = header.querySelector('.aegis-mobile-drawer');
+const mobilePanelsScript = header.querySelector('[data-mobile-panels]');
+const mobileRootView = header.querySelector('.aegis-mobile-view--root');
+const mobileSubView = header.querySelector('.aegis-mobile-view--sub');
+const mobileSubtitle = header.querySelector('[data-subtitle]');
+const mobileSubcontent = header.querySelector('[data-subcontent]');
 let activeKey = null;
+let mobilePanelsData = {};
+
+if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
+try {
+mobilePanelsData = JSON.parse( mobilePanelsScript.textContent );
+} catch ( e ) {
+mobilePanelsData = {};
+}
+}
 
 function isMegaTrigger( item ) {
 if ( ! item ) {
@@ -124,6 +140,213 @@ if ( event.key === 'Escape' && activeKey ) {
 closePanels();
 }
 } );
+
+function lockBody( lock ) {
+if ( lock ) {
+document.body.classList.add('aegis-mobile-locked');
+document.body.style.overflow = 'hidden';
+} else {
+document.body.classList.remove('aegis-mobile-locked');
+document.body.style.overflow = '';
+}
+}
+
+function renderMobileSubcontent( itemId ) {
+if ( ! mobilePanelsData || ! mobileSubView || ! mobileSubcontent || ! mobileSubtitle ) {
+return;
+}
+
+const data = mobilePanelsData[ itemId ];
+
+if ( ! data ) {
+return;
+}
+
+mobileSubcontent.innerHTML = '';
+mobileSubtitle.textContent = data.label || '';
+
+if ( data.url && data.url !== '#' ) {
+const viewAll = document.createElement('a');
+viewAll.className = 'aegis-mobile-viewall';
+viewAll.href = data.url;
+viewAll.textContent = 'View all';
+mobileSubcontent.appendChild( viewAll );
+}
+
+if ( Array.isArray( data.groups ) ) {
+data.groups.forEach( ( group ) => {
+if ( ! group || ( ! group.title && ( ! Array.isArray( group.links ) || ! group.links.length ) ) ) {
+return;
+}
+
+const section = document.createElement('div');
+section.className = 'aegis-mobile-section';
+
+if ( group.title ) {
+const title = document.createElement('div');
+title.className = 'aegis-mobile-section__title';
+title.textContent = group.title;
+section.appendChild( title );
+}
+
+if ( Array.isArray( group.links ) && group.links.length ) {
+const list = document.createElement('ul');
+list.className = 'aegis-mobile-links';
+group.links.forEach( ( link ) => {
+if ( ! link || ! link.label ) {
+return;
+}
+const item = document.createElement('li');
+const anchor = document.createElement('a');
+anchor.className = 'aegis-mobile-link';
+anchor.href = link.url || '#';
+anchor.textContent = link.label;
+item.appendChild( anchor );
+list.appendChild( item );
+} );
+section.appendChild( list );
+}
+
+mobileSubcontent.appendChild( section );
+} );
+}
+
+if ( data.sidebar && Array.isArray( data.sidebar.links ) && data.sidebar.links.length ) {
+const section = document.createElement('div');
+section.className = 'aegis-mobile-section';
+
+if ( data.sidebar.title ) {
+const title = document.createElement('div');
+title.className = 'aegis-mobile-section__title';
+title.textContent = data.sidebar.title;
+section.appendChild( title );
+}
+
+const list = document.createElement('ul');
+list.className = 'aegis-mobile-links';
+data.sidebar.links.forEach( ( link ) => {
+if ( ! link || ! link.label ) {
+return;
+}
+const item = document.createElement('li');
+const anchor = document.createElement('a');
+anchor.className = 'aegis-mobile-link';
+anchor.href = link.url || '#';
+anchor.textContent = link.label;
+item.appendChild( anchor );
+list.appendChild( item );
+} );
+section.appendChild( list );
+mobileSubcontent.appendChild( section );
+}
+}
+
+function openMobileDrawer() {
+if ( ! mobileDrawer || ! mobileOverlay ) {
+return;
+}
+
+mobileDrawer.hidden = false;
+mobileDrawer.setAttribute('aria-hidden', 'false');
+mobileOverlay.hidden = false;
+lockBody( true );
+if ( mobileRootView ) {
+mobileRootView.hidden = false;
+}
+if ( mobileSubView ) {
+mobileSubView.hidden = true;
+}
+}
+
+function closeMobileDrawer() {
+if ( mobileDrawer ) {
+mobileDrawer.hidden = true;
+mobileDrawer.setAttribute('aria-hidden', 'true');
+}
+if ( mobileOverlay ) {
+mobileOverlay.hidden = true;
+}
+if ( mobileRootView ) {
+mobileRootView.hidden = false;
+}
+if ( mobileSubView ) {
+mobileSubView.hidden = true;
+}
+lockBody( false );
+}
+
+function bindMobileNav() {
+const openers = header.querySelectorAll('[data-mobile-open]');
+const closers = header.querySelectorAll('[data-mobile-close]');
+
+openers.forEach( ( btn ) => {
+btn.addEventListener('click', ( event ) => {
+event.preventDefault();
+openMobileDrawer();
+} );
+} );
+
+closers.forEach( ( btn ) => {
+btn.addEventListener('click', ( event ) => {
+event.preventDefault();
+closeMobileDrawer();
+} );
+} );
+
+if ( mobileOverlay ) {
+mobileOverlay.addEventListener('click', ( event ) => {
+event.preventDefault();
+closeMobileDrawer();
+} );
+}
+
+if ( mobileRootView ) {
+mobileRootView.addEventListener('click', ( event ) => {
+const trigger = event.target.closest('[data-enter]');
+if ( ! trigger ) {
+return;
+}
+
+const itemId = trigger.getAttribute('data-enter');
+renderMobileSubcontent( itemId );
+if ( mobileRootView ) {
+mobileRootView.hidden = true;
+}
+if ( mobileSubView ) {
+mobileSubView.hidden = false;
+}
+} );
+}
+
+const backBtn = header.querySelector('[data-back]');
+if ( backBtn ) {
+backBtn.addEventListener('click', ( event ) => {
+event.preventDefault();
+if ( mobileRootView ) {
+mobileRootView.hidden = false;
+}
+if ( mobileSubView ) {
+mobileSubView.hidden = true;
+}
+mobileSubcontent && ( mobileSubcontent.innerHTML = '' );
+mobileSubtitle && ( mobileSubtitle.textContent = '' );
+} );
+}
+
+document.addEventListener('keydown', ( event ) => {
+if ( event.key === 'Escape' ) {
+closeMobileDrawer();
+}
+} );
+
+window.addEventListener('resize', () => {
+if ( window.innerWidth > 960 ) {
+closeMobileDrawer();
+}
+} );
+}
+
+bindMobileNav();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
