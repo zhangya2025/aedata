@@ -1,0 +1,32 @@
+{
+  "apiVersion": 2,
+  "name": "aegis/mega-header",
+  "title": "Aegis Mega Header",
+  "category": "theme",
+  "icon": "menu",
+  "description": "Mega header with placeholder mega menu layout.",
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "placeholder": {
+      "type": "boolean",
+      "default": true
+    },
+    "showUtilityBar": {
+      "type": "boolean",
+      "default": true
+    },
+    "showSearch": {
+      "type": "boolean",
+      "default": true
+    },
+    "showCart": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "editorScript": "file:./editor.js",
+  "style": "file:./style.css",
+  "script": "file:./view.js"
+}
