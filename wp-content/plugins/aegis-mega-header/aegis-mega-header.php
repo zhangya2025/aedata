@@ -21,93 +21,95 @@ __DIR__,
 add_action( 'init', 'aegis_mega_header_register_block' );
 
 function aegis_mega_header_placeholder_data() {
-return [
-'menu_items' => [
-[ 'key' => 'snow', 'label' => 'Snow' ],
-[ 'key' => 'men', 'label' => 'Men' ],
-[ 'key' => 'women', 'label' => 'Women' ],
-[ 'key' => 'kids', 'label' => 'Kids' ],
-[ 'key' => 'equipment', 'label' => 'Equipment' ],
-[ 'key' => 'sale', 'label' => 'Sale' ],
-[ 'key' => 'discover', 'label' => 'Discover' ],
-],
-'panels'     => [
-'snow'      => [
-'left'    => [
-'title' => 'Shop by Activity',
-'links' => [ 'Backcountry Touring', 'Resort Riding', 'Splitboard Essentials', 'Freeride Favorites', 'Avalanche Ready', 'Base Layers' ],
-],
-'columns' => [
-[ 'title' => 'Outerwear', 'links' => [ 'Shell Jackets', 'Insulated Jackets', 'Snow Pants', 'Bibs', 'Midlayers', 'Gloves & Mitts' ] ],
-[ 'title' => 'Footwear', 'links' => [ 'Snow Boots', 'Hiking Boots', 'Approach Shoes', 'Waterproof Boots' ] ],
-[ 'title' => 'Packs & Gear', 'links' => [ 'Ski Packs', 'Avalanche Safety', 'Goggles', 'Helmets', 'Tools' ] ],
-[ 'title' => 'Featured', 'links' => [ 'Storm Guard Series', 'Lightweight Layers', 'Backcountry Kits', 'Winter Essentials' ] ],
-[ 'title' => 'Explore', 'links' => [ 'Size Guide', 'Care & Repair', 'Pro Program', 'Gift Cards' ] ],
-],
-'promos'  => [
-[ 'title' => 'Winter Drops', 'note' => 'Placeholder promo card' ],
-[ 'title' => 'Layering Guide', 'note' => 'Placeholder promo card' ],
-],
-],
-'men'       => [
-'left'    => [
-'title' => 'Collections',
-'links' => [ 'New Arrivals', 'Insulation', 'Rain Shells', 'Trail Essentials', 'Puffers', 'Everyday Layers' ],
-],
-'columns' => [
-[ 'title' => 'Jackets', 'links' => [ 'Rain Jackets', 'Softshells', 'Insulated Jackets', 'Windbreakers' ] ],
-[ 'title' => 'Tops', 'links' => [ 'Flannels', 'Hoodies', 'Tees', 'Base Layers', 'Polos' ] ],
-[ 'title' => 'Bottoms', 'links' => [ 'Hiking Pants', 'Shorts', 'Joggers', 'Denim' ] ],
-[ 'title' => 'Accessories', 'links' => [ 'Hats & Beanies', 'Gloves', 'Belts', 'Socks' ] ],
-],
-'promos'  => [ [ 'title' => 'Urban Trek', 'note' => 'Placeholder promo card' ] ],
-],
-'women'     => [
-'left'    => [
-'title' => 'Collections',
-'links' => [ 'New Arrivals', 'Insulated Favorites', 'Everyday Layers', 'Trail Ready', 'Rain Essentials', 'Travel Kits' ],
-],
-'columns' => [
-[ 'title' => 'Jackets', 'links' => [ 'Parkas', 'Lightweight Shells', 'Insulated Jackets', 'Vests' ] ],
-[ 'title' => 'Tops', 'links' => [ 'Fleece & Knits', 'Sweaters', 'Tees', 'Base Layers' ] ],
-[ 'title' => 'Bottoms', 'links' => [ 'Leggings', 'Hiking Pants', 'Skorts', 'Shorts' ] ],
-[ 'title' => 'Accessories', 'links' => [ 'Hats & Beanies', 'Scarves', 'Gloves', 'Packs' ] ],
-],
-'promos'  => [ [ 'title' => 'Cold Weather Edit', 'note' => 'Placeholder promo card' ] ],
-],
-'kids'      => [
-'left'    => [ 'title' => 'Collections', 'links' => [ 'Snow Play', 'School Days', 'Weekend Hikes', 'New Arrivals' ] ],
-'columns' => [
-[ 'title' => 'Outerwear', 'links' => [ 'Jackets', 'Snow Pants', 'Rain Shells', 'Vests' ] ],
-[ 'title' => 'Layers', 'links' => [ 'Hoodies', 'Fleece', 'Tees', 'Base Layers' ] ],
-],
-'promos'  => [ [ 'title' => 'Mini Explorers', 'note' => 'Placeholder promo card' ] ],
-],
-'equipment' => [
-'left'    => [
-'title' => 'Shop by Activity',
-'links' => [ 'Climbing', 'Camping', 'Snow', 'Trail Running', 'Travel', 'Training' ],
-],
-'columns' => [
-[ 'title' => 'Packs', 'links' => [ 'Daypacks', 'Overnight Packs', 'Hydration Packs', 'Duffels' ] ],
-[ 'title' => 'Shelter', 'links' => [ 'Tents', 'Sleeping Bags', 'Sleeping Pads', 'Camp Furniture' ] ],
-[ 'title' => 'Climbing', 'links' => [ 'Harnesses', 'Helmets', 'Protection', 'Ropes', 'Chalk & Bags' ] ],
-[ 'title' => 'Accessories', 'links' => [ 'Lights', 'Poles', 'Tools', 'Care & Repair' ] ],
-],
-'promos'  => [ [ 'title' => 'Gear Lab', 'note' => 'Placeholder promo card' ] ],
-],
-'sale'      => [
-'left'    => [ 'title' => 'Collections', 'links' => [ 'Winter Sale', 'Last Chance', 'Best Sellers' ] ],
-'columns' => [ [ 'title' => 'Shop All', 'links' => [ 'Men', 'Women', 'Kids', 'Equipment' ] ] ],
-'promos'  => [ [ 'title' => 'Save Now', 'note' => 'Placeholder promo card' ] ],
-],
-'discover'  => [
-'left'    => [ 'title' => 'Discover', 'links' => [ 'Stories', 'Athletes', 'Events', 'About Aegis' ] ],
-'columns' => [ [ 'title' => 'More', 'links' => [ 'Sustainability', 'Repairs', 'Newsletter', 'Gift Guides' ] ] ],
-'promos'  => [ [ 'title' => 'Field Notes', 'note' => 'Placeholder promo card' ] ],
-],
-],
-];
+    $items = [
+        'home'              => [
+            'label' => 'HOME',
+            'panel' => [
+                'left'    => [ 'title' => 'Collections', 'links' => [ 'Featured Stories', 'New Season', 'Editor Picks', 'Community' ] ],
+                'columns' => [
+                    [ 'title' => 'Highlights', 'links' => [ 'Latest Drops', 'Sustainability', 'Lookbook', 'Events' ] ],
+                    [ 'title' => 'Explore', 'links' => [ 'About Aegis', 'Our Mission', 'Heritage', 'Care & Repair' ] ],
+                ],
+                'promos'  => [ [ 'title' => 'Welcome Home', 'note' => 'Placeholder promo card' ] ],
+            ],
+        ],
+        'cloth'             => [
+            'label' => 'CLOTH',
+            'panel' => [
+                'left'    => [ 'title' => 'Collections', 'links' => [ 'Urban Line', 'Outdoor Line', 'Travel Ready', 'Seasonal Picks', 'Basics' ] ],
+                'columns' => [
+                    [ 'title' => 'Categories', 'links' => [ 'Jackets', 'Tops', 'Bottoms', 'Layering', 'Accessories' ] ],
+                    [ 'title' => 'Shop By', 'links' => [ 'Activity', 'Weather', 'Fabric', 'Fit' ] ],
+                    [ 'title' => 'Featured', 'links' => [ 'New Arrivals', 'Limited', 'Best Sellers', 'Care Guide' ] ],
+                ],
+                'promos'  => [ [ 'title' => 'Style Edit', 'note' => 'Placeholder promo card' ] ],
+            ],
+        ],
+        'equipment'         => [
+            'label' => 'EQUIPMENT',
+            'panel' => [
+                'left'    => [ 'title' => 'Shop by Use', 'links' => [ 'Climbing', 'Camping', 'Snow', 'Travel', 'Trail' ] ],
+                'columns' => [
+                    [ 'title' => 'Packs & Bags', 'links' => [ 'Daypacks', 'Duffels', 'Technical Packs', 'Travel Bags' ] ],
+                    [ 'title' => 'Shelter & Sleep', 'links' => [ 'Tents', 'Sleeping Bags', 'Pads', 'Camp Furniture' ] ],
+                    [ 'title' => 'Accessories', 'links' => [ 'Lighting', 'Poles', 'Tools', 'Repair' ] ],
+                ],
+                'promos'  => [ [ 'title' => 'Gear Spotlight', 'note' => 'Placeholder promo card' ] ],
+            ],
+        ],
+        'technology'        => [
+            'label' => 'TECHNOLOGY',
+            'panel' => [
+                'left'    => [ 'title' => 'Innovations', 'links' => [ 'Fabric Science', 'Weatherproofing', 'Insulation', 'Comfort Systems' ] ],
+                'columns' => [
+                    [ 'title' => 'Learn', 'links' => [ 'Material Guides', 'Performance Labs', 'Testing', 'Design Notes' ] ],
+                    [ 'title' => 'Programs', 'links' => [ 'Sustainability', 'Repair & Care', 'Warranty', 'Recycling' ] ],
+                ],
+                'promos'  => [ [ 'title' => 'Tech Preview', 'note' => 'Placeholder promo card' ] ],
+            ],
+        ],
+        'contact-us'        => [
+            'label' => 'CONTACT US',
+            'panel' => [
+                'left'    => [ 'title' => 'Support', 'links' => [ 'Help Center', 'Store Locator', 'Size Guide', 'Warranty' ] ],
+                'columns' => [
+                    [ 'title' => 'Get in Touch', 'links' => [ 'Chat', 'Email', 'Phone', 'Feedback' ] ],
+                    [ 'title' => 'Resources', 'links' => [ 'Shipping', 'Returns', 'Repairs', 'FAQ' ] ],
+                ],
+                'promos'  => [ [ 'title' => 'We are here', 'note' => 'Placeholder promo card' ] ],
+            ],
+        ],
+        'query-verification' => [
+            'label' => 'QUERY VERIFICATION',
+            'panel' => [
+                'left'    => [ 'title' => 'Verification', 'links' => [ 'Order Status', 'Authenticity', 'Warranty Check', 'Service Request' ] ],
+                'columns' => [
+                    [ 'title' => 'Look Up', 'links' => [ 'Order Number', 'Email', 'Serial', 'Support Ticket' ] ],
+                    [ 'title' => 'More Help', 'links' => [ 'Guides', 'Policies', 'Security', 'Contact Team' ] ],
+                ],
+                'promos'  => [ [ 'title' => 'Check & Confirm', 'note' => 'Placeholder promo card' ] ],
+            ],
+        ],
+    ];
+
+    $menu_items = [];
+    $panels     = [];
+
+    foreach ( $items as $key => $data ) {
+        $menu_items[] = [
+            'key'   => $key,
+            'label' => isset( $data['label'] ) ? $data['label'] : strtoupper( $key ),
+        ];
+
+        if ( isset( $data['panel'] ) ) {
+            $panels[ $key ] = $data['panel'];
+        }
+    }
+
+    return [
+        'menu_items' => $menu_items,
+        'panels'     => $panels,
+    ];
 }
 
 function aegis_mega_header_render_links( $links ) {
@@ -196,10 +198,10 @@ $menu_items = isset( $data['menu_items'] ) ? $data['menu_items'] : [];
 $panels     = isset( $data['panels'] ) ? $data['panels'] : [];
 
 $panel_ids = [];
-foreach ( $menu_items as $item ) {
-$key               = isset( $item['key'] ) ? $item['key'] : uniqid( 'item' );
-$panel_ids[ $key ] = wp_unique_id( 'aegis-mega-panel-' );
-}
+    foreach ( $menu_items as $item ) {
+        $key               = isset( $item['key'] ) ? $item['key'] : uniqid( 'item' );
+        $panel_ids[ $key ] = 'aegis-mega-panel-' . sanitize_key( $key );
+    }
 
 ob_start();
 ?>
@@ -207,10 +209,9 @@ ob_start();
 <?php if ( ! empty( $attributes['showUtilityBar'] ) ) : ?>
 <div class="aegis-header__top">
 <div class="aegis-header__top-inner">
-<div class="aegis-header__top-links" aria-label="Utility">
-<a class="aegis-header__top-link" href="#">Marmot Rewards</a>
-<a class="aegis-header__top-link" href="#">Support</a>
-<a class="aegis-header__top-link" href="#">Account</a>
+                <div class="aegis-header__top-links" aria-label="Utility">
+                    <a class="aegis-header__top-link" href="#">中文</a>
+                    <a class="aegis-header__top-link" href="#">English</a>
 </div>
 </div>
 </div>
