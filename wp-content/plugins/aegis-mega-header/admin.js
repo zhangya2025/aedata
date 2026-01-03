@@ -185,15 +185,16 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const adminWrap = document.querySelector('.wrap');
-        if (!adminWrap || typeof wp === 'undefined' || !wp.media) {
+        if (!adminWrap) {
             return;
         }
 
-        bindMediaButtons(adminWrap);
+        if (typeof wp !== 'undefined' && wp.media) {
+            bindMediaButtons(adminWrap);
+        }
 
         const mainContainer = adminWrap.querySelector('#aegis-main-items');
         const template = document.getElementById('aegis-main-item-template');
-        const addButtons = adminWrap.querySelectorAll('[data-aegis-add-item]');
 
         if (mainContainer) {
             renumberItems(mainContainer);
@@ -201,13 +202,13 @@
             bindListControls(mainContainer);
         }
 
-        if (addButtons.length && mainContainer && template) {
-            addButtons.forEach((button) => {
-                button.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    addItem(mainContainer, template);
-                });
-            });
-        }
+        document.addEventListener('click', (event) => {
+            const addButton = event.target.closest('[data-aegis-add-item]');
+            if (!addButton || !mainContainer || !template) {
+                return;
+            }
+            event.preventDefault();
+            addItem(mainContainer, template);
+        });
     });
 })();
