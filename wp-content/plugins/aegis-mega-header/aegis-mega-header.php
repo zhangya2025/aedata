@@ -20,7 +20,31 @@ __DIR__,
 }
 add_action( 'init', 'aegis_mega_header_register_block' );
 
+function aegis_mega_header_default_promo_config() {
+    return [
+        'mode'   => 'global',
+        'custom' => [
+            'promo_1' => [
+                'image_id' => 0,
+                'title'    => '',
+                'subtitle' => '',
+                'url'      => '',
+                'new_tab'  => false,
+            ],
+            'promo_2' => [
+                'image_id' => 0,
+                'title'    => '',
+                'subtitle' => '',
+                'url'      => '',
+                'new_tab'  => false,
+            ],
+        ],
+    ];
+}
+
 function aegis_mega_header_default_nav() {
+    $promo_default = aegis_mega_header_default_promo_config();
+
     $defaults = [
         'top'  => [
             'enabled' => true,
@@ -66,7 +90,7 @@ function aegis_mega_header_default_nav() {
                                 ],
                             ],
                         ],
-                        'promo'   => [ 'source' => 'global' ],
+                        'promo'   => $promo_default,
                     ],
                 ],
                 [
@@ -115,7 +139,7 @@ function aegis_mega_header_default_nav() {
                                 ],
                             ],
                         ],
-                        'promo'   => [ 'source' => 'global' ],
+                        'promo'   => $promo_default,
                     ],
                 ],
                 [
@@ -162,7 +186,7 @@ function aegis_mega_header_default_nav() {
                                 ],
                             ],
                         ],
-                        'promo'   => [ 'source' => 'global' ],
+                        'promo'   => $promo_default,
                     ],
                 ],
                 [
@@ -200,7 +224,7 @@ function aegis_mega_header_default_nav() {
                                 ],
                             ],
                         ],
-                        'promo'   => [ 'source' => 'global' ],
+                        'promo'   => $promo_default,
                     ],
                 ],
                 [
@@ -238,7 +262,7 @@ function aegis_mega_header_default_nav() {
                                 ],
                             ],
                         ],
-                        'promo'   => [ 'source' => 'global' ],
+                        'promo'   => $promo_default,
                     ],
                 ],
                 [
@@ -276,7 +300,7 @@ function aegis_mega_header_default_nav() {
                                 ],
                             ],
                         ],
-                        'promo'   => [ 'source' => 'global' ],
+                        'promo'   => $promo_default,
                     ],
                 ],
             ],
@@ -422,6 +446,7 @@ function aegis_mega_header_sanitize_settings( $settings ) {
     $nav_defaults  = aegis_mega_header_default_nav();
     $default_items = isset( $nav_defaults['main']['items'] ) ? $nav_defaults['main']['items'] : [];
     $default_map   = aegis_mega_header_default_item_map();
+    $promo_default = aegis_mega_header_default_promo_config();
 
     if ( ! is_array( $settings ) ) {
         return $defaults;
@@ -525,7 +550,7 @@ function aegis_mega_header_sanitize_settings( $settings ) {
                     'links' => aegis_mega_header_parse_links_textarea( $sidebar_raw ),
                 ],
                 'groups'  => [],
-                'promo'   => [ 'source' => 'global' ],
+                'promo'   => $promo_default,
             ];
 
             if ( empty( $panel_clean['sidebar']['title'] ) && isset( $panel_default['sidebar']['title'] ) ) {
@@ -561,6 +586,30 @@ function aegis_mega_header_sanitize_settings( $settings ) {
                     'links' => $group_links,
                 ];
             }
+
+            $promo_input      = isset( $panel_input['promo'] ) && is_array( $panel_input['promo'] ) ? $panel_input['promo'] : [];
+            $promo_mode_raw   = isset( $promo_input['mode'] ) ? $promo_input['mode'] : ( isset( $promo_input['source'] ) ? $promo_input['source'] : 'global' );
+            $promo_mode       = in_array( $promo_mode_raw, [ 'global', 'custom', 'hidden' ], true ) ? $promo_mode_raw : 'global';
+            $promo_custom_raw = isset( $promo_input['custom'] ) && is_array( $promo_input['custom'] ) ? $promo_input['custom'] : [];
+
+            $promo_custom_clean = [];
+
+            foreach ( [ 'promo_1', 'promo_2' ] as $promo_key ) {
+                $slot_input = isset( $promo_custom_raw[ $promo_key ] ) && is_array( $promo_custom_raw[ $promo_key ] ) ? $promo_custom_raw[ $promo_key ] : [];
+
+                $promo_custom_clean[ $promo_key ] = [
+                    'image_id' => isset( $slot_input['image_id'] ) ? absint( $slot_input['image_id'] ) : 0,
+                    'title'    => isset( $slot_input['title'] ) ? sanitize_text_field( $slot_input['title'] ) : '',
+                    'subtitle' => isset( $slot_input['subtitle'] ) ? sanitize_text_field( $slot_input['subtitle'] ) : '',
+                    'url'      => ! empty( $slot_input['url'] ) ? esc_url_raw( $slot_input['url'] ) : '',
+                    'new_tab'  => ! empty( $slot_input['new_tab'] ),
+                ];
+            }
+
+            $panel_clean['promo'] = [
+                'mode'   => $promo_mode,
+                'custom' => ! empty( $promo_custom_clean ) ? $promo_custom_clean : $promo_default['custom'],
+            ];
         }
 
         $clean['nav']['items'][] = [
@@ -754,9 +803,11 @@ function aegis_mega_header_panel_has_content( $panel, $promo_slots = [] ) {
     return $has_sidebar || $has_groups || ! empty( $promo_slots );
 }
 
-function aegis_mega_header_promo_slots( $settings ) {
-    $slots   = isset( $settings['ad_slots'] ) && is_array( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
-    $order   = [ 'header_mega_promo_1', 'header_mega_promo_2' ];
+function aegis_mega_header_collect_promos( $slots, $order = [] ) {
+    if ( empty( $order ) && is_array( $slots ) ) {
+        $order = array_keys( $slots );
+    }
+
     $results = [];
 
     foreach ( $order as $slot_key ) {
@@ -765,7 +816,8 @@ function aegis_mega_header_promo_slots( $settings ) {
         }
 
         $slot = $slots[ $slot_key ];
-        $has  = ! empty( $slot['image_id'] ) || ! empty( $slot['title'] ) || ! empty( $slot['subtitle'] ) || ! empty( $slot['url'] );
+
+        $has = ! empty( $slot['image_id'] ) || ! empty( $slot['title'] ) || ! empty( $slot['subtitle'] ) || ! empty( $slot['url'] );
 
         if ( ! $has ) {
             continue;
@@ -781,6 +833,43 @@ function aegis_mega_header_promo_slots( $settings ) {
     }
 
     return $results;
+}
+
+function aegis_mega_header_promo_slots( $settings ) {
+    $slots   = isset( $settings['ad_slots'] ) && is_array( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
+    $order   = [ 'header_mega_promo_1', 'header_mega_promo_2' ];
+
+    return aegis_mega_header_collect_promos( $slots, $order );
+}
+
+function aegis_mega_header_resolve_promos( $panel, $global_promos ) {
+    if ( empty( $panel ) || ! is_array( $panel ) ) {
+        return $global_promos;
+    }
+
+    $promo_config = isset( $panel['promo'] ) && is_array( $panel['promo'] ) ? $panel['promo'] : [];
+    $mode_raw     = isset( $promo_config['mode'] ) ? $promo_config['mode'] : ( isset( $promo_config['source'] ) ? $promo_config['source'] : 'global' );
+    $mode         = in_array( $mode_raw, [ 'global', 'custom', 'hidden' ], true ) ? $mode_raw : 'global';
+
+    if ( 'hidden' === $mode ) {
+        return [];
+    }
+
+    $custom_raw = isset( $promo_config['custom'] ) && is_array( $promo_config['custom'] ) ? $promo_config['custom'] : [];
+    $custom     = aegis_mega_header_collect_promos( $custom_raw, [ 'promo_1', 'promo_2' ] );
+    $custom_with_images = [];
+
+    foreach ( $custom as $slot ) {
+        if ( ! empty( $slot['image_id'] ) ) {
+            $custom_with_images[] = $slot;
+        }
+    }
+
+    if ( 'custom' === $mode && ! empty( $custom_with_images ) ) {
+        return $custom_with_images;
+    }
+
+    return $global_promos;
 }
 
 function aegis_mega_header_build_logo_image( $attachment_id, $alt = '', $class = 'aegis-header__brand-image' ) {
@@ -1001,7 +1090,8 @@ foreach ( $nav_items as $index => $item ) {
     $url   = isset( $item['url'] ) && '' !== $item['url'] ? $item['url'] : ( $default_item['url'] ?? '#' );
     $panel = isset( $item['panel'] ) && is_array( $item['panel'] ) ? $item['panel'] : ( isset( $default_item['panel'] ) ? $default_item['panel'] : [] );
 
-    $has_panel_content = 'mega' === $type && aegis_mega_header_panel_has_content( $panel, $promo_slots );
+    $panel_promos      = 'mega' === $type ? aegis_mega_header_resolve_promos( $panel, $promo_slots ) : [];
+    $has_panel_content = 'mega' === $type && aegis_mega_header_panel_has_content( $panel, $panel_promos );
     $panel_id          = $has_panel_content ? 'aegis-mega-panel-' . sanitize_key( $item_id ) : '';
 
     $menu_items[] = [
@@ -1010,6 +1100,7 @@ foreach ( $nav_items as $index => $item ) {
         'type'  => $type,
         'url'   => $url,
         'panel' => $panel,
+        'promos' => $panel_promos,
     ];
 
     if ( $panel_id ) {
@@ -1199,7 +1290,8 @@ if ( 'mega' !== $type || ! isset( $panel_ids[ $key ] ) ) {
 
 $panel_id = $panel_ids[ $key ];
 $panel    = isset( $item['panel'] ) ? $item['panel'] : [];
-$panel_html = aegis_mega_header_render_panel( $panel, $promo_slots );
+$panel_promos = isset( $item['promos'] ) ? $item['promos'] : [];
+$panel_html = aegis_mega_header_render_panel( $panel, $panel_promos );
 
 if ( '' === $panel_html ) {
     continue;
@@ -1340,6 +1432,7 @@ function aegis_mega_header_render_settings_page() {
     $branding          = isset( $settings['branding'] ) ? $settings['branding'] : [];
     $ad_slots          = isset( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
     $nav_defaults      = aegis_mega_header_default_nav();
+    $promo_default     = aegis_mega_header_default_promo_config();
     $top_defaults      = isset( $nav_defaults['top'] ) ? $nav_defaults['top'] : [];
     $main_default      = isset( $nav_defaults['main']['items'] ) ? $nav_defaults['main']['items'] : [];
     $top_settings      = isset( $settings['top'] ) ? $settings['top'] : $top_defaults;
@@ -1410,6 +1503,10 @@ function aegis_mega_header_render_settings_page() {
                     $sidebar_title    = isset( $panel_settings['sidebar']['title'] ) ? $panel_settings['sidebar']['title'] : ( isset( $panel_defaults['sidebar']['title'] ) ? $panel_defaults['sidebar']['title'] : '' );
                     $sidebar_links    = isset( $panel_settings['sidebar']['links'] ) ? $panel_settings['sidebar']['links'] : ( isset( $panel_defaults['sidebar']['links'] ) ? $panel_defaults['sidebar']['links'] : [] );
                     $sidebar_links_ui = aegis_mega_header_links_to_textarea( $sidebar_links );
+                    $promo_settings   = isset( $panel_settings['promo'] ) ? $panel_settings['promo'] : ( isset( $panel_defaults['promo'] ) ? $panel_defaults['promo'] : $promo_default );
+                    $promo_mode       = isset( $promo_settings['mode'] ) ? $promo_settings['mode'] : ( isset( $promo_settings['source'] ) ? $promo_settings['source'] : 'global' );
+                    $promo_mode       = in_array( $promo_mode, [ 'global', 'custom', 'hidden' ], true ) ? $promo_mode : 'global';
+                    $promo_custom     = isset( $promo_settings['custom'] ) && is_array( $promo_settings['custom'] ) ? $promo_settings['custom'] : $promo_default['custom'];
                     ?>
                     <div class="aegis-main-item" data-index="<?php echo esc_attr( $index ); ?>">
                         <input type="hidden" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][id]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][id]" value="<?php echo esc_attr( $item_id ); ?>" />
@@ -1468,13 +1565,61 @@ function aegis_mega_header_render_settings_page() {
                                             <label>Group <?php echo esc_html( $i + 1 ); ?> Links<br />
                                                 <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][groups][<?php echo esc_attr( $i ); ?>][links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][links]" placeholder="Label|URL per line"><?php echo esc_textarea( $group_links_ui ); ?></textarea>
                                             </label>
-                                            <small>One per line: Label|URL</small>
-                                        </p>
-                                    </div>
-                                    <?php
+                                        <small>One per line: Label|URL</small>
+                                    </p>
+                                </div>
+                                <?php
                                 }
                                 ?>
-                                <p><em>Promo uses global ad slots header_mega_promo_1 and header_mega_promo_2.</em></p>
+                                <div class="aegis-mega-panel-promo">
+                                    <p><strong>Promo Mode</strong></p>
+                                    <label><input type="radio" class="aegis-promo-mode" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][mode]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" value="global" <?php checked( $promo_mode, 'global' ); ?> /> Use Global</label><br />
+                                    <label><input type="radio" class="aegis-promo-mode" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][mode]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" value="custom" <?php checked( $promo_mode, 'custom' ); ?> /> Custom for this menu</label><br />
+                                    <label><input type="radio" class="aegis-promo-mode" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][mode]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" value="hidden" <?php checked( $promo_mode, 'hidden' ); ?> /> Hide promo</label>
+
+                                    <div class="aegis-promo-custom" <?php echo 'custom' === $promo_mode ? '' : 'style="display:none;"'; ?>>
+                                        <?php foreach ( [ 'promo_1', 'promo_2' ] as $promo_key ) :
+                                            $promo_slot     = isset( $promo_custom[ $promo_key ] ) ? $promo_custom[ $promo_key ] : $promo_default['custom'][ $promo_key ];
+                                            $promo_image_id = isset( $promo_slot['image_id'] ) ? absint( $promo_slot['image_id'] ) : 0;
+                                            $promo_title    = isset( $promo_slot['title'] ) ? $promo_slot['title'] : '';
+                                            $promo_subtitle = isset( $promo_slot['subtitle'] ) ? $promo_slot['subtitle'] : '';
+                                            $promo_url      = isset( $promo_slot['url'] ) ? $promo_slot['url'] : '';
+                                            $promo_new_tab  = ! empty( $promo_slot['new_tab'] );
+                                            $promo_key_safe = sanitize_key( $promo_key );
+                                            $preview_id     = 'aegis-promo-preview-' . $promo_key_safe . '-' . (int) $index;
+                                            $input_id       = 'aegis-promo-image-' . $promo_key_safe . '-' . (int) $index;
+                                            $image_src      = $promo_image_id ? wp_get_attachment_image_url( $promo_image_id, 'medium' ) : '';
+                                            ?>
+                                            <div class="aegis-promo-slot">
+                                                <p><strong><?php echo esc_html( strtoupper( str_replace( '_', ' ', $promo_key ) ) ); ?></strong></p>
+                                                <input type="hidden" id="<?php echo esc_attr( $input_id ); ?>" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][image_id]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][image_id]" value="<?php echo esc_attr( $promo_image_id ); ?>" />
+                                                <button type="button" class="button aegis-media-select" data-media-target="<?php echo esc_attr( $input_id ); ?>" data-preview-target="<?php echo esc_attr( $preview_id ); ?>">Select image</button>
+                                                <button type="button" class="button aegis-media-clear" data-clear-target="<?php echo esc_attr( $input_id ); ?>" data-preview-target="<?php echo esc_attr( $preview_id ); ?>">Clear</button>
+                                                <div class="aegis-media-preview">
+                                                    <img id="<?php echo esc_attr( $preview_id ); ?>" src="<?php echo esc_url( $image_src ); ?>" style="max-width:200px; height:auto;<?php echo $image_src ? '' : 'display:none;'; ?>" alt="" />
+                                                </div>
+                                                <p>
+                                                    <label>Title<br />
+                                                        <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][title]" value="<?php echo esc_attr( $promo_title ); ?>" />
+                                                    </label>
+                                                </p>
+                                                <p>
+                                                    <label>Subtitle<br />
+                                                        <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][subtitle]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][subtitle]" value="<?php echo esc_attr( $promo_subtitle ); ?>" />
+                                                    </label>
+                                                </p>
+                                                <p>
+                                                    <label>URL<br />
+                                                        <input type="url" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][url]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][url]" value="<?php echo esc_attr( $promo_url ); ?>" />
+                                                    </label>
+                                                </p>
+                                                <p>
+                                                    <label><input type="checkbox" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][new_tab]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][new_tab]" value="1" <?php checked( $promo_new_tab ); ?> /> Open in new tab</label>
+                                                </p>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             </div>
                         </details>
                     </div>
@@ -1540,7 +1685,48 @@ function aegis_mega_header_render_settings_page() {
                                     </p>
                                 </div>
                             <?php endfor; ?>
-                            <p><em>Promo uses global ad slots header_mega_promo_1 and header_mega_promo_2.</em></p>
+                            <div class="aegis-mega-panel-promo">
+                                <p><strong>Promo Mode</strong></p>
+                                <label><input type="radio" class="aegis-promo-mode" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" value="global" checked="checked" /> Use Global</label><br />
+                                <label><input type="radio" class="aegis-promo-mode" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" value="custom" /> Custom for this menu</label><br />
+                                <label><input type="radio" class="aegis-promo-mode" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][mode]" value="hidden" /> Hide promo</label>
+
+                                <div class="aegis-promo-custom" style="display:none;">
+                                    <?php foreach ( [ 'promo_1', 'promo_2' ] as $promo_key ) :
+                                        $promo_key_safe = sanitize_key( $promo_key );
+                                        $preview_id = 'aegis-promo-preview-' . $promo_key_safe . '-__INDEX__';
+                                        $input_id   = 'aegis-promo-image-' . $promo_key_safe . '-__INDEX__';
+                                        ?>
+                                        <div class="aegis-promo-slot">
+                                            <p><strong><?php echo esc_html( strtoupper( str_replace( '_', ' ', $promo_key ) ) ); ?></strong></p>
+                                            <input type="hidden" id="<?php echo esc_attr( $input_id ); ?>" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][image_id]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][image_id]" value="" />
+                                            <button type="button" class="button aegis-media-select" data-media-target="<?php echo esc_attr( $input_id ); ?>" data-preview-target="<?php echo esc_attr( $preview_id ); ?>">Select image</button>
+                                            <button type="button" class="button aegis-media-clear" data-clear-target="<?php echo esc_attr( $input_id ); ?>" data-preview-target="<?php echo esc_attr( $preview_id ); ?>">Clear</button>
+                                            <div class="aegis-media-preview">
+                                                <img id="<?php echo esc_attr( $preview_id ); ?>" src="" style="max-width:200px; height:auto; display:none;" alt="" />
+                                            </div>
+                                            <p>
+                                                <label>Title<br />
+                                                    <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][title]" value="" />
+                                                </label>
+                                            </p>
+                                            <p>
+                                                <label>Subtitle<br />
+                                                    <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][subtitle]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][subtitle]" value="" />
+                                                </label>
+                                            </p>
+                                            <p>
+                                                <label>URL<br />
+                                                    <input type="url" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][url]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][url]" value="#" />
+                                                </label>
+                                            </p>
+                                            <p>
+                                                <label><input type="checkbox" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][new_tab]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][promo][custom][<?php echo esc_attr( $promo_key ); ?>][new_tab]" value="1" /> Open in new tab</label>
+                                            </p>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
                         </div>
                     </details>
                 </div>

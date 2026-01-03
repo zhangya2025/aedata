@@ -118,6 +118,31 @@
         });
     }
 
+    function bindPromoModes(context) {
+        const rows = context.querySelectorAll('.aegis-main-item');
+
+        rows.forEach((row) => {
+            const custom = row.querySelector('.aegis-promo-custom');
+            const modes = row.querySelectorAll('.aegis-promo-mode');
+
+            if (!custom || modes.length === 0) {
+                return;
+            }
+
+            const update = () => {
+                const checked = Array.from(modes).find((radio) => radio.checked);
+                const mode = checked ? checked.value : 'global';
+                custom.style.display = mode === 'custom' ? '' : 'none';
+            };
+
+            modes.forEach((radio) => {
+                radio.addEventListener('change', update);
+            });
+
+            update();
+        });
+    }
+
     function addItem(container, template) {
         if (!template) {
             return;
@@ -131,6 +156,8 @@
         container.appendChild(newItem);
         renumberItems(container);
         bindPanelToggles(container);
+        bindPromoModes(container);
+        bindMediaButtons(newItem);
 
         const labelInput = newItem.querySelector('.aegis-main-item__field-label input');
 
@@ -158,6 +185,7 @@
                     row.remove();
                     renumberItems(container);
                     bindPanelToggles(container);
+                    bindPromoModes(container);
                 }
                 return;
             }
@@ -169,6 +197,7 @@
                     container.insertBefore(row, prev);
                     renumberItems(container);
                     bindPanelToggles(container);
+                    bindPromoModes(container);
                 }
                 return;
             }
@@ -179,6 +208,7 @@
                 container.insertBefore(row, next);
                 renumberItems(container);
                 bindPanelToggles(container);
+                bindPromoModes(container);
             }
         });
     }
@@ -199,6 +229,7 @@
         if (mainContainer) {
             renumberItems(mainContainer);
             bindPanelToggles(mainContainer);
+            bindPromoModes(mainContainer);
             bindListControls(mainContainer);
         }
 
