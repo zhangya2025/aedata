@@ -16,6 +16,12 @@ require_once WC_ABSPATH . 'includes/admin/wc-admin-functions.php';
  * This class adds actions to track usage of WooCommerce Products.
  */
 class WC_Products_Tracking {
+
+	/**
+	 * Tracks source.
+	 */
+	const TRACKS_SOURCE = 'product-legacy-editor';
+
 	/**
 	 * Init tracking.
 	 */
@@ -118,9 +124,13 @@ class WC_Products_Tracking {
 			return;
 		}
 
+		/* phpcs:disable WooCommerce.Commenting.CommentHooks.MissingHookComment */
+		$source     = apply_filters( 'woocommerce_product_source', self::is_importing() ? 'import' : self::TRACKS_SOURCE );
 		$properties = array(
 			'product_id' => $product_id,
+			'source'     => $source,
 		);
+		/* phpcs: enable */
 
 		WC_Tracks::record_event( 'product_edit', $properties );
 	}
@@ -133,95 +143,103 @@ class WC_Products_Tracking {
 	 * @param WP_Post $post The post, not used.
 	 */
 	public function track_product_updated_client_side( $post ) {
-		wc_enqueue_js(
+		$handle = 'wc-tracks-product-updated-client-side';
+		wp_register_script( $handle, '', array( 'jquery' ), WC_VERSION, array( 'in_footer' => true ) );
+		wp_enqueue_script( $handle );
+		wp_add_inline_script(
+			$handle,
 			"
-			if ( $( 'h1.wp-heading-inline' ).text().trim() === '" . __( 'Edit product', 'woocommerce' ) . "') {
-				var initialStockValue = $( '#_stock' ).val();
-				var isBlockEditor = false;
-				var child_element = '#publish';
+			jQuery(function($) {
+				if ( $( 'h1.wp-heading-inline' ).text().trim() === '" . esc_js( __( 'Edit product', 'woocommerce' ) ) . "') {
+					var initialStockValue = $( '#_stock' ).val();
+					var isBlockEditor = false;
+					var child_element = '#publish';
 
-				if ( $( '.block-editor' ).length !== 0 && $( '.block-editor' )[0] ) {
-	    			isBlockEditor = true;
-				}
-
-				if ( isBlockEditor ) {
-					child_element = '.editor-post-publish-button';
-				}
-
-				$( '#wpwrap' ).on( 'click', child_element, function() {
-					var description_value  = '';
-					var tagsText = '';
-					var currentStockValue = $( '#_stock' ).val();
-
-					function getProductTypeOptions() {
-						const productTypeOptionsCheckboxes = $( 'input[type=\"checkbox\"][data-product-type-option-id]' );
-						const productTypeOptions = productTypeOptionsCheckboxes.map( function() {
-							return {
-								id: $( this ).data( 'product-type-option-id' ),
-								isEnabled: $( this ).is( ':checked' ),
-							};
-						} ).get();
-						return productTypeOptions;
+					if ( $( '.block-editor' ).length !== 0 && $( '.block-editor' )[0] ) {
+		                isBlockEditor = true;
 					}
 
-					function getProductTypeOptionsString( productTypeOptions ) {
-						return productTypeOptions
-							.filter( productTypeOption => productTypeOption.isEnabled )
-							.map( productTypeOption => productTypeOption.id )
-							.join( ', ' );
+					if ( isBlockEditor ) {
+						child_element = '.editor-post-publish-button';
 					}
 
-					const productTypeOptions = getProductTypeOptions();
-					const productTypeOptionsString = getProductTypeOptionsString( productTypeOptions );
+					$( '#wpwrap' ).on( 'click', child_element, function() {
+						var description_value  = '';
+						var tagsText = '';
+						var currentStockValue = $( '#_stock' ).val();
 
-					if ( ! isBlockEditor ) {
-						tagsText          = $( '[name=\"tax_input[product_tag]\"]' ).val();
-						if ( $( '#content' ).is( ':visible' ) ) {
-							description_value = $( '#content' ).val();
-						} else if ( typeof tinymce === 'object' && tinymce.get( 'content' ) ) {
-							description_value = tinymce.get( 'content' ).getContent();
+						function getProductTypeOptions() {
+							const productTypeOptionsCheckboxes = $( 'input[type=\"checkbox\"][data-product-type-option-id]' );
+							const productTypeOptions = productTypeOptionsCheckboxes.map( function() {
+								return {
+									id: $( this ).data( 'product-type-option-id' ),
+									isEnabled: $( this ).is( ':checked' ),
+								};
+							} ).get();
+							return productTypeOptions;
 						}
-					} else {
-						description_value  = $( '.block-editor-rich-text__editable' ).text();
-					}
 
-					// We can't just check the number of '.woocommerce_attribute' elements because
-					// there might be empty ones, which get stripped out when saved. So, we'll check
-					// whether the name and values have been filled out.
-					var numberOfAttributes = $( '.woocommerce_attribute' ).filter( function () {
-						var attributeElement = $( this );
-						var attributeName = attributeElement.find( 'input.attribute_name' ).val();
-						var attributeValues = attributeElement.find( 'textarea[name^=\"attribute_values\"]' ).val();
+						function getProductTypeOptionsString( productTypeOptions ) {
+							return productTypeOptions
+								.filter( productTypeOption => productTypeOption.isEnabled )
+								.map( productTypeOption => productTypeOption.id )
+								.join( ', ' );
+						}
 
-						return attributeName !== '' && attributeValues !== '';
-					} ).length;
+						const productTypeOptions = getProductTypeOptions();
+						const productTypeOptionsString = getProductTypeOptionsString( productTypeOptions );
 
-					var properties = {
-						attributes:				     numberOfAttributes,
-						categories:				     $( '[name=\"tax_input[product_cat][]\"]:checked' ).length,
-						cross_sells:			     $( '#crosssell_ids option' ).length ? 'Yes' : 'No',
-						description:			     description_value.trim() !== '' ? 'Yes' : 'No',
-						enable_reviews:			     $( '#comment_status' ).is( ':checked' ) ? 'Yes' : 'No',
-						is_virtual:				     $( '#_virtual' ).is( ':checked' ) ? 'Yes' : 'No',
-						is_block_editor:		     isBlockEditor,
-						is_downloadable:		     $( '#_downloadable' ).is( ':checked' ) ? 'Yes' : 'No',
-						manage_stock:			     $( '#_manage_stock' ).is( ':checked' ) ? 'Yes' : 'No',
-						menu_order:				     parseInt( $( '#menu_order' ).val(), 10 ) !== 0 ? 'Yes' : 'No',
-						product_gallery:		     $( '#product_images_container .product_images > li' ).length,
-						product_image:			     $( '#_thumbnail_id' ).val() > 0 ? 'Yes' : 'No',
-						product_type:			     $( '#product-type' ).val(),
-						product_type_options_string: productTypeOptionsString,
-						purchase_note:			     $( '#_purchase_note' ).val().length ? 'yes' : 'no',
-						sale_price:				     $( '#_sale_price' ).val() ? 'yes' : 'no',
-						short_description:		     $( '#excerpt' ).val().length ? 'yes' : 'no',
-						stock_quantity_update:	     ( initialStockValue != currentStockValue ) ? 'Yes' : 'No',
-						tags:					     tagsText.length > 0 ? tagsText.split( ',' ).length : 0,
-						upsells:				     $( '#upsell_ids option' ).length ? 'Yes' : 'No',
-						weight:					     $( '#_weight' ).val() ? 'Yes' : 'No',
-					};
-					window.wcTracks.recordEvent( 'product_update', properties );
-				} );
-			}
+						if ( ! isBlockEditor ) {
+							tagsText          = $( '[name=\"tax_input[product_tag]\"]' ).val();
+							if ( $( '#content' ).is( ':visible' ) ) {
+								description_value = $( '#content' ).val();
+							} else if ( typeof tinymce === 'object' && tinymce.get( 'content' ) ) {
+								description_value = tinymce.get( 'content' ).getContent();
+							}
+						} else {
+							description_value  = $( '.block-editor-rich-text__editable' ).text();
+						}
+
+						// We can't just check the number of '.woocommerce_attribute' elements because
+						// there might be empty ones, which get stripped out when saved. So, we'll check
+						// whether the name and values have been filled out.
+						var numberOfAttributes = $( '.woocommerce_attribute' ).filter( function () {
+							var attributeElement = $( this );
+							var attributeName = attributeElement.find( 'input.attribute_name' ).val();
+							var attributeValues = attributeElement.find( 'textarea[name^=\"attribute_values\"]' ).val();
+
+							return attributeName !== '' && attributeValues !== '';
+						} ).length;
+
+						var properties = {
+							attributes:				     numberOfAttributes,
+							categories:				     $( '[name=\"tax_input[product_cat][]\"]:checked' ).length,
+							cross_sells:			     $( '#crosssell_ids option' ).length ? 'Yes' : 'No',
+							description:			     description_value.trim() !== '' ? 'Yes' : 'No',
+							enable_reviews:			     $( '#comment_status' ).is( ':checked' ) ? 'Yes' : 'No',
+							is_virtual:				     $( '#_virtual' ).is( ':checked' ) ? 'Yes' : 'No',
+							is_block_editor:		     isBlockEditor,
+							is_downloadable:		     $( '#_downloadable' ).is( ':checked' ) ? 'Yes' : 'No',
+							manage_stock:			     $( '#_manage_stock' ).is( ':checked' ) ? 'Yes' : 'No',
+							menu_order:				     parseInt( $( '#menu_order' ).val(), 10 ) !== 0 ? 'Yes' : 'No',
+							product_gallery:		     $( '#product_images_container .product_images > li' ).length,
+							product_image:			     $( '#_thumbnail_id' ).val() > 0 ? 'Yes' : 'No',
+							product_type:			     $( '#product-type' ).val(),
+							product_type_options_string: productTypeOptionsString,
+							purchase_note:			     $( '#_purchase_note' ).val().length ? 'yes' : 'no',
+							sale_price:				     $( '#_sale_price' ).val() ? 'yes' : 'no',
+							short_description:		     $( '#excerpt' ).val().length ? 'yes' : 'no',
+							stock_quantity_update:	     ( initialStockValue != currentStockValue ) ? 'Yes' : 'No',
+							tags:					     tagsText.length > 0 ? tagsText.split( ',' ).length : 0,
+							upsells:				     $( '#upsell_ids option' ).length ? 'Yes' : 'No',
+							weight:					     $( '#_weight' ).val() ? 'Yes' : 'No',
+						};
+						if ( window.wcTracks && window.wcTracks.recordEvent ) {
+							window.wcTracks.recordEvent( 'product_update', properties );
+						}
+					} );
+				}
+			});
 			"
 		);
 	}
@@ -331,11 +349,12 @@ class WC_Products_Tracking {
 			'product_type_options' => $product_type_options_string,
 			'purchase_note'        => $product->get_purchase_note() ? 'yes' : 'no',
 			'sale_price'           => $product->get_sale_price() ? 'yes' : 'no',
-			'source'               => apply_filters( 'woocommerce_product_source', '' ),
+			'source'               => apply_filters( 'woocommerce_product_source', self::is_importing() ? 'import' : self::TRACKS_SOURCE ),
 			'short_description'    => $product->get_short_description() ? 'yes' : 'no',
 			'tags'                 => count( $product->get_tag_ids() ),
 			'upsells'              => ! empty( $product->get_upsell_ids() ) ? 'yes' : 'no',
 			'weight'               => $product->get_weight() ? 'yes' : 'no',
+			'global_unique_id'     => $product->get_global_unique_id() ? 'yes' : 'no',
 		);
 
 		WC_Tracks::record_event( 'product_add_publish', $properties );
@@ -535,5 +554,20 @@ class WC_Products_Tracking {
 			return;
 		}
 		WCAdminAssets::register_script( 'wp-admin-scripts', 'add-term-tracking', false );
+	}
+
+	/**
+	 * Check if the current process is importing products.
+	 *
+	 * @return bool True if importing, false otherwise.
+	 */
+	private function is_importing() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		// Check if the current request is a product import.
+		if ( isset( $_POST['action'] ) && 'woocommerce_do_ajax_product_import' === $_POST['action'] ) {
+			return true;
+		}
+		return false;
+		// phpcs:enable
 	}
 }

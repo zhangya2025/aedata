@@ -19,7 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Implemented by classes using the same CRUD(s) pattern.
  *
- * @version  2.6.0
+ * @since    2.6.0
+ * @version  10.2.0
  * @package  WooCommerce\Abstracts
  */
 abstract class WC_Data {
@@ -485,11 +486,11 @@ abstract class WC_Data {
 			}
 
 			if ( ! empty( $matches ) ) {
-				// Set matches to null so only one key gets the new value.
+				// Update first match and delete the rest.
+				$array_key = array_shift( $matches );
 				foreach ( $matches as $meta_data_array_key ) {
 					$this->meta_data[ $meta_data_array_key ]->value = null;
 				}
-				$array_key = current( $matches );
 			}
 		}
 
@@ -684,16 +685,44 @@ abstract class WC_Data {
 			if ( is_null( $meta->value ) ) {
 				if ( ! empty( $meta->id ) ) {
 					$this->data_store->delete_meta( $this, $meta );
+					/**
+					 * Fires immediately after deleting metadata.
+					 *
+					 * @param int    $meta_id    ID of deleted metadata entry.
+					 * @param int    $object_id  Object ID.
+					 * @param string $meta_key   Metadata key.
+					 * @param mixed  $meta_value Metadata value (will be empty for delete).
+					 */
+					do_action( "deleted_{$this->object_type}_meta", $meta->id, $this->get_id(), $meta->key, $meta->value );
+
 					unset( $this->meta_data[ $array_key ] );
 				}
 			} elseif ( empty( $meta->id ) ) {
 				$meta->id = $this->data_store->add_meta( $this, $meta );
+				/**
+				 * Fires immediately after adding metadata.
+				 *
+				 * @param int    $meta_id    ID of added metadata entry.
+				 * @param int    $object_id  Object ID.
+				 * @param string $meta_key   Metadata key.
+				 * @param mixed  $meta_value Metadata value.
+				 */
+				do_action( "added_{$this->object_type}_meta", $meta->id, $this->get_id(), $meta->key, $meta->value );
+
 				$meta->apply_changes();
-			} else {
-				if ( $meta->get_changes() ) {
+			} elseif ( $meta->get_changes() ) {
 					$this->data_store->update_meta( $this, $meta );
+					/**
+					 * Fires immediately after updating metadata.
+					 *
+					 * @param int    $meta_id    ID of updated metadata entry.
+					 * @param int    $object_id  Object ID.
+					 * @param string $meta_key   Metadata key.
+					 * @param mixed  $meta_value Metadata value.
+					 */
+					do_action( "updated_{$this->object_type}_meta", $meta->id, $this->get_id(), $meta->key, $meta->value );
+
 					$meta->apply_changes();
-				}
 			}
 		}
 		if ( ! empty( $this->cache_group ) ) {
@@ -785,7 +814,7 @@ abstract class WC_Data {
 	 * Sets a prop for a setter method.
 	 *
 	 * This stores changes in a special array so we can track what needs saving
-	 * the the DB later.
+	 * the DB later.
 	 *
 	 * @since 3.0.0
 	 * @param string $prop Name of prop to set.
@@ -877,7 +906,7 @@ abstract class WC_Data {
 			} elseif ( is_numeric( $value ) ) {
 				// Timestamps are handled as UTC timestamps in all cases.
 				$datetime = new WC_DateTime( "@{$value}", new DateTimeZone( 'UTC' ) );
-			} else {
+			} elseif ( is_string( $value ) ) {
 				// Strings are defined in local WP timezone. Convert to UTC.
 				if ( 1 === preg_match( '/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|((-|\+)\d{2}:\d{2}))$/', $value, $date_bits ) ) {
 					$offset    = ! empty( $date_bits[7] ) ? iso8601_timezone_to_offset( $date_bits[7] ) : wc_timezone_offset();
@@ -886,6 +915,9 @@ abstract class WC_Data {
 					$timestamp = wc_string_to_timestamp( get_gmt_from_date( gmdate( 'Y-m-d H:i:s', wc_string_to_timestamp( $value ) ) ) );
 				}
 				$datetime = new WC_DateTime( "@{$timestamp}", new DateTimeZone( 'UTC' ) );
+			} else {
+				// If we get here, the value is not a valid date type.
+				$this->error( 'invalid_date', __( 'Invalid date provided.', 'woocommerce' ) );
 			}
 
 			// Set local timezone or offset.

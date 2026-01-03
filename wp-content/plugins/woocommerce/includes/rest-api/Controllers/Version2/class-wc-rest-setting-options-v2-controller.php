@@ -177,6 +177,12 @@ class WC_REST_Setting_Options_V2_Controller extends WC_REST_Controller {
 			$option_key = $setting['option_key'];
 			$setting    = $this->filter_setting( $setting );
 			$default    = isset( $setting['default'] ) ? $setting['default'] : '';
+
+			if ( in_array( $setting['type'] ?? '', array( 'title', 'sectionend' ), true ) ) {
+				$filtered_settings[] = $setting;
+				continue;
+			}
+
 			// Get the option value.
 			if ( is_array( $option_key ) ) {
 				$option           = get_option( $option_key[0] );
@@ -399,6 +405,19 @@ class WC_REST_Setting_Options_V2_Controller extends WC_REST_Controller {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Makes sure the current user has access to WRITE the settings APIs.
+	 *
+	 * @since 9.5.2
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_Error|boolean True if the request has permission, otherwise false.
+	 */
+	public function update_item_permissions_check( $request ) {
+		return $this->update_items_permissions_check( $request ); // We check for manager permission for all setting.
 	}
 
 	/**
