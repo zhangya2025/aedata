@@ -49,6 +49,9 @@ function aegis_mega_header_default_settings() {
             'plugin_logo_id' => 0,
             'logo_url'       => home_url( '/' ),
             'logo_alt'       => '',
+            'logo_height_desktop' => 36,
+            'logo_height_mobile'  => 32,
+            'logo_max_width'      => 220,
         ],
         'ad_slots' => [
             'header_mega_promo_1' => [
@@ -90,10 +93,27 @@ function aegis_mega_header_sanitize_settings( $settings ) {
         return $defaults;
     }
 
-    $branding    = isset( $settings['branding'] ) && is_array( $settings['branding'] ) ? $settings['branding'] : [];
-    $top_input   = isset( $settings['top'] ) && is_array( $settings['top'] ) ? $settings['top'] : [];
-    $nav_input   = isset( $settings['nav'] ) && is_array( $settings['nav'] ) ? $settings['nav'] : [];
-    $logo_source = isset( $branding['logo_source'] ) && in_array( $branding['logo_source'], [ 'wp_site_logo', 'plugin_logo' ], true ) ? $branding['logo_source'] : 'wp_site_logo';
+    $branding          = isset( $settings['branding'] ) && is_array( $settings['branding'] ) ? $settings['branding'] : [];
+    $branding_defaults = isset( $defaults['branding'] ) ? $defaults['branding'] : [];
+    $top_input         = isset( $settings['top'] ) && is_array( $settings['top'] ) ? $settings['top'] : [];
+    $nav_input         = isset( $settings['nav'] ) && is_array( $settings['nav'] ) ? $settings['nav'] : [];
+    $logo_source       = isset( $branding['logo_source'] ) && in_array( $branding['logo_source'], [ 'wp_site_logo', 'plugin_logo' ], true ) ? $branding['logo_source'] : 'wp_site_logo';
+
+    $logo_height_desktop = isset( $branding['logo_height_desktop'] ) ? absint( $branding['logo_height_desktop'] ) : 0;
+    $logo_height_mobile  = isset( $branding['logo_height_mobile'] ) ? absint( $branding['logo_height_mobile'] ) : 0;
+    $logo_max_width      = isset( $branding['logo_max_width'] ) ? absint( $branding['logo_max_width'] ) : 0;
+
+    if ( $logo_height_desktop <= 0 ) {
+        $logo_height_desktop = isset( $branding_defaults['logo_height_desktop'] ) ? absint( $branding_defaults['logo_height_desktop'] ) : 36;
+    }
+
+    if ( $logo_height_mobile <= 0 ) {
+        $logo_height_mobile = isset( $branding_defaults['logo_height_mobile'] ) ? absint( $branding_defaults['logo_height_mobile'] ) : 32;
+    }
+
+    if ( $logo_max_width <= 0 ) {
+        $logo_max_width = isset( $branding_defaults['logo_max_width'] ) ? absint( $branding_defaults['logo_max_width'] ) : 220;
+    }
 
     $clean = [
         'branding' => [
@@ -101,6 +121,9 @@ function aegis_mega_header_sanitize_settings( $settings ) {
             'plugin_logo_id' => isset( $branding['plugin_logo_id'] ) ? absint( $branding['plugin_logo_id'] ) : 0,
             'logo_url'       => ! empty( $branding['logo_url'] ) ? esc_url_raw( $branding['logo_url'] ) : home_url( '/' ),
             'logo_alt'       => isset( $branding['logo_alt'] ) ? sanitize_text_field( $branding['logo_alt'] ) : '',
+            'logo_height_desktop' => $logo_height_desktop,
+            'logo_height_mobile'  => $logo_height_mobile,
+            'logo_max_width'      => $logo_max_width,
         ],
         'ad_slots' => [],
         'top'      => [
@@ -290,6 +313,34 @@ if ( empty( $panel ) || ! is_array( $panel ) ) {
     $panel = [];
 }
 
+function aegis_mega_header_build_logo_image( $attachment_id, $alt = '' ) {
+    if ( ! $attachment_id ) {
+        return '';
+    }
+
+    $mime = get_post_mime_type( $attachment_id );
+    $alt  = $alt ? $alt : get_post_meta( $attachment_id, '_wp_attachment_image_alt', true );
+
+    if ( 'image/svg+xml' === $mime ) {
+        $src = wp_get_attachment_url( $attachment_id );
+        if ( ! $src ) {
+            return '';
+        }
+
+        return '<img src="' . esc_url( $src ) . '" class="aegis-header__brand-image style-svg" alt="' . esc_attr( $alt ) . '" />';
+    }
+
+    return wp_get_attachment_image(
+        $attachment_id,
+        'full',
+        false,
+        [
+            'class' => 'aegis-header__brand-image',
+            'alt'   => $alt,
+        ]
+    );
+}
+
 $left         = isset( $panel['left'] ) ? $panel['left'] : [];
 $columns      = isset( $panel['columns'] ) ? $panel['columns'] : [];
 $promos       = isset( $panel['promos'] ) ? $panel['promos'] : [];
@@ -389,30 +440,13 @@ function aegis_mega_header_render_brand( $settings ) {
     if ( 'wp_site_logo' === $use_site_logo ) {
         $custom_logo_id = get_theme_mod( 'custom_logo' );
         if ( $custom_logo_id ) {
-            $custom_alt = $logo_alt ? $logo_alt : get_post_meta( $custom_logo_id, '_wp_attachment_image_alt', true );
-            $html       = wp_get_attachment_image(
-                $custom_logo_id,
-                'full',
-                false,
-                [
-                    'class' => 'aegis-header__brand-image',
-                    'alt'   => $custom_alt,
-                ]
-            );
+            $html = aegis_mega_header_build_logo_image( $custom_logo_id, $logo_alt );
         }
     }
 
     if ( ! $html && ! empty( $branding['plugin_logo_id'] ) ) {
         $plugin_logo_id = absint( $branding['plugin_logo_id'] );
-        $html           = wp_get_attachment_image(
-            $plugin_logo_id,
-            'full',
-            false,
-            [
-                'class' => 'aegis-header__brand-image',
-                'alt'   => $logo_alt,
-            ]
-        );
+        $html           = aegis_mega_header_build_logo_image( $plugin_logo_id, $logo_alt );
     }
 
     if ( ! $html ) {
@@ -422,6 +456,34 @@ function aegis_mega_header_render_brand( $settings ) {
     return [
         'url'  => $logo_url,
         'html' => $html,
+    ];
+}
+
+function aegis_mega_header_logo_dimensions( $settings ) {
+    $defaults = aegis_mega_header_default_settings();
+    $fallback = isset( $defaults['branding'] ) ? $defaults['branding'] : [];
+    $branding = isset( $settings['branding'] ) && is_array( $settings['branding'] ) ? $settings['branding'] : [];
+
+    $desktop = isset( $branding['logo_height_desktop'] ) ? absint( $branding['logo_height_desktop'] ) : 0;
+    $mobile  = isset( $branding['logo_height_mobile'] ) ? absint( $branding['logo_height_mobile'] ) : 0;
+    $max_w   = isset( $branding['logo_max_width'] ) ? absint( $branding['logo_max_width'] ) : 0;
+
+    if ( $desktop <= 0 ) {
+        $desktop = isset( $fallback['logo_height_desktop'] ) ? absint( $fallback['logo_height_desktop'] ) : 36;
+    }
+
+    if ( $mobile <= 0 ) {
+        $mobile = isset( $fallback['logo_height_mobile'] ) ? absint( $fallback['logo_height_mobile'] ) : 32;
+    }
+
+    if ( $max_w <= 0 ) {
+        $max_w = isset( $fallback['logo_max_width'] ) ? absint( $fallback['logo_max_width'] ) : 220;
+    }
+
+    return [
+        'desktop' => $desktop,
+        'mobile'  => $mobile,
+        'max'     => $max_w,
     ];
 }
 
@@ -439,6 +501,7 @@ $placeholder = ! empty( $attributes['placeholder'] );
 $panel_data   = aegis_mega_header_placeholder_data();
 $settings     = aegis_mega_header_get_settings();
 $brand        = aegis_mega_header_render_brand( $settings );
+$logo_sizes   = aegis_mega_header_logo_dimensions( $settings );
 $promo_slots  = aegis_mega_header_promo_slots( $settings );
 $nav_defaults = aegis_mega_header_default_nav();
 $nav_settings = isset( $settings['nav'] ) ? $settings['nav'] : $nav_defaults['main'];
@@ -469,8 +532,14 @@ foreach ( $order as $slug ) {
 }
 
 ob_start();
+$header_style = sprintf(
+    '--aegis-logo-h:%dpx; --aegis-logo-h-mobile:%dpx; --aegis-logo-max-w:%dpx;',
+    isset( $logo_sizes['desktop'] ) ? (int) $logo_sizes['desktop'] : 36,
+    isset( $logo_sizes['mobile'] ) ? (int) $logo_sizes['mobile'] : 32,
+    isset( $logo_sizes['max'] ) ? (int) $logo_sizes['max'] : 220
+);
 ?>
-<header class="aegis-mega-header" data-placeholder="<?php echo $placeholder ? 'true' : 'false'; ?>">
+<header class="aegis-mega-header" data-placeholder="<?php echo $placeholder ? 'true' : 'false'; ?>" style="<?php echo esc_attr( $header_style ); ?>">
 <?php if ( ! empty( $attributes['showUtilityBar'] ) && ! empty( $top_settings['enabled'] ) ) :
     $top_links = isset( $top_settings['links'] ) ? $top_settings['links'] : [];
     ?>
@@ -620,10 +689,12 @@ function aegis_mega_header_render_settings_page() {
         return;
     }
 
-    $settings     = aegis_mega_header_get_settings();
-    $branding     = isset( $settings['branding'] ) ? $settings['branding'] : [];
-    $ad_slots     = isset( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
-    $nav_defaults = aegis_mega_header_default_nav();
+    $settings           = aegis_mega_header_get_settings();
+    $defaults           = aegis_mega_header_default_settings();
+    $branding_defaults  = isset( $defaults['branding'] ) ? $defaults['branding'] : [];
+    $branding           = isset( $settings['branding'] ) ? $settings['branding'] : [];
+    $ad_slots           = isset( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
+    $nav_defaults       = aegis_mega_header_default_nav();
     $top_defaults = $nav_defaults['top'];
     $main_default = $nav_defaults['main'];
     $top_settings = isset( $settings['top'] ) ? $settings['top'] : $top_defaults;
@@ -736,6 +807,23 @@ function aegis_mega_header_render_settings_page() {
                     <tr>
                         <th scope="row">Logo Alt</th>
                         <td><input type="text" class="regular-text" name="aegis_mega_header_settings[branding][logo_alt]" value="<?php echo esc_attr( isset( $branding['logo_alt'] ) ? $branding['logo_alt'] : '' ); ?>" /></td>
+                    </tr>
+                    <?php
+                    $logo_height_desktop = isset( $branding['logo_height_desktop'] ) ? absint( $branding['logo_height_desktop'] ) : ( isset( $branding_defaults['logo_height_desktop'] ) ? absint( $branding_defaults['logo_height_desktop'] ) : 36 );
+                    $logo_height_mobile  = isset( $branding['logo_height_mobile'] ) ? absint( $branding['logo_height_mobile'] ) : ( isset( $branding_defaults['logo_height_mobile'] ) ? absint( $branding_defaults['logo_height_mobile'] ) : 32 );
+                    $logo_max_width      = isset( $branding['logo_max_width'] ) ? absint( $branding['logo_max_width'] ) : ( isset( $branding_defaults['logo_max_width'] ) ? absint( $branding_defaults['logo_max_width'] ) : 220 );
+                    ?>
+                    <tr>
+                        <th scope="row">Logo Height (Desktop)</th>
+                        <td><input type="number" min="1" class="small-text" name="aegis_mega_header_settings[branding][logo_height_desktop]" value="<?php echo esc_attr( $logo_height_desktop ); ?>" /> px</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Logo Height (Mobile)</th>
+                        <td><input type="number" min="1" class="small-text" name="aegis_mega_header_settings[branding][logo_height_mobile]" value="<?php echo esc_attr( $logo_height_mobile ); ?>" /> px</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Max Logo Width</th>
+                        <td><input type="number" min="1" class="small-text" name="aegis_mega_header_settings[branding][logo_max_width]" value="<?php echo esc_attr( $logo_max_width ); ?>" /> px</td>
                     </tr>
                 </tbody>
             </table>
