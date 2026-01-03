@@ -135,8 +135,8 @@ $promos  = isset( $panel['promos'] ) ? $panel['promos'] : [];
 ob_start();
 ?>
 <div class="aegis-mega-header__panel-grid">
-<div class="aegis-mega-header__panel-left">
-<div class="aegis-mega-header__panel-left-inner">
+<div class="aegis-mega__sidebar">
+<div class="aegis-mega__sidebar-inner">
 <?php if ( ! empty( $left['title'] ) ) : ?>
 <div class="aegis-mega-header__panel-title"><?php echo esc_html( $left['title'] ); ?></div>
 <?php endif; ?>
@@ -147,7 +147,7 @@ ob_start();
 <?php endif; ?>
 </div>
 </div>
-<div class="aegis-mega-header__panel-columns">
+<div class="aegis-mega__columns">
 <?php foreach ( $columns as $column ) : ?>
 <div class="aegis-mega-header__column">
 <?php if ( ! empty( $column['title'] ) ) : ?>
@@ -162,7 +162,7 @@ ob_start();
 </div>
 <?php endforeach; ?>
 </div>
-<div class="aegis-mega-header__panel-promos">
+<div class="aegis-mega__promo">
 <?php if ( empty( $promos ) ) : ?>
 <div class="aegis-mega-header__panel-empty">Panel data not configured.</div>
 <?php else : ?>
@@ -205,27 +205,30 @@ ob_start();
 ?>
 <header class="aegis-mega-header" data-placeholder="<?php echo $placeholder ? 'true' : 'false'; ?>">
 <?php if ( ! empty( $attributes['showUtilityBar'] ) ) : ?>
-<div class="aegis-mega-header__utility">
-<div class="aegis-mega-header__utility-links" aria-label="Utility">
-<a class="aegis-mega-header__utility-link" href="#">Marmot Rewards</a>
-<a class="aegis-mega-header__utility-link" href="#">Support</a>
-<a class="aegis-mega-header__utility-link" href="#">Account</a>
+<div class="aegis-header__top">
+<div class="aegis-header__top-inner">
+<div class="aegis-header__top-links" aria-label="Utility">
+<a class="aegis-header__top-link" href="#">Marmot Rewards</a>
+<a class="aegis-header__top-link" href="#">Support</a>
+<a class="aegis-header__top-link" href="#">Account</a>
+</div>
 </div>
 </div>
 <?php endif; ?>
 
-<div class="aegis-mega-header__main">
-<div class="aegis-mega-header__logo" aria-label="Site">
-<a href="#" class="aegis-mega-header__logo-link">Aegis</a>
+<div class="aegis-header__main">
+<div class="aegis-header__main-inner">
+<div class="aegis-header__brand" aria-label="Site">
+<a href="#" class="aegis-header__brand-link">Aegis</a>
 </div>
-<nav class="aegis-mega-header__nav" aria-label="Primary">
+<nav class="aegis-header__nav" aria-label="Primary">
 <?php foreach ( $menu_items as $index => $item ) :
 $key      = isset( $item['key'] ) ? $item['key'] : 'item-' . $index;
 $label    = isset( $item['label'] ) ? $item['label'] : 'Item';
 $panel_id = isset( $panel_ids[ $key ] ) ? $panel_ids[ $key ] : wp_unique_id( 'aegis-mega-panel-' );
 ?>
 <button
-class="aegis-mega-header__nav-item"
+class="aegis-header__nav-item"
 type="button"
 data-mega-trigger="<?php echo esc_attr( $key ); ?>"
 data-panel-target="<?php echo esc_attr( $panel_id ); ?>"
@@ -236,21 +239,24 @@ aria-controls="<?php echo esc_attr( $panel_id ); ?>"
 </button>
 <?php endforeach; ?>
 </nav>
-<div class="aegis-mega-header__actions">
+<div class="aegis-header__tools">
 <?php if ( ! empty( $attributes['showSearch'] ) ) : ?>
-<form class="aegis-mega-header__search" role="search">
+<form class="aegis-header__search" role="search">
 <label class="screen-reader-text" for="aegis-mega-header-search">Search</label>
 <input id="aegis-mega-header-search" type="search" placeholder="Search" />
-<button type="submit" class="aegis-mega-header__search-btn">Go</button>
+<button type="submit" class="aegis-header__search-btn">Go</button>
 </form>
 <?php endif; ?>
 <?php if ( ! empty( $attributes['showCart'] ) ) : ?>
-<div class="aegis-mega-header__cart" aria-label="Cart">Cart</div>
+<div class="aegis-header__cart" aria-label="Cart">Cart</div>
 <?php endif; ?>
 </div>
 </div>
 
-<div class="aegis-mega-header__panel-shell" data-mega-panels>
+</div>
+
+<div class="aegis-header__mega" data-mega-panels>
+<div class="aegis-header__mega-inner">
 <?php foreach ( $menu_items as $index => $item ) :
 $key      = isset( $item['key'] ) ? $item['key'] : 'item-' . $index;
 $label    = isset( $item['label'] ) ? $item['label'] : 'Item';
@@ -274,6 +280,7 @@ echo '<div class="aegis-mega-header__panel-empty">Panel data not configured.</di
 ?>
 </div>
 <?php endforeach; ?>
+</div>
 </div>
 </header>
 <?php
