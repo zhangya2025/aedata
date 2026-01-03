@@ -1,0 +1,199 @@
+.aegis-hero {
+    position: relative;
+    overflow: hidden;
+    height: var(--aegis-hero-h, 520px);
+    background: #000;
+    color: #fff;
+}
+
+@media (max-width: 767px) {
+    .aegis-hero {
+        height: var(--aegis-hero-h-m, 320px);
+    }
+}
+
+.aegis-hero__track {
+    position: relative;
+    height: 100%;
+}
+
+.aegis-hero__slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 240ms ease, transform 240ms ease;
+    transform: scale(0.98);
+    pointer-events: none;
+}
+
+.aegis-hero__slide.is-active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+    z-index: 2;
+}
+
+.aegis-hero__picture,
+.aegis-hero__picture img,
+.aegis-hero__video,
+.aegis-hero__external-frame {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.aegis-hero__link {
+    display: block;
+    height: 100%;
+}
+
+.aegis-hero__arrow {
+    position: absolute;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    margin-top: -22px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    z-index: 3;
+}
+
+.aegis-hero__arrow:focus {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.aegis-hero__arrow--prev {
+    left: 12px;
+}
+
+.aegis-hero__arrow--next {
+    right: 12px;
+}
+
+.aegis-hero__arrow::before {
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    margin: 0 auto;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+}
+
+.aegis-hero__arrow--prev::before {
+    border-right: 12px solid currentColor;
+}
+
+.aegis-hero__arrow--next::before {
+    border-left: 12px solid currentColor;
+}
+
+.aegis-hero__dots {
+    position: absolute;
+    bottom: 12px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    z-index: 3;
+}
+
+.aegis-hero__dot {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #fff;
+    background: transparent;
+    border-radius: 0;
+    cursor: pointer;
+    padding: 0;
+}
+
+.aegis-hero__dot.is-active {
+    background: #fff;
+}
+
+.aegis-hero__external {
+    position: relative;
+    height: 100%;
+}
+
+.aegis-hero__play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid #fff;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.aegis-hero__play:focus {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.aegis-hero__play-icon {
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 16px solid currentColor;
+}
+
+.aegis-hero__play-label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.aegis-hero-editor {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+}
+
+.aegis-hero-editor__slides {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.aegis-hero-editor__slide {
+    border: 1px solid #ddd;
+    padding: 12px;
+    background: #fff;
+}
+
+.aegis-hero-editor__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.aegis-hero-editor__actions button + button {
+    margin-left: 6px;
+}
+
+.aegis-hero-editor__preview {
+    border: 1px dashed #ccc;
+    background: #111;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aegis-hero-editor__preview-inner {
+    text-align: center;
+    padding: 12px;
+}
