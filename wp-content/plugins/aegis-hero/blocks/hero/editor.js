@@ -1,8 +1,9 @@
 (function () {
     const { registerBlockType } = wp.blocks;
-    const { InspectorControls, MediaUpload, MediaUploadCheck } = wp.blockEditor || wp.editor;
+    const { InspectorControls, MediaUpload, MediaUploadCheck, useBlockProps } = wp.blockEditor || wp.editor;
     const { PanelBody, ToggleControl, RangeControl, Button, TextControl, SelectControl } = wp.components;
     const { Fragment, createElement: el } = wp.element;
+    const { useSelect } = wp.data;
     const { __ } = wp.i18n;
 
     const slideTypes = [
@@ -68,10 +69,44 @@
     registerBlockType('aegis/hero', {
         edit: function (props) {
             const { attributes, setAttributes } = props;
-            const { slides = [], heightDesktop, heightMobile, showArrows, showDots, autoplay, intervalMs } = attributes;
+            const {
+                slides = [],
+                heightDesktop,
+                heightMobile,
+                showArrows,
+                showDots,
+                autoplay,
+                intervalMs,
+                hidePageTitleHint,
+            } = attributes;
 
+            const blockProps = useBlockProps();
             const previewSlide = slides[0];
-            const previewText = previewSlide ? __('Slide 1 preview', 'aegis-hero') : __('Add slides to preview', 'aegis-hero');
+            const previewHeight = Math.max(280, heightDesktop || 520);
+            const previewMedia = useSelect(
+                (select) => {
+                    if (!previewSlide) {
+                        return null;
+                    }
+
+                    const core = select('core');
+                    const imageId = previewSlide.image_id;
+                    const posterId = previewSlide.poster_image_id;
+
+                    if (previewSlide.type === 'image' && imageId) {
+                        return core.getMedia(imageId);
+                    }
+
+                    if ((previewSlide.type === 'video' || previewSlide.type === 'external') && posterId) {
+                        return core.getMedia(posterId);
+                    }
+
+                    return null;
+                },
+                [previewSlide]
+            );
+
+            const previewUrl = previewMedia && previewMedia.source_url ? previewMedia.source_url : '';
 
             return el(Fragment, {},
                 el(InspectorControls, {},
@@ -112,15 +147,42 @@
                             step: 500,
                             value: intervalMs,
                             onChange: (value) => setAttributes({ intervalMs: value })
+                        }),
+                        el(ToggleControl, {
+                            label: __('Hide page title hint', 'aegis-hero'),
+                            checked: !!hidePageTitleHint,
+                            onChange: (value) => setAttributes({ hidePageTitleHint: value })
                         })
                     )
                 ),
-                el('div', { className: 'aegis-hero-editor' },
+                el('div', Object.assign({}, blockProps, {
+                    className: [blockProps.className, 'aegis-hero-editor'].filter(Boolean).join(' ')
+                }),
+                    el('div', {
+                        className: 'aegis-hero-editor__preview',
+                        style: { height: previewHeight + 'px' }
+                    },
+                        previewUrl ?
+                            el('img', {
+                                className: 'aegis-hero-editor__preview-media',
+                                src: previewUrl,
+                                alt: __('Preview', 'aegis-hero')
+                            }) :
+                            el('div', { className: 'aegis-hero-editor__preview-placeholder' },
+                                previewSlide ? __('Cover preview unavailable', 'aegis-hero') : __('Add slides to preview', 'aegis-hero')
+                            )
+                    ),
+                    !hidePageTitleHint && el('p', { className: 'aegis-hero-editor__hint' },
+                        __('页面顶部的 Home 标题来自 Post Title/模板；如需隐藏，请在模板中移除 Post Title 块或使用无标题模板。', 'aegis-hero')
+                    ),
                     el('div', { className: 'aegis-hero-editor__slides' },
                         slides.map(function (slide, index) {
-                            return el('div', { key: index, className: 'aegis-hero-editor__slide' },
+                            return el('details', { key: index, className: 'aegis-hero-editor__slide', open: index === 0 },
+                                el('summary', { className: 'aegis-hero-editor__summary' },
+                                    el('span', {}, __('Slide', 'aegis-hero') + ' ' + (index + 1)),
+                                    el('span', { className: 'aegis-hero-editor__summary-type' }, slide.type || 'image')
+                                ),
                                 el('div', { className: 'aegis-hero-editor__row' },
-                                    el('strong', {}, __('Slide', 'aegis-hero') + ' ' + (index + 1)),
                                     el('div', { className: 'aegis-hero-editor__actions' },
                                         el(Button, { onClick: () => setAttributes({ slides: moveSlide(slides, index, -1) }), disabled: index === 0 }, __('Up', 'aegis-hero')),
                                         el(Button, { onClick: () => setAttributes({ slides: moveSlide(slides, index, 1) }), disabled: index === slides.length - 1 }, __('Down', 'aegis-hero')),
@@ -142,11 +204,6 @@
                                 setAttributes({ slides: slides.concat([defaultSlide()]) });
                             }
                         }, __('Add Slide', 'aegis-hero'))
-                    ),
-                    el('div', { className: 'aegis-hero-editor__preview', style: { height: (heightDesktop || 520) + 'px' } },
-                        el('div', { className: 'aegis-hero-editor__preview-inner' },
-                            previewText
-                        )
                     )
                 )
             );
