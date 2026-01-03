@@ -308,18 +308,14 @@ function aegis_mega_header_promo_slots( $settings ) {
     return $results;
 }
 
-function aegis_mega_header_render_panel( $panel, $promo_slots, $use_placeholder ) {
-if ( empty( $panel ) || ! is_array( $panel ) ) {
-    $panel = [];
-}
-
-function aegis_mega_header_build_logo_image( $attachment_id, $alt = '' ) {
+function aegis_mega_header_build_logo_image( $attachment_id, $alt = '', $class = 'aegis-header__brand-image' ) {
     if ( ! $attachment_id ) {
         return '';
     }
 
     $mime = get_post_mime_type( $attachment_id );
     $alt  = $alt ? $alt : get_post_meta( $attachment_id, '_wp_attachment_image_alt', true );
+    $class_attr = trim( $class );
 
     if ( 'image/svg+xml' === $mime ) {
         $src = wp_get_attachment_url( $attachment_id );
@@ -327,7 +323,9 @@ function aegis_mega_header_build_logo_image( $attachment_id, $alt = '' ) {
             return '';
         }
 
-        return '<img src="' . esc_url( $src ) . '" class="aegis-header__brand-image style-svg" alt="' . esc_attr( $alt ) . '" />';
+        $classes = trim( $class_attr . ' style-svg' );
+
+        return '<img src="' . esc_url( $src ) . '" class="' . esc_attr( $classes ) . '" alt="' . esc_attr( $alt ) . '" />';
     }
 
     return wp_get_attachment_image(
@@ -335,10 +333,15 @@ function aegis_mega_header_build_logo_image( $attachment_id, $alt = '' ) {
         'full',
         false,
         [
-            'class' => 'aegis-header__brand-image',
+            'class' => $class_attr ? $class_attr : 'aegis-header__brand-image',
             'alt'   => $alt,
         ]
     );
+}
+
+function aegis_mega_header_render_panel( $panel, $promo_slots, $use_placeholder ) {
+if ( empty( $panel ) || ! is_array( $panel ) ) {
+    $panel = [];
 }
 
 $left         = isset( $panel['left'] ) ? $panel['left'] : [];
@@ -435,16 +438,18 @@ function aegis_mega_header_render_brand( $settings ) {
     $logo_alt = isset( $branding['logo_alt'] ) ? $branding['logo_alt'] : '';
     $html     = '';
 
+    $has_builder = function_exists( 'aegis_mega_header_build_logo_image' );
+
     $use_site_logo = isset( $branding['logo_source'] ) ? $branding['logo_source'] : 'wp_site_logo';
 
-    if ( 'wp_site_logo' === $use_site_logo ) {
+    if ( $has_builder && 'wp_site_logo' === $use_site_logo ) {
         $custom_logo_id = get_theme_mod( 'custom_logo' );
         if ( $custom_logo_id ) {
             $html = aegis_mega_header_build_logo_image( $custom_logo_id, $logo_alt );
         }
     }
 
-    if ( ! $html && ! empty( $branding['plugin_logo_id'] ) ) {
+    if ( $has_builder && ! $html && ! empty( $branding['plugin_logo_id'] ) ) {
         $plugin_logo_id = absint( $branding['plugin_logo_id'] );
         $html           = aegis_mega_header_build_logo_image( $plugin_logo_id, $logo_alt );
     }
