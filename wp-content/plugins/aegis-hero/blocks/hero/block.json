@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 2,
+  "name": "aegis/hero",
+  "title": "Aegis Hero",
+  "category": "media",
+  "icon": "slides",
+  "description": "Hero carousel supporting images, local videos, and lazy external videos.",
+  "editorScript": "aegis-hero-editor",
+  "style": "aegis-hero-style",
+  "viewScript": "aegis-hero-view",
+  "supports": {
+    "anchor": true
+  },
+  "attributes": {
+    "slides": {
+      "type": "array",
+      "default": []
+    },
+    "heightDesktop": {
+      "type": "number",
+      "default": 520
+    },
+    "heightMobile": {
+      "type": "number",
+      "default": 320
+    },
+    "showArrows": {
+      "type": "boolean",
+      "default": true
+    },
+    "showDots": {
+      "type": "boolean",
+      "default": true
+    },
+    "autoplay": {
+      "type": "boolean",
+      "default": false
+    },
+    "intervalMs": {
+      "type": "number",
+      "default": 6000
+    }
+  }
+}
