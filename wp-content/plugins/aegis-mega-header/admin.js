@@ -53,11 +53,36 @@
         });
     }
 
+    function bindPanelToggles(context) {
+        const rows = context.querySelectorAll('.aegis-nav-item');
+
+        rows.forEach((row) => {
+            const panel = row.querySelector('.aegis-mega-panel-settings');
+            const radios = row.querySelectorAll('.aegis-nav-type');
+
+            if (!panel || radios.length === 0) {
+                return;
+            }
+
+            const update = () => {
+                const isMega = Array.from(radios).some((radio) => radio.checked && radio.value === 'mega');
+                panel.style.display = isMega ? '' : 'none';
+            };
+
+            radios.forEach((radio) => {
+                radio.addEventListener('change', update);
+            });
+
+            update();
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const adminWrap = document.querySelector('.wrap');
         if (!adminWrap || typeof wp === 'undefined' || !wp.media) {
             return;
         }
         bindMediaButtons(adminWrap);
+        bindPanelToggles(adminWrap);
     });
 })();
