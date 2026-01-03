@@ -1,16 +1,29 @@
 ( function () {
 function initMegaHeader( header ) {
 const panelShell = header.querySelector('[data-mega-panels]');
-const triggers = header.querySelectorAll('[data-mega-trigger]');
 const panels = header.querySelectorAll('.aegis-mega-header__panel');
+const nav = header.querySelector('.aegis-header__nav');
+const navItems = header.querySelectorAll('.aegis-header__nav-item');
 let activeKey = null;
+
+function isMegaTrigger( item ) {
+if ( ! item ) {
+return false;
+}
+const panelId = item.getAttribute('data-panel-target');
+if ( ! panelId ) {
+return false;
+}
+const panel = header.querySelector('#' + panelId);
+return !! panel;
+}
 
 function closePanels() {
 panels.forEach( ( panel ) => {
 panel.hidden = true;
 panel.classList.remove('is-active');
 } );
-triggers.forEach( ( trigger ) => {
+navItems.forEach( ( trigger ) => {
 trigger.classList.remove('is-active');
 trigger.setAttribute('aria-expanded', 'false');
 } );
@@ -23,6 +36,7 @@ activeKey = null;
 function openPanel( key, panelId, trigger ) {
 const panel = header.querySelector('#' + panelId);
 if ( ! panel || ! panelShell ) {
+closePanels();
 return;
 }
 
@@ -30,7 +44,7 @@ panels.forEach( ( pane ) => {
 pane.hidden = true;
 pane.classList.remove('is-active');
 } );
-triggers.forEach( ( btn ) => {
+navItems.forEach( ( btn ) => {
 btn.classList.remove('is-active');
 btn.setAttribute('aria-expanded', 'false');
 } );
@@ -45,12 +59,43 @@ trigger.setAttribute('aria-expanded', 'true');
 activeKey = key;
 }
 
-triggers.forEach( ( trigger ) => {
+function handleNavEnter( event ) {
+const trigger = event.target.closest('.aegis-header__nav-item');
+if ( ! trigger || ! header.contains( trigger ) ) {
+return;
+}
+
+if ( ! isMegaTrigger( trigger ) ) {
+closePanels();
+return;
+}
+
 const key = trigger.getAttribute('data-mega-trigger');
 const panelId = trigger.getAttribute('data-panel-target');
+openPanel( key, panelId, trigger );
+}
 
-trigger.addEventListener('mouseenter', () => openPanel( key, panelId, trigger ));
-trigger.addEventListener('focus', () => openPanel( key, panelId, trigger ));
+if ( nav ) {
+nav.addEventListener('mouseover', handleNavEnter);
+nav.addEventListener('focusin', handleNavEnter);
+nav.addEventListener('click', ( event ) => {
+const trigger = event.target.closest('.aegis-header__nav-item');
+if ( ! trigger || ! header.contains( trigger ) ) {
+return;
+}
+
+if ( ! isMegaTrigger( trigger ) ) {
+closePanels();
+return;
+}
+
+const key = trigger.getAttribute('data-mega-trigger');
+const panelId = trigger.getAttribute('data-panel-target');
+openPanel( key, panelId, trigger );
+} );
+}
+
+navItems.forEach( ( trigger ) => {
 trigger.addEventListener('keydown', ( event ) => {
 if ( event.key === 'Escape' ) {
 event.preventDefault();
@@ -61,7 +106,7 @@ trigger.focus();
 } );
 
 if ( panelShell ) {
-panelShell.addEventListener('mouseleave', closePanels);
+panelShell.addEventListener('mouseleave', closePanels );
 }
 header.addEventListener('mouseleave', closePanels);
 
