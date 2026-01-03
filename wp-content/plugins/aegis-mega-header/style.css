@@ -45,29 +45,42 @@ color: #0f172a;
 }
 
 .aegis-mega-header__nav {
-display: flex;
-align-items: center;
-gap: 4px;
-justify-content: center;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    justify-content: center;
 }
 
 .aegis-mega-header__nav-item {
-border: none;
-background: transparent;
-padding: 10px 14px;
-border-radius: 6px;
-font-size: 15px;
-color: #0f172a;
-cursor: pointer;
-transition: background 0.15s ease, color 0.15s ease;
+    border: 0;
+    background: transparent;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    color: #111111;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    box-shadow: none;
 }
 
 .aegis-mega-header__nav-item:hover,
-.aegis-mega-header__nav-item:focus,
+.aegis-mega-header__nav-item:focus {
+    background: #1a1a1a;
+    color: #ffffff;
+    outline: none;
+}
+
+.aegis-mega-header__nav-item[aria-expanded="true"],
 .aegis-mega-header__nav-item.is-active {
-background: #1f2937;
-color: #ffffff;
-outline: none;
+    background: #111111;
+    color: #ffffff;
+    border-radius: 2px;
 }
 
 .aegis-mega-header__actions {
