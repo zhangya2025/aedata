@@ -286,6 +286,35 @@ function aegis_mega_header_default_nav() {
     return $defaults;
 }
 
+function aegis_mega_header_icon( $name ) {
+    $icons = [
+        'hamburger'     => '<line x1="3" y1="7" x2="21" y2="7"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="17" x2="21" y2="17"></line>',
+        'close'         => '<line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line>',
+        'chevron-right' => '<polyline points="9 18 15 12 9 6"></polyline>',
+        'chevron-left'  => '<polyline points="15 18 9 12 15 6"></polyline>',
+        'search'        => '<circle cx="11" cy="11" r="6"></circle><line x1="17" y1="17" x2="21" y2="21"></line>',
+        'user'          => '<circle cx="12" cy="7" r="4"></circle><path d="M5.5 20a6.5 6.5 0 0113 0"></path>',
+        'cart'          => '<circle cx="9" cy="20" r="1"></circle><circle cx="17" cy="20" r="1"></circle><path d="M3 4h2l1 2h13l-1.2 7.2a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.6L5 4"></path>',
+        'share'         => '<path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"></path><path d="M16 6l-4-4-4 4"></path><line x1="12" y1="2" x2="12" y2="14"></line>',
+        'archive'       => '<rect x="3" y="4" width="18" height="4"></rect><path d="M5 8v12h14V8"></path><line x1="10" y1="12" x2="14" y2="12"></line>',
+    ];
+
+    if ( ! isset( $icons[ $name ] ) ) {
+        return '';
+    }
+
+    $svg = sprintf(
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">%s</svg>',
+        $icons[ $name ]
+    );
+
+    return sprintf(
+        '<span class="aegis-icon aegis-icon--%1$s" aria-hidden="true">%2$s</span>',
+        esc_attr( $name ),
+        $svg
+    );
+}
+
 function aegis_mega_header_array_is_assoc( $array ) {
     if ( ! is_array( $array ) ) {
         return false;
@@ -1073,16 +1102,25 @@ $header_style = sprintf(
 <?php endif; ?>
 
 <div class="aegis-mobile-topbar" aria-label="Mobile menu bar">
-    <button class="aegis-mobile-btn" data-mobile-open aria-label="Open menu">&#9776;</button>
+    <button class="aegis-mobile-btn" data-mobile-open aria-label="Open menu">
+        <?php echo aegis_mega_header_icon( 'hamburger' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <span class="screen-reader-text">Open menu</span>
+    </button>
     <div class="aegis-mobile-logo">
         <a href="<?php echo esc_url( $brand['url'] ); ?>" class="aegis-header__brand-link">
             <?php echo $brand['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </a>
     </div>
     <div class="aegis-mobile-icons">
-        <a class="aegis-mobile-icon" href="#" aria-label="Account">&#128100;</a>
+        <a class="aegis-mobile-icon" href="#" aria-label="Account">
+            <?php echo aegis_mega_header_icon( 'user' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <span class="screen-reader-text">Account</span>
+        </a>
         <?php if ( ! empty( $attributes['showCart'] ) ) : ?>
-            <a class="aegis-mobile-icon" href="#" aria-label="Cart">&#128722;</a>
+            <a class="aegis-mobile-icon" href="#" aria-label="Cart">
+                <?php echo aegis_mega_header_icon( 'cart' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <span class="screen-reader-text">Cart</span>
+            </a>
         <?php endif; ?>
     </div>
 </div>
@@ -1091,7 +1129,10 @@ $header_style = sprintf(
     <form class="aegis-mobile-search" role="search" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
         <label class="screen-reader-text" for="aegis-mobile-search">Search</label>
         <input id="aegis-mobile-search" type="search" name="s" placeholder="What are you looking for?" />
-        <button type="submit" class="aegis-mobile-search-btn" aria-label="Search">&#128269;</button>
+        <button type="submit" class="aegis-mobile-search-btn" aria-label="Search">
+            <?php echo aegis_mega_header_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <span class="screen-reader-text">Search</span>
+        </button>
     </form>
 <?php endif; ?>
 
@@ -1131,7 +1172,10 @@ aria-haspopup="true"
 <form class="aegis-header__search" role="search">
 <label class="screen-reader-text" for="aegis-mega-header-search">Search</label>
 <input id="aegis-mega-header-search" type="search" placeholder="Search" />
-<button type="submit" class="aegis-header__search-btn">Go</button>
+<button type="submit" class="aegis-header__search-btn" aria-label="Search">
+<?php echo aegis_mega_header_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+<span class="screen-reader-text">Search</span>
+</button>
 </form>
 <?php endif; ?>
 <?php if ( ! empty( $attributes['showCart'] ) ) : ?>
@@ -1180,9 +1224,15 @@ echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscap
     <div class="aegis-mobile-overlay" data-mobile-close hidden></div>
     <aside class="aegis-mobile-drawer" hidden aria-hidden="true">
         <div class="aegis-mobile-drawer__header">
-            <button class="aegis-mobile-btn" data-mobile-close aria-label="Close">&#10005;</button>
+            <button class="aegis-mobile-btn" data-mobile-close aria-label="Close">
+                <?php echo aegis_mega_header_icon( 'close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <span class="screen-reader-text">Close</span>
+            </button>
             <div class="aegis-mobile-drawer__title">Main Menu</div>
-            <button class="aegis-mobile-btn" data-mobile-close aria-label="Close">&#10005;</button>
+            <button class="aegis-mobile-btn" data-mobile-close aria-label="Close">
+                <?php echo aegis_mega_header_icon( 'close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <span class="screen-reader-text">Close</span>
+            </button>
         </div>
 
         <div class="aegis-mobile-view aegis-mobile-view--root" data-view="root">
@@ -1197,7 +1247,9 @@ echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscap
                         <li>
                             <button class="aegis-mobile-row" data-enter="<?php echo esc_attr( $key ); ?>">
                                 <span class="aegis-mobile-row__label"><?php echo esc_html( $label ); ?></span>
-                                <span class="aegis-mobile-row__chev" aria-hidden="true">&#8250;</span>
+                                <span class="aegis-mobile-row__chev" aria-hidden="true">
+                                    <?php echo aegis_mega_header_icon( 'chevron-right' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                </span>
                             </button>
                         </li>
                     <?php else : ?>
@@ -1213,7 +1265,10 @@ echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscap
 
         <div class="aegis-mobile-view aegis-mobile-view--sub" data-view="sub" hidden>
             <div class="aegis-mobile-subheader">
-                <button class="aegis-mobile-back" data-back aria-label="Back">&#8249; Back</button>
+                <button class="aegis-mobile-back" data-back aria-label="Back">
+                    <?php echo aegis_mega_header_icon( 'chevron-left' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <span>Back</span>
+                </button>
                 <div class="aegis-mobile-subtitle" data-subtitle></div>
             </div>
             <div class="aegis-mobile-subcontent" data-subcontent></div>
