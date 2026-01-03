@@ -75,11 +75,21 @@
         });
     }
 
+    function closeOtherDetails(current, context) {
+        const openDetails = context.querySelectorAll('.aegis-panel-details[open]');
+
+        openDetails.forEach((detail) => {
+            if (detail !== current) {
+                detail.removeAttribute('open');
+            }
+        });
+    }
+
     function bindPanelToggles(context) {
         const rows = context.querySelectorAll('.aegis-main-item');
 
         rows.forEach((row) => {
-            const panel = row.querySelector('.aegis-mega-panel-settings');
+            const panel = row.querySelector('.aegis-panel-details');
             const radios = row.querySelectorAll('.aegis-nav-type');
 
             if (!panel || radios.length === 0) {
@@ -89,7 +99,16 @@
             const update = () => {
                 const isMega = Array.from(radios).some((radio) => radio.checked && radio.value === 'mega');
                 panel.style.display = isMega ? '' : 'none';
+                if (!isMega && panel.hasAttribute('open')) {
+                    panel.removeAttribute('open');
+                }
             };
+
+            panel.addEventListener('toggle', () => {
+                if (panel.open) {
+                    closeOtherDetails(panel, context);
+                }
+            });
 
             radios.forEach((radio) => {
                 radio.addEventListener('change', update);

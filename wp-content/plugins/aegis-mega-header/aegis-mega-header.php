@@ -600,6 +600,12 @@ function aegis_mega_header_admin_assets( $hook ) {
     }
 
     wp_enqueue_media();
+    wp_enqueue_style(
+        'aegis-mega-header-admin',
+        plugins_url( 'admin.css', __FILE__ ),
+        [],
+        '0.1.0'
+    );
     wp_enqueue_script(
         'aegis-mega-header-admin',
         plugins_url( 'admin.js', __FILE__ ),
@@ -1209,135 +1215,145 @@ function aegis_mega_header_render_settings_page() {
                         continue;
                     }
 
-                    $item_id        = isset( $item['id'] ) && '' !== $item['id'] ? $item['id'] : 'item_' . $index;
-                    $default_item   = isset( $default_map[ $item_id ] ) ? $default_map[ $item_id ] : [];
-                    $label_value    = isset( $item['label'] ) ? $item['label'] : ( isset( $default_item['label'] ) ? $default_item['label'] : '' );
-                    $type_value     = isset( $item['type'] ) ? $item['type'] : ( isset( $default_item['type'] ) ? $default_item['type'] : 'link' );
-                    $url_value      = isset( $item['url'] ) ? $item['url'] : ( isset( $default_item['url'] ) ? $default_item['url'] : '#' );
-                    $panel_defaults = isset( $default_item['panel'] ) ? $default_item['panel'] : [];
-                    $panel_settings = isset( $item['panel'] ) ? $item['panel'] : $panel_defaults;
-                    $sidebar_title  = isset( $panel_settings['sidebar']['title'] ) ? $panel_settings['sidebar']['title'] : ( isset( $panel_defaults['sidebar']['title'] ) ? $panel_defaults['sidebar']['title'] : '' );
-                    $sidebar_links  = isset( $panel_settings['sidebar']['links'] ) ? $panel_settings['sidebar']['links'] : ( isset( $panel_defaults['sidebar']['links'] ) ? $panel_defaults['sidebar']['links'] : [] );
+                    $item_id          = isset( $item['id'] ) && '' !== $item['id'] ? $item['id'] : 'item_' . $index;
+                    $default_item     = isset( $default_map[ $item_id ] ) ? $default_map[ $item_id ] : [];
+                    $label_value      = isset( $item['label'] ) ? $item['label'] : ( isset( $default_item['label'] ) ? $default_item['label'] : '' );
+                    $type_value       = isset( $item['type'] ) ? $item['type'] : ( isset( $default_item['type'] ) ? $default_item['type'] : 'link' );
+                    $url_value        = isset( $item['url'] ) ? $item['url'] : ( isset( $default_item['url'] ) ? $default_item['url'] : '#' );
+                    $panel_defaults   = isset( $default_item['panel'] ) ? $default_item['panel'] : [];
+                    $panel_settings   = isset( $item['panel'] ) ? $item['panel'] : $panel_defaults;
+                    $sidebar_title    = isset( $panel_settings['sidebar']['title'] ) ? $panel_settings['sidebar']['title'] : ( isset( $panel_defaults['sidebar']['title'] ) ? $panel_defaults['sidebar']['title'] : '' );
+                    $sidebar_links    = isset( $panel_settings['sidebar']['links'] ) ? $panel_settings['sidebar']['links'] : ( isset( $panel_defaults['sidebar']['links'] ) ? $panel_defaults['sidebar']['links'] : [] );
                     $sidebar_links_ui = aegis_mega_header_links_to_textarea( $sidebar_links );
                     ?>
                     <div class="aegis-main-item" data-index="<?php echo esc_attr( $index ); ?>">
-                        <div class="aegis-main-item__controls">
-                            <button type="button" class="button aegis-move-up">Move Up</button>
-                            <button type="button" class="button aegis-move-down">Move Down</button>
-                            <button type="button" class="button aegis-delete-item">Delete</button>
-                        </div>
                         <input type="hidden" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][id]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][id]" value="<?php echo esc_attr( $item_id ); ?>" />
-                        <p>
-                            <label>Label<br />
-                                <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][label]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][label]" value="<?php echo esc_attr( $label_value ); ?>" />
-                            </label>
-                        </p>
-                        <p>
-                            <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="link" <?php checked( $type_value, 'link' ); ?> /> Link</label><br />
-                            <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="mega" <?php checked( $type_value, 'mega' ); ?> /> Mega</label>
-                        </p>
-                        <p>
-                            <label>URL<br />
-                                <input type="url" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][url]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][url]" value="<?php echo esc_attr( $url_value ); ?>" />
-                            </label>
-                        </p>
-                        <div class="aegis-mega-panel-settings" <?php echo 'mega' === $type_value ? '' : 'style="display:none;"'; ?>>
-                            <h4>MEGA Panel</h4>
-                            <p>
-                                <label>Sidebar Title<br />
-                                    <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][sidebar][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar][title]" value="<?php echo esc_attr( $sidebar_title ); ?>" />
+                        <div class="aegis-main-item__row">
+                            <div class="aegis-main-item__field aegis-main-item__field-label">
+                                <label>Label<br />
+                                    <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][label]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][label]" value="<?php echo esc_attr( $label_value ); ?>" />
                                 </label>
-                            </p>
-                            <p>
-                                <label>Sidebar Links<br />
-                                    <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][sidebar_links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar_links]" placeholder="Label|URL per line"><?php echo esc_textarea( $sidebar_links_ui ); ?></textarea>
+                            </div>
+                            <div class="aegis-main-item__field aegis-main-item__field-type">
+                                <span class="aegis-main-item__field-title">Type</span>
+                                <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="link" <?php checked( $type_value, 'link' ); ?> /> Link</label>
+                                <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="mega" <?php checked( $type_value, 'mega' ); ?> /> Mega</label>
+                            </div>
+                            <div class="aegis-main-item__field aegis-main-item__field-url">
+                                <label>URL<br />
+                                    <input type="url" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][url]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][url]" value="<?php echo esc_attr( $url_value ); ?>" />
                                 </label>
-                                <small>One per line: Label|URL</small>
-                            </p>
-                            <?php
-                            for ( $i = 0; $i < 4; $i++ ) {
-                                $group_default = isset( $panel_defaults['groups'][ $i ] ) ? $panel_defaults['groups'][ $i ] : [];
-                                $group_item    = isset( $panel_settings['groups'][ $i ] ) ? $panel_settings['groups'][ $i ] : $group_default;
-                                $group_title   = isset( $group_item['title'] ) ? $group_item['title'] : ( isset( $group_default['title'] ) ? $group_default['title'] : '' );
-                                $group_links   = isset( $group_item['links'] ) ? $group_item['links'] : ( isset( $group_default['links'] ) ? $group_default['links'] : [] );
-                                $group_links_ui = aegis_mega_header_links_to_textarea( $group_links );
-                                ?>
-                                <div class="aegis-mega-panel-group">
-                                    <p><strong>Group <?php echo esc_html( $i + 1 ); ?></strong></p>
-                                    <p>
-                                        <label>Group <?php echo esc_html( $i + 1 ); ?> Title<br />
-                                            <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][groups][<?php echo esc_attr( $i ); ?>][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][title]" value="<?php echo esc_attr( $group_title ); ?>" />
-                                        </label>
-                                    </p>
-                                    <p>
-                                        <label>Group <?php echo esc_html( $i + 1 ); ?> Links<br />
-                                            <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][groups][<?php echo esc_attr( $i ); ?>][links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][links]" placeholder="Label|URL per line"><?php echo esc_textarea( $group_links_ui ); ?></textarea>
-                                        </label>
-                                        <small>One per line: Label|URL</small>
-                                    </p>
-                                </div>
-                                <?php
-                            }
-                            ?>
-                            <p><em>Promo uses global ad slots header_mega_promo_1 and header_mega_promo_2.</em></p>
+                            </div>
+                            <div class="aegis-main-item__controls">
+                                <button type="button" class="button aegis-move-up">Move Up</button>
+                                <button type="button" class="button aegis-move-down">Move Down</button>
+                                <button type="button" class="button aegis-delete-item">Delete</button>
+                            </div>
                         </div>
+                        <details class="aegis-panel-details aegis-main-item__mega" <?php echo 'mega' === $type_value ? '' : 'style="display:none;"'; ?>>
+                            <summary>MEGA Panel</summary>
+                            <div class="aegis-mega-panel-settings">
+                                <p>
+                                    <label>Sidebar Title<br />
+                                        <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][sidebar][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar][title]" value="<?php echo esc_attr( $sidebar_title ); ?>" />
+                                    </label>
+                                </p>
+                                <p>
+                                    <label>Sidebar Links<br />
+                                        <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][sidebar_links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar_links]" placeholder="Label|URL per line"><?php echo esc_textarea( $sidebar_links_ui ); ?></textarea>
+                                    </label>
+                                    <small>One per line: Label|URL</small>
+                                </p>
+                                <?php
+                                for ( $i = 0; $i < 4; $i++ ) {
+                                    $group_default  = isset( $panel_defaults['groups'][ $i ] ) ? $panel_defaults['groups'][ $i ] : [];
+                                    $group_item     = isset( $panel_settings['groups'][ $i ] ) ? $panel_settings['groups'][ $i ] : $group_default;
+                                    $group_title    = isset( $group_item['title'] ) ? $group_item['title'] : ( isset( $group_default['title'] ) ? $group_default['title'] : '' );
+                                    $group_links    = isset( $group_item['links'] ) ? $group_item['links'] : ( isset( $group_default['links'] ) ? $group_default['links'] : [] );
+                                    $group_links_ui = aegis_mega_header_links_to_textarea( $group_links );
+                                    ?>
+                                    <div class="aegis-mega-panel-group">
+                                        <p><strong>Group <?php echo esc_html( $i + 1 ); ?></strong></p>
+                                        <p>
+                                            <label>Group <?php echo esc_html( $i + 1 ); ?> Title<br />
+                                                <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][groups][<?php echo esc_attr( $i ); ?>][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][title]" value="<?php echo esc_attr( $group_title ); ?>" />
+                                            </label>
+                                        </p>
+                                        <p>
+                                            <label>Group <?php echo esc_html( $i + 1 ); ?> Links<br />
+                                                <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][<?php echo esc_attr( $index ); ?>][panel][groups][<?php echo esc_attr( $i ); ?>][links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][links]" placeholder="Label|URL per line"><?php echo esc_textarea( $group_links_ui ); ?></textarea>
+                                            </label>
+                                            <small>One per line: Label|URL</small>
+                                        </p>
+                                    </div>
+                                    <?php
+                                }
+                                ?>
+                                <p><em>Promo uses global ad slots header_mega_promo_1 and header_mega_promo_2.</em></p>
+                            </div>
+                        </details>
                     </div>
                 <?php endforeach; ?>
             </div>
 
             <template id="aegis-main-item-template">
                 <div class="aegis-main-item" data-index="__INDEX__">
-                    <div class="aegis-main-item__controls">
-                        <button type="button" class="button aegis-move-up">Move Up</button>
-                        <button type="button" class="button aegis-move-down">Move Down</button>
-                        <button type="button" class="button aegis-delete-item">Delete</button>
-                    </div>
                     <input type="hidden" name="aegis_mega_header_settings[nav][items][__INDEX__][id]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][id]" value="__ID__" />
-                    <p>
-                        <label>Label<br />
-                            <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][label]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][label]" value="NEW ITEM" />
-                        </label>
-                    </p>
-                    <p>
-                        <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][__INDEX__][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="link" checked="checked" /> Link</label><br />
-                        <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][__INDEX__][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="mega" /> Mega</label>
-                    </p>
-                    <p>
-                        <label>URL<br />
-                            <input type="url" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][url]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][url]" value="#" />
-                        </label>
-                    </p>
-                    <div class="aegis-mega-panel-settings" style="display:none;">
-                        <h4>MEGA Panel</h4>
-                        <p>
-                            <label>Sidebar Title<br />
-                                <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar][title]" value="" />
+                    <div class="aegis-main-item__row">
+                        <div class="aegis-main-item__field aegis-main-item__field-label">
+                            <label>Label<br />
+                                <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][label]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][label]" value="NEW ITEM" />
                             </label>
-                        </p>
-                        <p>
-                            <label>Sidebar Links<br />
-                                <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar_links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar_links]" placeholder="Label|URL per line"></textarea>
+                        </div>
+                        <div class="aegis-main-item__field aegis-main-item__field-type">
+                            <span class="aegis-main-item__field-title">Type</span>
+                            <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][__INDEX__][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="link" checked="checked" /> Link</label>
+                            <label><input type="radio" class="aegis-nav-type" name="aegis_mega_header_settings[nav][items][__INDEX__][type]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][type]" value="mega" /> Mega</label>
+                        </div>
+                        <div class="aegis-main-item__field aegis-main-item__field-url">
+                            <label>URL<br />
+                                <input type="url" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][url]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][url]" value="#" />
                             </label>
-                            <small>One per line: Label|URL</small>
-                        </p>
-                        <?php for ( $i = 0; $i < 4; $i++ ) : ?>
-                            <div class="aegis-mega-panel-group">
-                                <p><strong>Group <?php echo esc_html( $i + 1 ); ?></strong></p>
-                                <p>
-                                    <label>Group <?php echo esc_html( $i + 1 ); ?> Title<br />
-                                        <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][title]" value="" />
-                                    </label>
-                                </p>
-                                <p>
-                                    <label>Group <?php echo esc_html( $i + 1 ); ?> Links<br />
-                                        <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][links]" placeholder="Label|URL per line"></textarea>
-                                    </label>
-                                    <small>One per line: Label|URL</small>
-                                </p>
-                            </div>
-                        <?php endfor; ?>
-                        <p><em>Promo uses global ad slots header_mega_promo_1 and header_mega_promo_2.</em></p>
+                        </div>
+                        <div class="aegis-main-item__controls">
+                            <button type="button" class="button aegis-move-up">Move Up</button>
+                            <button type="button" class="button aegis-move-down">Move Down</button>
+                            <button type="button" class="button aegis-delete-item">Delete</button>
+                        </div>
                     </div>
+                    <details class="aegis-panel-details aegis-main-item__mega" style="display:none;">
+                        <summary>MEGA Panel</summary>
+                        <div class="aegis-mega-panel-settings">
+                            <p>
+                                <label>Sidebar Title<br />
+                                    <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar][title]" value="" />
+                                </label>
+                            </p>
+                            <p>
+                                <label>Sidebar Links<br />
+                                    <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar_links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][sidebar_links]" placeholder="Label|URL per line"></textarea>
+                                </label>
+                                <small>One per line: Label|URL</small>
+                            </p>
+                            <?php for ( $i = 0; $i < 4; $i++ ) : ?>
+                                <div class="aegis-mega-panel-group">
+                                    <p><strong>Group <?php echo esc_html( $i + 1 ); ?></strong></p>
+                                    <p>
+                                        <label>Group <?php echo esc_html( $i + 1 ); ?> Title<br />
+                                            <input type="text" class="regular-text" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][title]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][title]" value="" />
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label>Group <?php echo esc_html( $i + 1 ); ?> Links<br />
+                                            <textarea class="large-text code" rows="4" name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][links]" data-indexed-name="aegis_mega_header_settings[nav][items][__INDEX__][panel][groups][<?php echo esc_attr( $i ); ?>][links]" placeholder="Label|URL per line"></textarea>
+                                        </label>
+                                        <small>One per line: Label|URL</small>
+                                    </p>
+                                </div>
+                            <?php endfor; ?>
+                            <p><em>Promo uses global ad slots header_mega_promo_1 and header_mega_promo_2.</em></p>
+                        </div>
+                    </details>
                 </div>
             </template>
 

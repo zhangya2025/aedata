@@ -1,0 +1,88 @@
+.aegis-main-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.aegis-main-item {
+    border: 1px solid #dcdcde;
+    padding: 12px;
+    background: #fff;
+}
+
+.aegis-main-item__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.aegis-main-item__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.aegis-main-item__field label {
+    font-weight: 600;
+}
+
+.aegis-main-item__field-label input[type="text"] {
+    width: 180px;
+}
+
+.aegis-main-item__field-type {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aegis-main-item__field-title {
+    font-weight: 600;
+}
+
+.aegis-main-item__field-url {
+    flex: 1;
+    min-width: 260px;
+}
+
+.aegis-main-item__field-url input[type="url"] {
+    width: 100%;
+}
+
+.aegis-main-item__controls {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.aegis-panel-details {
+    margin-top: 10px;
+    border: 1px solid #e0e0e0;
+    padding: 8px;
+    background: #fafafa;
+}
+
+.aegis-panel-details > summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.aegis-mega-panel-settings {
+    margin-top: 8px;
+}
+
+.aegis-mega-panel-settings textarea.large-text {
+    width: 100%;
+}
+
+.aegis-mega-panel-group {
+    border: 1px solid #ededed;
+    padding: 8px;
+    margin: 8px 0;
+}
+
+.aegis-main-actions {
+    margin-bottom: 12px;
+}
