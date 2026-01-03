@@ -260,6 +260,7 @@
   display: grid;
   grid-template-columns: var(--aegis-mega-sidebar) 1fr var(--aegis-mega-promo);
   gap: var(--aegis-mega-gap);
+  align-items: stretch;
 }
 
 .aegis-mega__sidebar {
@@ -324,10 +325,16 @@
 .aegis-mega__promo {
   display: grid;
   gap: 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  min-height: 100%;
+  align-self: stretch;
+  border-radius: 0;
 }
 
 .aegis-mega-header__promo-card {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px dashed #cbd5e1;
   border-radius: 0;
   padding: 18px;
