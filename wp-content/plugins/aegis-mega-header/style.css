@@ -222,33 +222,6 @@
   transform: translateY(-110%);
 }
 
-.aegis-mega-header.is-main-transparent .aegis-header__main {
-  background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.aegis-mega-header.is-main-transparent .aegis-header__nav-item,
-.aegis-mega-header.is-main-transparent .aegis-header__tools,
-.aegis-mega-header.is-main-transparent .aegis-header__brand-link {
-  color: #ffffff;
-}
-
-.aegis-mega-header.is-main-transparent .aegis-header__search input[type="search"] {
-  border-color: rgba(255, 255, 255, 0.6);
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.aegis-mega-header.is-main-transparent .aegis-header__search input[type="search"]::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.aegis-mega-header.is-main-transparent .aegis-header__search-btn {
-  border-color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-}
-
 .aegis-mega-header.is-main-solid .aegis-header__main,
 .aegis-mega-header.is-mega-open .aegis-header__main {
   background: #ffffff;
@@ -286,6 +259,110 @@
   border-color: #1f2937;
   background: #1f2937;
   color: #ffffff;
+}
+
+.aegis-mega-header.is-main-transparent {
+  background: transparent;
+  border-bottom-color: transparent;
+}
+
+.aegis-mega-header.is-main-transparent .aegis-header__main,
+.aegis-mega-header.is-main-transparent .aegis-header__main-inner,
+.aegis-mega-header.is-main-transparent .aegis-header__nav,
+.aegis-mega-header.is-main-transparent .aegis-header__tools {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom: 0 !important;
+}
+
+.aegis-mega-header.is-main-transparent .aegis-header__nav-item,
+.aegis-mega-header.is-main-transparent .aegis-header__nav-item span,
+.aegis-mega-header.is-main-transparent .aegis-header__tools,
+.aegis-mega-header.is-main-transparent .aegis-header__brand-link {
+  color: #ffffff !important;
+}
+
+.aegis-mega-header.is-main-transparent .aegis-header__search input[type="search"] {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.aegis-mega-header.is-main-transparent .aegis-header__search input[type="search"]::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.aegis-mega-header.is-main-transparent .aegis-header__search-btn {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  color: #ffffff !important;
+}
+
+.aegis-mega-header.is-main-transparent .aegis-header__cart {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__main,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__main,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__nav-item,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__nav-item,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__nav-item,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__nav-item,
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__nav-item span,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__nav-item span,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__nav-item span,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__nav-item span,
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__tools,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__tools,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__tools,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__tools,
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__brand-link,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__brand-link,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__brand-link,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__brand-link {
+  color: #111111 !important;
+}
+
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__search input[type="search"],
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__search input[type="search"],
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__search input[type="search"],
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__search input[type="search"] {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__search input[type="search"]::placeholder,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__search input[type="search"]::placeholder,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__search input[type="search"]::placeholder,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__search input[type="search"]::placeholder {
+  color: #475569 !important;
+}
+
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__search-btn,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__search-btn,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__search-btn,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__search-btn {
+  background: #1f2937 !important;
+  border-color: #1f2937 !important;
+  color: #ffffff !important;
+}
+
+.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__cart,
+.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__cart,
+.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__cart,
+.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__cart {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #111111 !important;
 }
 
 .aegis-mobile-topbar,
