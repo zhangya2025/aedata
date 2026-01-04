@@ -92,6 +92,7 @@
 
       if ( megaOpen ) {
         next.modeSolid = true;
+        next.isTopHidden = ! atTop;
         return next;
       }
 
@@ -203,7 +204,7 @@
       }
       header.classList.add('is-mega-open');
       megaOpen = true;
-      header.classList.remove('is-header-hidden', 'is-top-hidden');
+      header.classList.remove('is-header-hidden');
       applyHeaderState( 'open-panel' );
       activeKey = key;
     }
