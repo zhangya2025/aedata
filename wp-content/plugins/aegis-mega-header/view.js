@@ -77,7 +77,10 @@
         header.classList.remove('is-top-hidden');
       }
 
-      if ( delta < -2 ) {
+      if ( header.classList.contains('is-header-hidden') && currentY < lastScrollY ) {
+        header.classList.remove('is-header-hidden');
+        header.classList.add('is-top-hidden');
+      } else if ( delta < -1 ) {
         header.classList.remove('is-header-hidden');
         header.classList.add('is-top-hidden');
       }
