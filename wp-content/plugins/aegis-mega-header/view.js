@@ -18,6 +18,7 @@
     }
 
     let activeKey = null;
+    let mainActive = false;
     let mobilePanelsData = {};
     let ticking = false;
     const scroller = document.scrollingElement || document.documentElement;
@@ -54,6 +55,33 @@
       header.classList.remove('is-home', 'is-header-hidden', 'is-top-hidden');
     }
 
+    function updateModeClasses() {
+      const isTopHidden = header.classList.contains('is-top-hidden');
+      const isHeaderHidden = header.classList.contains('is-header-hidden');
+      const allowOverlay =
+        isHome &&
+        ! megaOpen &&
+        ! mainActive &&
+        ! isTopHidden &&
+        ! isHeaderHidden;
+
+      if ( allowOverlay ) {
+        header.classList.add('mode-overlay');
+        header.classList.remove('mode-solid');
+      } else {
+        header.classList.add('mode-solid');
+        header.classList.remove('mode-overlay');
+      }
+    }
+
+    function setMainActive( active ) {
+      if ( mainActive === active ) {
+        return;
+      }
+      mainActive = active;
+      updateModeClasses();
+    }
+
     function applyScrollState( deltaOverride ) {
       const currentY = getY();
       const delta = typeof deltaOverride === 'number' ? deltaOverride : currentY - lastScrollY;
@@ -61,6 +89,7 @@
       if ( ! scrollBehaviorEnabled ) {
         clearScrollStates();
         lastScrollY = currentY;
+        updateModeClasses();
         return;
       }
 
@@ -69,6 +98,7 @@
       if ( megaOpen ) {
         header.classList.remove('is-header-hidden', 'is-top-hidden');
         lastScrollY = currentY;
+        updateModeClasses();
         return;
       }
 
@@ -90,6 +120,7 @@
       }
 
       lastScrollY = currentY;
+      updateModeClasses();
     }
 
     function closePanels() {
@@ -399,6 +430,27 @@
     bindMobileNav();
     syncScrollBehaviorEnabled();
     applyScrollState( 0 );
+    updateModeClasses();
+
+    mainBar.addEventListener('mouseenter', () => setMainActive( true ));
+    mainBar.addEventListener('mouseleave', () => {
+      const activeElement = document.activeElement;
+      if ( activeElement && mainBar.contains( activeElement ) ) {
+        return;
+      }
+      setMainActive( false );
+    } );
+
+    mainBar.addEventListener('focusin', () => setMainActive( true ));
+    mainBar.addEventListener('focusout', () => {
+      setTimeout( () => {
+        const activeElement = document.activeElement;
+        if ( activeElement && mainBar.contains( activeElement ) ) {
+          return;
+        }
+        setMainActive( false );
+      }, 10 );
+    } );
     window.addEventListener('scroll', onScroll, { passive: true } );
   }
 
