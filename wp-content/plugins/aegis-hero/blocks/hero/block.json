@@ -27,6 +27,26 @@
       "type": "number",
       "default": 320
     },
+    "heightVhDesktop": {
+      "type": "number",
+      "default": 70
+    },
+    "heightVhMobile": {
+      "type": "number",
+      "default": 60
+    },
+    "heightMode": {
+      "type": "string",
+      "default": "fixed"
+    },
+    "subtractHeader": {
+      "type": "boolean",
+      "default": false
+    },
+    "headerOffsetPx": {
+      "type": "number",
+      "default": 0
+    },
     "showArrows": {
       "type": "boolean",
       "default": true

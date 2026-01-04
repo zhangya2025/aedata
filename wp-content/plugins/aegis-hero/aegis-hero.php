@@ -73,6 +73,11 @@ function aegis_hero_render_block($attributes)
         'slides' => [],
         'heightDesktop' => 520,
         'heightMobile' => 320,
+        'heightVhDesktop' => 70,
+        'heightVhMobile' => 60,
+        'heightMode' => 'fixed',
+        'subtractHeader' => false,
+        'headerOffsetPx' => 0,
         'showArrows' => true,
         'showDots' => true,
         'autoplay' => false,
@@ -82,6 +87,7 @@ function aegis_hero_render_block($attributes)
     $attributes = wp_parse_args($attributes, $defaults);
     $slides = is_array($attributes['slides']) ? $attributes['slides'] : [];
     $align = isset($attributes['align']) ? $attributes['align'] : '';
+    $height_mode = isset($attributes['heightMode']) ? $attributes['heightMode'] : 'fixed';
 
     if (empty($slides)) {
         return '';
@@ -91,16 +97,25 @@ function aegis_hero_render_block($attributes)
     $allowlist_raw = (string) get_option('aegis_hero_allowlist', '');
     $allowlist_domains = array_filter(array_map('trim', explode("\n", $allowlist_raw)));
 
+    $height_mode = in_array($height_mode, ['fixed', 'viewport', 'aspect', 'fullscreen'], true) ? $height_mode : 'fixed';
+    $subtract_header = !empty($attributes['subtractHeader']);
+    $header_offset = isset($attributes['headerOffsetPx']) ? (int) $attributes['headerOffsetPx'] : 0;
     $height_style = sprintf(
-        '--aegis-hero-h:%dpx; --aegis-hero-h-m:%dpx;',
+        '--aegis-hero-h:%dpx; --aegis-hero-h-m:%dpx; --aegis-hero-vh:%s; --aegis-hero-vh-m:%s; --aegis-hero-header-offset:%dpx; --aegis-hero-subtract-header:%d;',
         (int) $attributes['heightDesktop'],
-        (int) $attributes['heightMobile']
+        (int) $attributes['heightMobile'],
+        is_numeric($attributes['heightVhDesktop']) ? $attributes['heightVhDesktop'] : 70,
+        is_numeric($attributes['heightVhMobile']) ? $attributes['heightVhMobile'] : 60,
+        $header_offset,
+        $subtract_header ? 1 : 0
     );
 
     $align_class = '';
     if (in_array($align, ['wide', 'full'], true)) {
         $align_class = 'align' . sanitize_key($align);
     }
+
+    $height_mode_class = 'aegis-hero--mode-' . sanitize_key($height_mode);
 
     $settings_data = [
         'autoplay' => (bool) $attributes['autoplay'],
@@ -109,9 +124,14 @@ function aegis_hero_render_block($attributes)
         'showDots' => (bool) $attributes['showDots'],
     ];
 
+    $classes = ['aegis-hero', $align_class, $height_mode_class];
+    if ($subtract_header) {
+        $classes[] = 'aegis-hero--subtract-header';
+    }
+
     ob_start();
     ?>
-    <div class="aegis-hero<?php echo $align_class ? ' ' . esc_attr($align_class) : ''; ?>" style="<?php echo esc_attr($height_style); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
+    <div class="<?php echo esc_attr(trim(implode(' ', array_filter($classes)))); ?>" style="<?php echo esc_attr($height_style); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
         <div class="aegis-hero__track">
             <?php foreach ($slides as $index => $slide) :
                 $type = isset($slide['type']) ? $slide['type'] : 'image';

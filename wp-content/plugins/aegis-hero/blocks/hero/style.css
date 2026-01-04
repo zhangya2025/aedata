@@ -1,7 +1,6 @@
 .aegis-hero {
     position: relative;
     overflow: hidden;
-    height: var(--aegis-hero-h, 520px);
     background: #000;
     color: #fff;
     width: 100%;
@@ -25,9 +24,43 @@
     margin: 0 auto;
 }
 
+.aegis-hero--mode-fixed {
+    height: var(--aegis-hero-h, 520px);
+}
+
+.aegis-hero--mode-viewport {
+    height: calc(var(--aegis-hero-vh, 70) * 1vh);
+}
+
+.aegis-hero--mode-aspect {
+    height: auto;
+    aspect-ratio: var(--aegis-hero-aspect, 16 / 9);
+    min-height: var(--aegis-hero-h, 520px);
+}
+
+.aegis-hero--mode-fullscreen {
+    height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+}
+
+.aegis-hero--mode-fullscreen.aegis-hero--subtract-header {
+    height: calc(100vh - var(--aegis-hero-header-offset, 0px));
+    height: calc(100svh - var(--aegis-hero-header-offset, 0px));
+    height: calc(100dvh - var(--aegis-hero-header-offset, 0px));
+}
+
 @media (max-width: 767px) {
-    .aegis-hero {
+    .aegis-hero--mode-fixed {
         height: var(--aegis-hero-h-m, 320px);
+    }
+
+    .aegis-hero--mode-viewport {
+        height: calc(var(--aegis-hero-vh-m, 60) * 1vh);
+    }
+
+    .aegis-hero--mode-aspect {
+        min-height: var(--aegis-hero-h-m, 320px);
     }
 }
 
@@ -190,6 +223,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    min-height: 280px;
 }
 
 .aegis-hero-editor__preview-media {
