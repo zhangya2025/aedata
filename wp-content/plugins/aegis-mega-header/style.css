@@ -5,6 +5,7 @@
   border-bottom: 1px solid #e2e8f0;
   position: relative;
   background: #ffffff;
+  transition: transform 0.18s ease, background 0.18s ease;
   --aegis-mega-max: 1280px;
   --aegis-mega-pad-x: 24px;
   --aegis-mega-gap: 30px;
@@ -16,6 +17,23 @@
 
 .aegis-mega-header a {
   color: inherit;
+}
+
+.aegis-hero-sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.aegis-mega-header.is-home.is-header-hidden {
+  transform: translateY(-110%);
+}
+
+.aegis-mega-header.is-home.is-top-hidden .aegis-header__top {
+  display: none;
 }
 
 .aegis-icon {
@@ -145,6 +163,12 @@
   outline: none;
 }
 
+.aegis-mega-header .aegis-header__nav-item:hover,
+.aegis-mega-header .aegis-header__nav-item:focus {
+  background: #111111 !important;
+  color: #ffffff !important;
+}
+
 .aegis-header__nav-item[aria-expanded="true"],
 .aegis-header__nav-item.is-active {
   background: #111111;
@@ -218,22 +242,18 @@
   border-bottom-color: #e2e8f0;
 }
 
-.aegis-mega-header.is-main-hidden .aegis-header__main {
-  transform: translateY(-110%);
-}
-
-.aegis-mega-header.is-main-solid .aegis-header__main,
-.aegis-mega-header.is-mega-open .aegis-header__main {
+.aegis-mega-header.is-home.mode-solid .aegis-header__main,
+.aegis-mega-header.is-home.is-mega-open .aegis-header__main {
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.aegis-mega-header.is-main-solid .aegis-header__nav-item,
-.aegis-mega-header.is-main-solid .aegis-header__tools,
-.aegis-mega-header.is-main-solid .aegis-header__brand-link,
-.aegis-mega-header.is-mega-open .aegis-header__nav-item,
-.aegis-mega-header.is-mega-open .aegis-header__tools,
-.aegis-mega-header.is-mega-open .aegis-header__brand-link,
+.aegis-mega-header.is-home.mode-solid .aegis-header__nav-item,
+.aegis-mega-header.is-home.mode-solid .aegis-header__tools,
+.aegis-mega-header.is-home.mode-solid .aegis-header__brand-link,
+.aegis-mega-header.is-home.is-mega-open .aegis-header__nav-item,
+.aegis-mega-header.is-home.is-mega-open .aegis-header__tools,
+.aegis-mega-header.is-home.is-mega-open .aegis-header__brand-link,
 .aegis-header__main:hover .aegis-header__nav-item,
 .aegis-header__main:hover .aegis-header__tools,
 .aegis-header__main:hover .aegis-header__brand-link,
@@ -245,8 +265,8 @@
 
 .aegis-header__main:hover .aegis-header__search input[type="search"],
 .aegis-header__main:focus-within .aegis-header__search input[type="search"],
-.aegis-mega-header.is-main-solid .aegis-header__search input[type="search"],
-.aegis-mega-header.is-mega-open .aegis-header__search input[type="search"] {
+.aegis-mega-header.is-home.mode-solid .aegis-header__search input[type="search"],
+.aegis-mega-header.is-home.is-mega-open .aegis-header__search input[type="search"] {
   border-color: #cbd5e1;
   color: #0f172a;
   background: #ffffff;
@@ -254,130 +274,55 @@
 
 .aegis-header__main:hover .aegis-header__search-btn,
 .aegis-header__main:focus-within .aegis-header__search-btn,
-.aegis-mega-header.is-main-solid .aegis-header__search-btn,
-.aegis-mega-header.is-mega-open .aegis-header__search-btn {
+.aegis-mega-header.is-home.mode-solid .aegis-header__search-btn,
+.aegis-mega-header.is-home.is-mega-open .aegis-header__search-btn {
   border-color: #1f2937;
   background: #1f2937;
   color: #ffffff;
 }
 
-/* Home overlay: root + main must be fully transparent when at the top */
-.aegis-mega-header.is-main-transparent {
+.aegis-mega-header.is-home.mode-overlay {
   background: transparent !important;
   border-bottom-color: transparent !important;
 }
 
-.aegis-mega-header.is-main-transparent .aegis-header__main,
-.aegis-mega-header.is-main-transparent .aegis-header__main-inner,
-.aegis-mega-header.is-main-transparent .aegis-header__nav,
-.aegis-mega-header.is-main-transparent .aegis-header__tools {
+.aegis-mega-header.is-home.mode-overlay .aegis-header__main,
+.aegis-mega-header.is-home.mode-overlay .aegis-header__main-inner,
+.aegis-mega-header.is-home.mode-overlay .aegis-header__nav,
+.aegis-mega-header.is-home.mode-overlay .aegis-header__tools {
   background: transparent !important;
   box-shadow: none !important;
   border-bottom: 0 !important;
 }
 
-.aegis-mega-header.is-main-transparent .aegis-header__nav-item,
-.aegis-mega-header.is-main-transparent .aegis-header__nav-item span,
-.aegis-mega-header.is-main-transparent .aegis-header__brand-link,
-.aegis-mega-header.is-main-transparent .aegis-header__tools {
+.aegis-mega-header.is-home.mode-overlay .aegis-header__nav-item,
+.aegis-mega-header.is-home.mode-overlay .aegis-header__nav-item span,
+.aegis-mega-header.is-home.mode-overlay .aegis-header__brand-link,
+.aegis-mega-header.is-home.mode-overlay .aegis-header__tools {
   color: #ffffff !important;
 }
 
-.aegis-mega-header.is-main-transparent .aegis-header__search input[type="search"] {
+.aegis-mega-header.is-home.mode-overlay .aegis-header__search input[type="search"] {
   background: transparent !important;
   border-color: rgba(255, 255, 255, 0.6) !important;
   color: #ffffff !important;
 }
 
-.aegis-mega-header.is-main-transparent .aegis-header__search input[type="search"]::placeholder {
+.aegis-mega-header.is-home.mode-overlay .aegis-header__search input[type="search"]::placeholder {
   color: rgba(255, 255, 255, 0.7) !important;
 }
 
-.aegis-mega-header.is-main-transparent .aegis-header__search-btn {
+.aegis-mega-header.is-home.mode-overlay .aegis-header__search-btn {
   background: transparent !important;
   border-color: rgba(255, 255, 255, 0.8) !important;
   color: #ffffff !important;
 }
 
-.aegis-mega-header.is-main-transparent .aegis-header__cart {
+.aegis-mega-header.is-home.mode-overlay .aegis-header__cart {
   background: transparent !important;
   border-color: rgba(255, 255, 255, 0.35) !important;
   color: #ffffff !important;
 }
-
-.aegis-mega-header.is-main-solid {
-  background: #ffffff !important;
-  border-bottom-color: #e2e8f0 !important;
-}
-
-.aegis-mega-header.is-main-solid .aegis-header__nav-item,
-.aegis-mega-header.is-main-solid .aegis-header__nav-item span,
-.aegis-mega-header.is-main-solid .aegis-header__brand-link,
-.aegis-mega-header.is-main-solid .aegis-header__tools {
-  color: #111111 !important;
-}
-
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__main,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__main,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within {
-  background: #ffffff !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-}
-
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__nav-item,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__nav-item,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__nav-item,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__nav-item,
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__nav-item span,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__nav-item span,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__nav-item span,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__nav-item span,
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__tools,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__tools,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__tools,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__tools,
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__brand-link,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__brand-link,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__brand-link,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__brand-link {
-  color: #111111 !important;
-}
-
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__search input[type="search"],
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__search input[type="search"],
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__search input[type="search"],
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__search input[type="search"] {
-  background: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
-
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__search input[type="search"]::placeholder,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__search input[type="search"]::placeholder,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__search input[type="search"]::placeholder,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__search input[type="search"]::placeholder {
-  color: #475569 !important;
-}
-
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__search-btn,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__search-btn,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__search-btn,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__search-btn {
-  background: #1f2937 !important;
-  border-color: #1f2937 !important;
-  color: #ffffff !important;
-}
-
-.aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__cart,
-.aegis-mega-header.is-main-transparent.is-mega-open .aegis-header__cart,
-.aegis-mega-header.is-main-transparent .aegis-header__main:hover .aegis-header__cart,
-.aegis-mega-header.is-main-transparent .aegis-header__main:focus-within .aegis-header__cart {
-  background: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  color: #111111 !important;
-}
-
 .aegis-mobile-topbar,
 .aegis-mobile-search,
 .aegis-mobile-drawer,

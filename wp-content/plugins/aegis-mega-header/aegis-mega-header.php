@@ -11,12 +11,32 @@ exit;
 }
 
 function aegis_mega_header_register_block() {
-register_block_type(
-__DIR__,
-[
-'render_callback' => 'aegis_mega_header_render_block',
-]
-);
+    $style_path  = plugin_dir_path( __FILE__ ) . 'style.css';
+    $script_path = plugin_dir_path( __FILE__ ) . 'view.js';
+
+    wp_register_style(
+        'aegis-mega-header',
+        plugins_url( 'style.css', __FILE__ ),
+        [],
+        filemtime( $style_path )
+    );
+
+    wp_register_script(
+        'aegis-mega-header-view',
+        plugins_url( 'view.js', __FILE__ ),
+        [],
+        filemtime( $script_path ),
+        true
+    );
+
+    register_block_type(
+        __DIR__,
+        [
+            'render_callback' => 'aegis_mega_header_render_block',
+            'style'           => 'aegis-mega-header',
+            'script'          => 'aegis-mega-header-view',
+        ]
+    );
 }
 add_action( 'init', 'aegis_mega_header_register_block' );
 
