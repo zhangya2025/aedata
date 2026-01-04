@@ -99,7 +99,7 @@ function aegis_hero_render_block($attributes)
 
     $align_class = '';
     if (in_array($align, ['wide', 'full'], true)) {
-        $align_class = ' align' . $align;
+        $align_class = 'align' . sanitize_key($align);
     }
 
     $settings_data = [
@@ -111,7 +111,7 @@ function aegis_hero_render_block($attributes)
 
     ob_start();
     ?>
-    <div class="aegis-hero<?php echo esc_attr($align_class); ?>" style="<?php echo esc_attr($height_style); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
+    <div class="aegis-hero<?php echo $align_class ? ' ' . esc_attr($align_class) : ''; ?>" style="<?php echo esc_attr($height_style); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
         <div class="aegis-hero__track">
             <?php foreach ($slides as $index => $slide) :
                 $type = isset($slide['type']) ? $slide['type'] : 'image';

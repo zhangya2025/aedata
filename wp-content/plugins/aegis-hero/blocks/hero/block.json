@@ -11,7 +11,8 @@
   "viewScript": "aegis-hero-view",
   "supports": {
     "anchor": true,
-    "align": ["wide", "full"]
+    "align": ["wide", "full"],
+    "html": false
   },
   "attributes": {
     "slides": {
