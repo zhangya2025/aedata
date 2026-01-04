@@ -4,6 +4,7 @@ const panelShell = header.querySelector('[data-mega-panels]');
 const panels = header.querySelectorAll('.aegis-mega-header__panel');
 const nav = header.querySelector('.aegis-header__nav');
 const navItems = header.querySelectorAll('.aegis-header__nav-item');
+const mainBar = header.querySelector('.aegis-header__main');
 const mobileOverlay = header.querySelector('.aegis-mobile-overlay');
 const mobileDrawer = header.querySelector('.aegis-mobile-drawer');
 const mobilePanelsScript = header.querySelector('[data-mobile-panels]');
@@ -13,6 +14,12 @@ const mobileSubtitle = header.querySelector('[data-subtitle]');
 const mobileSubcontent = header.querySelector('[data-subcontent]');
 let activeKey = null;
 let mobilePanelsData = {};
+let ticking = false;
+let lastScrollY = window.scrollY;
+let hoverSolid = false;
+let megaOpen = false;
+const topThreshold = 10;
+const isHome = document.body.classList.contains('home') || document.body.classList.contains('front-page');
 
 if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
 try {
@@ -46,7 +53,11 @@ trigger.setAttribute('aria-expanded', 'false');
 if ( panelShell ) {
 panelShell.classList.remove('is-open');
 }
+header.classList.remove('is-mega-open');
+megaOpen = false;
 activeKey = null;
+applySurface( window.scrollY );
+applyHidden( window.scrollY, lastScrollY );
 }
 
 function openPanel( key, panelId, trigger ) {
@@ -72,6 +83,11 @@ if ( trigger ) {
 trigger.classList.add('is-active');
 trigger.setAttribute('aria-expanded', 'true');
 }
+header.classList.add('is-mega-open');
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-hidden');
+megaOpen = true;
 activeKey = key;
 }
 
@@ -140,6 +156,84 @@ if ( event.key === 'Escape' && activeKey ) {
 closePanels();
 }
 } );
+
+function applySurface( scrollY ) {
+if ( ! isHome ) {
+return;
+}
+
+const nearTop = scrollY <= topThreshold;
+
+if ( megaOpen || hoverSolid ) {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+return;
+}
+
+if ( nearTop ) {
+header.classList.add('is-main-transparent');
+header.classList.remove('is-main-solid');
+} else {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+}
+}
+
+function applyHidden( scrollY, previousY ) {
+if ( ! isHome || megaOpen || hoverSolid ) {
+header.classList.remove('is-main-hidden');
+return;
+}
+
+if ( scrollY - previousY > 6 && scrollY > 60 ) {
+header.classList.add('is-main-hidden');
+} else if ( previousY - scrollY > 6 ) {
+header.classList.remove('is-main-hidden');
+}
+}
+
+function handleScroll() {
+const currentY = window.scrollY;
+applySurface( currentY );
+applyHidden( currentY, lastScrollY );
+lastScrollY = currentY;
+ticking = false;
+}
+
+function onScroll() {
+if ( ! isHome ) {
+return;
+}
+
+if ( ! ticking ) {
+ticking = true;
+requestAnimationFrame( handleScroll );
+}
+}
+
+function bindHoverSolid() {
+if ( ! isHome || ! mainBar ) {
+return;
+}
+
+const enter = () => {
+hoverSolid = true;
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-hidden');
+};
+
+const exit = () => {
+hoverSolid = false;
+applySurface( window.scrollY );
+applyHidden( window.scrollY, lastScrollY );
+};
+
+mainBar.addEventListener('mouseenter', enter);
+mainBar.addEventListener('mouseleave', exit);
+mainBar.addEventListener('focusin', enter);
+mainBar.addEventListener('focusout', exit);
+}
 
 function lockBody( lock ) {
 if ( lock ) {
@@ -347,6 +441,9 @@ closeMobileDrawer();
 }
 
 bindMobileNav();
+bindHoverSolid();
+applySurface( window.scrollY );
+window.addEventListener('scroll', onScroll, { passive: true } );
 }
 
 document.addEventListener('DOMContentLoaded', () => {
