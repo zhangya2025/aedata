@@ -6,3 +6,16 @@ a {
 .wp-site-blocks {
   min-height: 100vh;
 }
+
+body.home {
+  --aegis-header-main-h: 64px;
+}
+
+body.home .aegis-hero {
+  margin-top: calc(-1 * var(--aegis-header-main-h) - 1px);
+}
+
+body.home .aegis-mega-header {
+  position: relative;
+  z-index: 50;
+}
