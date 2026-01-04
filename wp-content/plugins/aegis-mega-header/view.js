@@ -24,11 +24,14 @@
     const getY = () => ( scroller ? scroller.scrollTop || 0 : window.scrollY );
     let lastScrollY = getY();
     let megaOpen = false;
+    let mainHover = false;
+    let mainFocus = false;
     const isHome =
       document.body.classList.contains('home') ||
       document.body.classList.contains('front-page') ||
       document.body.classList.contains('page-id-49966');
     let scrollBehaviorEnabled = isHome && window.innerWidth > 960;
+    const debugEnabled = window.location.search.includes('aegisHeaderDebug=1');
 
     if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
       try {
@@ -50,46 +53,111 @@
       return !! panel;
     }
 
-    function clearScrollStates() {
-      header.classList.remove('is-home', 'is-header-hidden', 'is-top-hidden');
+    function logDebug( reason, payload ) {
+      if ( ! debugEnabled ) {
+        return;
+      }
+
+      const summary = {
+        reason,
+        y: payload.currentY,
+        lastY: lastScrollY,
+        direction: payload.direction,
+        isHome,
+        enabled: scrollBehaviorEnabled,
+        megaOpen,
+        classes: Array.from( header.classList.values() ).join(' ' ),
+      };
+
+      // eslint-disable-next-line no-console
+      console.log('[AEGIS HEADER]', summary);
     }
 
-    function applyScrollState( deltaOverride ) {
-      const currentY = getY();
-      const delta = typeof deltaOverride === 'number' ? deltaOverride : currentY - lastScrollY;
+    function computeHeaderState( currentY, direction ) {
+      const next = {
+        isHomeClass: false,
+        isHeaderHidden: false,
+        isTopHidden: false,
+        modeOverlay: false,
+        modeSolid: false,
+      };
 
       if ( ! scrollBehaviorEnabled ) {
-        clearScrollStates();
-        lastScrollY = currentY;
-        return;
+        return next;
       }
 
-      header.classList.add('is-home');
+      const atTop = currentY <= 10;
+      next.isHomeClass = true;
 
       if ( megaOpen ) {
-        header.classList.remove('is-header-hidden', 'is-top-hidden');
-        lastScrollY = currentY;
-        return;
+        next.modeSolid = true;
+        next.isTopHidden = ! atTop;
+        return next;
       }
 
-      if ( delta > 6 && currentY > 80 ) {
+      const shouldHide =
+        direction === 'down' &&
+        currentY > 80 &&
+        ! mainHover &&
+        ! mainFocus;
+      next.isHeaderHidden = shouldHide;
+
+      if ( shouldHide ) {
+        return next;
+      }
+
+      const wasTopHidden = header.classList.contains('is-top-hidden');
+      const revealMain = ! atTop && ( direction === 'up' || ( direction === 'none' && wasTopHidden ) );
+      next.isTopHidden = revealMain;
+
+      if ( atTop ) {
+        next.isTopHidden = false;
+      }
+
+      const allowOverlay =
+        atTop &&
+        ! next.isTopHidden &&
+        ! mainHover &&
+        ! mainFocus;
+
+      next.modeOverlay = allowOverlay;
+      next.modeSolid = ! allowOverlay;
+
+      return next;
+    }
+
+    function applyHeaderState( reason ) {
+      const currentY = getY();
+      const direction = currentY > lastScrollY ? 'down' : currentY < lastScrollY ? 'up' : 'none';
+      const next = computeHeaderState( currentY, direction );
+
+      header.classList.remove(
+        'is-home',
+        'is-header-hidden',
+        'is-top-hidden',
+        'mode-overlay',
+        'mode-solid'
+      );
+
+      if ( next.isHomeClass ) {
+        header.classList.add('is-home');
+      }
+      if ( next.isHeaderHidden ) {
         header.classList.add('is-header-hidden');
-        header.classList.remove('is-top-hidden');
       }
-
-      if ( header.classList.contains('is-header-hidden') && currentY < lastScrollY ) {
-        header.classList.remove('is-header-hidden');
-        header.classList.add('is-top-hidden');
-      } else if ( delta < -1 ) {
-        header.classList.remove('is-header-hidden');
+      if ( next.isTopHidden ) {
         header.classList.add('is-top-hidden');
       }
-
-      if ( currentY <= 10 ) {
-        header.classList.remove('is-top-hidden');
+      if ( next.modeOverlay ) {
+        header.classList.add('mode-overlay');
+      }
+      if ( next.modeSolid ) {
+        header.classList.add('mode-solid');
       }
 
       lastScrollY = currentY;
+
+      logDebug( reason, { currentY, direction } );
     }
 
     function closePanels() {
@@ -107,7 +175,7 @@
       header.classList.remove('is-mega-open');
       megaOpen = false;
       activeKey = null;
-      applyScrollState( 0 );
+      applyHeaderState( 'close-panels' );
     }
 
     function openPanel( key, panelId, trigger ) {
@@ -135,8 +203,8 @@
       }
       header.classList.add('is-mega-open');
       megaOpen = true;
-      header.classList.remove('is-header-hidden', 'is-top-hidden');
-      applyScrollState( 0 );
+      header.classList.remove('is-header-hidden');
+      applyHeaderState( 'open-panel' );
       activeKey = key;
     }
 
@@ -208,7 +276,7 @@
     } );
 
     function handleScroll() {
-      applyScrollState();
+      applyHeaderState( 'scroll' );
       ticking = false;
     }
 
@@ -227,7 +295,7 @@
     function syncScrollBehaviorEnabled() {
       scrollBehaviorEnabled = isHome && window.innerWidth > 960;
       lastScrollY = getY();
-      applyScrollState( 0 );
+      applyHeaderState( 'sync-enabled' );
     }
 
     function lockBody( lock ) {
@@ -398,7 +466,37 @@
 
     bindMobileNav();
     syncScrollBehaviorEnabled();
-    applyScrollState( 0 );
+    applyHeaderState( 'init' );
+
+    mainBar.addEventListener('mouseenter', () => {
+      mainHover = true;
+      applyHeaderState( 'main-hover' );
+    });
+
+    mainBar.addEventListener('mouseleave', () => {
+      const activeElement = document.activeElement;
+      if ( activeElement && mainBar.contains( activeElement ) ) {
+        return;
+      }
+      mainHover = false;
+      applyHeaderState( 'main-leave' );
+    });
+
+    mainBar.addEventListener('focusin', () => {
+      mainFocus = true;
+      applyHeaderState( 'main-focus' );
+    });
+
+    mainBar.addEventListener('focusout', () => {
+      setTimeout( () => {
+        const activeElement = document.activeElement;
+        if ( activeElement && mainBar.contains( activeElement ) ) {
+          return;
+        }
+        mainFocus = false;
+        applyHeaderState( 'main-blur' );
+      }, 10 );
+    });
     window.addEventListener('scroll', onScroll, { passive: true } );
   }
 
