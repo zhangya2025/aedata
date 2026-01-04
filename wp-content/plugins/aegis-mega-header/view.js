@@ -77,7 +77,7 @@
         header.classList.remove('is-top-hidden');
       }
 
-      if ( delta < -6 ) {
+      if ( delta < -2 ) {
         header.classList.remove('is-header-hidden');
         header.classList.add('is-top-hidden');
       }
