@@ -47,145 +47,6 @@
   display: none;
 }
 
-body.home .aegis-header__main,
-body.home .aegis-header__main-inner,
-body.front-page .aegis-header__main,
-body.front-page .aegis-header__main-inner,
-body.page-id-49966 .aegis-header__main,
-body.page-id-49966 .aegis-header__main-inner {
-  background: transparent !important;
-  border-bottom: 0 !important;
-  box-shadow: none !important;
-}
-
-body.home .aegis-header__nav-item,
-body.home .aegis-header__nav-item span,
-body.home .aegis-header__brand-link,
-body.home .aegis-header__tools,
-body.front-page .aegis-header__nav-item,
-body.front-page .aegis-header__nav-item span,
-body.front-page .aegis-header__brand-link,
-body.front-page .aegis-header__tools,
-body.page-id-49966 .aegis-header__nav-item,
-body.page-id-49966 .aegis-header__nav-item span,
-body.page-id-49966 .aegis-header__brand-link,
-body.page-id-49966 .aegis-header__tools {
-  color: #ffffff !important;
-}
-
-body.home .aegis-header__search input[type="search"],
-body.front-page .aegis-header__search input[type="search"],
-body.page-id-49966 .aegis-header__search input[type="search"] {
-  background: transparent !important;
-  border-color: rgba(255, 255, 255, 0.6) !important;
-  color: #ffffff !important;
-}
-
-body.home .aegis-header__search input[type="search"]::placeholder,
-body.front-page .aegis-header__search input[type="search"]::placeholder,
-body.page-id-49966 .aegis-header__search input[type="search"]::placeholder {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
-body.home .aegis-header__search-btn,
-body.home .aegis-header__cart,
-body.front-page .aegis-header__search-btn,
-body.front-page .aegis-header__cart,
-body.page-id-49966 .aegis-header__search-btn,
-body.page-id-49966 .aegis-header__cart {
-  background: transparent !important;
-  border-color: rgba(255, 255, 255, 0.8) !important;
-  color: #ffffff !important;
-}
-
-body.home .aegis-header__main:hover,
-body.home .aegis-header__main:focus-within,
-body.home .aegis-mega-header.is-mega-open .aegis-header__main,
-body.front-page .aegis-header__main:hover,
-body.front-page .aegis-header__main:focus-within,
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__main,
-body.page-id-49966 .aegis-header__main:hover,
-body.page-id-49966 .aegis-header__main:focus-within,
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__main {
-  background: #ffffff !important;
-}
-
-body.home .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.home .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
-body.home .aegis-header__main:hover .aegis-header__brand-link,
-body.home .aegis-header__main:hover .aegis-header__tools,
-body.home .aegis-header__main:focus-within .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.home .aegis-header__main:focus-within .aegis-header__tools,
-body.home .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.home .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
-body.home .aegis-mega-header.is-mega-open .aegis-header__brand-link,
-body.home .aegis-mega-header.is-mega-open .aegis-header__tools,
-body.front-page .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.front-page .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
-body.front-page .aegis-header__main:hover .aegis-header__brand-link,
-body.front-page .aegis-header__main:hover .aegis-header__tools,
-body.front-page .aegis-header__main:focus-within .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.front-page .aegis-header__main:focus-within .aegis-header__tools,
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__brand-link,
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__tools,
-body.page-id-49966 .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.page-id-49966 .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
-body.page-id-49966 .aegis-header__main:hover .aegis-header__brand-link,
-body.page-id-49966 .aegis-header__main:hover .aegis-header__tools,
-body.page-id-49966 .aegis-header__main:focus-within .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.page-id-49966 .aegis-header__main:focus-within .aegis-header__tools,
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__brand-link,
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__tools {
-  color: #111111 !important;
-}
-
-.aegis-header__nav-item:hover,
-.aegis-header__nav-item:hover span,
-.aegis-header__nav-item.is-active,
-.aegis-header__nav-item.is-active span,
-.aegis-header__nav-item[aria-expanded="true"],
-.aegis-header__nav-item[aria-expanded="true"] span {
-  color: #ffffff !important;
-}
-
-body.home .aegis-header__main:hover .aegis-header__search input[type="search"],
-body.home .aegis-header__main:focus-within .aegis-header__search input[type="search"],
-body.home .aegis-mega-header.is-mega-open .aegis-header__search input[type="search"],
-body.front-page .aegis-header__main:hover .aegis-header__search input[type="search"],
-body.front-page .aegis-header__main:focus-within .aegis-header__search input[type="search"],
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__search input[type="search"],
-body.page-id-49966 .aegis-header__main:hover .aegis-header__search input[type="search"],
-body.page-id-49966 .aegis-header__main:focus-within .aegis-header__search input[type="search"],
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__search input[type="search"] {
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-  background: #ffffff !important;
-}
-
-body.home .aegis-header__main:hover .aegis-header__search-btn,
-body.home .aegis-header__main:focus-within .aegis-header__search-btn,
-body.home .aegis-mega-header.is-mega-open .aegis-header__search-btn,
-body.front-page .aegis-header__main:hover .aegis-header__search-btn,
-body.front-page .aegis-header__main:focus-within .aegis-header__search-btn,
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__search-btn,
-body.page-id-49966 .aegis-header__main:hover .aegis-header__search-btn,
-body.page-id-49966 .aegis-header__main:focus-within .aegis-header__search-btn,
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__search-btn {
-  border-color: #1f2937 !important;
-  background: #1f2937 !important;
-  color: #ffffff !important;
-}
-
-.aegis-header__main:hover .aegis-header__nav-item:hover,
-.aegis-header__main:focus-within .aegis-header__nav-item:hover,
-.aegis-mega-header.is-mega-open .aegis-header__nav-item:hover {
-  background: #111111 !important;
-  color: #ffffff !important;
-}
 
 .aegis-icon {
   width: 22px;
@@ -400,22 +261,15 @@ body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__search-btn {
 }
 
 .aegis-mega-header.is-home.mode-solid .aegis-header__nav-item,
+.aegis-mega-header.is-home.mode-solid .aegis-header__nav-item span,
 .aegis-mega-header.is-home.mode-solid .aegis-header__tools,
 .aegis-mega-header.is-home.mode-solid .aegis-header__brand-link,
 .aegis-mega-header.is-home.is-mega-open .aegis-header__nav-item,
 .aegis-mega-header.is-home.is-mega-open .aegis-header__tools,
-.aegis-mega-header.is-home.is-mega-open .aegis-header__brand-link,
-.aegis-header__main:hover .aegis-header__nav-item,
-.aegis-header__main:hover .aegis-header__tools,
-.aegis-header__main:hover .aegis-header__brand-link,
-.aegis-header__main:focus-within .aegis-header__nav-item,
-.aegis-header__main:focus-within .aegis-header__tools,
-.aegis-header__main:focus-within .aegis-header__brand-link {
-  color: #111111;
+.aegis-mega-header.is-home.is-mega-open .aegis-header__brand-link {
+  color: #111111 !important;
 }
 
-.aegis-header__main:hover .aegis-header__search input[type="search"],
-.aegis-header__main:focus-within .aegis-header__search input[type="search"],
 .aegis-mega-header.is-home.mode-solid .aegis-header__search input[type="search"],
 .aegis-mega-header.is-home.is-mega-open .aegis-header__search input[type="search"] {
   border-color: #cbd5e1;
@@ -423,8 +277,6 @@ body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__search-btn {
   background: #ffffff;
 }
 
-.aegis-header__main:hover .aegis-header__search-btn,
-.aegis-header__main:focus-within .aegis-header__search-btn,
 .aegis-mega-header.is-home.mode-solid .aegis-header__search-btn,
 .aegis-mega-header.is-home.is-mega-open .aegis-header__search-btn {
   border-color: #1f2937;
@@ -940,3 +792,4 @@ body.front-page .aegis-mega-header,
 body.page-id-49966 .aegis-mega-header {
   border-bottom-color: transparent !important;
 }
+
