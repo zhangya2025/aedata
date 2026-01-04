@@ -899,3 +899,24 @@ body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__search-btn {
     min-width: 120px;
   }
 }
+
+/* Home overlay: header root must be transparent so MAIN reveals hero behind */
+body.home .aegis-mega-header,
+body.front-page .aegis-mega-header,
+body.page-id-49966 .aegis-mega-header {
+  background: transparent !important;
+}
+
+/* Optional: restore white background when mega menu is open for readability */
+body.home .aegis-mega-header.is-mega-open,
+body.front-page .aegis-mega-header.is-mega-open,
+body.page-id-49966 .aegis-mega-header.is-mega-open {
+  background: #ffffff !important;
+}
+
+/* Prevent border-bottom from showing a white stripe when overlay is active */
+body.home .aegis-mega-header,
+body.front-page .aegis-mega-header,
+body.page-id-49966 .aegis-mega-header {
+  border-bottom-color: transparent !important;
+}
