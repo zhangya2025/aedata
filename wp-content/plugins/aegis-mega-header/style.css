@@ -99,37 +99,46 @@ body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__main {
   background: #ffffff !important;
 }
 
-body.home .aegis-header__main:hover .aegis-header__nav-item,
-body.home .aegis-header__main:hover .aegis-header__nav-item span,
+body.home .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
+body.home .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
 body.home .aegis-header__main:hover .aegis-header__brand-link,
 body.home .aegis-header__main:hover .aegis-header__tools,
-body.home .aegis-header__main:focus-within .aegis-header__nav-item,
+body.home .aegis-header__main:focus-within .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
 body.home .aegis-header__main:focus-within .aegis-header__tools,
-body.home .aegis-mega-header.is-mega-open .aegis-header__nav-item,
-body.home .aegis-mega-header.is-mega-open .aegis-header__nav-item span,
+body.home .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
+body.home .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
 body.home .aegis-mega-header.is-mega-open .aegis-header__brand-link,
 body.home .aegis-mega-header.is-mega-open .aegis-header__tools,
-body.front-page .aegis-header__main:hover .aegis-header__nav-item,
-body.front-page .aegis-header__main:hover .aegis-header__nav-item span,
+body.front-page .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
+body.front-page .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
 body.front-page .aegis-header__main:hover .aegis-header__brand-link,
 body.front-page .aegis-header__main:hover .aegis-header__tools,
-body.front-page .aegis-header__main:focus-within .aegis-header__nav-item,
+body.front-page .aegis-header__main:focus-within .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
 body.front-page .aegis-header__main:focus-within .aegis-header__tools,
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__nav-item,
-body.front-page .aegis-mega-header.is-mega-open .aegis-header__nav-item span,
+body.front-page .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
+body.front-page .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
 body.front-page .aegis-mega-header.is-mega-open .aegis-header__brand-link,
 body.front-page .aegis-mega-header.is-mega-open .aegis-header__tools,
-body.page-id-49966 .aegis-header__main:hover .aegis-header__nav-item,
-body.page-id-49966 .aegis-header__main:hover .aegis-header__nav-item span,
+body.page-id-49966 .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
+body.page-id-49966 .aegis-header__main:hover .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
 body.page-id-49966 .aegis-header__main:hover .aegis-header__brand-link,
 body.page-id-49966 .aegis-header__main:hover .aegis-header__tools,
-body.page-id-49966 .aegis-header__main:focus-within .aegis-header__nav-item,
+body.page-id-49966 .aegis-header__main:focus-within .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
 body.page-id-49966 .aegis-header__main:focus-within .aegis-header__tools,
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__nav-item,
-body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__nav-item span,
+body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]),
+body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__nav-item:not(:hover):not(.is-active):not([aria-expanded="true"]) span,
 body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__brand-link,
 body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__tools {
   color: #111111 !important;
+}
+
+.aegis-header__nav-item:hover,
+.aegis-header__nav-item:hover span,
+.aegis-header__nav-item.is-active,
+.aegis-header__nav-item.is-active span,
+.aegis-header__nav-item[aria-expanded="true"],
+.aegis-header__nav-item[aria-expanded="true"] span {
+  color: #ffffff !important;
 }
 
 body.home .aegis-header__main:hover .aegis-header__search input[type="search"],
@@ -898,4 +907,25 @@ body.page-id-49966 .aegis-mega-header.is-mega-open .aegis-header__search-btn {
   .aegis-header__search input[type="search"] {
     min-width: 120px;
   }
+}
+
+/* Home overlay: header root must be transparent so MAIN reveals hero behind */
+body.home .aegis-mega-header,
+body.front-page .aegis-mega-header,
+body.page-id-49966 .aegis-mega-header {
+  background: transparent !important;
+}
+
+/* Optional: restore white background when mega menu is open for readability */
+body.home .aegis-mega-header.is-mega-open,
+body.front-page .aegis-mega-header.is-mega-open,
+body.page-id-49966 .aegis-mega-header.is-mega-open {
+  background: #ffffff !important;
+}
+
+/* Prevent border-bottom from showing a white stripe when overlay is active */
+body.home .aegis-mega-header,
+body.front-page .aegis-mega-header,
+body.page-id-49966 .aegis-mega-header {
+  border-bottom-color: transparent !important;
 }
