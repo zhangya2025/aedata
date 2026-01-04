@@ -297,6 +297,127 @@ mainBar.addEventListener('focusout', exit);
 }
 
 function applySurface( scrollY ) {
+if ( ! overlayEnabled ) {
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-hidden');
+return;
+}
+
+const nearTop = scrollY <= topThreshold;
+
+if ( megaOpen || hoverSolid ) {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+return;
+}
+
+if ( nearTop ) {
+header.classList.add('is-main-transparent');
+header.classList.remove('is-main-solid');
+} else {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+}
+}
+
+function applyHidden( scrollY, delta ) {
+if ( ! overlayEnabled || megaOpen || hoverSolid ) {
+header.classList.remove('is-main-hidden');
+return;
+}
+
+if ( delta > 6 && scrollY > 80 ) {
+header.classList.add('is-main-hidden');
+} else if ( delta < -6 ) {
+header.classList.remove('is-main-hidden');
+}
+}
+
+function logOverlay( scrollY, delta ) {
+if ( ! debugOverlay ) {
+return;
+}
+
+console.log( 'AegisHeader overlay', {
+y: scrollY,
+delta,
+hidden: header.classList.contains('is-main-hidden'),
+transparent: header.classList.contains('is-main-transparent'),
+solid: header.classList.contains('is-main-solid'),
+megaOpen,
+hoverSolid,
+overlayEnabled,
+} );
+}
+
+function handleScroll() {
+const currentY = getY();
+const delta = currentY - lastScrollY;
+
+applySurface( currentY );
+applyHidden( currentY, delta );
+logOverlay( currentY, delta );
+
+lastScrollY = currentY;
+ticking = false;
+}
+
+function onScroll() {
+if ( ! overlayEnabled ) {
+lastScrollY = getY();
+return;
+}
+
+if ( ! ticking ) {
+ticking = true;
+requestAnimationFrame( handleScroll );
+}
+}
+
+function syncOverlayEnabled() {
+overlayEnabled = isHome && window.innerWidth > 960;
+
+if ( ! overlayEnabled ) {
+header.classList.remove('is-main-hidden');
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-solid');
+lastScrollY = getY();
+return;
+}
+
+lastScrollY = getY();
+applySurface( getY() );
+applyHidden( getY(), 0 );
+}
+
+function bindHoverSolid() {
+if ( ! mainBar ) {
+return;
+}
+
+const enter = () => {
+if ( ! overlayEnabled ) {
+return;
+}
+hoverSolid = true;
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-hidden');
+};
+
+const exit = () => {
+hoverSolid = false;
+applySurface( getY() );
+applyHidden( getY(), 0 );
+};
+
+mainBar.addEventListener('mouseenter', enter);
+mainBar.addEventListener('mouseleave', exit);
+mainBar.addEventListener('focusin', enter);
+mainBar.addEventListener('focusout', exit);
+}
+
+function applySurface( scrollY ) {
 if ( ! isHome ) {
 return;
 }

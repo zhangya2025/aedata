@@ -261,9 +261,10 @@
   color: #ffffff;
 }
 
+/* Home overlay: root + main must be fully transparent when at the top */
 .aegis-mega-header.is-main-transparent {
-  background: transparent;
-  border-bottom-color: transparent;
+  background: transparent !important;
+  border-bottom-color: transparent !important;
 }
 
 .aegis-mega-header.is-main-transparent .aegis-header__main,
@@ -277,8 +278,8 @@
 
 .aegis-mega-header.is-main-transparent .aegis-header__nav-item,
 .aegis-mega-header.is-main-transparent .aegis-header__nav-item span,
-.aegis-mega-header.is-main-transparent .aegis-header__tools,
-.aegis-mega-header.is-main-transparent .aegis-header__brand-link {
+.aegis-mega-header.is-main-transparent .aegis-header__brand-link,
+.aegis-mega-header.is-main-transparent .aegis-header__tools {
   color: #ffffff !important;
 }
 
@@ -302,6 +303,18 @@
   background: transparent !important;
   border-color: rgba(255, 255, 255, 0.35) !important;
   color: #ffffff !important;
+}
+
+.aegis-mega-header.is-main-solid {
+  background: #ffffff !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.aegis-mega-header.is-main-solid .aegis-header__nav-item,
+.aegis-mega-header.is-main-solid .aegis-header__nav-item span,
+.aegis-mega-header.is-main-solid .aegis-header__brand-link,
+.aegis-mega-header.is-main-solid .aegis-header__tools {
+  color: #111111 !important;
 }
 
 .aegis-mega-header.is-main-transparent.is-main-solid .aegis-header__main,
