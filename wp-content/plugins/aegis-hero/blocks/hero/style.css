@@ -7,13 +7,20 @@
     width: 100%;
 }
 
-.aegis-hero.alignfull {
+.wp-block-aegis-hero {
+    overflow: hidden;
+    width: 100%;
+}
+
+.aegis-hero.alignfull,
+.wp-block-aegis-hero.alignfull {
     width: 100vw;
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
 }
 
-.aegis-hero.alignwide {
+.aegis-hero.alignwide,
+.wp-block-aegis-hero.alignwide {
     max-width: var(--wp--style--global--wide-size, 1100px);
     margin: 0 auto;
 }
