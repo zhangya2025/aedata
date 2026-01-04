@@ -18,6 +18,7 @@
     }
 
     let activeKey = null;
+    let mainActive = false;
     let mobilePanelsData = {};
     let ticking = false;
     const scroller = document.scrollingElement || document.documentElement;
