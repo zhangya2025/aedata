@@ -12,6 +12,7 @@
     const mobileSubView = header.querySelector('.aegis-mobile-view--sub');
     const mobileSubtitle = header.querySelector('[data-subtitle]');
     const mobileSubcontent = header.querySelector('[data-subcontent]');
+    const sentinelId = 'aegis-hero-sentinel';
 
     if ( ! header || ! mainBar ) {
       return;
@@ -23,15 +24,16 @@
     const scroller = document.scrollingElement || document.documentElement;
     const getY = () => ( scroller ? scroller.scrollTop || 0 : window.scrollY );
     let lastScrollY = getY();
-    let hoverSolid = false;
+    let hoverMain = false;
     let megaOpen = false;
-    const topThreshold = 10;
+    let heroInView = false;
     const isHome =
       document.body.classList.contains('home') ||
       document.body.classList.contains('front-page') ||
       document.body.classList.contains('page-id-49966');
     let overlayEnabled = isHome && window.innerWidth > 960;
     const debugOverlay = new URLSearchParams( window.location.search ).get('aegisHeaderDebug') === '1';
+    let heroObserver = null;
 
     if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
       try {
@@ -67,17 +69,14 @@
       header.classList.remove('mode-overlay', 'mode-solid');
     }
 
-    function applyMode( y ) {
-      if ( y <= topThreshold && ! hoverSolid && ! megaOpen ) {
-        setModeOverlay();
-      } else {
-        setModeSolid();
-      }
-    }
-
     function clearHomeStates() {
-      header.classList.remove('is-header-hidden', 'is-top-hidden');
-      clearModes();
+      header.classList.remove(
+        'is-home',
+        'mode-overlay',
+        'mode-solid',
+        'is-header-hidden',
+        'is-top-hidden'
+      );
     }
 
     function applyState( deltaOverride ) {
@@ -90,6 +89,8 @@
         return;
       }
 
+      header.classList.add('is-home');
+
       if ( megaOpen ) {
         header.classList.remove('is-header-hidden', 'is-top-hidden');
         setModeSolid();
@@ -100,24 +101,87 @@
       if ( delta > 6 && currentY > 80 ) {
         header.classList.add('is-header-hidden');
         header.classList.remove('is-top-hidden');
-        clearModes();
       } else if ( delta < -6 ) {
         header.classList.remove('is-header-hidden');
         header.classList.add('is-top-hidden');
-        if ( currentY <= topThreshold ) {
-          header.classList.remove('is-top-hidden');
-        }
-        applyMode( currentY );
+      }
+
+      if ( heroInView ) {
+        header.classList.remove('is-top-hidden');
+      }
+
+      if ( hoverMain ) {
+        setModeSolid();
+      } else if ( heroInView ) {
+        setModeOverlay();
       } else {
-        if ( currentY <= topThreshold ) {
-          header.classList.remove('is-top-hidden');
-        }
-        if ( ! header.classList.contains('is-header-hidden') ) {
-          applyMode( currentY );
-        }
+        setModeSolid();
       }
 
       lastScrollY = currentY;
+
+      if ( debugOverlay ) {
+        console.log('AegisHeader', {
+          heroInView,
+          y: currentY,
+          delta,
+          classes: header.className,
+        });
+      }
+    }
+
+    function isSentinelVisible( node ) {
+      if ( ! node ) {
+        return false;
+      }
+      const rect = node.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0;
+    }
+
+    function observeHero() {
+      if ( heroObserver ) {
+        heroObserver.disconnect();
+      }
+
+      heroInView = false;
+
+      if ( ! overlayEnabled ) {
+        return;
+      }
+
+      const hero = document.querySelector('.aegis-hero');
+      if ( ! hero ) {
+        applyState( 0 );
+        return;
+      }
+
+      let sentinel = document.getElementById( sentinelId );
+      if ( ! sentinel ) {
+        sentinel = document.createElement('div');
+        sentinel.id = sentinelId;
+        sentinel.className = 'aegis-hero-sentinel';
+      }
+
+      if ( hero.parentNode && hero.parentNode !== sentinel.parentNode ) {
+        hero.parentNode.insertBefore( sentinel, hero );
+      }
+
+      heroInView = isSentinelVisible( sentinel );
+
+      heroObserver = new IntersectionObserver(
+        ( entries ) => {
+          const entry = entries && entries[0];
+          heroInView = !! ( entry && entry.isIntersecting );
+          applyState( 0 );
+          if ( debugOverlay ) {
+            console.log('AegisHeader IO', { heroInView, classes: header.className });
+          }
+        },
+        { root: null, threshold: 0, rootMargin: '-60px 0px 0px 0px' }
+      );
+
+      heroObserver.observe( sentinel );
+      applyState( 0 );
     }
 
     function closePanels() {
@@ -237,18 +301,6 @@
 
     function handleScroll() {
       applyState();
-      if ( debugOverlay ) {
-        console.log( 'AegisHeader overlay', {
-          y: lastScrollY,
-          hidden: header.classList.contains('is-header-hidden'),
-          topHidden: header.classList.contains('is-top-hidden'),
-          overlay: header.classList.contains('mode-overlay'),
-          solid: header.classList.contains('mode-solid'),
-          megaOpen,
-          hoverSolid,
-          overlayEnabled,
-        } );
-      }
       ticking = false;
     }
 
@@ -267,6 +319,10 @@
     function syncOverlayEnabled() {
       overlayEnabled = isHome && window.innerWidth > 960;
 
+      if ( heroObserver ) {
+        heroObserver.disconnect();
+      }
+
       if ( ! overlayEnabled ) {
         clearHomeStates();
         lastScrollY = getY();
@@ -274,10 +330,10 @@
       }
 
       lastScrollY = getY();
-      applyState( 0 );
+      observeHero();
     }
 
-    function bindHoverSolid() {
+    function bindHoverMain() {
       if ( ! mainBar ) {
         return;
       }
@@ -286,13 +342,12 @@
         if ( ! overlayEnabled ) {
           return;
         }
-        hoverSolid = true;
-        header.classList.remove('is-header-hidden');
-        setModeSolid();
+        hoverMain = true;
+        applyState( 0 );
       };
 
       const exit = () => {
-        hoverSolid = false;
+        hoverMain = false;
         applyState( 0 );
       };
 
@@ -469,7 +524,7 @@
     }
 
     bindMobileNav();
-    bindHoverSolid();
+    bindHoverMain();
     syncOverlayEnabled();
     applyState( 0 );
     window.addEventListener('scroll', onScroll, { passive: true } );
