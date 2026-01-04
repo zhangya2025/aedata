@@ -15,11 +15,26 @@ const mobileSubcontent = header.querySelector('[data-subcontent]');
 let activeKey = null;
 let mobilePanelsData = {};
 let ticking = false;
-let lastScrollY = window.scrollY;
+const scroller = document.scrollingElement || document.documentElement;
+const getY = () => ( scroller ? scroller.scrollTop || 0 : window.scrollY );
+let lastScrollY = getY();
 let hoverSolid = false;
 let megaOpen = false;
 const topThreshold = 10;
-const isHome = document.body.classList.contains('home') || document.body.classList.contains('front-page');
+const isHome =
+document.body.classList.contains('home') ||
+document.body.classList.contains('front-page') ||
+document.body.classList.contains('page-id-49966');
+let overlayEnabled = isHome && window.innerWidth > 960;
+const debugOverlay = new URLSearchParams( window.location.search ).get('aegisHeaderDebug') === '1';
+
+if ( ! header || ! mainBar ) {
+return;
+}
+
+if ( ! isHome ) {
+header.classList.remove('is-main-transparent', 'is-main-solid', 'is-main-hidden');
+}
 
 if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
 try {
@@ -56,8 +71,8 @@ panelShell.classList.remove('is-open');
 header.classList.remove('is-mega-open');
 megaOpen = false;
 activeKey = null;
-applySurface( window.scrollY );
-applyHidden( window.scrollY, lastScrollY );
+applySurface( getY() );
+applyHidden( getY(), 0 );
 }
 
 function openPanel( key, panelId, trigger ) {
@@ -153,9 +168,133 @@ closePanels();
 
 document.addEventListener('keydown', ( event ) => {
 if ( event.key === 'Escape' && activeKey ) {
+event.preventDefault();
 closePanels();
+header.classList.remove('is-main-hidden');
+applySurface( getY() );
 }
 } );
+
+function applySurface( scrollY ) {
+if ( ! overlayEnabled ) {
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-hidden');
+return;
+}
+
+const nearTop = scrollY <= topThreshold;
+
+if ( megaOpen || hoverSolid ) {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+return;
+}
+
+if ( nearTop ) {
+header.classList.add('is-main-transparent');
+header.classList.remove('is-main-solid');
+} else {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+}
+}
+
+function applyHidden( scrollY, delta ) {
+if ( ! overlayEnabled || megaOpen || hoverSolid ) {
+header.classList.remove('is-main-hidden');
+return;
+}
+
+if ( delta > 6 && scrollY > 80 ) {
+header.classList.add('is-main-hidden');
+} else if ( delta < -6 ) {
+header.classList.remove('is-main-hidden');
+}
+}
+
+function logOverlay( scrollY, delta ) {
+if ( ! debugOverlay ) {
+return;
+}
+
+console.log( 'AegisHeader overlay', {
+y: scrollY,
+delta,
+hidden: header.classList.contains('is-main-hidden'),
+transparent: header.classList.contains('is-main-transparent'),
+solid: header.classList.contains('is-main-solid'),
+megaOpen,
+hoverSolid,
+overlayEnabled,
+} );
+}
+
+function handleScroll() {
+const currentY = getY();
+const delta = currentY - lastScrollY;
+
+applySurface( currentY );
+applyHidden( currentY, delta );
+logOverlay( currentY, delta );
+
+lastScrollY = currentY;
+ticking = false;
+}
+
+function onScroll() {
+if ( ! overlayEnabled ) {
+lastScrollY = getY();
+return;
+}
+
+if ( ! ticking ) {
+ticking = true;
+requestAnimationFrame( handleScroll );
+}
+}
+
+function syncOverlayEnabled() {
+overlayEnabled = isHome && window.innerWidth > 960;
+
+if ( ! overlayEnabled ) {
+header.classList.remove('is-main-hidden');
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-solid');
+lastScrollY = getY();
+return;
+}
+
+lastScrollY = getY();
+applySurface( getY() );
+applyHidden( getY(), 0 );
+}
+
+function bindHoverSolid() {
+if ( ! mainBar ) {
+return;
+}
+
+const enter = () => {
+if ( ! overlayEnabled ) {
+return;
+}
+hoverSolid = true;
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-hidden');
+};
+
+const exit = () => {
+hoverSolid = false;
+applySurface( getY() );
+applyHidden( getY(), 0 );
+};
+
+mainBar.addEventListener('mouseenter', enter);
+mainBar.addEventListener('mouseleave', exit);
+mainBar.addEventListener('focusin', enter);
+mainBar.addEventListener('focusout', exit);
+}
 
 function applySurface( scrollY ) {
 if ( ! isHome ) {
@@ -437,12 +576,14 @@ window.addEventListener('resize', () => {
 if ( window.innerWidth > 960 ) {
 closeMobileDrawer();
 }
+syncOverlayEnabled();
 } );
 }
 
 bindMobileNav();
 bindHoverSolid();
-applySurface( window.scrollY );
+syncOverlayEnabled();
+applySurface( getY() );
 window.addEventListener('scroll', onScroll, { passive: true } );
 }
 
