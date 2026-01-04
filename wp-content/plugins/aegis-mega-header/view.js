@@ -12,7 +12,6 @@
     const mobileSubView = header.querySelector('.aegis-mobile-view--sub');
     const mobileSubtitle = header.querySelector('[data-subtitle]');
     const mobileSubcontent = header.querySelector('[data-subcontent]');
-    const sentinelId = 'aegis-hero-sentinel';
 
     if ( ! header || ! mainBar ) {
       return;
@@ -24,16 +23,12 @@
     const scroller = document.scrollingElement || document.documentElement;
     const getY = () => ( scroller ? scroller.scrollTop || 0 : window.scrollY );
     let lastScrollY = getY();
-    let hoverMain = false;
     let megaOpen = false;
-    let heroInView = false;
     const isHome =
       document.body.classList.contains('home') ||
       document.body.classList.contains('front-page') ||
       document.body.classList.contains('page-id-49966');
-    let overlayEnabled = isHome && window.innerWidth > 960;
-    const debugOverlay = new URLSearchParams( window.location.search ).get('aegisHeaderDebug') === '1';
-    let heroObserver = null;
+    let scrollBehaviorEnabled = isHome && window.innerWidth > 960;
 
     if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
       try {
@@ -55,36 +50,16 @@
       return !! panel;
     }
 
-    function setModeOverlay() {
-      header.classList.add('mode-overlay');
-      header.classList.remove('mode-solid');
+    function clearScrollStates() {
+      header.classList.remove('is-home', 'is-header-hidden', 'is-top-hidden');
     }
 
-    function setModeSolid() {
-      header.classList.add('mode-solid');
-      header.classList.remove('mode-overlay');
-    }
-
-    function clearModes() {
-      header.classList.remove('mode-overlay', 'mode-solid');
-    }
-
-    function clearHomeStates() {
-      header.classList.remove(
-        'is-home',
-        'mode-overlay',
-        'mode-solid',
-        'is-header-hidden',
-        'is-top-hidden'
-      );
-    }
-
-    function applyState( deltaOverride ) {
+    function applyScrollState( deltaOverride ) {
       const currentY = getY();
       const delta = typeof deltaOverride === 'number' ? deltaOverride : currentY - lastScrollY;
 
-      if ( ! overlayEnabled ) {
-        clearHomeStates();
+      if ( ! scrollBehaviorEnabled ) {
+        clearScrollStates();
         lastScrollY = currentY;
         return;
       }
@@ -93,7 +68,6 @@
 
       if ( megaOpen ) {
         header.classList.remove('is-header-hidden', 'is-top-hidden');
-        setModeSolid();
         lastScrollY = currentY;
         return;
       }
@@ -101,87 +75,18 @@
       if ( delta > 6 && currentY > 80 ) {
         header.classList.add('is-header-hidden');
         header.classList.remove('is-top-hidden');
-      } else if ( delta < -6 ) {
+      }
+
+      if ( delta < -6 ) {
         header.classList.remove('is-header-hidden');
         header.classList.add('is-top-hidden');
       }
 
-      if ( heroInView ) {
+      if ( currentY <= 10 ) {
         header.classList.remove('is-top-hidden');
       }
 
-      if ( hoverMain ) {
-        setModeSolid();
-      } else if ( heroInView ) {
-        setModeOverlay();
-      } else {
-        setModeSolid();
-      }
-
       lastScrollY = currentY;
-
-      if ( debugOverlay ) {
-        console.log('AegisHeader', {
-          heroInView,
-          y: currentY,
-          delta,
-          classes: header.className,
-        });
-      }
-    }
-
-    function isSentinelVisible( node ) {
-      if ( ! node ) {
-        return false;
-      }
-      const rect = node.getBoundingClientRect();
-      return rect.top < window.innerHeight && rect.bottom > 0;
-    }
-
-    function observeHero() {
-      if ( heroObserver ) {
-        heroObserver.disconnect();
-      }
-
-      heroInView = false;
-
-      if ( ! overlayEnabled ) {
-        return;
-      }
-
-      const hero = document.querySelector('.aegis-hero');
-      if ( ! hero ) {
-        applyState( 0 );
-        return;
-      }
-
-      let sentinel = document.getElementById( sentinelId );
-      if ( ! sentinel ) {
-        sentinel = document.createElement('div');
-        sentinel.id = sentinelId;
-        sentinel.className = 'aegis-hero-sentinel';
-      }
-
-      if ( hero.parentNode && hero.parentNode !== sentinel.parentNode ) {
-        hero.parentNode.insertBefore( sentinel, hero );
-      }
-
-      heroInView = isSentinelVisible( sentinel );
-
-      heroObserver = new IntersectionObserver(
-        ( entries ) => {
-          const entry = entries && entries[0];
-          heroInView = !! ( entry && entry.isIntersecting );
-          applyState( 0 );
-          if ( debugOverlay ) {
-            console.log('AegisHeader IO', { heroInView, classes: header.className });
-          }
-        },
-        { root: null, threshold: 0, rootMargin: '-60px 0px 0px 0px' }
-      );
-
-      heroObserver.observe( sentinel );
-      applyState( 0 );
     }
 
     function closePanels() {
@@ -199,7 +104,7 @@
       header.classList.remove('is-mega-open');
       megaOpen = false;
       activeKey = null;
-      applyState( 0 );
+      applyScrollState( 0 );
     }
 
     function openPanel( key, panelId, trigger ) {
@@ -228,7 +133,7 @@
       header.classList.add('is-mega-open');
       megaOpen = true;
       header.classList.remove('is-header-hidden', 'is-top-hidden');
-      setModeSolid();
+      applyScrollState( 0 );
       activeKey = key;
     }
 
@@ -300,12 +205,12 @@
     } );
 
     function handleScroll() {
-      applyState();
+      applyScrollState();
       ticking = false;
     }
 
     function onScroll() {
-      if ( ! overlayEnabled ) {
+      if ( ! scrollBehaviorEnabled ) {
         lastScrollY = getY();
         return;
       }
@@ -316,45 +221,10 @@
       }
     }
 
-    function syncOverlayEnabled() {
-      overlayEnabled = isHome && window.innerWidth > 960;
-
-      if ( heroObserver ) {
-        heroObserver.disconnect();
-      }
-
-      if ( ! overlayEnabled ) {
-        clearHomeStates();
-        lastScrollY = getY();
-        return;
-      }
-
+    function syncScrollBehaviorEnabled() {
+      scrollBehaviorEnabled = isHome && window.innerWidth > 960;
       lastScrollY = getY();
-      observeHero();
-    }
-
-    function bindHoverMain() {
-      if ( ! mainBar ) {
-        return;
-      }
-
-      const enter = () => {
-        if ( ! overlayEnabled ) {
-          return;
-        }
-        hoverMain = true;
-        applyState( 0 );
-      };
-
-      const exit = () => {
-        hoverMain = false;
-        applyState( 0 );
-      };
-
-      mainBar.addEventListener('mouseenter', enter);
-      mainBar.addEventListener('mouseleave', exit);
-      mainBar.addEventListener('focusin', enter);
-      mainBar.addEventListener('focusout', exit);
+      applyScrollState( 0 );
     }
 
     function lockBody( lock ) {
@@ -519,14 +389,13 @@
         if ( window.innerWidth > 960 ) {
           closeMobileDrawer();
         }
-        syncOverlayEnabled();
+        syncScrollBehaviorEnabled();
       } );
     }
 
     bindMobileNav();
-    bindHoverMain();
-    syncOverlayEnabled();
-    applyState( 0 );
+    syncScrollBehaviorEnabled();
+    applyScrollState( 0 );
     window.addEventListener('scroll', onScroll, { passive: true } );
   }
 
