@@ -296,6 +296,84 @@ mainBar.addEventListener('focusin', enter);
 mainBar.addEventListener('focusout', exit);
 }
 
+function applySurface( scrollY ) {
+if ( ! isHome ) {
+return;
+}
+
+const nearTop = scrollY <= topThreshold;
+
+if ( megaOpen || hoverSolid ) {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+return;
+}
+
+if ( nearTop ) {
+header.classList.add('is-main-transparent');
+header.classList.remove('is-main-solid');
+} else {
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+}
+}
+
+function applyHidden( scrollY, previousY ) {
+if ( ! isHome || megaOpen || hoverSolid ) {
+header.classList.remove('is-main-hidden');
+return;
+}
+
+if ( scrollY - previousY > 6 && scrollY > 60 ) {
+header.classList.add('is-main-hidden');
+} else if ( previousY - scrollY > 6 ) {
+header.classList.remove('is-main-hidden');
+}
+}
+
+function handleScroll() {
+const currentY = window.scrollY;
+applySurface( currentY );
+applyHidden( currentY, lastScrollY );
+lastScrollY = currentY;
+ticking = false;
+}
+
+function onScroll() {
+if ( ! isHome ) {
+return;
+}
+
+if ( ! ticking ) {
+ticking = true;
+requestAnimationFrame( handleScroll );
+}
+}
+
+function bindHoverSolid() {
+if ( ! isHome || ! mainBar ) {
+return;
+}
+
+const enter = () => {
+hoverSolid = true;
+header.classList.add('is-main-solid');
+header.classList.remove('is-main-transparent');
+header.classList.remove('is-main-hidden');
+};
+
+const exit = () => {
+hoverSolid = false;
+applySurface( window.scrollY );
+applyHidden( window.scrollY, lastScrollY );
+};
+
+mainBar.addEventListener('mouseenter', enter);
+mainBar.addEventListener('mouseleave', exit);
+mainBar.addEventListener('focusin', enter);
+mainBar.addEventListener('focusout', exit);
+}
+
 function lockBody( lock ) {
 if ( lock ) {
 document.body.classList.add('aegis-mobile-locked');
