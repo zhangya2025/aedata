@@ -15,6 +15,17 @@
   --aegis-mega-col-max: 180px;
 }
 
+@media (min-width: 961px) {
+  .aegis-mega-header.is-home {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 99999;
+  }
+}
+
 .aegis-mega-header a {
   color: inherit;
 }
