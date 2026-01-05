@@ -797,3 +797,9 @@
   }
 }
 
+
+/* Noto Sans SC font for aegis-mega-header */
+.aegis-mega-header,
+.aegis-mega-header * {
+  font-family: "Noto Sans SC", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
