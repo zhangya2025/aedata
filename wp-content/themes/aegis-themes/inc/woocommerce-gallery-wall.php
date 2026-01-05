@@ -45,38 +45,48 @@ function aegis_wc_gallery_wall_shortcode() {
         return '';
     }
 
-    ob_start();
-    ?>
-    <div class="aegis-gallery-wall" data-aegis-gallery="wall">
-        <?php foreach ( $image_ids as $index => $image_id ) :
-            $full_url = wp_get_attachment_image_url( $image_id, 'full' );
+    $items = array();
 
-            if ( ! $full_url ) {
-                continue;
-            }
+    foreach ( $image_ids as $index => $image_id ) {
+        $full_url = wp_get_attachment_image_url( $image_id, 'full' );
 
-            $classes   = array( 'aegis-gallery-wall__item' );
-            $classes[] = 0 === $index ? 'aegis-gallery-wall__item--primary' : 'aegis-gallery-wall__item--standard';
-            ?>
-            <a class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" href="<?php echo esc_url( $full_url ); ?>" target="_blank" rel="noopener">
-                <?php
-                echo wp_get_attachment_image(
-                    $image_id,
-                    'large',
-                    false,
-                    array(
-                        'loading'  => 0 === $index ? 'eager' : 'lazy',
-                        'decoding' => 'async',
-                        'sizes'    => '(min-width: 1024px) 50vw, 100vw',
-                    )
-                );
-                ?>
-            </a>
-        <?php endforeach; ?>
-    </div>
-    <?php
+        if ( ! $full_url ) {
+            continue;
+        }
 
-    return ob_get_clean();
+        $classes   = array( 'aegis-gallery-wall__item' );
+        $classes[] = 0 === $index ? 'aegis-gallery-wall__item--primary' : 'aegis-gallery-wall__item--standard';
+
+        $image_html = wp_get_attachment_image(
+            $image_id,
+            'large',
+            false,
+            array(
+                'loading'  => 0 === $index ? 'eager' : 'lazy',
+                'decoding' => 'async',
+                'sizes'    => '(min-width: 1024px) 50vw, 100vw',
+            )
+        );
+
+        if ( ! $image_html ) {
+            continue;
+        }
+
+        $image_html = preg_replace( '/[\r\n\t]+/', '', $image_html );
+
+        $items[] = sprintf(
+            '<a class="%1$s" href="%2$s" target="_blank" rel="noopener">%3$s</a>',
+            esc_attr( implode( ' ', $classes ) ),
+            esc_url( $full_url ),
+            $image_html
+        );
+    }
+
+    if ( empty( $items ) ) {
+        return '';
+    }
+
+    return '<div class="aegis-gallery-wall" data-aegis-gallery="wall">' . implode( '', $items ) . '</div>';
 }
 
 add_action( 'init', function () {
