@@ -461,7 +461,7 @@
             );
         },
         save: function () {
-            return null;
+            return el(InnerBlocks.Content, null);
         }
     });
 
