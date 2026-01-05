@@ -174,7 +174,8 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
     $promo_text_size = isset($attributes['promoTextFontSize']) && is_numeric($attributes['promoTextFontSize']) ? (int) $attributes['promoTextFontSize'] : 16;
     $promo_btn_text_color = isset($attributes['promoButtonTextColor']) ? (string) $attributes['promoButtonTextColor'] : '#ffffff';
     $promo_btn_bg_color = isset($attributes['promoButtonBgColor']) ? (string) $attributes['promoButtonBgColor'] : 'rgba(0,0,0,0.45)';
-    $should_render_promo = !empty($attributes['promoEnabled']) && aegis_hero_has_promo_content($content);
+    $promo_content = aegis_hero_resolve_promo_content($content, $block);
+    $should_render_promo = !empty($attributes['promoEnabled']) && aegis_hero_has_promo_content($promo_content);
 
     $promo_style = sprintf(
         ' --aegis-promo-offset-x:%dpx; --aegis-promo-offset-y:%dpx; --aegis-promo-offset-x-m:%dpx; --aegis-promo-offset-y-m:%dpx; --aegis-promo-maxw:%dpx; --aegis-promo-title-color:%s; --aegis-promo-title-size:%d; --aegis-promo-text-color:%s; --aegis-promo-text-size:%d; --aegis-promo-btn-color:%s; --aegis-promo-btn-bg:%s;',
@@ -209,9 +210,7 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
     if ($subtract_header) {
         $classes[] = 'aegis-hero--subtract-header';
     }
-    if ($should_render_promo) {
-        $classes[] = 'aegis-hero--promo-anchor-' . sanitize_title($promo_anchor);
-    }
+    $classes[] = 'aegis-hero--promo-anchor-' . sanitize_title($promo_anchor);
 
     ob_start();
     ?>
@@ -251,13 +250,32 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
         <?php if ($should_render_promo) : ?>
             <div class="aegis-hero__overlay">
                 <div class="aegis-hero__promo">
-                    <?php echo $content; ?>
+                    <?php echo $promo_content; ?>
                 </div>
             </div>
         <?php endif; ?>
     </div>
     <?php
     return ob_get_clean();
+}
+
+/**
+ * Resolve promo content for rendering.
+ */
+function aegis_hero_resolve_promo_content($content, $block)
+{
+    if (is_string($content) && trim($content) !== '') {
+        return $content;
+    }
+
+    if ($block instanceof WP_Block && is_array($block->inner_content)) {
+        $resolved = trim(implode('', $block->inner_content));
+        if ($resolved !== '') {
+            return $resolved;
+        }
+    }
+
+    return '';
 }
 
 /**
