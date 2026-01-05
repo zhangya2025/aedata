@@ -5,40 +5,28 @@
     <!-- wp:woocommerce/store-notices /-->
     <!-- wp:woocommerce/breadcrumbs /-->
 
-    <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--top"} -->
-    <div class="wp-block-group aegis-wc-module aegis-wc-module--top">
-        <!-- wp:columns {"className":"aegis-wc-top__columns"} -->
-        <div class="wp-block-columns aegis-wc-top__columns">
-            <!-- wp:column {"width":"55%"} -->
-            <div class="wp-block-column" style="flex-basis:55%">
-                <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--gallery aegis-wc-top__gallery"} -->
-                <div class="wp-block-group aegis-wc-module aegis-wc-module--gallery aegis-wc-top__gallery">
-                    <!-- wp:woocommerce/product-image-gallery /-->
-                </div>
-                <!-- /wp:group -->
-            </div>
-            <!-- /wp:column -->
-
-            <!-- wp:column {"width":"45%"} -->
-            <div class="wp-block-column" style="flex-basis:45%">
-                <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--buybox aegis-wc-top__buybox"} -->
-                <div class="wp-block-group aegis-wc-module aegis-wc-module--buybox aegis-wc-top__buybox">
-                    <!-- wp:group {"className":"aegis-wc-buybox__inner"} -->
-                    <div class="wp-block-group aegis-wc-buybox__inner">
-                        <!-- wp:post-title {"level":1,"__woocommerceNamespace":"woocommerce/product-query/product-title"} /-->
-                        <!-- wp:woocommerce/product-rating {"isDescendentOfSingleProductTemplate":true} /-->
-                        <!-- wp:woocommerce/product-price {"isDescendentOfSingleProductTemplate":true,"className":"is-style-default"} /-->
-                        <!-- wp:post-excerpt {"__woocommerceNamespace":"woocommerce/product-query/product-summary","excerptLength":80} /-->
-                        <!-- wp:woocommerce/add-to-cart-form /-->
-                        <!-- wp:woocommerce/product-meta /-->
-                    </div>
-                    <!-- /wp:group -->
-                </div>
-                <!-- /wp:group -->
-            </div>
-            <!-- /wp:column -->
+    <!-- wp:group {"className":"aegis-wc-pdp-top aegis-wc-pdp-container"} -->
+    <div class="wp-block-group aegis-wc-pdp-top aegis-wc-pdp-container" data-aegis-module="top">
+        <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--gallery aegis-wc-top__gallery"} -->
+        <div class="wp-block-group aegis-wc-module aegis-wc-module--gallery aegis-wc-top__gallery">
+            <!-- wp:woocommerce/product-image-gallery /-->
         </div>
-        <!-- /wp:columns -->
+        <!-- /wp:group -->
+
+        <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--buybox aegis-wc-top__buybox"} -->
+        <div class="wp-block-group aegis-wc-module aegis-wc-module--buybox aegis-wc-top__buybox">
+            <!-- wp:group {"className":"aegis-wc-buybox__inner"} -->
+            <div class="wp-block-group aegis-wc-buybox__inner">
+                <!-- wp:post-title {"level":1,"__woocommerceNamespace":"woocommerce/product-query/product-title"} /-->
+                <!-- wp:woocommerce/product-rating {"isDescendentOfSingleProductTemplate":true} /-->
+                <!-- wp:woocommerce/product-price {"isDescendentOfSingleProductTemplate":true,"className":"is-style-default"} /-->
+                <!-- wp:post-excerpt {"__woocommerceNamespace":"woocommerce/product-query/product-summary","excerptLength":80} /-->
+                <!-- wp:woocommerce/add-to-cart-form /-->
+                <!-- wp:woocommerce/product-meta /-->
+            </div>
+            <!-- /wp:group -->
+        </div>
+        <!-- /wp:group -->
     </div>
     <!-- /wp:group -->
 
