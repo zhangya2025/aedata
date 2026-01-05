@@ -85,6 +85,11 @@
     grid-row: auto;
 }
 
+.aegis-gallery-wall__item--primary {
+    grid-column: 1 / -1;
+    aspect-ratio: 16 / 10;
+}
+
 .aegis-gallery-wall__item img {
     width: 100%;
     height: 100%;
