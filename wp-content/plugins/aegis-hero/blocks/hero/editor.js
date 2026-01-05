@@ -1,7 +1,7 @@
 (function () {
     const { registerBlockType } = wp.blocks;
     const { InspectorControls, MediaUpload, MediaUploadCheck, useBlockProps, InnerBlocks } = wp.blockEditor || wp.editor;
-    const { PanelBody, ToggleControl, RangeControl, Button, TextControl, SelectControl, NumberControl } = wp.components;
+    const { PanelBody, ToggleControl, RangeControl, Button, TextControl, SelectControl, NumberControl, ColorPalette } = wp.components;
     const { Fragment, createElement: el } = wp.element;
     const { useSelect } = wp.data;
     const { __ } = wp.i18n;
@@ -31,6 +31,14 @@
         ['core/buttons', {}, [['core/button', { text: __('Learn more', 'aegis-hero') }]]]
     ];
     const NumberInput = NumberControl || TextControl;
+    const palette = [
+        { name: __('White', 'aegis-hero'), color: '#ffffff' },
+        { name: __('Black', 'aegis-hero'), color: '#111111' },
+        { name: __('Slate', 'aegis-hero'), color: '#1f2937' },
+        { name: __('Sky', 'aegis-hero'), color: '#5bc0de' },
+        { name: __('Sunrise', 'aegis-hero'), color: '#ff5c5c' },
+        { name: __('Sand', 'aegis-hero'), color: '#f2f2f2' },
+    ];
 
     const defaultSlide = () => ({
         type: 'image',
@@ -112,6 +120,12 @@
                 promoOffsetXMobile = 0,
                 promoOffsetYMobile = 0,
                 promoMaxWidth = 720,
+                promoTitleColor = '#ffffff',
+                promoTitleFontSize = 48,
+                promoTextColor = 'rgba(255,255,255,0.85)',
+                promoTextFontSize = 16,
+                promoButtonTextColor = '#ffffff',
+                promoButtonBgColor = 'rgba(0,0,0,0.45)',
             } = attributes;
 
             const alignClassName = attributes && attributes.align ? 'align' + attributes.align : '';
@@ -156,6 +170,12 @@
                 ? promoOffsetYValue
                 : (Number.isFinite(promoOffsetYMobile) ? promoOffsetYMobile : 0);
             const promoMaxWidthValue = Number.isFinite(promoMaxWidth) ? promoMaxWidth : 720;
+            const promoTitleSizeValue = Number.isFinite(promoTitleFontSize) ? promoTitleFontSize : 48;
+            const promoTextSizeValue = Number.isFinite(promoTextFontSize) ? promoTextFontSize : 16;
+            const promoTitleColorValue = promoTitleColor || '#ffffff';
+            const promoTextColorValue = promoTextColor || 'rgba(255,255,255,0.85)';
+            const promoButtonTextColorValue = promoButtonTextColor || '#ffffff';
+            const promoButtonBgColorValue = promoButtonBgColor || 'rgba(0,0,0,0.45)';
             const previewStyle = {
                 '--aegis-hero-h': (heightDesktop || 520) + 'px',
                 '--aegis-hero-h-m': (heightMobile || 320) + 'px',
@@ -167,6 +187,12 @@
                 '--aegis-promo-offset-x-m': promoOffsetXMobileValue + 'px',
                 '--aegis-promo-offset-y-m': promoOffsetYMobileValue + 'px',
                 '--aegis-promo-maxw': promoMaxWidthValue + 'px',
+                '--aegis-promo-title-color': promoTitleColorValue,
+                '--aegis-promo-title-size': promoTitleSizeValue,
+                '--aegis-promo-text-color': promoTextColorValue,
+                '--aegis-promo-text-size': promoTextSizeValue,
+                '--aegis-promo-btn-color': promoButtonTextColorValue,
+                '--aegis-promo-btn-bg': promoButtonBgColorValue,
                 minHeight: heightModeValue === 'fullscreen' ? '60vh' : '280px'
             };
 
@@ -259,6 +285,13 @@
                             onChange: (value) => setAttributes({ promoEnabled: value })
                         }),
                         promoEnabled && el(Fragment, {},
+                            el('p', { className: 'components-base-control__help' }, __('Select the parent Aegis Hero block (not an inner heading) to adjust overlay settings.', 'aegis-hero')),
+                            el(SelectControl, {
+                                label: __('Anchor', 'aegis-hero'),
+                                value: anchorValue,
+                                options: anchorOptions,
+                                onChange: (value) => setAttributes({ promoAnchor: value })
+                            }),
                             el('div', { className: 'aegis-hero-editor__anchor-grid' },
                                 anchorOptions.map((option) => el(Button, {
                                     key: option.value,
@@ -309,6 +342,44 @@
                                 value: promoMaxWidthValue,
                                 type: 'number',
                                 onChange: (value) => setAttributes({ promoMaxWidth: parseInt(value, 10) || 720 })
+                            }),
+                            el('hr', {}),
+                            el('p', { className: 'components-base-control__label' }, __('Title style', 'aegis-hero')),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoTitleColorValue,
+                                onChange: (value) => setAttributes({ promoTitleColor: value || '#ffffff' })
+                            }),
+                            el(RangeControl, {
+                                label: __('Title font size (px)', 'aegis-hero'),
+                                min: 18,
+                                max: 96,
+                                value: promoTitleSizeValue,
+                                onChange: (value) => setAttributes({ promoTitleFontSize: value })
+                            }),
+                            el('p', { className: 'components-base-control__label' }, __('Text style', 'aegis-hero')),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoTextColorValue,
+                                onChange: (value) => setAttributes({ promoTextColor: value || 'rgba(255,255,255,0.85)' })
+                            }),
+                            el(RangeControl, {
+                                label: __('Text font size (px)', 'aegis-hero'),
+                                min: 12,
+                                max: 48,
+                                value: promoTextSizeValue,
+                                onChange: (value) => setAttributes({ promoTextFontSize: value })
+                            }),
+                            el('p', { className: 'components-base-control__label' }, __('Button style', 'aegis-hero')),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoButtonTextColorValue,
+                                onChange: (value) => setAttributes({ promoButtonTextColor: value || '#ffffff' })
+                            }),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoButtonBgColorValue,
+                                onChange: (value) => setAttributes({ promoButtonBgColor: value || 'rgba(0,0,0,0.45)' })
                             })
                         )
                     )

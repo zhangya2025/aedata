@@ -83,13 +83,19 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
         'autoplay' => false,
         'intervalMs' => 6000,
         'promoEnabled' => true,
-        'promoAnchor' => 'bottom-left',
-        'promoOffsetX' => 40,
-        'promoOffsetY' => -40,
+        'promoAnchor' => 'center',
+        'promoOffsetX' => 0,
+        'promoOffsetY' => 0,
         'promoUseSameOnMobile' => true,
-        'promoOffsetXMobile' => 24,
-        'promoOffsetYMobile' => -24,
+        'promoOffsetXMobile' => 0,
+        'promoOffsetYMobile' => 0,
         'promoMaxWidth' => 720,
+        'promoTitleColor' => '#ffffff',
+        'promoTitleFontSize' => 48,
+        'promoTextColor' => 'rgba(255,255,255,0.85)',
+        'promoTextFontSize' => 16,
+        'promoButtonTextColor' => '#ffffff',
+        'promoButtonBgColor' => 'rgba(0,0,0,0.45)',
     ];
 
     $attributes = wp_parse_args($attributes, $defaults);
@@ -153,24 +159,36 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
     $promo_anchor = isset($attributes['promoAnchor']) && in_array($attributes['promoAnchor'], $allowed_anchors, true)
         ? $attributes['promoAnchor']
         : 'bottom-left';
-    $promo_offset_x = isset($attributes['promoOffsetX']) && is_numeric($attributes['promoOffsetX']) ? (int) $attributes['promoOffsetX'] : 40;
-    $promo_offset_y = isset($attributes['promoOffsetY']) && is_numeric($attributes['promoOffsetY']) ? (int) $attributes['promoOffsetY'] : -40;
+    $promo_offset_x = isset($attributes['promoOffsetX']) && is_numeric($attributes['promoOffsetX']) ? (int) $attributes['promoOffsetX'] : 0;
+    $promo_offset_y = isset($attributes['promoOffsetY']) && is_numeric($attributes['promoOffsetY']) ? (int) $attributes['promoOffsetY'] : 0;
     $promo_offset_x_m = !empty($attributes['promoUseSameOnMobile'])
         ? $promo_offset_x
-        : (isset($attributes['promoOffsetXMobile']) && is_numeric($attributes['promoOffsetXMobile']) ? (int) $attributes['promoOffsetXMobile'] : 24);
+        : (isset($attributes['promoOffsetXMobile']) && is_numeric($attributes['promoOffsetXMobile']) ? (int) $attributes['promoOffsetXMobile'] : 0);
     $promo_offset_y_m = !empty($attributes['promoUseSameOnMobile'])
         ? $promo_offset_y
-        : (isset($attributes['promoOffsetYMobile']) && is_numeric($attributes['promoOffsetYMobile']) ? (int) $attributes['promoOffsetYMobile'] : -24);
+        : (isset($attributes['promoOffsetYMobile']) && is_numeric($attributes['promoOffsetYMobile']) ? (int) $attributes['promoOffsetYMobile'] : 0);
     $promo_max_width = isset($attributes['promoMaxWidth']) && is_numeric($attributes['promoMaxWidth']) ? (int) $attributes['promoMaxWidth'] : 720;
+    $promo_title_color = isset($attributes['promoTitleColor']) ? (string) $attributes['promoTitleColor'] : '#ffffff';
+    $promo_title_size = isset($attributes['promoTitleFontSize']) && is_numeric($attributes['promoTitleFontSize']) ? (int) $attributes['promoTitleFontSize'] : 48;
+    $promo_text_color = isset($attributes['promoTextColor']) ? (string) $attributes['promoTextColor'] : 'rgba(255,255,255,0.85)';
+    $promo_text_size = isset($attributes['promoTextFontSize']) && is_numeric($attributes['promoTextFontSize']) ? (int) $attributes['promoTextFontSize'] : 16;
+    $promo_btn_text_color = isset($attributes['promoButtonTextColor']) ? (string) $attributes['promoButtonTextColor'] : '#ffffff';
+    $promo_btn_bg_color = isset($attributes['promoButtonBgColor']) ? (string) $attributes['promoButtonBgColor'] : 'rgba(0,0,0,0.45)';
     $should_render_promo = !empty($attributes['promoEnabled']) && aegis_hero_has_promo_content($content);
 
     $promo_style = sprintf(
-        ' --aegis-promo-offset-x:%dpx; --aegis-promo-offset-y:%dpx; --aegis-promo-offset-x-m:%dpx; --aegis-promo-offset-y-m:%dpx; --aegis-promo-maxw:%dpx;',
+        ' --aegis-promo-offset-x:%dpx; --aegis-promo-offset-y:%dpx; --aegis-promo-offset-x-m:%dpx; --aegis-promo-offset-y-m:%dpx; --aegis-promo-maxw:%dpx; --aegis-promo-title-color:%s; --aegis-promo-title-size:%d; --aegis-promo-text-color:%s; --aegis-promo-text-size:%d; --aegis-promo-btn-color:%s; --aegis-promo-btn-bg:%s;',
         $promo_offset_x,
         $promo_offset_y,
         $promo_offset_x_m,
         $promo_offset_y_m,
-        $promo_max_width
+        $promo_max_width,
+        esc_attr($promo_title_color),
+        $promo_title_size,
+        esc_attr($promo_text_color),
+        $promo_text_size,
+        esc_attr($promo_btn_text_color),
+        esc_attr($promo_btn_bg_color)
     );
 
     $align_class = '';

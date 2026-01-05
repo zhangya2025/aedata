@@ -162,6 +162,25 @@
     margin-bottom: 12px;
 }
 
+.aegis-hero__promo .wp-block-heading {
+    color: var(--aegis-promo-title-color, #fff);
+    font-size: calc(var(--aegis-promo-title-size, 48) * 1px);
+    line-height: 1.08;
+    margin: 0 0 12px;
+}
+
+.aegis-hero__promo .wp-block-paragraph {
+    color: var(--aegis-promo-text-color, rgba(255, 255, 255, 0.85));
+    font-size: calc(var(--aegis-promo-text-size, 16) * 1px);
+    margin: 0 0 14px;
+}
+
+.aegis-hero__promo .wp-block-button__link {
+    color: var(--aegis-promo-btn-color, #fff);
+    background: var(--aegis-promo-btn-bg, rgba(0, 0, 0, 0.45));
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
 .aegis-hero--promo-anchor-top .aegis-hero__overlay {
     top: 0;
     left: 50%;
