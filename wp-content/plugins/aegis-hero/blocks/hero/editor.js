@@ -1,7 +1,7 @@
 (function () {
     const { registerBlockType } = wp.blocks;
-    const { InspectorControls, MediaUpload, MediaUploadCheck, useBlockProps } = wp.blockEditor || wp.editor;
-    const { PanelBody, ToggleControl, RangeControl, Button, TextControl, SelectControl } = wp.components;
+    const { InspectorControls, MediaUpload, MediaUploadCheck, useBlockProps, InnerBlocks } = wp.blockEditor || wp.editor;
+    const { PanelBody, ToggleControl, RangeControl, Button, TextControl, SelectControl, NumberControl, ColorPalette } = wp.components;
     const { Fragment, createElement: el } = wp.element;
     const { useSelect } = wp.data;
     const { __ } = wp.i18n;
@@ -10,6 +10,34 @@
         { label: __('Image', 'aegis-hero'), value: 'image' },
         { label: __('Video File', 'aegis-hero'), value: 'video' },
         { label: __('External Video (YouTube)', 'aegis-hero'), value: 'external' }
+    ];
+
+    const anchorOptions = [
+        { label: __('Top Left', 'aegis-hero'), value: 'top-left' },
+        { label: __('Top', 'aegis-hero'), value: 'top' },
+        { label: __('Top Right', 'aegis-hero'), value: 'top-right' },
+        { label: __('Left', 'aegis-hero'), value: 'left' },
+        { label: __('Center', 'aegis-hero'), value: 'center' },
+        { label: __('Right', 'aegis-hero'), value: 'right' },
+        { label: __('Bottom Left', 'aegis-hero'), value: 'bottom-left' },
+        { label: __('Bottom', 'aegis-hero'), value: 'bottom' },
+        { label: __('Bottom Right', 'aegis-hero'), value: 'bottom-right' }
+    ];
+
+    const promoAllowedBlocks = ['core/heading', 'core/paragraph', 'core/buttons', 'core/button', 'core/list'];
+    const promoTemplate = [
+        ['core/heading', { content: __('Unlimited Imagination', 'aegis-hero') }],
+        ['core/paragraph', { content: __('Add your supporting copy here.', 'aegis-hero') }],
+        ['core/buttons', {}, [['core/button', { text: __('Learn more', 'aegis-hero') }]]]
+    ];
+    const NumberInput = NumberControl || TextControl;
+    const palette = [
+        { name: __('White', 'aegis-hero'), color: '#ffffff' },
+        { name: __('Black', 'aegis-hero'), color: '#111111' },
+        { name: __('Slate', 'aegis-hero'), color: '#1f2937' },
+        { name: __('Sky', 'aegis-hero'), color: '#5bc0de' },
+        { name: __('Sunrise', 'aegis-hero'), color: '#ff5c5c' },
+        { name: __('Sand', 'aegis-hero'), color: '#f2f2f2' },
     ];
 
     const defaultSlide = () => ({
@@ -83,9 +111,33 @@
                 autoplay,
                 intervalMs,
                 hidePageTitleHint,
+                align,
+                promoEnabled = true,
+                promoAnchor = 'center',
+                promoOffsetX = 0,
+                promoOffsetY = 0,
+                promoUseSameOnMobile = true,
+                promoOffsetXMobile = 0,
+                promoOffsetYMobile = 0,
+                promoMaxWidth = 720,
+                promoTitleColor = '#ffffff',
+                promoTitleFontSize = 48,
+                promoTextColor = 'rgba(255,255,255,0.85)',
+                promoTextFontSize = 16,
+                promoButtonTextColor = '#ffffff',
+                promoButtonBgColor = 'rgba(0,0,0,0.45)',
             } = attributes;
 
-            const blockProps = useBlockProps();
+            const alignClassName = attributes && attributes.align ? 'align' + attributes.align : '';
+
+            const toNumber = (value, fallback) => {
+                const parsed = typeof value === 'string' ? parseFloat(value) : value;
+                return Number.isFinite(parsed) ? parsed : fallback;
+            };
+
+            const blockProps = useBlockProps({
+                className: ['aegis-hero-editor', alignClassName].filter(Boolean).join(' ')
+            });
             const previewSlide = slides[0];
             const previewMedia = useSelect(
                 (select) => {
@@ -113,13 +165,40 @@
             const previewUrl = previewMedia && previewMedia.source_url ? previewMedia.source_url : '';
 
             const heightModeValue = heightMode || 'fixed';
+            const anchorValue = anchorOptions.some((option) => option.value === promoAnchor) ? promoAnchor : 'center';
+            const promoOffsetXValue = toNumber(promoOffsetX, 0);
+            const promoOffsetYValue = toNumber(promoOffsetY, 0);
+            const promoOffsetXMobileValue = promoUseSameOnMobile
+                ? promoOffsetXValue
+                : toNumber(promoOffsetXMobile, 0);
+            const promoOffsetYMobileValue = promoUseSameOnMobile
+                ? promoOffsetYValue
+                : toNumber(promoOffsetYMobile, 0);
+            const promoMaxWidthValue = toNumber(promoMaxWidth, 720);
+            const promoTitleSizeValue = toNumber(promoTitleFontSize, 48);
+            const promoTextSizeValue = toNumber(promoTextFontSize, 16);
+            const promoTitleColorValue = promoTitleColor || '#ffffff';
+            const promoTextColorValue = promoTextColor || 'rgba(255,255,255,0.85)';
+            const promoButtonTextColorValue = promoButtonTextColor || '#ffffff';
+            const promoButtonBgColorValue = promoButtonBgColor || 'rgba(0,0,0,0.45)';
             const previewStyle = {
                 '--aegis-hero-h': (heightDesktop || 520) + 'px',
                 '--aegis-hero-h-m': (heightMobile || 320) + 'px',
                 '--aegis-hero-vh': heightVhDesktop || 70,
                 '--aegis-hero-vh-m': heightVhMobile || 60,
                 '--aegis-hero-header-offset': (headerOffsetPx || 0) + 'px',
-                minHeight: '280px'
+                '--aegis-promo-offset-x': promoOffsetXValue + 'px',
+                '--aegis-promo-offset-y': promoOffsetYValue + 'px',
+                '--aegis-promo-offset-x-m': promoOffsetXMobileValue + 'px',
+                '--aegis-promo-offset-y-m': promoOffsetYMobileValue + 'px',
+                '--aegis-promo-maxw': promoMaxWidthValue + 'px',
+                '--aegis-promo-title-color': promoTitleColorValue,
+                '--aegis-promo-title-size': promoTitleSizeValue,
+                '--aegis-promo-text-color': promoTextColorValue,
+                '--aegis-promo-text-size': promoTextSizeValue,
+                '--aegis-promo-btn-color': promoButtonTextColorValue,
+                '--aegis-promo-btn-bg': promoButtonBgColorValue,
+                minHeight: heightModeValue === 'fullscreen' ? '60vh' : '280px'
             };
 
             if (heightModeValue === 'fullscreen') {
@@ -194,20 +273,125 @@
                             checked: !!hidePageTitleHint,
                             onChange: (value) => setAttributes({ hidePageTitleHint: value })
                         })
+                    ),
+                    el(PanelBody, { title: __('Promo Overlay', 'aegis-hero'), initialOpen: false },
+                        el(ToggleControl, {
+                            label: __('Enable promo overlay', 'aegis-hero'),
+                            checked: !!promoEnabled,
+                            onChange: (value) => setAttributes({ promoEnabled: value })
+                        }),
+                        promoEnabled && el(Fragment, {},
+                            el('p', { className: 'components-base-control__help' }, __('Select the parent Aegis Hero block (not an inner heading) to adjust overlay settings.', 'aegis-hero')),
+                            el(SelectControl, {
+                                label: __('Anchor', 'aegis-hero'),
+                                value: anchorValue,
+                                options: anchorOptions,
+                                onChange: (value) => setAttributes({ promoAnchor: value })
+                            }),
+                            el('div', { className: 'aegis-hero-editor__anchor-grid' },
+                                anchorOptions.map((option) => el(Button, {
+                                    key: option.value,
+                                    variant: anchorValue === option.value ? 'primary' : 'secondary',
+                                    className: 'aegis-hero-editor__anchor-btn',
+                                    onClick: () => setAttributes({ promoAnchor: option.value })
+                                }, option.label))
+                            ),
+                            el(RangeControl, {
+                                label: __('Offset X (px)', 'aegis-hero'),
+                                min: -400,
+                                max: 400,
+                                value: promoOffsetXValue,
+                                onChange: (value) => setAttributes({ promoOffsetX: value })
+                            }),
+                            el(RangeControl, {
+                                label: __('Offset Y (px)', 'aegis-hero'),
+                                min: -400,
+                                max: 400,
+                                value: promoOffsetYValue,
+                                onChange: (value) => setAttributes({ promoOffsetY: value })
+                            }),
+                            el(ToggleControl, {
+                                label: __('Use same offsets on mobile', 'aegis-hero'),
+                                checked: !!promoUseSameOnMobile,
+                                onChange: (value) => setAttributes({ promoUseSameOnMobile: value })
+                            }),
+                            !promoUseSameOnMobile && el(Fragment, {},
+                                el(RangeControl, {
+                                    label: __('Mobile offset X (px)', 'aegis-hero'),
+                                    min: -400,
+                                    max: 400,
+                                    value: promoOffsetXMobileValue,
+                                    onChange: (value) => setAttributes({ promoOffsetXMobile: value })
+                                }),
+                                el(RangeControl, {
+                                    label: __('Mobile offset Y (px)', 'aegis-hero'),
+                                    min: -400,
+                                    max: 400,
+                                    value: promoOffsetYMobileValue,
+                                    onChange: (value) => setAttributes({ promoOffsetYMobile: value })
+                                })
+                            ),
+                            el(NumberInput, {
+                                label: __('Max width (px)', 'aegis-hero'),
+                                min: 200,
+                                max: 1400,
+                                value: promoMaxWidthValue,
+                                type: 'number',
+                                onChange: (value) => setAttributes({ promoMaxWidth: parseInt(value, 10) || 720 })
+                            }),
+                            el('hr', {}),
+                            el('p', { className: 'components-base-control__label' }, __('Title style', 'aegis-hero')),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoTitleColorValue,
+                                onChange: (value) => setAttributes({ promoTitleColor: value || '#ffffff' })
+                            }),
+                            el(RangeControl, {
+                                label: __('Title font size (px)', 'aegis-hero'),
+                                min: 18,
+                                max: 96,
+                                value: promoTitleSizeValue,
+                                onChange: (value) => setAttributes({ promoTitleFontSize: value })
+                            }),
+                            el('p', { className: 'components-base-control__label' }, __('Text style', 'aegis-hero')),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoTextColorValue,
+                                onChange: (value) => setAttributes({ promoTextColor: value || 'rgba(255,255,255,0.85)' })
+                            }),
+                            el(RangeControl, {
+                                label: __('Text font size (px)', 'aegis-hero'),
+                                min: 12,
+                                max: 48,
+                                value: promoTextSizeValue,
+                                onChange: (value) => setAttributes({ promoTextFontSize: value })
+                            }),
+                            el('p', { className: 'components-base-control__label' }, __('Button style', 'aegis-hero')),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoButtonTextColorValue,
+                                onChange: (value) => setAttributes({ promoButtonTextColor: value || '#ffffff' })
+                            }),
+                            el(ColorPalette, {
+                                colors: palette,
+                                value: promoButtonBgColorValue,
+                                onChange: (value) => setAttributes({ promoButtonBgColor: value || 'rgba(0,0,0,0.45)' })
+                            })
+                        )
                     )
                 ),
-                el('div', Object.assign({}, blockProps, {
-                    className: [blockProps.className, 'aegis-hero-editor'].filter(Boolean).join(' ')
-                }),
+                el('div', blockProps,
                     el('div', {
-                        className: [
-                            'aegis-hero-editor__preview',
-                            'aegis-hero',
-                            'aegis-hero--mode-' + heightModeValue,
-                            subtractHeader ? 'aegis-hero--subtract-header' : ''
-                        ].filter(Boolean).join(' '),
-                        style: previewStyle
-                    },
+                className: [
+                    'aegis-hero-editor__preview',
+                    'aegis-hero',
+                    alignClassName,
+                    'aegis-hero--mode-' + heightModeValue,
+                    subtractHeader ? 'aegis-hero--subtract-header' : '',
+                    promoEnabled ? 'aegis-hero--promo-anchor-' + anchorValue : ''
+                ].filter(Boolean).join(' '),
+                style: previewStyle
+            },
                         previewUrl ?
                             el('img', {
                                 className: 'aegis-hero-editor__preview-media',
@@ -216,7 +400,20 @@
                             }) :
                             el('div', { className: 'aegis-hero-editor__preview-placeholder' },
                                 previewSlide ? __('Cover preview unavailable', 'aegis-hero') : __('Add slides to preview', 'aegis-hero')
+                            ),
+                        el('div', {
+                            className: 'aegis-hero__overlay',
+                            style: promoEnabled ? undefined : { display: 'none' },
+                            'aria-hidden': promoEnabled ? undefined : true
+                        },
+                            el('div', { className: 'aegis-hero__promo' },
+                                el(InnerBlocks, {
+                                    allowedBlocks: promoAllowedBlocks,
+                                    template: promoTemplate,
+                                    templateLock: false
+                                })
                             )
+                        )
                     ),
                     !hidePageTitleHint && el('p', { className: 'aegis-hero-editor__hint' },
                         __('页面顶部的 Home 标题来自 Post Title/模板；如需隐藏，请在模板中移除 Post Title 块或使用无标题模板。', 'aegis-hero')
@@ -255,7 +452,7 @@
             );
         },
         save: function () {
-            return null;
+            return el(InnerBlocks.Content, null);
         }
     });
 

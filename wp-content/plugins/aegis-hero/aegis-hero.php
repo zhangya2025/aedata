@@ -67,7 +67,7 @@ function aegis_hero_register_block()
 /**
  * Render callback for the hero block.
  */
-function aegis_hero_render_block($attributes)
+function aegis_hero_render_block($attributes, $content = '', $block = null)
 {
     $defaults = [
         'slides' => [],
@@ -82,6 +82,20 @@ function aegis_hero_render_block($attributes)
         'showDots' => true,
         'autoplay' => false,
         'intervalMs' => 6000,
+        'promoEnabled' => true,
+        'promoAnchor' => 'center',
+        'promoOffsetX' => 0,
+        'promoOffsetY' => 0,
+        'promoUseSameOnMobile' => true,
+        'promoOffsetXMobile' => 0,
+        'promoOffsetYMobile' => 0,
+        'promoMaxWidth' => 720,
+        'promoTitleColor' => '#ffffff',
+        'promoTitleFontSize' => 48,
+        'promoTextColor' => 'rgba(255,255,255,0.85)',
+        'promoTextFontSize' => 16,
+        'promoButtonTextColor' => '#ffffff',
+        'promoButtonBgColor' => 'rgba(0,0,0,0.45)',
     ];
 
     $attributes = wp_parse_args($attributes, $defaults);
@@ -110,6 +124,58 @@ function aegis_hero_render_block($attributes)
         $subtract_header ? 1 : 0
     );
 
+    $allowed_anchors = [
+        'top-left',
+        'top',
+        'top-right',
+        'left',
+        'center',
+        'right',
+        'bottom-left',
+        'bottom',
+        'bottom-right'
+    ];
+
+    $promo_anchor = isset($attributes['promoAnchor']) && in_array($attributes['promoAnchor'], $allowed_anchors, true)
+        ? $attributes['promoAnchor']
+        : 'center';
+    $promo_offset_x = isset($attributes['promoOffsetX']) && is_numeric($attributes['promoOffsetX']) ? (int) $attributes['promoOffsetX'] : 0;
+    $promo_offset_y = isset($attributes['promoOffsetY']) && is_numeric($attributes['promoOffsetY']) ? (int) $attributes['promoOffsetY'] : 0;
+    $promo_offset_x_m = !empty($attributes['promoUseSameOnMobile'])
+        ? $promo_offset_x
+        : (isset($attributes['promoOffsetXMobile']) && is_numeric($attributes['promoOffsetXMobile']) ? (int) $attributes['promoOffsetXMobile'] : 0);
+    $promo_offset_y_m = !empty($attributes['promoUseSameOnMobile'])
+        ? $promo_offset_y
+        : (isset($attributes['promoOffsetYMobile']) && is_numeric($attributes['promoOffsetYMobile']) ? (int) $attributes['promoOffsetYMobile'] : 0);
+    $promo_max_width = isset($attributes['promoMaxWidth']) && is_numeric($attributes['promoMaxWidth']) ? (int) $attributes['promoMaxWidth'] : 720;
+    $promo_title_color = isset($attributes['promoTitleColor']) ? (string) $attributes['promoTitleColor'] : '#ffffff';
+    $promo_title_color = $promo_title_color !== '' ? $promo_title_color : '#ffffff';
+    $promo_title_size = isset($attributes['promoTitleFontSize']) && is_numeric($attributes['promoTitleFontSize']) ? (int) $attributes['promoTitleFontSize'] : 48;
+    $promo_text_color = isset($attributes['promoTextColor']) ? (string) $attributes['promoTextColor'] : 'rgba(255,255,255,0.85)';
+    $promo_text_color = $promo_text_color !== '' ? $promo_text_color : 'rgba(255,255,255,0.85)';
+    $promo_text_size = isset($attributes['promoTextFontSize']) && is_numeric($attributes['promoTextFontSize']) ? (int) $attributes['promoTextFontSize'] : 16;
+    $promo_btn_text_color = isset($attributes['promoButtonTextColor']) ? (string) $attributes['promoButtonTextColor'] : '#ffffff';
+    $promo_btn_text_color = $promo_btn_text_color !== '' ? $promo_btn_text_color : '#ffffff';
+    $promo_btn_bg_color = isset($attributes['promoButtonBgColor']) ? (string) $attributes['promoButtonBgColor'] : 'rgba(0,0,0,0.45)';
+    $promo_btn_bg_color = $promo_btn_bg_color !== '' ? $promo_btn_bg_color : 'rgba(0,0,0,0.45)';
+    $promo_content = aegis_hero_resolve_promo_content($content, $block);
+    $should_render_promo = !empty($attributes['promoEnabled']) && aegis_hero_has_promo_content($promo_content);
+
+    $promo_style = sprintf(
+        ' --aegis-promo-offset-x:%dpx; --aegis-promo-offset-y:%dpx; --aegis-promo-offset-x-m:%dpx; --aegis-promo-offset-y-m:%dpx; --aegis-promo-maxw:%dpx; --aegis-promo-title-color:%s; --aegis-promo-title-size:%d; --aegis-promo-text-color:%s; --aegis-promo-text-size:%d; --aegis-promo-btn-color:%s; --aegis-promo-btn-bg:%s;',
+        $promo_offset_x,
+        $promo_offset_y,
+        $promo_offset_x_m,
+        $promo_offset_y_m,
+        $promo_max_width,
+        esc_attr($promo_title_color),
+        $promo_title_size,
+        esc_attr($promo_text_color),
+        $promo_text_size,
+        esc_attr($promo_btn_text_color),
+        esc_attr($promo_btn_bg_color)
+    );
+
     $align_class = '';
     if (in_array($align, ['wide', 'full'], true)) {
         $align_class = 'align' . sanitize_key($align);
@@ -128,10 +194,11 @@ function aegis_hero_render_block($attributes)
     if ($subtract_header) {
         $classes[] = 'aegis-hero--subtract-header';
     }
+    $classes[] = 'aegis-hero--promo-anchor-' . sanitize_title($promo_anchor);
 
     ob_start();
     ?>
-    <div class="<?php echo esc_attr(trim(implode(' ', array_filter($classes)))); ?>" style="<?php echo esc_attr($height_style); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
+    <div class="<?php echo esc_attr(trim(implode(' ', array_filter($classes)))); ?>" style="<?php echo esc_attr(trim($height_style . $promo_style)); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
         <div class="aegis-hero__track">
             <?php foreach ($slides as $index => $slide) :
                 $type = isset($slide['type']) ? $slide['type'] : 'image';
@@ -164,9 +231,62 @@ function aegis_hero_render_block($attributes)
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+        <?php if ($should_render_promo) : ?>
+            <div class="aegis-hero__overlay">
+                <div class="aegis-hero__promo">
+                    <?php echo $promo_content; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
     return ob_get_clean();
+}
+
+/**
+ * Resolve promo content for rendering.
+ */
+function aegis_hero_resolve_promo_content($content, $block)
+{
+    if (is_string($content) && trim($content) !== '') {
+        return $content;
+    }
+
+    if ($block instanceof WP_Block) {
+        if (is_array($block->inner_content)) {
+            $resolved = trim(implode('', $block->inner_content));
+            if ($resolved !== '') {
+                return $resolved;
+            }
+        }
+
+        if (!empty($block->inner_blocks) && is_array($block->inner_blocks)) {
+            $rendered = '';
+            foreach ($block->inner_blocks as $inner_block) {
+                if ($inner_block instanceof WP_Block) {
+                    $rendered .= $inner_block->render();
+                }
+            }
+
+            if (trim($rendered) !== '') {
+                return $rendered;
+            }
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Determine if promo overlay has renderable content.
+ */
+function aegis_hero_has_promo_content($content)
+{
+    if (!is_string($content) || trim($content) === '') {
+        return false;
+    }
+
+    return trim(wp_strip_all_tags($content)) !== '';
 }
 
 /**
