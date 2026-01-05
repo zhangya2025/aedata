@@ -22,3 +22,21 @@ add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-themes-style', get_theme_file_uri( 'assets/css/main.css' ), array(), AEGIS_THEMES_VERSION );
     wp_enqueue_script( 'aegis-themes-script', get_theme_file_uri( 'assets/js/main.js' ), array(), AEGIS_THEMES_VERSION, true );
 } );
+
+/**
+ * Enqueue theme assets.
+ */
+add_action( 'wp_enqueue_scripts', function () {
+    // WooCommerce base styles (theme-owned). Only load on WooCommerce related pages.
+    if ( function_exists( 'is_woocommerce' ) ) {
+        $is_wc = is_woocommerce() || is_cart() || is_checkout() || is_account_page();
+        if ( $is_wc ) {
+            wp_enqueue_style(
+                'aegis-themes-woocommerce',
+                get_theme_file_uri( 'assets/css/woocommerce.css' ),
+                array(),
+                AEGIS_THEMES_VERSION
+            );
+        }
+    }
+}, 20 );
