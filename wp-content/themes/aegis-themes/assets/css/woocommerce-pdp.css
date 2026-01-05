@@ -1,0 +1,144 @@
+.aegis-wc-product {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.aegis-wc-module {
+    width: 100%;
+}
+
+.aegis-wc-module--top {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 32px;
+    align-items: start;
+}
+
+.aegis-wc-top__gallery .woocommerce-product-gallery {
+    position: relative;
+}
+
+.aegis-wc-top__buybox {
+    position: relative;
+}
+
+.aegis-wc-buybox__inner {
+    position: sticky;
+    top: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.aegis-wc-module--trust,
+.aegis-wc-module--highlights,
+.aegis-wc-module--details,
+.aegis-wc-module--reviews,
+.aegis-wc-module--qa,
+.aegis-wc-module--recommendations {
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.aegis-wc-trust__badges {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.aegis-wc-trust__badge {
+    padding: 8px 12px;
+    background: #f3f4f6;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.aegis-wc-highlights__content p {
+    margin: 0;
+}
+
+.aegis-wc-qa__placeholder {
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+    color: #4b5563;
+}
+
+.aegis-wc-sticky-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    z-index: 999;
+}
+
+.aegis-wc-sticky-bar__price {
+    font-weight: 700;
+    font-size: 16px;
+    color: #111827;
+}
+
+.aegis-wc-sticky-bar__cta {
+    margin-left: auto;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    background: #111827;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 1023px) {
+    .aegis-wc-module--top {
+        grid-template-columns: 1fr;
+    }
+
+    .aegis-wc-buybox__inner {
+        position: relative;
+        top: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .aegis-wc-product {
+        gap: 16px;
+    }
+
+    .aegis-wc-module--top,
+    .aegis-wc-module--trust,
+    .aegis-wc-module--highlights,
+    .aegis-wc-module--details,
+    .aegis-wc-module--reviews,
+    .aegis-wc-module--qa,
+    .aegis-wc-module--recommendations {
+        padding: 16px;
+        border-radius: 10px;
+    }
+
+    .aegis-wc-buybox__inner {
+        padding: 16px;
+    }
+
+    .aegis-wc-sticky-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .aegis-wc-product {
+        padding-bottom: 96px;
+    }
+}
