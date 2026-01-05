@@ -18,7 +18,7 @@ if ( empty( $product ) || ! $product->is_visible() ) {
 }
 ?>
 
-<!-- AEGIS PDP TEMPLATE ACTIVE -->
+<!-- AEGIS_PDP_ACTIVE -->
 
 <div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'aegis-wc-product', $product ); ?>>
     <?php

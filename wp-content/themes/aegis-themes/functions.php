@@ -61,3 +61,9 @@ add_action( 'wp_enqueue_scripts', function () {
         );
     }
 }, 25 );
+
+add_action( 'wp_head', function () {
+    if ( function_exists( 'is_product' ) && is_product() ) {
+        echo "<!-- AEGIS_PDP_ACTIVE_HEAD -->\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }
+}, 5 );
