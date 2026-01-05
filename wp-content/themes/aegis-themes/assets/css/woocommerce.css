@@ -1,0 +1,100 @@
+/**
+ * Aegis-Themes WooCommerce Base Styles
+ * Scope: global WooCommerce pages (single product, archive, cart, checkout, my account).
+ * Principle: keep it minimal + tokens first; detailed layouts come later (templates/hooks).
+ */
+
+:root {
+  /* Tokens (adjust later to match your brand system) */
+  --aegis-wc-font-size: 14px;
+  --aegis-wc-radius: 12px;
+  --aegis-wc-border: rgba(0, 0, 0, 0.12);
+  --aegis-wc-muted: rgba(0, 0, 0, 0.62);
+  --aegis-wc-focus: rgba(0, 0, 0, 0.35);
+}
+
+/* Keep WooCommerce typography consistent with theme */
+.woocommerce,
+.woocommerce-page {
+  font-size: var(--aegis-wc-font-size);
+}
+
+/* Buttons */
+.woocommerce a.button,
+.woocommerce button.button,
+.woocommerce input.button,
+.woocommerce #respond input#submit {
+  border-radius: var(--aegis-wc-radius);
+  border: 1px solid var(--aegis-wc-border);
+  padding: 10px 14px;
+  line-height: 1.2;
+}
+.woocommerce a.button:focus,
+.woocommerce button.button:focus,
+.woocommerce input.button:focus,
+.woocommerce #respond input#submit:focus {
+  outline: 2px solid var(--aegis-wc-focus);
+  outline-offset: 2px;
+}
+
+/* Form fields */
+.woocommerce form .form-row input.input-text,
+.woocommerce form .form-row textarea,
+.woocommerce form .form-row select {
+  border-radius: var(--aegis-wc-radius);
+  border: 1px solid var(--aegis-wc-border);
+  padding: 10px 12px;
+}
+
+/* Notices */
+.woocommerce-message,
+.woocommerce-info,
+.woocommerce-error {
+  border-radius: var(--aegis-wc-radius);
+}
+.woocommerce-message,
+.woocommerce-info {
+  color: inherit;
+}
+
+/* Product list cards (light touch; real layout later) */
+.woocommerce ul.products li.product,
+.woocommerce-page ul.products li.product {
+  border-radius: var(--aegis-wc-radius);
+}
+
+/* Single product: keep images clean */
+.woocommerce div.product div.images img {
+  border-radius: var(--aegis-wc-radius);
+}
+
+/* Price + meta */
+.woocommerce div.product p.price,
+.woocommerce div.product span.price,
+.woocommerce ul.products li.product .price {
+  color: inherit;
+}
+.woocommerce .product_meta {
+  color: var(--aegis-wc-muted);
+}
+
+/* Tabs / Accordion baseline */
+.woocommerce div.product .woocommerce-tabs ul.tabs li a {
+  color: inherit;
+}
+
+/* Tables (cart/checkout) */
+.woocommerce table.shop_table {
+  border-radius: var(--aegis-wc-radius);
+  overflow: hidden;
+  border: 1px solid var(--aegis-wc-border);
+}
+.woocommerce table.shop_table th,
+.woocommerce table.shop_table td {
+  border-color: var(--aegis-wc-border);
+}
+
+/* Account navigation */
+.woocommerce-MyAccount-navigation a {
+  color: inherit;
+}
