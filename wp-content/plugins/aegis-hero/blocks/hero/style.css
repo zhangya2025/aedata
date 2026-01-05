@@ -69,6 +69,80 @@
     height: 100%;
 }
 
+.aegis-hero__overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.aegis-hero__promo {
+    pointer-events: auto;
+    max-width: var(--aegis-promo-maxw, 720px);
+}
+
+.aegis-hero__promo > *:not(:last-child) {
+    margin-bottom: 12px;
+}
+
+.aegis-hero--promo-anchor-top .aegis-hero__overlay {
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.aegis-hero--promo-anchor-top-left .aegis-hero__overlay {
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.aegis-hero--promo-anchor-top-right .aegis-hero__overlay {
+    justify-content: flex-end;
+    align-items: flex-start;
+}
+
+.aegis-hero--promo-anchor-left .aegis-hero__overlay {
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.aegis-hero--promo-anchor-center .aegis-hero__overlay {
+    justify-content: center;
+    align-items: center;
+}
+
+.aegis-hero--promo-anchor-right .aegis-hero__overlay {
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.aegis-hero--promo-anchor-bottom-left .aegis-hero__overlay {
+    justify-content: flex-start;
+    align-items: flex-end;
+}
+
+.aegis-hero--promo-anchor-bottom .aegis-hero__overlay {
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.aegis-hero--promo-anchor-bottom-right .aegis-hero__overlay {
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.aegis-hero__promo {
+    transform: translate(var(--aegis-promo-offset-x, 0px), var(--aegis-promo-offset-y, 0px));
+}
+
+@media (max-width: 782px) {
+    .aegis-hero__promo {
+        transform: translate(var(--aegis-promo-offset-x-m, var(--aegis-promo-offset-x, 0px)), var(--aegis-promo-offset-y-m, var(--aegis-promo-offset-y, 0px)));
+    }
+}
+
 .aegis-hero__slide {
     position: absolute;
     inset: 0;
@@ -226,6 +300,16 @@
     min-height: 280px;
 }
 
+.aegis-hero-editor__preview.aegis-hero--mode-fullscreen {
+    min-height: 60vh;
+}
+
+.wp-block-aegis-hero.alignfull .aegis-hero-editor__preview {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+}
+
 .aegis-hero-editor__preview-media {
     width: 100%;
     height: 100%;
@@ -293,4 +377,16 @@
 
 .aegis-hero-editor__slide > *:not(summary):not(.aegis-hero-editor__row) {
     padding: 0 12px 12px;
+}
+
+.aegis-hero-editor__anchor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.aegis-hero-editor__anchor-btn {
+    width: 100%;
+    text-align: center;
 }
