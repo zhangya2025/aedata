@@ -54,8 +54,7 @@ function aegis_wc_gallery_wall_shortcode() {
             continue;
         }
 
-        $classes   = array( 'aegis-gallery-wall__item' );
-        $classes[] = 0 === $index ? 'aegis-gallery-wall__item--primary' : 'aegis-gallery-wall__item--standard';
+        $classes = array( 'aegis-gallery-wall__item' );
 
         $image_html = wp_get_attachment_image(
             $image_id,

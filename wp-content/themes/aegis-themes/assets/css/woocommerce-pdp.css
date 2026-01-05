@@ -77,12 +77,13 @@
 .aegis-gallery-wall__item {
     position: relative;
     display: block;
+    width: 100%;
+    margin: 0;
+    max-width: none;
     overflow: hidden;
     border-radius: 6px;
     aspect-ratio: 4 / 5;
     background: #f3f4f6;
-    grid-column: auto;
-    grid-row: auto;
 }
 
 .aegis-gallery-wall__item img {
@@ -100,6 +101,22 @@
 
 .aegis-gallery-wall > br {
     display: none;
+}
+
+.aegis-gallery-wall__item--video video,
+.aegis-gallery-wall__item--video .aegis-gallery-wall__poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.aegis-gallery-wall__item--video .aegis-gallery-wall__play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
 }
 
 @media (max-width: 767px) {
