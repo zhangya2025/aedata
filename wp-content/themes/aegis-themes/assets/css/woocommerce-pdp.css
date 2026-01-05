@@ -24,6 +24,34 @@
     background: #fff;
 }
 
+.aegis-wc-product .wc-block-breadcrumbs {
+    max-width: var(--aegis-max-width);
+    margin: 0 auto 2px !important;
+    padding: 0 18px;
+    text-align: left;
+}
+
+.aegis-wc-product .wc-block-breadcrumbs .woocommerce-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-start;
+    margin: 0;
+    font-size: 13px;
+    color: var(--aegis-text-muted);
+}
+
+.aegis-wc-product .wc-block-breadcrumbs .woocommerce-breadcrumb a {
+    color: #374151;
+    text-decoration: none;
+}
+
+.aegis-wc-product .wc-block-breadcrumbs .woocommerce-breadcrumb a:hover,
+.aegis-wc-product .wc-block-breadcrumbs .woocommerce-breadcrumb a:focus {
+    text-decoration: underline;
+}
+
 .aegis-wc-pdp-container {
     max-width: var(--aegis-max-width);
     margin: 0 auto;
