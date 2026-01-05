@@ -8,6 +8,10 @@
   "description": "Hero carousel supporting images, local videos, and lazy external videos.",
   "editorScript": "aegis-hero-editor",
   "style": "aegis-hero-style",
+    "editorStyle": [
+      "aegis-hero-style",
+      "file:./editor.css"
+    ],
   "viewScript": "aegis-hero-view",
   "supports": {
     "anchor": true,
@@ -66,6 +70,65 @@
     "hidePageTitleHint": {
       "type": "boolean",
       "default": false
+    },
+    "align": {
+      "type": "string"
+    },
+    "promoEnabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "promoAnchor": {
+      "type": "string",
+      "default": "center"
+    },
+    "promoOffsetX": {
+      "type": "number",
+      "default": 0
+    },
+    "promoOffsetY": {
+      "type": "number",
+      "default": 0
+    },
+    "promoUseSameOnMobile": {
+      "type": "boolean",
+      "default": true
+    },
+    "promoOffsetXMobile": {
+      "type": "number",
+      "default": 0
+    },
+    "promoOffsetYMobile": {
+      "type": "number",
+      "default": 0
+    },
+    "promoMaxWidth": {
+      "type": "number",
+      "default": 720
+    },
+    "promoTitleColor": {
+      "type": "string",
+      "default": "#ffffff"
+    },
+    "promoTitleFontSize": {
+      "type": "number",
+      "default": 48
+    },
+    "promoTextColor": {
+      "type": "string",
+      "default": "rgba(255,255,255,0.85)"
+    },
+    "promoTextFontSize": {
+      "type": "number",
+      "default": 16
+    },
+    "promoButtonTextColor": {
+      "type": "string",
+      "default": "#ffffff"
+    },
+    "promoButtonBgColor": {
+      "type": "string",
+      "default": "rgba(0,0,0,0.45)"
     }
   }
 }
