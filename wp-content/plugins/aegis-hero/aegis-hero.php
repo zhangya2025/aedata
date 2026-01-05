@@ -67,7 +67,7 @@ function aegis_hero_register_block()
 /**
  * Render callback for the hero block.
  */
-function aegis_hero_render_block($attributes, $content)
+function aegis_hero_render_block($attributes, $content = '', $block = null)
 {
     $defaults = [
         'slides' => [],
@@ -138,16 +138,40 @@ function aegis_hero_render_block($attributes, $content)
         $subtract_header ? 1 : 0
     );
 
-    if ($promo_enabled) {
-        $height_style .= sprintf(
-            ' --aegis-promo-offset-x:%dpx; --aegis-promo-offset-y:%dpx; --aegis-promo-offset-x-m:%dpx; --aegis-promo-offset-y-m:%dpx; --aegis-promo-maxw:%dpx;',
-            $promo_offset_x,
-            $promo_offset_y,
-            $promo_offset_x_m,
-            $promo_offset_y_m,
-            $promo_max_w
-        );
-    }
+    $allowed_anchors = [
+        'top-left',
+        'top',
+        'top-right',
+        'left',
+        'center',
+        'right',
+        'bottom-left',
+        'bottom',
+        'bottom-right'
+    ];
+
+    $promo_anchor = isset($attributes['promoAnchor']) && in_array($attributes['promoAnchor'], $allowed_anchors, true)
+        ? $attributes['promoAnchor']
+        : 'bottom-left';
+    $promo_offset_x = isset($attributes['promoOffsetX']) && is_numeric($attributes['promoOffsetX']) ? (int) $attributes['promoOffsetX'] : 40;
+    $promo_offset_y = isset($attributes['promoOffsetY']) && is_numeric($attributes['promoOffsetY']) ? (int) $attributes['promoOffsetY'] : -40;
+    $promo_offset_x_m = !empty($attributes['promoUseSameOnMobile'])
+        ? $promo_offset_x
+        : (isset($attributes['promoOffsetXMobile']) && is_numeric($attributes['promoOffsetXMobile']) ? (int) $attributes['promoOffsetXMobile'] : 24);
+    $promo_offset_y_m = !empty($attributes['promoUseSameOnMobile'])
+        ? $promo_offset_y
+        : (isset($attributes['promoOffsetYMobile']) && is_numeric($attributes['promoOffsetYMobile']) ? (int) $attributes['promoOffsetYMobile'] : -24);
+    $promo_max_width = isset($attributes['promoMaxWidth']) && is_numeric($attributes['promoMaxWidth']) ? (int) $attributes['promoMaxWidth'] : 720;
+    $should_render_promo = !empty($attributes['promoEnabled']) && aegis_hero_has_promo_content($content);
+
+    $promo_style = sprintf(
+        ' --aegis-promo-offset-x:%dpx; --aegis-promo-offset-y:%dpx; --aegis-promo-offset-x-m:%dpx; --aegis-promo-offset-y-m:%dpx; --aegis-promo-maxw:%dpx;',
+        $promo_offset_x,
+        $promo_offset_y,
+        $promo_offset_x_m,
+        $promo_offset_y_m,
+        $promo_max_width
+    );
 
     $align_class = '';
     if (in_array($align, ['wide', 'full'], true)) {
@@ -167,13 +191,13 @@ function aegis_hero_render_block($attributes, $content)
     if ($subtract_header) {
         $classes[] = 'aegis-hero--subtract-header';
     }
-    if ($promo_enabled) {
-        $classes[] = 'aegis-hero--promo-anchor-' . sanitize_html_class($promo_anchor);
+    if ($should_render_promo) {
+        $classes[] = 'aegis-hero--promo-anchor-' . sanitize_title($promo_anchor);
     }
 
     ob_start();
     ?>
-    <div class="<?php echo esc_attr(trim(implode(' ', array_filter($classes)))); ?>" style="<?php echo esc_attr($height_style); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
+    <div class="<?php echo esc_attr(trim(implode(' ', array_filter($classes)))); ?>" style="<?php echo esc_attr(trim($height_style . $promo_style)); ?>" data-settings='<?php echo esc_attr(wp_json_encode($settings_data)); ?>'>
         <div class="aegis-hero__track">
             <?php foreach ($slides as $index => $slide) :
                 $type = isset($slide['type']) ? $slide['type'] : 'image';
@@ -206,16 +230,28 @@ function aegis_hero_render_block($attributes, $content)
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
-        <?php if ($promo_enabled) : ?>
+        <?php if ($should_render_promo) : ?>
             <div class="aegis-hero__overlay">
                 <div class="aegis-hero__promo">
-                    <?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <?php echo $content; ?>
                 </div>
             </div>
         <?php endif; ?>
     </div>
     <?php
     return ob_get_clean();
+}
+
+/**
+ * Determine if promo overlay has renderable content.
+ */
+function aegis_hero_has_promo_content($content)
+{
+    if (!is_string($content) || trim($content) === '') {
+        return false;
+    }
+
+    return trim(wp_strip_all_tags($content)) !== '';
 }
 
 /**
