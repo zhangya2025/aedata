@@ -165,6 +165,16 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     padding: 0;
 }
 
+.aegis-wc-pdp-top .aegis-wc-buybox__inner {
+    margin-top: 0 !important;
+}
+
+.aegis-wc-pdp-top .aegis-wc-buybox__inner .wp-block-post-title,
+.aegis-wc-pdp-top .aegis-wc-buybox__inner .product_title,
+.aegis-wc-pdp-top .aegis-wc-buybox__inner h1 {
+    margin-top: 0;
+}
+
 .aegis-wc-buybox__inner {
     position: relative;
     top: 0;
