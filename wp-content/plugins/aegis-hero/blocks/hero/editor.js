@@ -1,7 +1,7 @@
 (function () {
     const { registerBlockType } = wp.blocks;
-    const { InspectorControls, MediaUpload, MediaUploadCheck, useBlockProps } = wp.blockEditor || wp.editor;
-    const { PanelBody, ToggleControl, RangeControl, Button, TextControl, SelectControl } = wp.components;
+    const { InspectorControls, MediaUpload, MediaUploadCheck, useBlockProps, InnerBlocks } = wp.blockEditor || wp.editor;
+    const { PanelBody, ToggleControl, RangeControl, Button, TextControl, SelectControl, ButtonGroup, NumberControl } = wp.components;
     const { Fragment, createElement: el } = wp.element;
     const { useSelect } = wp.data;
     const { __ } = wp.i18n;
@@ -11,6 +11,28 @@
         { label: __('Video File', 'aegis-hero'), value: 'video' },
         { label: __('External Video (YouTube)', 'aegis-hero'), value: 'external' }
     ];
+
+    const promoAnchorOptions = [
+        'top-left',
+        'top',
+        'top-right',
+        'left',
+        'center',
+        'right',
+        'bottom-left',
+        'bottom',
+        'bottom-right',
+    ];
+
+    const promoTemplate = [
+        ['core/heading', { placeholder: __('Unlimited Imagination', 'aegis-hero') }],
+        ['core/paragraph', { placeholder: __('Add subtitle', 'aegis-hero') }],
+        ['core/buttons', {}, [
+            ['core/button', { placeholder: __('Explore', 'aegis-hero') }],
+        ]],
+    ];
+
+    const promoAllowedBlocks = ['core/heading', 'core/paragraph', 'core/buttons', 'core/button', 'core/list'];
 
     const defaultSlide = () => ({
         type: 'image',
@@ -85,7 +107,7 @@
                 hidePageTitleHint,
             } = attributes;
 
-            const blockProps = useBlockProps();
+            const blockProps = useBlockProps({ className: 'aegis-hero-editor' });
             const previewSlide = slides[0];
             const previewMedia = useSelect(
                 (select) => {
@@ -113,19 +135,42 @@
             const previewUrl = previewMedia && previewMedia.source_url ? previewMedia.source_url : '';
 
             const heightModeValue = heightMode || 'fixed';
+            const alignClassName = ['wide', 'full'].includes(attributes.align) ? 'align' + attributes.align : '';
+            const promoEnabled = attributes.promoEnabled !== false;
+            const promoAnchor = promoAnchorOptions.includes(attributes.promoAnchor) ? attributes.promoAnchor : 'bottom-left';
+            const promoOffsetX = typeof attributes.promoOffsetX === 'number' ? attributes.promoOffsetX : 40;
+            const promoOffsetY = typeof attributes.promoOffsetY === 'number' ? attributes.promoOffsetY : -40;
+            const promoUseSameOnMobile = attributes.promoUseSameOnMobile === false ? false : true;
+            const promoOffsetXMobile = typeof attributes.promoOffsetXMobile === 'number' ? attributes.promoOffsetXMobile : 24;
+            const promoOffsetYMobile = typeof attributes.promoOffsetYMobile === 'number' ? attributes.promoOffsetYMobile : -24;
+            const promoMaxWidth = typeof attributes.promoMaxWidth === 'number' ? attributes.promoMaxWidth : 720;
             const previewStyle = {
                 '--aegis-hero-h': (heightDesktop || 520) + 'px',
                 '--aegis-hero-h-m': (heightMobile || 320) + 'px',
                 '--aegis-hero-vh': heightVhDesktop || 70,
                 '--aegis-hero-vh-m': heightVhMobile || 60,
                 '--aegis-hero-header-offset': (headerOffsetPx || 0) + 'px',
-                minHeight: '280px'
+                '--aegis-promo-offset-x': promoOffsetX + 'px',
+                '--aegis-promo-offset-y': promoOffsetY + 'px',
+                '--aegis-promo-offset-x-m': (promoUseSameOnMobile ? promoOffsetX : promoOffsetXMobile) + 'px',
+                '--aegis-promo-offset-y-m': (promoUseSameOnMobile ? promoOffsetY : promoOffsetYMobile) + 'px',
+                '--aegis-promo-maxw': promoMaxWidth + 'px',
+                minHeight: heightModeValue === 'fullscreen' ? '60vh' : '280px'
             };
 
             if (heightModeValue === 'fullscreen') {
                 const offset = subtractHeader ? (headerOffsetPx || 0) : 0;
                 previewStyle.height = offset ? 'calc(70vh - ' + offset + 'px)' : '70vh';
             }
+
+            const heroClassName = [
+                'aegis-hero-editor__preview',
+                'aegis-hero',
+                alignClassName,
+                'aegis-hero--mode-' + heightModeValue,
+                subtractHeader ? 'aegis-hero--subtract-header' : '',
+                promoEnabled ? 'aegis-hero--promo-anchor-' + promoAnchor : '',
+            ].filter(Boolean).join(' ');
 
             return el(Fragment, {},
                 el(InspectorControls, {},
@@ -194,18 +239,68 @@
                             checked: !!hidePageTitleHint,
                             onChange: (value) => setAttributes({ hidePageTitleHint: value })
                         })
+                    ),
+                    el(PanelBody, { title: __('Promo Overlay', 'aegis-hero'), initialOpen: false },
+                        el(ToggleControl, {
+                            label: __('Enable promo overlay', 'aegis-hero'),
+                            checked: promoEnabled,
+                            onChange: (value) => setAttributes({ promoEnabled: value })
+                        }),
+                        promoEnabled && el(Fragment, {},
+                            el('div', { className: 'aegis-hero-editor__anchor' },
+                                el('p', { className: 'aegis-hero-editor__anchor-label' }, __('Anchor', 'aegis-hero')),
+                                el(ButtonGroup, { className: 'aegis-hero-editor__anchor-grid' },
+                                    promoAnchorOptions.map(function (option) {
+                                        const isPressed = option === promoAnchor;
+                                        return el(Button, {
+                                            key: option,
+                                            isPrimary: isPressed,
+                                            isSecondary: !isPressed,
+                                            onClick: function () { setAttributes({ promoAnchor: option }); }
+                                        }, option);
+                                    })
+                                )
+                            ),
+                            el('div', { className: 'aegis-hero-editor__offsets' },
+                                el(NumberControl, {
+                                    label: __('Offset X (desktop, px)', 'aegis-hero'),
+                                    value: promoOffsetX,
+                                    onChange: (value) => setAttributes({ promoOffsetX: parseInt(value, 10) || 0 })
+                                }),
+                                el(NumberControl, {
+                                    label: __('Offset Y (desktop, px)', 'aegis-hero'),
+                                    value: promoOffsetY,
+                                    onChange: (value) => setAttributes({ promoOffsetY: parseInt(value, 10) || 0 })
+                                })
+                            ),
+                            el(ToggleControl, {
+                                label: __('Use same on mobile', 'aegis-hero'),
+                                checked: promoUseSameOnMobile,
+                                onChange: (value) => setAttributes({ promoUseSameOnMobile: value })
+                            }),
+                            !promoUseSameOnMobile && el('div', { className: 'aegis-hero-editor__offsets' },
+                                el(NumberControl, {
+                                    label: __('Offset X (mobile, px)', 'aegis-hero'),
+                                    value: promoOffsetXMobile,
+                                    onChange: (value) => setAttributes({ promoOffsetXMobile: parseInt(value, 10) || 0 })
+                                }),
+                                el(NumberControl, {
+                                    label: __('Offset Y (mobile, px)', 'aegis-hero'),
+                                    value: promoOffsetYMobile,
+                                    onChange: (value) => setAttributes({ promoOffsetYMobile: parseInt(value, 10) || 0 })
+                                })
+                            ),
+                            el(NumberControl, {
+                                label: __('Max width (px)', 'aegis-hero'),
+                                value: promoMaxWidth,
+                                onChange: (value) => setAttributes({ promoMaxWidth: parseInt(value, 10) || 0 })
+                            })
+                        )
                     )
                 ),
-                el('div', Object.assign({}, blockProps, {
-                    className: [blockProps.className, 'aegis-hero-editor'].filter(Boolean).join(' ')
-                }),
+                el('div', Object.assign({}, blockProps),
                     el('div', {
-                        className: [
-                            'aegis-hero-editor__preview',
-                            'aegis-hero',
-                            'aegis-hero--mode-' + heightModeValue,
-                            subtractHeader ? 'aegis-hero--subtract-header' : ''
-                        ].filter(Boolean).join(' '),
+                        className: heroClassName,
                         style: previewStyle
                     },
                         previewUrl ?
@@ -216,7 +311,16 @@
                             }) :
                             el('div', { className: 'aegis-hero-editor__preview-placeholder' },
                                 previewSlide ? __('Cover preview unavailable', 'aegis-hero') : __('Add slides to preview', 'aegis-hero')
+                            ),
+                        promoEnabled && el('div', { className: 'aegis-hero__overlay' },
+                            el('div', { className: 'aegis-hero__promo' },
+                                el(InnerBlocks, {
+                                    allowedBlocks: promoAllowedBlocks,
+                                    template: promoTemplate,
+                                    templateLock: false
+                                })
                             )
+                        )
                     ),
                     !hidePageTitleHint && el('p', { className: 'aegis-hero-editor__hint' },
                         __('页面顶部的 Home 标题来自 Post Title/模板；如需隐藏，请在模板中移除 Post Title 块或使用无标题模板。', 'aegis-hero')
