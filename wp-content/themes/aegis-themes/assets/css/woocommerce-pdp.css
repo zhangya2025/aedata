@@ -155,7 +155,11 @@
 }
 
 @media (min-width: 1024px) {
-    .aegis-wc-module--buybox {
+    .aegis-wc-top__buybox {
+        min-width: 380px;
+    }
+
+    .aegis-wc-buybox__inner {
         position: sticky;
         top: 18px;
     }
