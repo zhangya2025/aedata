@@ -40,7 +40,6 @@ function aegis_wc_gallery_wall_shortcode() {
     }
 
     $image_ids = array_values( array_unique( array_filter( $image_ids ) ) );
-    $image_ids = array_slice( $image_ids, 0, 6 );
 
     if ( empty( $image_ids ) ) {
         return '';
