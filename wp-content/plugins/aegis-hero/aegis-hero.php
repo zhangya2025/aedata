@@ -101,6 +101,26 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
         return '';
     }
 
+    $promo_anchor_options = [
+        'top-left', 'top', 'top-right',
+        'left', 'center', 'right',
+        'bottom-left', 'bottom', 'bottom-right',
+    ];
+
+    $promo_enabled = array_key_exists('promoEnabled', $attributes) ? (bool) $attributes['promoEnabled'] : true;
+    $promo_anchor = in_array($attributes['promoAnchor'], $promo_anchor_options, true) ? $attributes['promoAnchor'] : 'bottom-left';
+    $promo_offset_x = isset($attributes['promoOffsetX']) ? (int) $attributes['promoOffsetX'] : 40;
+    $promo_offset_y = isset($attributes['promoOffsetY']) ? (int) $attributes['promoOffsetY'] : -40;
+    $promo_use_same_mobile = array_key_exists('promoUseSameOnMobile', $attributes) ? (bool) $attributes['promoUseSameOnMobile'] : true;
+    $promo_offset_x_m = $promo_use_same_mobile ? $promo_offset_x : (isset($attributes['promoOffsetXMobile']) ? (int) $attributes['promoOffsetXMobile'] : 24);
+    $promo_offset_y_m = $promo_use_same_mobile ? $promo_offset_y : (isset($attributes['promoOffsetYMobile']) ? (int) $attributes['promoOffsetYMobile'] : -24);
+    $promo_max_w = isset($attributes['promoMaxWidth']) ? (int) $attributes['promoMaxWidth'] : 720;
+
+    $has_promo_content = is_string($content) && trim(wp_strip_all_tags($content, true)) !== '';
+    if (!$promo_enabled || !$has_promo_content) {
+        $promo_enabled = false;
+    }
+
     $allow_external = (bool) get_option('aegis_hero_allow_external', false);
     $allowlist_raw = (string) get_option('aegis_hero_allowlist', '');
     $allowlist_domains = array_filter(array_map('trim', explode("\n", $allowlist_raw)));
