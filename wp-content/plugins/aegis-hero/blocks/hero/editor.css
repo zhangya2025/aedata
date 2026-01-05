@@ -1,0 +1,22 @@
+.editor-styles-wrapper .wp-block[data-type="aegis/hero"] {
+    max-width: none;
+    width: 100%;
+}
+
+.editor-styles-wrapper .wp-block[data-type="aegis/hero"][data-align="full"] {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.editor-styles-wrapper .aegis-hero.alignfull,
+.editor-styles-wrapper .wp-block-aegis-hero.alignfull {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.editor-styles-wrapper .wp-block[data-type="aegis/hero"] > .aegis-hero-editor {
+    width: 100%;
+}
