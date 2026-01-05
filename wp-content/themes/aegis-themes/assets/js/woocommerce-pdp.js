@@ -11,6 +11,14 @@
         'sticky_bar',
     ];
 
+    const getDisabledModules = () => {
+        if (!Array.isArray(window.AEGIS_WC_PDP_DISABLED)) {
+            return [];
+        }
+
+        return window.AEGIS_WC_PDP_DISABLED;
+    };
+
     const ensureModuleDataAttributes = () => {
         if (document.querySelector('[data-aegis-module]')) {
             return;
@@ -44,6 +52,33 @@
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
+    const hideDisabledModules = () => {
+        const disabled = getDisabledModules();
+
+        disabled.forEach((id) => {
+            const nodes = document.querySelectorAll(
+                `[data-aegis-module="${id}"], .aegis-wc-module--${id}`
+            );
+
+            nodes.forEach((node) => {
+                if (!node.hasAttribute('data-aegis-module')) {
+                    node.setAttribute('data-aegis-module', id);
+                }
+                node.remove();
+            });
+
+            if (id === 'buybox') {
+                const stickyNodes = document.querySelectorAll(
+                    '[data-aegis-module="sticky_bar"], .aegis-wc-module--sticky_bar'
+                );
+
+                stickyNodes.forEach((node) => {
+                    node.remove();
+                });
+            }
+        });
+    };
+
     const bindScrollButtons = () => {
         const scrollButtons = document.querySelectorAll('[data-scroll-target]');
         scrollButtons.forEach((button) => {
@@ -56,6 +91,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         ensureModuleDataAttributes();
+        hideDisabledModules();
         bindScrollButtons();
     });
 })();
