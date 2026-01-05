@@ -148,17 +148,14 @@
 
 .aegis-hero__overlay {
     position: absolute;
-    inset: 0;
     pointer-events: none;
     z-index: 4;
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
 }
 
 .aegis-hero__promo {
     pointer-events: auto;
     max-width: var(--aegis-promo-maxw, 720px);
+    transform: translate(var(--aegis-promo-offset-x, 0px), var(--aegis-promo-offset-y, 0px));
 }
 
 .aegis-hero__promo > *:not(:last-child) {
@@ -166,52 +163,57 @@
 }
 
 .aegis-hero--promo-anchor-top .aegis-hero__overlay {
-    justify-content: center;
-    align-items: flex-start;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .aegis-hero--promo-anchor-top-left .aegis-hero__overlay {
-    justify-content: flex-start;
-    align-items: flex-start;
+    top: 0;
+    left: 0;
+    transform: none;
 }
 
 .aegis-hero--promo-anchor-top-right .aegis-hero__overlay {
-    justify-content: flex-end;
-    align-items: flex-start;
+    top: 0;
+    right: 0;
+    transform: none;
 }
 
 .aegis-hero--promo-anchor-left .aegis-hero__overlay {
-    justify-content: flex-start;
-    align-items: center;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
 }
 
 .aegis-hero--promo-anchor-center .aegis-hero__overlay {
-    justify-content: center;
-    align-items: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .aegis-hero--promo-anchor-right .aegis-hero__overlay {
-    justify-content: flex-end;
-    align-items: center;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
 }
 
 .aegis-hero--promo-anchor-bottom-left .aegis-hero__overlay {
-    justify-content: flex-start;
-    align-items: flex-end;
+    bottom: 0;
+    left: 0;
+    transform: none;
 }
 
 .aegis-hero--promo-anchor-bottom .aegis-hero__overlay {
-    justify-content: center;
-    align-items: flex-end;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .aegis-hero--promo-anchor-bottom-right .aegis-hero__overlay {
-    justify-content: flex-end;
-    align-items: flex-end;
-}
-
-.aegis-hero__promo {
-    transform: translate(var(--aegis-promo-offset-x, 0px), var(--aegis-promo-offset-y, 0px));
+    bottom: 0;
+    right: 0;
+    transform: none;
 }
 
 @media (max-width: 782px) {

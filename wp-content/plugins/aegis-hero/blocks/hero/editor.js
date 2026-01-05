@@ -105,12 +105,12 @@
                 hidePageTitleHint,
                 align,
                 promoEnabled = true,
-                promoAnchor = 'bottom-left',
-                promoOffsetX = 40,
-                promoOffsetY = -40,
+                promoAnchor = 'center',
+                promoOffsetX = 0,
+                promoOffsetY = 0,
                 promoUseSameOnMobile = true,
-                promoOffsetXMobile = 24,
-                promoOffsetYMobile = -24,
+                promoOffsetXMobile = 0,
+                promoOffsetYMobile = 0,
                 promoMaxWidth = 720,
             } = attributes;
 
@@ -146,15 +146,15 @@
             const previewUrl = previewMedia && previewMedia.source_url ? previewMedia.source_url : '';
 
             const heightModeValue = heightMode || 'fixed';
-            const anchorValue = anchorOptions.some((option) => option.value === promoAnchor) ? promoAnchor : 'bottom-left';
-            const promoOffsetXValue = Number.isFinite(promoOffsetX) ? promoOffsetX : 40;
-            const promoOffsetYValue = Number.isFinite(promoOffsetY) ? promoOffsetY : -40;
+            const anchorValue = anchorOptions.some((option) => option.value === promoAnchor) ? promoAnchor : 'center';
+            const promoOffsetXValue = Number.isFinite(promoOffsetX) ? promoOffsetX : 0;
+            const promoOffsetYValue = Number.isFinite(promoOffsetY) ? promoOffsetY : 0;
             const promoOffsetXMobileValue = promoUseSameOnMobile
                 ? promoOffsetXValue
-                : (Number.isFinite(promoOffsetXMobile) ? promoOffsetXMobile : 24);
+                : (Number.isFinite(promoOffsetXMobile) ? promoOffsetXMobile : 0);
             const promoOffsetYMobileValue = promoUseSameOnMobile
                 ? promoOffsetYValue
-                : (Number.isFinite(promoOffsetYMobile) ? promoOffsetYMobile : -24);
+                : (Number.isFinite(promoOffsetYMobile) ? promoOffsetYMobile : 0);
             const promoMaxWidthValue = Number.isFinite(promoMaxWidth) ? promoMaxWidth : 720;
             const previewStyle = {
                 '--aegis-hero-h': (heightDesktop || 520) + 'px',
@@ -315,15 +315,16 @@
                 ),
                 el('div', blockProps,
                     el('div', {
-                        className: [
-                            'aegis-hero-editor__preview',
-                            'aegis-hero',
-                            'aegis-hero--mode-' + heightModeValue,
-                            subtractHeader ? 'aegis-hero--subtract-header' : '',
-                            promoEnabled ? 'aegis-hero--promo-anchor-' + anchorValue : ''
-                        ].filter(Boolean).join(' '),
-                        style: previewStyle
-                    },
+                className: [
+                    'aegis-hero-editor__preview',
+                    'aegis-hero',
+                    alignClassName,
+                    'aegis-hero--mode-' + heightModeValue,
+                    subtractHeader ? 'aegis-hero--subtract-header' : '',
+                    promoEnabled ? 'aegis-hero--promo-anchor-' + anchorValue : ''
+                ].filter(Boolean).join(' '),
+                style: previewStyle
+            },
                         previewUrl ?
                             el('img', {
                                 className: 'aegis-hero-editor__preview-media',
