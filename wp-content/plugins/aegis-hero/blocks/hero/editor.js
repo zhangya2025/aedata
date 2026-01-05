@@ -206,6 +206,15 @@
                 previewStyle.height = offset ? 'calc(70vh - ' + offset + 'px)' : '70vh';
             }
 
+            const heroClassName = [
+                'aegis-hero-editor__preview',
+                'aegis-hero',
+                alignClassName,
+                'aegis-hero--mode-' + heightModeValue,
+                subtractHeader ? 'aegis-hero--subtract-header' : '',
+                promoEnabled ? 'aegis-hero--promo-anchor-' + promoAnchor : '',
+            ].filter(Boolean).join(' ');
+
             return el(Fragment, {},
                 el(InspectorControls, {},
                     el(PanelBody, { title: __('Layout', 'aegis-hero'), initialOpen: true },
