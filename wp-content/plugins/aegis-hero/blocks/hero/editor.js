@@ -114,8 +114,10 @@
                 promoMaxWidth = 720,
             } = attributes;
 
+            const alignClassName = attributes && attributes.align ? 'align' + attributes.align : '';
+
             const blockProps = useBlockProps({
-                className: ['aegis-hero-editor', align ? 'align' + align : ''].filter(Boolean).join(' ')
+                className: ['aegis-hero-editor', alignClassName].filter(Boolean).join(' ')
             });
             const previewSlide = slides[0];
             const previewMedia = useSelect(
