@@ -80,7 +80,9 @@
     overflow: hidden;
     border-radius: 6px;
     aspect-ratio: 4 / 5;
-    background: #f7f7f8;
+    background: #f3f4f6;
+    grid-column: auto;
+    grid-row: auto;
 }
 
 .aegis-gallery-wall__item img {
