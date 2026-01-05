@@ -158,7 +158,7 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
 
     $promo_anchor = isset($attributes['promoAnchor']) && in_array($attributes['promoAnchor'], $allowed_anchors, true)
         ? $attributes['promoAnchor']
-        : 'bottom-left';
+        : 'center';
     $promo_offset_x = isset($attributes['promoOffsetX']) && is_numeric($attributes['promoOffsetX']) ? (int) $attributes['promoOffsetX'] : 0;
     $promo_offset_y = isset($attributes['promoOffsetY']) && is_numeric($attributes['promoOffsetY']) ? (int) $attributes['promoOffsetY'] : 0;
     $promo_offset_x_m = !empty($attributes['promoUseSameOnMobile'])
@@ -169,11 +169,15 @@ function aegis_hero_render_block($attributes, $content = '', $block = null)
         : (isset($attributes['promoOffsetYMobile']) && is_numeric($attributes['promoOffsetYMobile']) ? (int) $attributes['promoOffsetYMobile'] : 0);
     $promo_max_width = isset($attributes['promoMaxWidth']) && is_numeric($attributes['promoMaxWidth']) ? (int) $attributes['promoMaxWidth'] : 720;
     $promo_title_color = isset($attributes['promoTitleColor']) ? (string) $attributes['promoTitleColor'] : '#ffffff';
+    $promo_title_color = $promo_title_color !== '' ? $promo_title_color : '#ffffff';
     $promo_title_size = isset($attributes['promoTitleFontSize']) && is_numeric($attributes['promoTitleFontSize']) ? (int) $attributes['promoTitleFontSize'] : 48;
     $promo_text_color = isset($attributes['promoTextColor']) ? (string) $attributes['promoTextColor'] : 'rgba(255,255,255,0.85)';
+    $promo_text_color = $promo_text_color !== '' ? $promo_text_color : 'rgba(255,255,255,0.85)';
     $promo_text_size = isset($attributes['promoTextFontSize']) && is_numeric($attributes['promoTextFontSize']) ? (int) $attributes['promoTextFontSize'] : 16;
     $promo_btn_text_color = isset($attributes['promoButtonTextColor']) ? (string) $attributes['promoButtonTextColor'] : '#ffffff';
+    $promo_btn_text_color = $promo_btn_text_color !== '' ? $promo_btn_text_color : '#ffffff';
     $promo_btn_bg_color = isset($attributes['promoButtonBgColor']) ? (string) $attributes['promoButtonBgColor'] : 'rgba(0,0,0,0.45)';
+    $promo_btn_bg_color = $promo_btn_bg_color !== '' ? $promo_btn_bg_color : 'rgba(0,0,0,0.45)';
     $promo_content = aegis_hero_resolve_promo_content($content, $block);
     $should_render_promo = !empty($attributes['promoEnabled']) && aegis_hero_has_promo_content($promo_content);
 
@@ -268,10 +272,25 @@ function aegis_hero_resolve_promo_content($content, $block)
         return $content;
     }
 
-    if ($block instanceof WP_Block && is_array($block->inner_content)) {
-        $resolved = trim(implode('', $block->inner_content));
-        if ($resolved !== '') {
-            return $resolved;
+    if ($block instanceof WP_Block) {
+        if (is_array($block->inner_content)) {
+            $resolved = trim(implode('', $block->inner_content));
+            if ($resolved !== '') {
+                return $resolved;
+            }
+        }
+
+        if (!empty($block->inner_blocks) && is_array($block->inner_blocks)) {
+            $rendered = '';
+            foreach ($block->inner_blocks as $inner_block) {
+                if ($inner_block instanceof WP_Block) {
+                    $rendered .= $inner_block->render();
+                }
+            }
+
+            if (trim($rendered) !== '') {
+                return $rendered;
+            }
         }
     }
 

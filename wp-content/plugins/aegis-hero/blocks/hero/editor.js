@@ -130,6 +130,11 @@
 
             const alignClassName = attributes && attributes.align ? 'align' + attributes.align : '';
 
+            const toNumber = (value, fallback) => {
+                const parsed = typeof value === 'string' ? parseFloat(value) : value;
+                return Number.isFinite(parsed) ? parsed : fallback;
+            };
+
             const blockProps = useBlockProps({
                 className: ['aegis-hero-editor', alignClassName].filter(Boolean).join(' ')
             });
@@ -161,17 +166,17 @@
 
             const heightModeValue = heightMode || 'fixed';
             const anchorValue = anchorOptions.some((option) => option.value === promoAnchor) ? promoAnchor : 'center';
-            const promoOffsetXValue = Number.isFinite(promoOffsetX) ? promoOffsetX : 0;
-            const promoOffsetYValue = Number.isFinite(promoOffsetY) ? promoOffsetY : 0;
+            const promoOffsetXValue = toNumber(promoOffsetX, 0);
+            const promoOffsetYValue = toNumber(promoOffsetY, 0);
             const promoOffsetXMobileValue = promoUseSameOnMobile
                 ? promoOffsetXValue
-                : (Number.isFinite(promoOffsetXMobile) ? promoOffsetXMobile : 0);
+                : toNumber(promoOffsetXMobile, 0);
             const promoOffsetYMobileValue = promoUseSameOnMobile
                 ? promoOffsetYValue
-                : (Number.isFinite(promoOffsetYMobile) ? promoOffsetYMobile : 0);
-            const promoMaxWidthValue = Number.isFinite(promoMaxWidth) ? promoMaxWidth : 720;
-            const promoTitleSizeValue = Number.isFinite(promoTitleFontSize) ? promoTitleFontSize : 48;
-            const promoTextSizeValue = Number.isFinite(promoTextFontSize) ? promoTextFontSize : 16;
+                : toNumber(promoOffsetYMobile, 0);
+            const promoMaxWidthValue = toNumber(promoMaxWidth, 720);
+            const promoTitleSizeValue = toNumber(promoTitleFontSize, 48);
+            const promoTextSizeValue = toNumber(promoTextFontSize, 16);
             const promoTitleColorValue = promoTitleColor || '#ffffff';
             const promoTextColorValue = promoTextColor || 'rgba(255,255,255,0.85)';
             const promoButtonTextColorValue = promoButtonTextColor || '#ffffff';
