@@ -67,7 +67,7 @@ function aegis_hero_register_block()
 /**
  * Render callback for the hero block.
  */
-function aegis_hero_render_block($attributes)
+function aegis_hero_render_block($attributes, $content)
 {
     $defaults = [
         'slides' => [],
@@ -82,6 +82,14 @@ function aegis_hero_render_block($attributes)
         'showDots' => true,
         'autoplay' => false,
         'intervalMs' => 6000,
+        'promoEnabled' => true,
+        'promoAnchor' => 'bottom-left',
+        'promoOffsetX' => 40,
+        'promoOffsetY' => -40,
+        'promoUseSameOnMobile' => true,
+        'promoOffsetXMobile' => 24,
+        'promoOffsetYMobile' => -24,
+        'promoMaxWidth' => 720,
     ];
 
     $attributes = wp_parse_args($attributes, $defaults);
@@ -91,6 +99,26 @@ function aegis_hero_render_block($attributes)
 
     if (empty($slides)) {
         return '';
+    }
+
+    $promo_anchor_options = [
+        'top-left', 'top', 'top-right',
+        'left', 'center', 'right',
+        'bottom-left', 'bottom', 'bottom-right',
+    ];
+
+    $promo_enabled = array_key_exists('promoEnabled', $attributes) ? (bool) $attributes['promoEnabled'] : true;
+    $promo_anchor = in_array($attributes['promoAnchor'], $promo_anchor_options, true) ? $attributes['promoAnchor'] : 'bottom-left';
+    $promo_offset_x = isset($attributes['promoOffsetX']) ? (int) $attributes['promoOffsetX'] : 40;
+    $promo_offset_y = isset($attributes['promoOffsetY']) ? (int) $attributes['promoOffsetY'] : -40;
+    $promo_use_same_mobile = array_key_exists('promoUseSameOnMobile', $attributes) ? (bool) $attributes['promoUseSameOnMobile'] : true;
+    $promo_offset_x_m = $promo_use_same_mobile ? $promo_offset_x : (isset($attributes['promoOffsetXMobile']) ? (int) $attributes['promoOffsetXMobile'] : 24);
+    $promo_offset_y_m = $promo_use_same_mobile ? $promo_offset_y : (isset($attributes['promoOffsetYMobile']) ? (int) $attributes['promoOffsetYMobile'] : -24);
+    $promo_max_w = isset($attributes['promoMaxWidth']) ? (int) $attributes['promoMaxWidth'] : 720;
+
+    $has_promo_content = is_string($content) && trim(wp_strip_all_tags($content, true)) !== '';
+    if (!$promo_enabled || !$has_promo_content) {
+        $promo_enabled = false;
     }
 
     $allow_external = (bool) get_option('aegis_hero_allow_external', false);
@@ -110,6 +138,17 @@ function aegis_hero_render_block($attributes)
         $subtract_header ? 1 : 0
     );
 
+    if ($promo_enabled) {
+        $height_style .= sprintf(
+            ' --aegis-promo-offset-x:%dpx; --aegis-promo-offset-y:%dpx; --aegis-promo-offset-x-m:%dpx; --aegis-promo-offset-y-m:%dpx; --aegis-promo-maxw:%dpx;',
+            $promo_offset_x,
+            $promo_offset_y,
+            $promo_offset_x_m,
+            $promo_offset_y_m,
+            $promo_max_w
+        );
+    }
+
     $align_class = '';
     if (in_array($align, ['wide', 'full'], true)) {
         $align_class = 'align' . sanitize_key($align);
@@ -127,6 +166,9 @@ function aegis_hero_render_block($attributes)
     $classes = ['aegis-hero', $align_class, $height_mode_class];
     if ($subtract_header) {
         $classes[] = 'aegis-hero--subtract-header';
+    }
+    if ($promo_enabled) {
+        $classes[] = 'aegis-hero--promo-anchor-' . sanitize_html_class($promo_anchor);
     }
 
     ob_start();
@@ -162,6 +204,13 @@ function aegis_hero_render_block($attributes)
                     ?>
                     <button class="aegis-hero__dot<?php echo esc_attr($is_active); ?>" type="button" data-target="<?php echo esc_attr($index); ?>" aria-label="Go to slide <?php echo esc_attr($index + 1); ?>"></button>
                 <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($promo_enabled) : ?>
+            <div class="aegis-hero__overlay">
+                <div class="aegis-hero__promo">
+                    <?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </div>
             </div>
         <?php endif; ?>
     </div>

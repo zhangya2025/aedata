@@ -66,6 +66,38 @@
     "hidePageTitleHint": {
       "type": "boolean",
       "default": false
+    },
+    "promoEnabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "promoAnchor": {
+      "type": "string",
+      "default": "bottom-left"
+    },
+    "promoOffsetX": {
+      "type": "number",
+      "default": 40
+    },
+    "promoOffsetY": {
+      "type": "number",
+      "default": -40
+    },
+    "promoUseSameOnMobile": {
+      "type": "boolean",
+      "default": true
+    },
+    "promoOffsetXMobile": {
+      "type": "number",
+      "default": 24
+    },
+    "promoOffsetYMobile": {
+      "type": "number",
+      "default": -24
+    },
+    "promoMaxWidth": {
+      "type": "number",
+      "default": 720
     }
   }
 }
