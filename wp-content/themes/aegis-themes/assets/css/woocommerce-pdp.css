@@ -1,7 +1,7 @@
 :root {
-    --aegis-max-width: 1240px;
-    --aegis-page-padding: 22px;
-    --aegis-gap-lg: 30px;
+    --aegis-max-width: var(--wp--style--global--wide-size, 1680px);
+    --aegis-page-padding: 20px;
+    --aegis-gap-lg: 28px;
     --aegis-gap-md: 22px;
     --aegis-gap-sm: 14px;
     --aegis-border: 1px solid #e5e7eb;
@@ -17,7 +17,7 @@
 .aegis-wc-product {
     max-width: var(--aegis-max-width);
     margin: 0 auto;
-    padding: 22px var(--aegis-page-padding) 108px;
+    padding: 16px var(--aegis-page-padding) 108px;
     display: flex;
     flex-direction: column;
     gap: var(--aegis-gap-lg);
@@ -27,7 +27,7 @@
 .aegis-wc-pdp-container {
     max-width: var(--aegis-max-width);
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 18px;
 }
 
 .aegis-wc-module {
@@ -43,7 +43,7 @@
 @media (min-width: 1024px) {
     .aegis-wc-pdp-top {
         grid-template-columns: 62% 38%;
-        gap: 30px;
+        gap: 32px;
     }
 }
 
@@ -67,7 +67,8 @@
 }
 
 .aegis-wc-top__gallery .woocommerce-product-gallery,
-.aegis-wc-top__gallery .wp-block-woocommerce-product-image-gallery {
+.aegis-wc-top__gallery .wp-block-woocommerce-product-image-gallery,
+.aegis-wc-top__gallery .wp-block-woocommerce-product-gallery {
     margin: 0;
     width: 100%;
     background: transparent;
@@ -75,12 +76,28 @@
 }
 
 .aegis-wc-top__gallery .woocommerce-product-gallery__wrapper,
-.aegis-wc-top__gallery .wp-block-woocommerce-product-image-gallery figure {
+.aegis-wc-top__gallery .wp-block-woocommerce-product-image-gallery figure,
+.aegis-wc-top__gallery .wp-block-woocommerce-product-gallery figure {
     margin: 0;
     border: none;
     border-radius: 6px;
     overflow: hidden;
     background: transparent;
+}
+
+@media (min-width: 768px) {
+    .aegis-wc-top__gallery .woocommerce-product-gallery,
+    .aegis-wc-top__gallery .wp-block-woocommerce-product-gallery {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 14px;
+        align-items: start;
+    }
+
+    .aegis-wc-top__gallery .woocommerce-product-gallery__wrapper,
+    .aegis-wc-top__gallery .wp-block-woocommerce-product-gallery figure {
+        grid-column: 2 / 3;
+    }
 }
 
 .aegis-wc-top__gallery .woocommerce-product-gallery__image img,
@@ -92,16 +109,31 @@
     background: #fff;
 }
 
+
 .aegis-wc-top__gallery .flex-control-thumbs,
 .aegis-wc-top__gallery .wc-block-components-product-image-thumbnail-list {
-    margin: 10px 0 0;
-    gap: 8px;
+    margin: 0;
+    gap: 10px;
 }
 
 .aegis-wc-top__gallery .flex-control-thumbs li,
 .aegis-wc-top__gallery .wc-block-components-product-image-thumbnail {
     border-radius: 6px;
     overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    .aegis-wc-top__gallery .flex-control-thumbs,
+    .aegis-wc-top__gallery .wc-block-components-product-image-thumbnail-list {
+        display: flex;
+        flex-direction: column;
+        grid-column: 1 / 2;
+    }
+
+    .aegis-wc-top__gallery .flex-control-thumbs li,
+    .aegis-wc-top__gallery .wc-block-components-product-image-thumbnail {
+        width: 100%;
+    }
 }
 
 /* Buybox */
