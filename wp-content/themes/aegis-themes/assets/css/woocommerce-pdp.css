@@ -943,14 +943,14 @@ body.aegis-size-guide-locked {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 12px;
     z-index: 9999;
 }
 
 .aegis-size-guide-modal {
     position: relative;
-    width: min(960px, 90vw);
-    max-height: 80vh;
+    width: min(1100px, 94vw);
+    max-height: min(82vh, 820px);
     overflow: auto;
     background: #ffffff;
     border: 1px solid #e5e7eb;
