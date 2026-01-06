@@ -544,7 +544,6 @@ body.aegis-variants-ready .aegis-variant-toggle {
 }
 
 .aegis-wc-module--trust,
-.aegis-wc-module--highlights,
 .aegis-wc-module--details,
 .aegis-wc-module--reviews,
 .aegis-wc-module--qa,
@@ -554,7 +553,6 @@ body.aegis-variants-ready .aegis-variant-toggle {
 }
 
 .aegis-wc-module--trust h3,
-.aegis-wc-module--highlights h3,
 .aegis-wc-module--details h3,
 .aegis-wc-module--reviews h3,
 .aegis-wc-module--qa h3,
@@ -562,6 +560,65 @@ body.aegis-variants-ready .aegis-variant-toggle {
     font-size: 16px;
     font-weight: 700;
     margin: 0 0 16px;
+}
+
+.aegis-wc-details {
+    display: grid;
+    gap: 16px;
+}
+
+.aegis-wc-details__section {
+    border: 1px solid #d1d5db;
+    border-radius: 0;
+    padding: 16px;
+    background: #fff;
+}
+
+.aegis-wc-details__section h4 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.aegis-wc-details__section p {
+    margin: 0 0 12px;
+    color: #111827;
+}
+
+.aegis-wc-details__features ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #111827;
+}
+
+.aegis-wc-details__features li + li {
+    margin-top: 6px;
+}
+
+.aegis-wc-details__specs table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.aegis-wc-details__specs th,
+.aegis-wc-details__specs td {
+    padding: 8px 10px;
+    border-top: 1px solid #e5e7eb;
+    text-align: left;
+    font-size: 14px;
+    color: #111827;
+}
+
+.aegis-wc-details__specs tr:first-child th,
+.aegis-wc-details__specs tr:first-child td {
+    border-top: none;
+}
+
+.aegis-wc-details__specs th {
+    width: 32%;
+    font-weight: 600;
+    color: #374151;
 }
 
 .aegis-wc-trust__badges {
