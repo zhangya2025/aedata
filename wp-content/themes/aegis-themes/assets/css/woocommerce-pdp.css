@@ -186,7 +186,7 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     position: relative;
     top: 0;
     padding: 20px;
-    border: var(--aegis-border);
+    border: 0;
     border-radius: 0 !important;
     background: #fff;
     box-shadow: none;
@@ -303,6 +303,91 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     color: rgba(17, 24, 39, 0.7);
     font-size: 14px;
     line-height: 1.6;
+}
+
+.aegis-wc-buybox__inner .aegis-wc-pdp-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc {
+    border: 1px solid #d1d5db;
+    border-radius: 0 !important;
+    background: #fff;
+    overflow: hidden;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    font-weight: 600;
+    color: #111827;
+    cursor: pointer;
+    list-style: none;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc summary::-webkit-details-marker,
+.aegis-wc-buybox__inner .aegis-pdp-acc summary::marker {
+    display: none;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc summary::after {
+    content: '\25BC';
+    margin-left: auto;
+    font-size: 12px;
+    color: #6b7280;
+    transition: transform 0.15s ease;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc[open] summary::after {
+    transform: rotate(-180deg);
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc__body {
+    padding: 12px;
+    font-size: 14px;
+    color: #111827;
+    line-height: 1.6;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc__body ul {
+    margin: 0 0 8px 18px;
+    padding: 0;
+    list-style: disc;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc__body ul li {
+    margin-bottom: 6px;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc__body table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc__body th,
+.aegis-wc-buybox__inner .aegis-pdp-acc__body td {
+    padding: 8px 10px;
+    border-top: 1px solid #e5e7eb;
+    text-align: left;
+    font-size: 14px;
+    color: #111827;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc__body tr:first-child th,
+.aegis-wc-buybox__inner .aegis-pdp-acc__body tr:first-child td {
+    border-top: none;
+}
+
+.aegis-wc-buybox__inner .aegis-pdp-acc__body th {
+    width: 40%;
+    font-weight: 600;
+    color: #374151;
 }
 
 .aegis-wc-buybox__inner form.cart {
