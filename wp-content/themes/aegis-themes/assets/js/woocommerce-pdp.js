@@ -223,8 +223,8 @@
             return null;
         }
 
-        let row = buybox.querySelector('.aegis-buybox-title-row');
-        if (!row) {
+        let row = buybox.querySelector('.aegis-buybox-title-row') || title.parentElement;
+        if (!row || !row.classList.contains('aegis-buybox-title-row')) {
             row = document.createElement('div');
             row.className = 'aegis-buybox-title-row';
         }
