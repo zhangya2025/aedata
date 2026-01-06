@@ -261,19 +261,17 @@ body.single-product .aegis-wc-module--recommendations {
 
 .aegis-wc-buybox__inner .woocommerce-product-rating .star-rating,
 .aegis-wc-buybox__inner .wc-block-components-product-rating .wc-block-components-product-rating__stars {
-    color: transparent;
+    color: #d1d5db;
 }
 
 .aegis-wc-buybox__inner .woocommerce-product-rating .star-rating::before,
 .aegis-wc-buybox__inner .wc-block-components-product-rating .wc-block-components-product-rating__stars::before {
-    color: transparent;
-    -webkit-text-stroke: 1px #d1d5db;
+    color: #d1d5db;
 }
 
 .aegis-wc-buybox__inner .woocommerce-product-rating .star-rating span::before,
 .aegis-wc-buybox__inner .wc-block-components-product-rating .wc-block-components-product-rating__filled-stars::before {
     color: #111827;
-    -webkit-text-stroke: 1px #111827;
 }
 
 .aegis-wc-buybox__inner .woocommerce-review-link {
@@ -601,6 +599,12 @@ body.aegis-variants-ready .aegis-variant-toggle {
     flex-wrap: wrap;
 }
 
+.aegis-wc-buybox__inner form.cart .variations tr:has(select[name*="size" i]) td.value {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .aegis-wc-buybox__inner form.cart .variations td.label label,
 .aegis-wc-buybox__inner form.cart .variations th.label label {
     margin: 0;
@@ -630,7 +634,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
     background: transparent !important;
     color: #111827 !important;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.4;
     text-transform: none;
     letter-spacing: normal;
