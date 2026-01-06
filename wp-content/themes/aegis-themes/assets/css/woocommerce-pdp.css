@@ -848,28 +848,39 @@ body.single-product #review_form p.stars {
 }
 
 body.single-product #review_form p.stars a {
-    color: #d1d5db;
+    color: transparent;
+    -webkit-text-stroke: 1px #d1d5db;
 }
 
 body.single-product #review_form p.stars a::before {
-    color: #d1d5db;
+    color: transparent;
+    -webkit-text-stroke: 1px #d1d5db;
 }
 
 body.single-product #review_form p.stars:hover a::before,
 body.single-product #review_form p.stars a:focus::before,
 body.single-product #review_form p.stars a:hover::before {
     color: #111827;
+    -webkit-text-stroke: 1px #111827;
 }
 
 body.single-product #review_form p.stars a:hover ~ a::before,
 body.single-product #review_form p.stars a:focus ~ a::before {
-    color: #d1d5db;
+    color: transparent;
+    -webkit-text-stroke: 1px #d1d5db;
 }
 
 body.single-product #review_form p.stars.selected a.active::before {
     color: #111827;
+    -webkit-text-stroke: 1px #111827;
+}
+
+body.single-product #review_form p.stars.selected a::before {
+    color: #111827;
+    -webkit-text-stroke: 1px #111827;
 }
 
 body.single-product #review_form p.stars.selected a.active ~ a::before {
-    color: #d1d5db;
+    color: transparent;
+    -webkit-text-stroke: 1px #d1d5db;
 }
