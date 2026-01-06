@@ -194,26 +194,52 @@
             row.appendChild(slot);
         }
 
-        const priceSource = buybox.querySelector(
-            '.wp-block-woocommerce-product-price, .wc-block-components-product-price, .price'
-        );
+        const collectPriceHtml = () => {
+            const selectors = [
+                '.single_variation_wrap .price',
+                '.wp-block-woocommerce-product-price',
+                '.wc-block-components-product-price',
+                '.price',
+            ];
 
-        const readPriceHtml = () => {
-            const priceNode = buybox.querySelector(
-                '.single_variation_wrap .price, .wp-block-woocommerce-product-price, .wc-block-components-product-price, .price'
-            );
-            return priceNode ? priceNode.innerHTML : '';
+            for (const selector of selectors) {
+                const node = buybox.querySelector(selector) || document.querySelector(selector);
+                if (node && node.innerHTML && node.innerHTML.trim()) {
+                    return node.innerHTML.trim();
+                }
+            }
+
+            return '';
         };
 
-        const defaultPriceHtml = priceSource && priceSource.innerHTML ? priceSource.innerHTML : readPriceHtml();
+        const ensureInitialPrice = () => {
+            const current = slot.dataset.initialPrice && slot.dataset.initialPrice.trim();
+            if (current) {
+                return current;
+            }
 
-        if (!slot.dataset.initialPrice) {
-            slot.dataset.initialPrice = defaultPriceHtml;
+            const html = collectPriceHtml();
+            if (html) {
+                slot.dataset.initialPrice = html;
+                return html;
+            }
+
+            return '';
+        };
+
+        const initialHtml = ensureInitialPrice();
+        slot.innerHTML = initialHtml;
+
+        if (!initialHtml) {
+            window.setTimeout(() => {
+                const lateHtml = ensureInitialPrice();
+                if (lateHtml) {
+                    slot.innerHTML = lateHtml;
+                }
+            }, 120);
         }
 
-        slot.innerHTML = defaultPriceHtml;
-
-        return { slot, initialHtml: defaultPriceHtml, row, readPriceHtml };
+        return { slot, ensureInitialPrice, row, readPriceHtml: collectPriceHtml };
     };
 
     const bindPriceSync = () => {
@@ -222,8 +248,14 @@
             return;
         }
 
-        const { slot, initialHtml, readPriceHtml } = mirror;
+        const { slot, ensureInitialPrice, readPriceHtml } = mirror;
+        let initialHtml = ensureInitialPrice();
         const syncPrice = (html) => {
+            const seededInitial = ensureInitialPrice() || initialHtml;
+            if (!initialHtml && seededInitial) {
+                initialHtml = seededInitial;
+            }
+
             const nextHtml = typeof html === 'string' && html.trim() ? html : initialHtml;
             slot.innerHTML = nextHtml || '';
         };

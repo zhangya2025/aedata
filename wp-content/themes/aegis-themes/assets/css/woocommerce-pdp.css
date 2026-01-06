@@ -404,15 +404,17 @@ body.aegis-variants-ready .aegis-variant-toggle {
 .aegis-variant-toggle__btn:focus-visible {
     border-color: #111827;
     color: #111827;
+    background: #ffffff;
     box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
-    outline: none;
+    outline: 2px solid rgba(17, 24, 39, 0.2);
+    outline-offset: 1px;
 }
 
 .aegis-variant-toggle__btn.is-active,
 .aegis-variant-toggle__btn[aria-pressed="true"] {
     border-color: #111827;
     color: #111827;
-    background: #fff;
+    background: #ffffff;
 }
 
 .aegis-wc-buybox__inner form.cart .variations tr {
