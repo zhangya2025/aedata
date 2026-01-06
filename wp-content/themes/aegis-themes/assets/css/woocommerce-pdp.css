@@ -429,8 +429,19 @@ body.aegis-variants-ready .aegis-variant-toggle {
 .aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus-visible {
     border-color: #9ca3af !important;
     color: #111827 !important;
-    outline: 2px solid rgba(17, 24, 39, 0.22);
-    outline-offset: 2px;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus,
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus-visible,
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus-visible {
+    box-shadow: inset 0 0 0 1px #111827 !important;
 }
 
 .aegis-wc-buybox__inner button.aegis-variant-toggle__btn.is-active,
