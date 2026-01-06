@@ -8,6 +8,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Retrieve PDP meta with fallback keys for backward compatibility.
+ *
+ * @param int    $post_id       Post ID.
+ * @param string $primary_key   Primary meta key.
+ * @param array  $fallback_keys Optional fallback keys to check if the primary key is empty.
+ *
+ * @return string Meta value.
+ */
+function aegis_pdp_get_meta_value( $post_id, $primary_key, $fallback_keys = array() ) {
+    $value = get_post_meta( $post_id, $primary_key, true );
+
+    if ( '' === $value && ! empty( $fallback_keys ) ) {
+        foreach ( $fallback_keys as $fallback_key ) {
+            $value = get_post_meta( $post_id, $fallback_key, true );
+
+            if ( '' !== $value && null !== $value ) {
+                break;
+            }
+        }
+    }
+
+    return is_string( $value ) ? $value : '';
+}
+
+/**
  * Register product meta fields for PDP content.
  */
 function aegis_pdp_register_meta() {
@@ -62,8 +87,8 @@ add_action( 'add_meta_boxes', 'aegis_pdp_fields_add_meta_box' );
  * @param WP_Post $post Current post object.
  */
 function aegis_pdp_fields_render_meta_box( $post ) {
-    $features = get_post_meta( $post->ID, '_aegis_pdp_features', true );
-    $specs    = get_post_meta( $post->ID, '_aegis_pdp_specs', true );
+    $features = aegis_pdp_get_meta_value( $post->ID, '_aegis_pdp_features', array( 'aegis_pdp_features' ) );
+    $specs    = aegis_pdp_get_meta_value( $post->ID, '_aegis_pdp_specs', array( 'aegis_pdp_specs' ) );
 
     wp_nonce_field( 'aegis_pdp_fields_nonce', 'aegis_pdp_fields_nonce' );
     ?>
