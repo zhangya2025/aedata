@@ -389,7 +389,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
     min-width: 0 !important;
     max-width: none;
     padding: 10px 16px;
-    border: 2px solid #d1d5db;
+    border: 1px solid #d1d5db;
     border-radius: 0 !important;
     background: #ffffff;
     color: #6b7280;
@@ -402,12 +402,11 @@ body.aegis-variants-ready .aegis-variant-toggle {
 
 .aegis-variant-toggle__btn:hover,
 .aegis-variant-toggle__btn:focus-visible {
-    border-color: #9ca3af;
+    border-color: #111827;
     color: #111827;
     background: #ffffff;
     box-shadow: none;
-    outline: 2px solid rgba(17, 24, 39, 0.22);
-    outline-offset: 1px;
+    outline: none;
 }
 
 .aegis-variant-toggle__btn.is-active,
@@ -419,7 +418,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
 
 .aegis-wc-buybox__inner button.aegis-variant-toggle__btn {
     background: #fff !important;
-    border: 2px solid #d1d5db !important;
+    border: 1px solid #d1d5db !important;
     color: #6b7280 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -427,10 +426,17 @@ body.aegis-variants-ready .aegis-variant-toggle {
 
 .aegis-wc-buybox__inner button.aegis-variant-toggle__btn:hover,
 .aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus-visible {
-    border-color: #9ca3af !important;
+    border-color: #111827 !important;
     color: #111827 !important;
-    outline: 2px solid rgba(17, 24, 39, 0.22);
-    outline-offset: 2px;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus,
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus-visible,
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:active {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .aegis-wc-buybox__inner button.aegis-variant-toggle__btn.is-active,
@@ -470,28 +476,49 @@ body.aegis-variants-ready .aegis-variant-toggle {
     width: 90px;
 }
 
-.aegis-wc-buybox__inner .single_add_to_cart_button,
-.aegis-wc-buybox__inner .wp-block-woocommerce-add-to-cart-form button {
+.aegis-wc-buybox__inner .woocommerce-variation-add-to-cart.variations_button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     width: 100%;
+}
+
+.aegis-wc-buybox__inner .woocommerce-variation-add-to-cart .quantity {
+    flex: 0 0 auto;
+}
+
+.aegis-wc-buybox__inner .single_add_to_cart_button,
+.aegis-wc-buybox__inner button.single_add_to_cart_button,
+.aegis-wc-buybox__inner .wp-block-woocommerce-add-to-cart-form button,
+.aegis-wc-buybox__inner .wp-element-button.button.alt {
+    flex: 1 1 auto;
+    width: 100%;
+    margin: 0;
     height: 48px;
-    border-radius: var(--aegis-radius-card);
-    border: none;
-    background: var(--aegis-cta);
-    color: #fff;
+    border-radius: 0;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #6b7280;
     font-size: 15px;
     font-weight: 700;
-    transition: background 0.2s ease, transform 0.08s ease;
+    box-shadow: none;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.aegis-wc-buybox__inner .single_add_to_cart_button:hover,
-.aegis-wc-buybox__inner .wp-block-woocommerce-add-to-cart-form button:hover {
+.aegis-wc-buybox__inner .single_add_to_cart_button:not(:disabled):not(.disabled),
+.aegis-wc-buybox__inner button.single_add_to_cart_button:not(:disabled):not(.disabled),
+.aegis-wc-buybox__inner .wp-block-woocommerce-add-to-cart-form button:not(:disabled):not(.disabled),
+.aegis-wc-buybox__inner .wp-element-button.button.alt:not(:disabled):not(.disabled) {
+    background: #111827;
+    border-color: #111827;
+    color: #fff;
+}
+
+.aegis-wc-buybox__inner .single_add_to_cart_button:not(:disabled):not(.disabled):hover,
+.aegis-wc-buybox__inner button.single_add_to_cart_button:not(:disabled):not(.disabled):hover,
+.aegis-wc-buybox__inner .wp-block-woocommerce-add-to-cart-form button:not(:disabled):not(.disabled):hover,
+.aegis-wc-buybox__inner .wp-element-button.button.alt:not(:disabled):not(.disabled):hover {
     background: #1f2937;
-    transform: translateY(-1px);
-}
-
-.aegis-wc-buybox__inner .single_add_to_cart_button:active,
-.aegis-wc-buybox__inner .wp-block-woocommerce-add-to-cart-form button:active {
-    transform: translateY(0);
 }
 
 .aegis-wc-buybox__inner .woocommerce-Price-amount {
