@@ -288,10 +288,27 @@
         }
 
         const { slot, getDefaultPrice } = mirror;
-        const applyPrice = (html) => {
-            const baseline = getDefaultPrice();
-            const nextHtml = typeof html === 'string' && html.trim() ? html : baseline;
-            slot.innerHTML = nextHtml;
+
+        const applyIfHtml = (html) => {
+            if (typeof html === 'string' && html.trim()) {
+                slot.innerHTML = html;
+            }
+        };
+
+        const applyDefault = () => {
+            slot.innerHTML = getDefaultPrice();
+        };
+
+        const applyFromSingleVariation = (form) => {
+            const sv = form.querySelector('.single_variation') || document.querySelector('.single_variation');
+            if (!sv) {
+                return;
+            }
+
+            const hasPrice = sv.querySelector('.price, .woocommerce-Price-amount');
+            if (hasPrice && sv.innerHTML && sv.innerHTML.trim()) {
+                slot.innerHTML = sv.innerHTML.trim();
+            }
         };
 
         const forms = document.querySelectorAll('.aegis-wc-module--buybox form.variations_form');
@@ -306,21 +323,29 @@
                 const $form = window.jQuery(form);
 
                 $form.on('found_variation', (event, variation) => {
-                    applyPrice(variation && variation.price_html);
+                    applyIfHtml(variation && variation.price_html);
+                });
+
+                $form.on('show_variation', () => {
+                    applyFromSingleVariation(form);
                 });
 
                 $form.on('reset_data', () => {
-                    applyPrice(getDefaultPrice());
+                    applyDefault();
                 });
             }
 
             form.addEventListener('found_variation', (event) => {
                 const variation = event && event.detail && event.detail.variation;
-                applyPrice(variation && variation.price_html);
+                applyIfHtml(variation && variation.price_html);
+            });
+
+            form.addEventListener('show_variation', () => {
+                applyFromSingleVariation(form);
             });
 
             form.addEventListener('reset_data', () => {
-                applyPrice(getDefaultPrice());
+                applyDefault();
             });
         });
     };
