@@ -68,6 +68,21 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     width: 100%;
 }
 
+body.single-product .aegis-wc-module,
+body.single-product .aegis-wc-module--trust,
+body.single-product .aegis-wc-module--highlights,
+body.single-product .aegis-wc-module--details,
+body.single-product .aegis-wc-module--reviews,
+body.single-product .aegis-wc-module--qa,
+body.single-product .aegis-wc-module--recommendations {
+    max-width: var(--aegis-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 18px;
+    padding-right: 18px;
+    box-sizing: border-box;
+}
+
 /* Top grid */
 .aegis-wc-pdp-top {
     display: grid;
@@ -830,19 +845,21 @@ body.single-product #review_form #rating {
 
 body.single-product #review_form p.stars {
     display: inline-flex;
-    gap: 8px;
-    margin: 6px 0;
+    flex-direction: row;
+    gap: 6px;
+    margin: 0;
     line-height: 1;
 }
 
 body.single-product #review_form p.stars a {
     position: relative;
-    display: block;
+    display: inline-block;
     width: 22px;
     height: 22px;
     text-indent: -9999px;
     overflow: hidden;
     color: #d1d5db;
+    float: none;
 }
 
 body.single-product #review_form p.stars a::before {
