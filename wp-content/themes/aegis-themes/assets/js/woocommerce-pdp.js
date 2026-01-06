@@ -165,6 +165,53 @@
         return toggle;
     };
 
+    const readProductId = (buybox) => {
+        const bodyMatch = (document.body.className || '').match(/\bpostid-(\d+)\b/);
+        if (bodyMatch && bodyMatch[1]) {
+            return bodyMatch[1];
+        }
+
+        const form = buybox && buybox.querySelector('form.variations_form');
+        if (form) {
+            const dataId = form.getAttribute('data-product_id') || form.getAttribute('data-product-id');
+            if (dataId) {
+                return dataId;
+            }
+
+            const inputId = form.querySelector('[name="product_id"]');
+            if (inputId && inputId.value) {
+                return inputId.value;
+            }
+        }
+
+        return null;
+    };
+
+    const readInteractivityPriceHtml = (productId) => {
+        if (!productId) {
+            return '';
+        }
+
+        const script = document.getElementById('wp-script-module-data-@wordpress/interactivity');
+        if (!script || !script.textContent) {
+            return '';
+        }
+
+        try {
+            const payload = JSON.parse(script.textContent);
+            return (
+                payload &&
+                payload.config &&
+                payload.config.woocommerce &&
+                payload.config.woocommerce.products &&
+                payload.config.woocommerce.products[productId] &&
+                payload.config.woocommerce.products[productId].price_html
+            ) || '';
+        } catch (error) {
+            return '';
+        }
+    };
+
     const initTitlePriceMirror = () => {
         const buybox = document.querySelector('.aegis-wc-module--buybox .aegis-wc-buybox__inner');
         if (!buybox) {
@@ -194,7 +241,7 @@
             row.appendChild(slot);
         }
 
-        const collectPriceHtml = () => {
+        const collectFallbackPriceHtml = () => {
             const selectors = [
                 '.single_variation_wrap .price',
                 '.wp-block-woocommerce-product-price',
@@ -212,34 +259,26 @@
             return '';
         };
 
-        const ensureInitialPrice = () => {
-            const current = slot.dataset.initialPrice && slot.dataset.initialPrice.trim();
-            if (current) {
-                return current;
-            }
+        const productId = readProductId(buybox);
+        let defaultPriceHtml = readInteractivityPriceHtml(productId) || collectFallbackPriceHtml();
 
-            const html = collectPriceHtml();
-            if (html) {
-                slot.dataset.initialPrice = html;
-                return html;
-            }
+        slot.dataset.defaultPrice = defaultPriceHtml || '';
+        slot.innerHTML = defaultPriceHtml || '';
 
-            return '';
-        };
-
-        const initialHtml = ensureInitialPrice();
-        slot.innerHTML = initialHtml;
-
-        if (!initialHtml) {
+        if (!slot.innerHTML) {
             window.setTimeout(() => {
-                const lateHtml = ensureInitialPrice();
+                const lateHtml = readInteractivityPriceHtml(productId) || collectFallbackPriceHtml();
                 if (lateHtml) {
+                    defaultPriceHtml = lateHtml;
+                    slot.dataset.defaultPrice = lateHtml;
                     slot.innerHTML = lateHtml;
                 }
             }, 120);
         }
 
-        return { slot, ensureInitialPrice, row, readPriceHtml: collectPriceHtml };
+        const getDefaultPrice = () => slot.dataset.defaultPrice || defaultPriceHtml || '';
+
+        return { slot, getDefaultPrice, row };
     };
 
     const bindPriceSync = () => {
@@ -248,44 +287,65 @@
             return;
         }
 
-        const { slot, ensureInitialPrice, readPriceHtml } = mirror;
-        let initialHtml = ensureInitialPrice();
-        const syncPrice = (html) => {
-            const seededInitial = ensureInitialPrice() || initialHtml;
-            if (!initialHtml && seededInitial) {
-                initialHtml = seededInitial;
+        const { slot, getDefaultPrice } = mirror;
+
+        const applyIfHtml = (html) => {
+            if (typeof html === 'string' && html.trim()) {
+                slot.innerHTML = html;
+            }
+        };
+
+        const applyDefault = () => {
+            slot.innerHTML = getDefaultPrice();
+        };
+
+        const applyFromSingleVariation = (form) => {
+            const sv = form.querySelector('.single_variation') || document.querySelector('.single_variation');
+            if (!sv) {
+                return;
             }
 
-            const nextHtml = typeof html === 'string' && html.trim() ? html : initialHtml;
-            slot.innerHTML = nextHtml || '';
+            const hasPrice = sv.querySelector('.price, .woocommerce-Price-amount');
+            if (hasPrice && sv.innerHTML && sv.innerHTML.trim()) {
+                slot.innerHTML = sv.innerHTML.trim();
+            }
         };
 
         const forms = document.querySelectorAll('.aegis-wc-module--buybox form.variations_form');
         forms.forEach((form) => {
-            if (window.jQuery && !form.dataset.aegisPriceSyncBound) {
-                form.dataset.aegisPriceSyncBound = '1';
+            if (form.dataset.aegisPriceSyncBound === '1') {
+                return;
+            }
+
+            form.dataset.aegisPriceSyncBound = '1';
+
+            if (window.jQuery) {
                 const $form = window.jQuery(form);
 
                 $form.on('found_variation', (event, variation) => {
-                    syncPrice(variation && variation.price_html ? variation.price_html : initialHtml);
+                    applyIfHtml(variation && variation.price_html);
+                });
+
+                $form.on('show_variation', () => {
+                    applyFromSingleVariation(form);
                 });
 
                 $form.on('reset_data', () => {
-                    syncPrice(initialHtml);
+                    applyDefault();
                 });
             }
 
-            const wrap = form.querySelector('.single_variation_wrap');
-            if (wrap && !wrap.dataset.aegisPriceObserver) {
-                wrap.dataset.aegisPriceObserver = '1';
-                const observer = new MutationObserver(() => {
-                    syncPrice(readPriceHtml());
-                });
-                observer.observe(wrap, { childList: true, subtree: true, characterData: true });
-            }
+            form.addEventListener('found_variation', (event) => {
+                const variation = event && event.detail && event.detail.variation;
+                applyIfHtml(variation && variation.price_html);
+            });
 
-            form.addEventListener('change', () => {
-                syncPrice(readPriceHtml());
+            form.addEventListener('show_variation', () => {
+                applyFromSingleVariation(form);
+            });
+
+            form.addEventListener('reset_data', () => {
+                applyDefault();
             });
         });
     };
