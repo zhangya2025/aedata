@@ -61,6 +61,8 @@ add_action( 'wp_enqueue_scripts', function () {
             AEGIS_THEMES_VERSION
         );
 
+        wp_enqueue_script( 'wc-single-product' );
+
         wp_enqueue_script(
             'aegis-themes-woocommerce-pdp',
             get_theme_file_uri( 'assets/js/woocommerce-pdp.js' ),
