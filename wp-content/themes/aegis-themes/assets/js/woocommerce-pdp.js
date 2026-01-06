@@ -165,13 +165,60 @@
         return toggle;
     };
 
-    const initTitlePriceMirror = () => {
+    const readProductId = (buybox) => {
+        const bodyMatch = (document.body.className || '').match(/\bpostid-(\d+)\b/);
+        if (bodyMatch && bodyMatch[1]) {
+            return bodyMatch[1];
+        }
+
+        const form = buybox && buybox.querySelector('form.variations_form');
+        if (form) {
+            const dataId = form.getAttribute('data-product_id') || form.getAttribute('data-product-id');
+            if (dataId) {
+                return dataId;
+            }
+
+            const inputId = form.querySelector('[name="product_id"]');
+            if (inputId && inputId.value) {
+                return inputId.value;
+            }
+        }
+
+        return null;
+    };
+
+    const readInteractivityPriceHtml = (productId) => {
+        if (!productId) {
+            return '';
+        }
+
+        const script = document.getElementById('wp-script-module-data-@wordpress/interactivity');
+        if (!script || !script.textContent) {
+            return '';
+        }
+
+        try {
+            const payload = JSON.parse(script.textContent);
+            return (
+                payload &&
+                payload.config &&
+                payload.config.woocommerce &&
+                payload.config.woocommerce.products &&
+                payload.config.woocommerce.products[productId] &&
+                payload.config.woocommerce.products[productId].price_html
+            ) || '';
+        } catch (error) {
+            return '';
+        }
+    };
+
+    const ensureTitlePriceMirror = () => {
         const buybox = document.querySelector('.aegis-wc-module--buybox .aegis-wc-buybox__inner');
         if (!buybox) {
             return null;
         }
 
-        const title = buybox.querySelector('.wp-block-post-title, .product_title, h1');
+        const title = buybox.querySelector('h1.wp-block-post-title, .wp-block-post-title, .product_title, h1');
         if (!title) {
             return null;
         }
@@ -180,31 +227,63 @@
         if (!row) {
             row = document.createElement('div');
             row.className = 'aegis-buybox-title-row';
-            buybox.insertBefore(row, buybox.firstChild);
         }
 
-        if (title.parentElement !== row) {
-            row.appendChild(title);
-        }
-
-        let slot = row.querySelector('.aegis-buybox-price-mirror');
+        let slot = row.querySelector('.aegis-buybox-price-mirror')
+            || buybox.querySelector('.aegis-buybox-price-mirror');
         if (!slot) {
             slot = document.createElement('div');
             slot.className = 'aegis-buybox-price-mirror';
-            row.appendChild(slot);
         }
 
-        const collectPriceHtml = () => {
+        if (buybox.dataset.aegisTitleRowInit !== '1') {
+            if (row.parentElement !== buybox) {
+                buybox.insertBefore(row, buybox.firstChild);
+            }
+
+            if (title.parentElement !== row) {
+                row.appendChild(title);
+            }
+
+            if (slot.parentElement !== row) {
+                row.appendChild(slot);
+            }
+
+            if (title.nextSibling !== slot) {
+                row.appendChild(slot);
+            }
+
+            buybox.dataset.aegisTitleRowInit = '1';
+        } else {
+            if (slot.parentElement !== row) {
+                row.appendChild(slot);
+            }
+        }
+
+        const safeSet = (html) => {
+            if (typeof html !== 'string') {
+                return;
+            }
+
+            const trimmed = html.trim();
+            if (!trimmed) {
+                return;
+            }
+
+            slot.innerHTML = trimmed;
+        };
+
+        const collectFallbackPriceHtml = () => {
             const selectors = [
-                '.single_variation_wrap .price',
                 '.wp-block-woocommerce-product-price',
                 '.wc-block-components-product-price',
+                '.aegis-wc-buybox__inner .price',
                 '.price',
             ];
 
             for (const selector of selectors) {
                 const node = buybox.querySelector(selector) || document.querySelector(selector);
-                if (node && node.innerHTML && node.innerHTML.trim()) {
+                if (node && typeof node.innerHTML === 'string' && node.innerHTML.trim()) {
                     return node.innerHTML.trim();
                 }
             }
@@ -212,80 +291,64 @@
             return '';
         };
 
-        const ensureInitialPrice = () => {
-            const current = slot.dataset.initialPrice && slot.dataset.initialPrice.trim();
-            if (current) {
-                return current;
-            }
+        const productId = readProductId(buybox);
+        const defaultPriceHtml =
+            readInteractivityPriceHtml(productId) || collectFallbackPriceHtml();
 
-            const html = collectPriceHtml();
-            if (html) {
-                slot.dataset.initialPrice = html;
-                return html;
-            }
+        safeSet(defaultPriceHtml);
 
-            return '';
-        };
+        const getDefaultPrice = () => defaultPriceHtml;
 
-        const initialHtml = ensureInitialPrice();
-        slot.innerHTML = initialHtml;
-
-        if (!initialHtml) {
-            window.setTimeout(() => {
-                const lateHtml = ensureInitialPrice();
-                if (lateHtml) {
-                    slot.innerHTML = lateHtml;
-                }
-            }, 120);
-        }
-
-        return { slot, ensureInitialPrice, row, readPriceHtml: collectPriceHtml };
+        return { slot, safeSet, getDefaultPrice, buybox };
     };
 
     const bindPriceSync = () => {
-        const mirror = initTitlePriceMirror();
+        const mirror = ensureTitlePriceMirror();
         if (!mirror) {
             return;
         }
 
-        const { slot, ensureInitialPrice, readPriceHtml } = mirror;
-        let initialHtml = ensureInitialPrice();
-        const syncPrice = (html) => {
-            const seededInitial = ensureInitialPrice() || initialHtml;
-            if (!initialHtml && seededInitial) {
-                initialHtml = seededInitial;
-            }
+        const { slot, safeSet, getDefaultPrice, buybox } = mirror;
 
-            const nextHtml = typeof html === 'string' && html.trim() ? html : initialHtml;
-            slot.innerHTML = nextHtml || '';
-        };
+        const forms = buybox.querySelectorAll('form.variations_form');
+        if (!forms.length || !window.jQuery) {
+            return;
+        }
 
-        const forms = document.querySelectorAll('.aegis-wc-module--buybox form.variations_form');
         forms.forEach((form) => {
-            if (window.jQuery && !form.dataset.aegisPriceSyncBound) {
-                form.dataset.aegisPriceSyncBound = '1';
-                const $form = window.jQuery(form);
-
-                $form.on('found_variation', (event, variation) => {
-                    syncPrice(variation && variation.price_html ? variation.price_html : initialHtml);
-                });
-
-                $form.on('reset_data', () => {
-                    syncPrice(initialHtml);
-                });
+            if (form.dataset.aegisPriceBound === '1') {
+                return;
             }
 
-            const wrap = form.querySelector('.single_variation_wrap');
-            if (wrap && !wrap.dataset.aegisPriceObserver) {
-                wrap.dataset.aegisPriceObserver = '1';
-                const observer = new MutationObserver(() => {
-                    syncPrice(readPriceHtml());
-                });
-                observer.observe(wrap, { childList: true, subtree: true, characterData: true });
-            }
+            form.dataset.aegisPriceBound = '1';
 
-            form.addEventListener('change', () => {
-                syncPrice(readPriceHtml());
+            const $form = window.jQuery(form);
+
+            $form.on('found_variation', (event, variation) => {
+                if (variation && typeof variation.price_html === 'string') {
+                    safeSet(variation.price_html);
+                }
+            });
+
+            $form.on('show_variation', (event, variation) => {
+                if (variation && typeof variation.price_html === 'string' && variation.price_html.trim()) {
+                    safeSet(variation.price_html);
+                    return;
+                }
+
+                const sv = form.querySelector('.single_variation') || document.querySelector('.single_variation');
+                if (!sv) {
+                    return;
+                }
+
+                const priceNode = sv.querySelector('.woocommerce-variation-price, .price');
+                if (priceNode && typeof priceNode.innerHTML === 'string') {
+                    safeSet(priceNode.innerHTML);
+                }
+            });
+
+            $form.on('hide_variation reset_data', () => {
+                safeSet(getDefaultPrice());
             });
         });
     };
