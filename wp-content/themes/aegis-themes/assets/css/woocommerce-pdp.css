@@ -941,16 +941,17 @@ body.aegis-size-guide-locked {
     inset: 0;
     background: rgba(0, 0, 0, 0.56);
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
-    padding: 12px;
+    padding: 8px;
     z-index: 9999;
 }
 
 .aegis-size-guide-modal {
     position: relative;
     width: min(1100px, 94vw);
-    max-height: min(82vh, 820px);
+    height: calc(100vh - 16px);
+    max-height: calc(100vh - 16px);
     overflow: auto;
     background: #ffffff;
     border: 1px solid #e5e7eb;
