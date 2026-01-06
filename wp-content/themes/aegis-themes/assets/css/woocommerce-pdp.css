@@ -446,6 +446,20 @@ body.single-product .aegis-wc-module--recommendations {
     border-collapse: collapse;
 }
 
+.aegis-wc-buybox__inner form.cart table.variations {
+    width: 100% !important;
+    table-layout: fixed;
+}
+
+.aegis-wc-buybox__inner form.cart table.variations tbody,
+.aegis-wc-buybox__inner form.cart table.variations tr {
+    width: 100% !important;
+}
+
+.aegis-wc-buybox__inner form.cart table.variations tbody {
+    display: block;
+}
+
 .aegis-wc-buybox__inner form.cart .variations td {
     padding: 6px 0;
 }
