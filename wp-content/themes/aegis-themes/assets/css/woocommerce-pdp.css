@@ -5,8 +5,8 @@
     --aegis-gap-md: 22px;
     --aegis-gap-sm: 14px;
     --aegis-border: 1px solid #e5e7eb;
-    --aegis-radius-card: 6px;
-    --aegis-radius-control: 8px;
+    --aegis-radius-card: 0px;
+    --aegis-radius-control: 0px;
     --aegis-text-muted: #6b7280;
     --aegis-bg-soft: #f9fafb;
     --aegis-cta: #111827;
@@ -121,7 +121,7 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     margin: 0;
     max-width: none;
     overflow: hidden;
-    border-radius: 6px;
+    border-radius: 0 !important;
     aspect-ratio: 4 / 5;
     background: #f3f4f6;
 }
@@ -133,6 +133,7 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     object-fit: cover;
     object-position: center;
     transition: transform 0.2s ease;
+    border-radius: 0 !important;
 }
 
 .aegis-gallery-wall__item:hover img {
@@ -186,7 +187,7 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     top: 0;
     padding: 20px;
     border: var(--aegis-border);
-    border-radius: var(--aegis-radius-card);
+    border-radius: 0 !important;
     background: #fff;
     box-shadow: none;
     display: grid;
@@ -200,17 +201,25 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     grid-column: 1 / -1;
 }
 
+.aegis-wc-buybox__inner .aegis-buybox-title-row {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
 .aegis-wc-buybox__inner .wp-block-post-title,
 .aegis-wc-buybox__inner .product_title,
 .aegis-wc-buybox__inner h1 {
-    grid-column: 1;
-    grid-row: 1;
+    grid-column: auto;
+    grid-row: auto;
+    margin: 0;
 }
 
 .aegis-wc-buybox__inner .aegis-buybox-price-mirror,
 .aegis-wc-buybox__inner .aegis-buybox-titleprice__price {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: auto;
+    grid-row: auto;
     justify-self: flex-end;
     align-self: flex-start;
 }
@@ -259,13 +268,19 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
 }
 
 .aegis-wc-buybox__inner .wp-block-woocommerce-product-price,
-.aegis-wc-buybox__inner .wc-block-components-product-price {
+.aegis-wc-buybox__inner .wc-block-components-product-price,
+.aegis-wc-buybox__inner .price {
     display: none !important;
 }
 
 .aegis-wc-buybox__inner .aegis-buybox-price-mirror,
 .aegis-wc-buybox__inner .aegis-buybox-titleprice__price {
+    margin-left: auto;
     white-space: nowrap;
+}
+
+.aegis-buybox-title-row .aegis-buybox-price-mirror {
+    text-align: right;
 }
 
 .aegis-wc-buybox__inner .wp-block-post-excerpt,
@@ -340,7 +355,7 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     width: 100%;
     min-height: 46px;
     border: var(--aegis-border);
-    border-radius: var(--aegis-radius-control);
+    border-radius: 0 !important;
     padding: 12px 12px;
     font-size: 14px;
     box-shadow: none;
@@ -372,7 +387,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
     max-width: 220px;
     padding: 12px 18px;
     border: 2px solid #d1d5db;
-    border-radius: 0;
+    border-radius: 0 !important;
     background: #ffffff;
     color: #6b7280;
     font-size: 14px;
@@ -468,7 +483,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
     justify-content: space-between;
     padding: 10px 12px;
     border: var(--aegis-border);
-    border-radius: 8px;
+    border-radius: 0 !important;
     font-size: 13px;
     font-weight: 600;
     color: #111827;
@@ -482,7 +497,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
 .aegis-wc-qa__placeholder {
     padding: 14px 16px;
     background: var(--aegis-bg-soft);
-    border-radius: 8px;
+    border-radius: 0 !important;
     color: var(--aegis-text-muted);
     margin: 0;
 }
@@ -501,6 +516,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
     z-index: 999;
     align-items: center;
     gap: 12px;
+    border-radius: 0 !important;
 }
 
 .aegis-wc-sticky-bar__price {
@@ -554,7 +570,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
 
     .aegis-wc-top__gallery .woocommerce-product-gallery__wrapper,
     .aegis-wc-top__gallery .wp-block-woocommerce-product-image-gallery figure {
-        border-radius: 10px;
+        border-radius: 0 !important;
     }
 
     .aegis-wc-sticky-bar {
