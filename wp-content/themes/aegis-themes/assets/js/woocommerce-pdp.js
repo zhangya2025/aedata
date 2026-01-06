@@ -90,6 +90,33 @@
         });
     };
 
+    const mapLabelText = (select) => {
+        const key = `${select.name || ''} ${select.id || ''}`.toLowerCase();
+
+        if (key.includes('color')) {
+            return 'COLOR';
+        }
+
+        if (key.includes('size')) {
+            return 'SIZE';
+        }
+
+        const segments = key.split('-').filter(Boolean);
+        const fallback = segments.length ? segments[segments.length - 1] : (select.getAttribute('aria-label') || '');
+        return (fallback || 'Option').toUpperCase();
+    };
+
+    const relabelVariant = (select) => {
+        const row = select.closest('tr');
+        const labelNode = row && row.querySelector('th.label label, td.label label');
+
+        if (!labelNode) {
+            return;
+        }
+
+        labelNode.textContent = mapLabelText(select);
+    };
+
     const buildVariantToggle = (select) => {
         if (select.dataset.aegisVariantInit === '1') {
             return;
@@ -123,9 +150,89 @@
             toggle.appendChild(btn);
         });
 
-        select.insertAdjacentElement('afterend', toggle);
+        relabelVariant(select);
+
+        const valueCell = select.closest('td.value');
+        if (valueCell) {
+            valueCell.appendChild(toggle);
+        } else {
+            select.insertAdjacentElement('afterend', toggle);
+        }
+
         select.addEventListener('change', () => updateVariantToggleState(select, toggle));
         updateVariantToggleState(select, toggle);
+    };
+
+    const initTitlePriceMirror = () => {
+        const buybox = document.querySelector('.aegis-wc-module--buybox .aegis-wc-buybox__inner');
+        if (!buybox) {
+            return null;
+        }
+
+        let slot = buybox.querySelector('.aegis-buybox-titleprice__price');
+        const title = buybox.querySelector('.wp-block-post-title, .product_title, h1');
+        if (!slot) {
+            slot = document.createElement('div');
+            slot.className = 'aegis-buybox-titleprice__price';
+            if (title) {
+                title.insertAdjacentElement('afterend', slot);
+            } else {
+                buybox.insertAdjacentElement('afterbegin', slot);
+            }
+        }
+
+        const priceSource = buybox.querySelector('.wp-block-woocommerce-product-price, .wc-block-components-product-price, .price');
+        const initialHtml = priceSource ? priceSource.innerHTML : '';
+
+        if (!slot.dataset.initialPrice) {
+            slot.dataset.initialPrice = initialHtml;
+        }
+
+        if (!slot.innerHTML) {
+            slot.innerHTML = initialHtml;
+        }
+
+        return { slot, initialHtml, priceSource };
+    };
+
+    const bindPriceSync = () => {
+        const mirror = initTitlePriceMirror();
+        if (!mirror) {
+            return;
+        }
+
+        const { slot, initialHtml, priceSource } = mirror;
+        const syncPrice = (html) => {
+            slot.innerHTML = html || initialHtml || (priceSource ? priceSource.innerHTML : '');
+        };
+
+        const forms = document.querySelectorAll('.aegis-wc-module--buybox form.variations_form');
+        forms.forEach((form) => {
+            if (window.jQuery && !form.dataset.aegisPriceSyncBound) {
+                form.dataset.aegisPriceSyncBound = '1';
+                const $form = window.jQuery(form);
+
+                $form.on('found_variation', (event, variation) => {
+                    syncPrice(variation && variation.price_html ? variation.price_html : initialHtml);
+                });
+
+                $form.on('reset_data', () => {
+                    syncPrice(initialHtml);
+                });
+
+                $form.on('woocommerce_variation_has_changed', () => {
+                    window.setTimeout(() => {
+                        syncPrice(priceSource ? priceSource.innerHTML : initialHtml);
+                    }, 20);
+                });
+            } else {
+                form.addEventListener('change', () => {
+                    window.setTimeout(() => {
+                        syncPrice(priceSource ? priceSource.innerHTML : initialHtml);
+                    }, 20);
+                });
+            }
+        });
     };
 
     const initVariantToggles = () => {
@@ -168,5 +275,6 @@
         hideDisabledModules();
         bindScrollButtons();
         initVariantToggles();
+        bindPriceSync();
     });
 })();
