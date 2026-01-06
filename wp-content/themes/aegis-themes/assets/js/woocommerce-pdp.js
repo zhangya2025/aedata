@@ -194,6 +194,10 @@
             row.appendChild(slot);
         }
 
+        const priceSource = buybox.querySelector(
+            '.wp-block-woocommerce-product-price, .wc-block-components-product-price, .price'
+        );
+
         const readPriceHtml = () => {
             const priceNode = buybox.querySelector(
                 '.single_variation_wrap .price, .wp-block-woocommerce-product-price, .wc-block-components-product-price, .price'
@@ -201,17 +205,15 @@
             return priceNode ? priceNode.innerHTML : '';
         };
 
-        const initialHtml = readPriceHtml();
+        const defaultPriceHtml = priceSource && priceSource.innerHTML ? priceSource.innerHTML : readPriceHtml();
 
         if (!slot.dataset.initialPrice) {
-            slot.dataset.initialPrice = initialHtml;
+            slot.dataset.initialPrice = defaultPriceHtml;
         }
 
-        if (!slot.innerHTML) {
-            slot.innerHTML = initialHtml;
-        }
+        slot.innerHTML = defaultPriceHtml;
 
-        return { slot, initialHtml, row, readPriceHtml };
+        return { slot, initialHtml: defaultPriceHtml, row, readPriceHtml };
     };
 
     const bindPriceSync = () => {

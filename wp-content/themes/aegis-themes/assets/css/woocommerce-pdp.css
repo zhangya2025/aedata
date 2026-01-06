@@ -382,10 +382,13 @@ body.aegis-variants-ready .aegis-variant-toggle {
 }
 
 .aegis-variant-toggle__btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
     width: auto !important;
-    min-width: 140px;
-    max-width: 220px;
-    padding: 12px 18px;
+    min-width: 0 !important;
+    max-width: none;
+    padding: 10px 16px;
     border: 2px solid #d1d5db;
     border-radius: 0 !important;
     background: #ffffff;
@@ -393,6 +396,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
     transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -409,6 +413,32 @@ body.aegis-variants-ready .aegis-variant-toggle {
     border-color: #111827;
     color: #111827;
     background: #fff;
+}
+
+.aegis-wc-buybox__inner form.cart .variations tr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.aegis-wc-buybox__inner form.cart .variations th.label {
+    width: 70px;
+    flex: 0 0 70px;
+    padding: 6px 0;
+}
+
+.aegis-wc-buybox__inner form.cart .variations td.value {
+    flex: 1;
+    padding: 6px 0;
+}
+
+.aegis-wc-buybox__inner form.cart .variations td.label label,
+.aegis-wc-buybox__inner form.cart .variations th.label label {
+    margin: 0;
+}
+
+.aegis-wc-buybox__inner .reset_variations {
+    display: none !important;
 }
 
 .aegis-wc-buybox__inner .quantity input.qty {
