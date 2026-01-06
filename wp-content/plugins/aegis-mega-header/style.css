@@ -13,7 +13,7 @@
   --aegis-mega-promo: 280px;
   --aegis-mega-col-min: 160px;
   --aegis-mega-col-max: 180px;
-  --aegis-tool-h: 44px;
+  --aegis-tool-h: 38px;
 }
 
 .aegis-mega-header a {
@@ -213,16 +213,16 @@
 }
 
 .aegis-header__search input[type="search"] {
-  padding: 8px 10px;
+  padding: 7px 10px;
   border: 1px solid #cbd5e1;
   border-radius: 0;
   min-width: 160px;
   font-size: 14px;
-  line-height: calc(var(--aegis-tool-h) - 2px);
+  line-height: calc(var(--aegis-tool-h) - 14px);
 }
 
 .aegis-header__search-btn {
-  padding: 8px 12px;
+  padding: 7px 12px;
   border: 1px solid #1f2937;
   background: #1f2937;
   color: #ffffff;

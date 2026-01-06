@@ -189,9 +189,22 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     border-radius: var(--aegis-radius-card);
     background: #fff;
     box-shadow: none;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 14px;
+    row-gap: 12px;
+    align-items: flex-start;
+}
+
+.aegis-wc-buybox__inner > * {
+    grid-column: 1 / -1;
+}
+
+.aegis-wc-buybox__inner .wp-block-post-title,
+.aegis-wc-buybox__inner .product_title,
+.aegis-wc-buybox__inner h1 {
+    grid-column: 1;
+    grid-row: 1;
 }
 
 @media (min-width: 1024px) {
@@ -217,15 +230,22 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
 .aegis-wc-buybox__inner .woocommerce-product-rating,
 .aegis-wc-buybox__inner .wc-block-components-product-rating,
 .aegis-wc-buybox__inner .woocommerce-review-link {
+    grid-row: 2;
     color: var(--aegis-text-muted);
     opacity: 0.9;
 }
 
-.aegis-wc-buybox__inner .price,
-.aegis-wc-buybox__inner .wc-block-components-product-price {
+.aegis-wc-buybox__inner .wp-block-woocommerce-product-price,
+.aegis-wc-buybox__inner .wc-block-components-product-price,
+.aegis-wc-buybox__inner .price {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: flex-end;
+    align-self: flex-start;
     font-size: 19px;
     font-weight: 700;
-    margin: 2px 0 10px;
+    margin: 0;
+    text-align: right;
 }
 
 .aegis-wc-buybox__inner .wp-block-post-excerpt,
@@ -292,6 +312,50 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
 .aegis-wc-buybox__inner .wc-block-components-quantity-selector input:focus {
     outline: 2px solid rgba(17, 24, 39, 0.18);
     outline-offset: 1px;
+}
+
+.aegis-wc-buybox__inner .aegis-variant-select {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+}
+
+.aegis-variant-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.aegis-variant-toggle__btn {
+    min-width: 96px;
+    padding: 10px 12px;
+    height: 44px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.aegis-variant-toggle__btn:hover,
+.aegis-variant-toggle__btn:focus-visible {
+    border-color: #111827;
+    color: #111827;
+    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
+    outline: none;
+}
+
+.aegis-variant-toggle__btn.is-active,
+.aegis-variant-toggle__btn[aria-pressed="true"] {
+    border-color: #111827;
+    color: #111827;
+    background: #f3f4f6;
 }
 
 .aegis-wc-buybox__inner .quantity input.qty {
