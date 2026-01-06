@@ -286,6 +286,16 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     text-align: right;
 }
 
+.aegis-wc-buybox__inner .aegis-buybox-price-mirror .price {
+    display: inline-block !important;
+}
+
+.aegis-wc-buybox__inner .aegis-buybox-price-mirror .woocommerce-Price-amount,
+.aegis-wc-buybox__inner .aegis-buybox-price-mirror del,
+.aegis-wc-buybox__inner .aegis-buybox-price-mirror ins {
+    display: inline !important;
+}
+
 .aegis-wc-buybox__inner .wp-block-post-excerpt,
 .aegis-wc-buybox__inner .product_meta,
 .aegis-wc-buybox__inner .posted_in,
