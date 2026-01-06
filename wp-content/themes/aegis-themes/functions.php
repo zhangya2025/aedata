@@ -10,6 +10,11 @@ require_once get_theme_file_path( 'inc/woocommerce-pdp-block.php' );
 require_once get_theme_file_path( 'inc/woocommerce-pdp-modules.php' );
 require_once get_theme_file_path( 'inc/woocommerce-gallery-wall.php' );
 require_once get_theme_file_path( 'inc/pdp-fields.php' );
+require_once get_theme_file_path( 'inc/pdp-accordion.php' );
+
+add_action( 'init', function () {
+    add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
+} );
 
 add_action( 'after_setup_theme', function () {
     add_theme_support( 'title-tag' );
@@ -55,6 +60,8 @@ add_action( 'wp_enqueue_scripts', function () {
             array( 'aegis-themes-woocommerce' ),
             AEGIS_THEMES_VERSION
         );
+
+        wp_enqueue_script( 'wc-single-product' );
 
         wp_enqueue_script(
             'aegis-themes-woocommerce-pdp',
