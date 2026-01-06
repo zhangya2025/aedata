@@ -610,7 +610,21 @@ body.aegis-variants-ready .aegis-variant-toggle {
 .aegis-wc-buybox__inner form.cart .variations tr:has(select[name*="size" i]) td.value {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 12px;
+    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.aegis-wc-buybox__inner form.cart .variations tr:has(select[name*="size" i]) td.value .aegis-variant-toggle {
+    flex: 0 0 auto;
+}
+
+.aegis-wc-buybox__inner form.cart .variations tr:has(select[name*="size" i]) td.value .aegis-size-guide-inline {
+    margin-left: auto !important;
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .aegis-wc-buybox__inner form.cart .variations td.label label,
