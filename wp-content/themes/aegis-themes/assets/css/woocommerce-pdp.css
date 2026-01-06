@@ -417,6 +417,29 @@ body.aegis-variants-ready .aegis-variant-toggle {
     background: #ffffff;
 }
 
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn {
+    background: #fff !important;
+    border: 2px solid #d1d5db !important;
+    color: #6b7280 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:hover,
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn:focus-visible {
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    outline: 2px solid rgba(17, 24, 39, 0.22);
+    outline-offset: 2px;
+}
+
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn.is-active,
+.aegis-wc-buybox__inner button.aegis-variant-toggle__btn[aria-pressed="true"] {
+    background: #fff !important;
+    border-color: #111827 !important;
+    color: #111827 !important;
+}
+
 .aegis-wc-buybox__inner form.cart .variations tr {
     display: flex;
     align-items: center;
