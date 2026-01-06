@@ -844,33 +844,15 @@ body.single-product #review_form #rating {
 }
 
 body.single-product #review_form p.stars {
-    display: inline-flex;
-    flex-direction: row;
-    gap: 6px;
     margin: 0;
-    line-height: 1;
 }
 
 body.single-product #review_form p.stars a {
-    position: relative;
-    display: inline-block;
-    width: 22px;
-    height: 22px;
-    text-indent: -9999px;
-    overflow: hidden;
     color: #d1d5db;
-    float: none;
 }
 
 body.single-product #review_form p.stars a::before {
-    content: "★";
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    font-size: 20px;
     color: #d1d5db;
-    transition: color 0.15s ease;
 }
 
 body.single-product #review_form p.stars:hover a::before,
