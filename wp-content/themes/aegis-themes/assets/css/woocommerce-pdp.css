@@ -74,6 +74,12 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     align-items: start;
 }
 
+.aegis-wc-pdp-top .aegis-wc-top__gallery,
+.aegis-wc-pdp-top .aegis-wc-top__buybox {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
 @media (min-width: 1024px) {
     .aegis-wc-pdp-top {
         grid-template-columns: 62% 38%;
