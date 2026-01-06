@@ -68,6 +68,21 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     width: 100%;
 }
 
+body.single-product .aegis-wc-module,
+body.single-product .aegis-wc-module--trust,
+body.single-product .aegis-wc-module--highlights,
+body.single-product .aegis-wc-module--details,
+body.single-product .aegis-wc-module--reviews,
+body.single-product .aegis-wc-module--qa,
+body.single-product .aegis-wc-module--recommendations {
+    max-width: var(--aegis-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 18px;
+    padding-right: 18px;
+    box-sizing: border-box;
+}
+
 /* Top grid */
 .aegis-wc-pdp-top {
     display: grid;
@@ -813,4 +828,66 @@ body.aegis-variants-ready .aegis-variant-toggle {
     .aegis-wc-sticky-bar {
         display: flex;
     }
+}
+
+/* Review form rating stars */
+body.single-product #review_form #rating {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+body.single-product #review_form p.stars {
+    display: inline-flex;
+    flex-direction: row;
+    gap: 6px;
+    margin: 0;
+    line-height: 1;
+}
+
+body.single-product #review_form p.stars a {
+    position: relative;
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    text-indent: -9999px;
+    overflow: hidden;
+    color: #d1d5db;
+    float: none;
+}
+
+body.single-product #review_form p.stars a::before {
+    content: "★";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    color: #d1d5db;
+    transition: color 0.15s ease;
+}
+
+body.single-product #review_form p.stars:hover a::before,
+body.single-product #review_form p.stars a:focus::before,
+body.single-product #review_form p.stars a:hover::before {
+    color: #111827;
+}
+
+body.single-product #review_form p.stars a:hover ~ a::before,
+body.single-product #review_form p.stars a:focus ~ a::before {
+    color: #d1d5db;
+}
+
+body.single-product #review_form p.stars.selected a.active::before {
+    color: #111827;
+}
+
+body.single-product #review_form p.stars.selected a.active ~ a::before {
+    color: #d1d5db;
 }
