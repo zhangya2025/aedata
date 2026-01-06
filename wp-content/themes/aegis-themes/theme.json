@@ -2,8 +2,8 @@
   "version": 2,
   "settings": {
     "layout": {
-      "contentSize": "720px",
-      "wideSize": "1100px"
+      "contentSize": "1320px",
+      "wideSize": "1680px"
     },
     "typography": {
       "fontFamilies": [
