@@ -396,11 +396,215 @@
         });
     };
 
+    const buildSizeGuideButton = () => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'aegis-size-guide-btn';
+        btn.textContent = 'Size & Fit Guide';
+        btn.setAttribute('aria-haspopup', 'dialog');
+        return btn;
+    };
+
+    const findSizeValueCell = () => {
+        const forms = document.querySelectorAll('.aegis-wc-module--buybox form.variations_form');
+        for (const form of forms) {
+            const selects = form.querySelectorAll('select');
+            for (const select of selects) {
+                const key = `${select.name || ''} ${select.id || ''} ${select.getAttribute('aria-label') || ''}`.toLowerCase();
+                if (!key.includes('size')) {
+                    continue;
+                }
+
+                const valueCell = select.closest('td.value') || select.parentElement;
+                if (valueCell) {
+                    return valueCell;
+                }
+            }
+        }
+
+        return null;
+    };
+
+    const lockBodyScroll = () => {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+        document.body.dataset.aegisSizeGuideScroll = String(scrollTop);
+        document.body.classList.add('aegis-size-guide-locked');
+        document.body.style.top = `-${scrollTop}px`;
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+    };
+
+    const unlockBodyScroll = () => {
+        const previous = document.body.dataset.aegisSizeGuideScroll;
+        document.body.classList.remove('aegis-size-guide-locked');
+        document.body.style.top = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        delete document.body.dataset.aegisSizeGuideScroll;
+
+        if (typeof previous !== 'undefined') {
+            const y = parseInt(previous, 10);
+            if (!Number.isNaN(y)) {
+                window.scrollTo(0, y);
+            }
+        }
+    };
+
+    const renderSizeGuideModal = (guideData, onClose, triggerButton) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'aegis-size-guide-overlay';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'aegis-size-guide-modal';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-label', guideData && guideData.title ? `${guideData.title} - Size & Fit Guide` : 'Size & Fit Guide');
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'aegis-size-guide-close';
+        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.textContent = '×';
+
+        const title = document.createElement('h2');
+        title.className = 'aegis-size-guide-heading';
+        title.textContent = guideData && guideData.title ? guideData.title : 'Size & Fit Guide';
+
+        const body = document.createElement('div');
+        body.className = 'aegis-size-guide-content';
+        body.innerHTML = guideData && guideData.content ? guideData.content : '<p>No guide content found.</p>';
+
+        dialog.appendChild(closeBtn);
+        dialog.appendChild(title);
+        dialog.appendChild(body);
+
+        overlay.appendChild(dialog);
+
+        const handleClose = () => {
+            overlay.remove();
+            document.removeEventListener('keydown', escHandler);
+            unlockBodyScroll();
+            if (triggerButton) {
+                triggerButton.focus({ preventScroll: true });
+            }
+            if (typeof onClose === 'function') {
+                onClose();
+            }
+        };
+
+        const escHandler = (event) => {
+            if (event.key === 'Escape') {
+                handleClose();
+            }
+        };
+
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                handleClose();
+            }
+        });
+
+        closeBtn.addEventListener('click', handleClose);
+
+        document.addEventListener('keydown', escHandler);
+
+        document.body.appendChild(overlay);
+        lockBodyScroll();
+        closeBtn.focus({ preventScroll: true });
+    };
+
+    const initSizeGuide = () => {
+        if (!window.AEGIS_SIZE_GUIDE || !window.AEGIS_SIZE_GUIDE.guideId) {
+            return;
+        }
+
+        const guideId = parseInt(window.AEGIS_SIZE_GUIDE.guideId, 10);
+        const restBase = window.AEGIS_SIZE_GUIDE.restBase || '';
+
+        if (!guideId || !restBase) {
+            return;
+        }
+
+        const button = buildSizeGuideButton();
+        let targetCell = findSizeValueCell();
+
+        if (!targetCell) {
+            targetCell = document.querySelector('[data-aegis-size-guide-slot]');
+        }
+
+        if (!targetCell || targetCell.dataset.aegisSizeGuideAttached === '1') {
+            return;
+        }
+
+        const inline = document.createElement('span');
+        inline.className = 'aegis-size-guide-inline';
+        inline.appendChild(button);
+        targetCell.appendChild(inline);
+        targetCell.dataset.aegisSizeGuideAttached = '1';
+
+        let cachedGuide = null;
+        let pending = null;
+
+        const fetchGuide = () => {
+            if (cachedGuide) {
+                return Promise.resolve(cachedGuide);
+            }
+
+            if (pending) {
+                return pending;
+            }
+
+            pending = fetch(`${restBase}${guideId}`, {
+                credentials: 'same-origin',
+            })
+                .then((res) => {
+                    if (!res.ok) {
+                        throw new Error('Guide request failed');
+                    }
+                    return res.json();
+                })
+                .then((data) => {
+                    cachedGuide = data;
+                    return data;
+                })
+                .catch((error) => {
+                    pending = null;
+                    throw error;
+                });
+
+            return pending;
+        };
+
+        button.addEventListener('click', () => {
+            button.disabled = true;
+
+            fetchGuide()
+                .then((guideData) => {
+                    renderSizeGuideModal(guideData, () => {
+                        button.disabled = false;
+                    }, button);
+                })
+                .catch(() => {
+                    renderSizeGuideModal(
+                        {
+                            title: 'Size & Fit Guide',
+                            content: '<p>Unable to load guide. Please try again later.</p>',
+                        },
+                        () => {
+                            button.disabled = false;
+                        },
+                        button
+                    );
+                });
+        });
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         ensureModuleDataAttributes();
         hideDisabledModules();
         bindScrollButtons();
         initVariantToggles();
         bindPriceSync();
+        initSizeGuide();
     });
 })();

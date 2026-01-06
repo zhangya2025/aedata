@@ -574,6 +574,10 @@ body.aegis-variants-ready .aegis-variant-toggle {
 .aegis-wc-buybox__inner form.cart .variations td.value {
     flex: 1;
     padding: 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .aegis-wc-buybox__inner form.cart .variations td.label label,
@@ -583,6 +587,48 @@ body.aegis-variants-ready .aegis-variant-toggle {
 
 .aegis-wc-buybox__inner .reset_variations {
     display: none !important;
+}
+
+.aegis-size-guide-slot {
+    margin-top: 6px;
+}
+
+.aegis-size-guide-inline {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+}
+
+.aegis-size-guide-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid #111827;
+    background: #ffffff;
+    color: #111827;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    border-radius: 0;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.aegis-size-guide-btn:hover,
+.aegis-size-guide-btn:focus-visible {
+    border-color: #111827;
+    color: #111827;
+    background: #f9fafb;
+    outline: none;
+}
+
+.aegis-size-guide-btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
 }
 
 .aegis-wc-buybox__inner .quantity input.qty {
@@ -883,4 +929,100 @@ body.single-product #review_form p.stars.selected a::before {
 body.single-product #review_form p.stars.selected a.active ~ a::before {
     color: transparent;
     -webkit-text-stroke: 1px #d1d5db;
+}
+
+/* Size guide modal */
+body.aegis-size-guide-locked {
+    overflow: hidden;
+}
+
+.aegis-size-guide-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 9999;
+}
+
+.aegis-size-guide-modal {
+    position: relative;
+    width: min(760px, 100%);
+    max-height: 80vh;
+    overflow: auto;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 0;
+    padding: 20px 24px 24px;
+    box-sizing: border-box;
+    color: #111827;
+}
+
+.aegis-size-guide-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #111827;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.aegis-size-guide-close:hover,
+.aegis-size-guide-close:focus-visible {
+    border-color: #111827;
+    outline: none;
+}
+
+.aegis-size-guide-heading {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.aegis-size-guide-content {
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.aegis-size-guide-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+}
+
+.aegis-size-guide-content table th,
+.aegis-size-guide-content table td {
+    border: 1px solid #e5e7eb;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.aegis-size-guide-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+@media (max-width: 640px) {
+    .aegis-size-guide-inline {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .aegis-size-guide-btn {
+        width: auto;
+    }
+
+    .aegis-size-guide-modal {
+        padding: 18px;
+        width: 100%;
+    }
 }

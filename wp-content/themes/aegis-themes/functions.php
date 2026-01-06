@@ -11,6 +11,7 @@ require_once get_theme_file_path( 'inc/woocommerce-pdp-modules.php' );
 require_once get_theme_file_path( 'inc/woocommerce-gallery-wall.php' );
 require_once get_theme_file_path( 'inc/pdp-fields.php' );
 require_once get_theme_file_path( 'inc/pdp-accordion.php' );
+require_once get_theme_file_path( 'inc/size-guides.php' );
 
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
@@ -69,6 +70,16 @@ add_action( 'wp_enqueue_scripts', function () {
             array(),
             AEGIS_THEMES_VERSION,
             true
+        );
+
+        $size_guide_id = aegis_get_product_size_guide_id();
+        wp_localize_script(
+            'aegis-themes-woocommerce-pdp',
+            'AEGIS_SIZE_GUIDE',
+            array(
+                'guideId' => $size_guide_id,
+                'restBase' => esc_url_raw( rest_url( 'aegis/v1/size-guide/' ) ),
+            )
         );
     }
 }, 25 );
