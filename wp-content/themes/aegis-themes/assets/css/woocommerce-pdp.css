@@ -939,7 +939,7 @@ body.aegis-size-guide-locked {
 .aegis-size-guide-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.52);
+    background: rgba(0, 0, 0, 0.56);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -949,27 +949,28 @@ body.aegis-size-guide-locked {
 
 .aegis-size-guide-modal {
     position: relative;
-    width: min(760px, 100%);
+    width: min(960px, 90vw);
     max-height: 80vh;
     overflow: auto;
     background: #ffffff;
-    border: 1px solid #d1d5db;
+    border: 1px solid #e5e7eb;
     border-radius: 0;
-    padding: 20px 24px 24px;
+    padding: 28px 32px 32px;
     box-sizing: border-box;
     color: #111827;
+    box-shadow: 0 16px 50px rgba(17, 24, 39, 0.12);
 }
 
 .aegis-size-guide-close {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    border: 1px solid #d1d5db;
+    top: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #e5e7eb;
     background: #ffffff;
     color: #111827;
-    font-size: 20px;
+    font-size: 18px;
     line-height: 1;
     cursor: pointer;
     border-radius: 0;
@@ -982,8 +983,8 @@ body.aegis-size-guide-locked {
 }
 
 .aegis-size-guide-heading {
-    margin: 0 0 12px;
-    font-size: 20px;
+    margin: 0 0 14px;
+    font-size: 22px;
     font-weight: 700;
 }
 
@@ -995,14 +996,40 @@ body.aegis-size-guide-locked {
 .aegis-size-guide-content table {
     width: 100%;
     border-collapse: collapse;
-    margin: 12px 0;
+    margin: 14px 0;
+    border: 1px solid #e5e7eb;
 }
 
 .aegis-size-guide-content table th,
 .aegis-size-guide-content table td {
     border: 1px solid #e5e7eb;
-    padding: 10px 12px;
+    padding: 12px 14px;
     text-align: left;
+}
+
+.aegis-size-guide-content table thead {
+    background: #f3f4f6;
+}
+
+.aegis-size-guide-content table th {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.aegis-size-guide-content table tbody tr:last-child th,
+.aegis-size-guide-content table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.aegis-size-guide-content h3,
+.aegis-size-guide-content h4 {
+    margin: 18px 0 10px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.aegis-size-guide-content p {
+    margin: 10px 0;
 }
 
 .aegis-size-guide-content img {
@@ -1022,7 +1049,7 @@ body.aegis-size-guide-locked {
     }
 
     .aegis-size-guide-modal {
-        padding: 18px;
+        padding: 22px;
         width: 100%;
     }
 }
