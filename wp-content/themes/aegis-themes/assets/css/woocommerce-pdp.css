@@ -402,11 +402,11 @@ body.aegis-variants-ready .aegis-variant-toggle {
 
 .aegis-variant-toggle__btn:hover,
 .aegis-variant-toggle__btn:focus-visible {
-    border-color: #111827;
+    border-color: #9ca3af;
     color: #111827;
     background: #ffffff;
-    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
-    outline: 2px solid rgba(17, 24, 39, 0.2);
+    box-shadow: none;
+    outline: 2px solid rgba(17, 24, 39, 0.22);
     outline-offset: 1px;
 }
 
