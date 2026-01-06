@@ -476,12 +476,24 @@ body.aegis-variants-ready .aegis-variant-toggle {
     width: 90px;
 }
 
+.aegis-wc-buybox__inner .woocommerce-variation-add-to-cart.variations_button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.aegis-wc-buybox__inner .woocommerce-variation-add-to-cart .quantity {
+    flex: 0 0 auto;
+}
+
 .aegis-wc-buybox__inner .single_add_to_cart_button,
 .aegis-wc-buybox__inner button.single_add_to_cart_button,
 .aegis-wc-buybox__inner .wp-block-woocommerce-add-to-cart-form button,
 .aegis-wc-buybox__inner .wp-element-button.button.alt {
-    flex: 1;
+    flex: 1 1 auto;
     width: 100%;
+    margin: 0;
     height: 48px;
     border-radius: 0;
     border: 1px solid #d1d5db;
