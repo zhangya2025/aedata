@@ -227,18 +227,37 @@
         if (!row || !row.classList.contains('aegis-buybox-title-row')) {
             row = document.createElement('div');
             row.className = 'aegis-buybox-title-row';
-            buybox.insertBefore(row, buybox.firstChild);
         }
 
-        if (title.parentElement !== row) {
-            row.appendChild(title);
-        }
-
-        let slot = row.querySelector('.aegis-buybox-price-mirror');
+        let slot = row.querySelector('.aegis-buybox-price-mirror')
+            || buybox.querySelector('.aegis-buybox-price-mirror');
         if (!slot) {
             slot = document.createElement('div');
             slot.className = 'aegis-buybox-price-mirror';
-            row.appendChild(slot);
+        }
+
+        if (buybox.dataset.aegisTitleRowInit !== '1') {
+            if (row.parentElement !== buybox) {
+                buybox.insertBefore(row, buybox.firstChild);
+            }
+
+            if (title.parentElement !== row) {
+                row.appendChild(title);
+            }
+
+            if (slot.parentElement !== row) {
+                row.appendChild(slot);
+            }
+
+            if (title.nextSibling !== slot) {
+                row.appendChild(slot);
+            }
+
+            buybox.dataset.aegisTitleRowInit = '1';
+        } else {
+            if (slot.parentElement !== row) {
+                row.appendChild(slot);
+            }
         }
 
         const safeSet = (html) => {

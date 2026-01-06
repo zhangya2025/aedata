@@ -208,14 +208,6 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
     gap: 12px;
 }
 
-.aegis-wc-buybox__inner .wp-block-post-title,
-.aegis-wc-buybox__inner .product_title,
-.aegis-wc-buybox__inner h1 {
-    grid-column: auto;
-    grid-row: auto;
-    margin: 0;
-}
-
 .aegis-wc-buybox__inner .aegis-buybox-price-mirror,
 .aegis-wc-buybox__inner .aegis-buybox-titleprice__price {
     grid-column: auto;
@@ -233,6 +225,14 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
         position: sticky;
         top: 18px;
     }
+}
+
+.aegis-wc-buybox__inner .aegis-buybox-title-row h1,
+.aegis-wc-buybox__inner .aegis-buybox-title-row .wp-block-post-title,
+.aegis-wc-buybox__inner .aegis-buybox-title-row .product_title {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .aegis-wc-buybox__inner .wp-block-post-title,
@@ -275,8 +275,11 @@ body.single-product .aegis-wc-product .wp-block-breadcrumbs.wc-block-breadcrumbs
 
 .aegis-wc-buybox__inner .aegis-buybox-price-mirror,
 .aegis-wc-buybox__inner .aegis-buybox-titleprice__price {
+    display: block !important;
+    flex: 0 0 auto;
     margin-left: auto;
     white-space: nowrap;
+    min-width: max-content;
 }
 
 .aegis-buybox-title-row .aegis-buybox-price-mirror {
