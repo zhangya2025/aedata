@@ -22,20 +22,133 @@ add_action( 'init', function () {
 
     $args = array(
         'labels'             => $labels,
-        'public'             => false,
+        'public'             => true,
         'show_ui'            => true,
         'show_in_menu'       => true,
         'show_in_rest'       => true,
         'supports'           => array( 'title', 'editor' ),
         'capability_type'    => 'post',
-        'rewrite'            => false,
+        'rewrite'            => array(
+            'slug'       => 'size-guide',
+            'with_front' => false,
+        ),
         'menu_position'      => 20,
         'menu_icon'          => 'dashicons-align-full-width',
-        'publicly_queryable' => false,
+        'publicly_queryable' => true,
+        'has_archive'        => true,
     );
 
     register_post_type( 'aegis_size_guide', $args );
 } );
+
+/**
+ * Seed a sample Size Guide once and surface an admin notice.
+ */
+function aegis_seed_sample_size_guide() {
+    if ( ! is_admin() ) {
+        return;
+    }
+
+    if ( get_option( 'aegis_size_guide_seeded' ) ) {
+        return;
+    }
+
+    $content = <<<HTML
+<h2>Size Chart</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Size</th>
+            <th>Fits Height</th>
+            <th>Shoulder Girth</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Regular</td>
+            <td>Up to 183 cm</td>
+            <td>160 cm</td>
+        </tr>
+        <tr>
+            <td>Long</td>
+            <td>Up to 198 cm</td>
+            <td>168 cm</td>
+        </tr>
+        <tr>
+            <td>Wide</td>
+            <td>Up to 188 cm</td>
+            <td>178 cm</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Fit Chart</h2>
+<p>[Illustration placeholder showing how the bag should fit around the shoulders, hips, and feet]</p>
+
+<h2>Notes</h2>
+<ul>
+    <li>Measure with your base layers on to mirror real-world use.</li>
+    <li>Choose the roomier option if you prefer extra layers or a looser feel.</li>
+    <li>Compressible insulation will settle over time; retest if the bag feels tight.</li>
+</ul>
+
+<p><strong>Close hint:</strong> Click the overlay or press Esc to close this guide.</p>
+HTML;
+
+    $guide_id = wp_insert_post(
+        array(
+            'post_title'   => 'Sample: Sleeping Bag Size & Fit Guide',
+            'post_content' => $content,
+            'post_status'  => 'publish',
+            'post_type'    => 'aegis_size_guide',
+        )
+    );
+
+    if ( $guide_id && ! is_wp_error( $guide_id ) ) {
+        update_option( 'aegis_size_guide_seeded', $guide_id );
+        update_option( 'aegis_size_guide_seed_notice', (int) $guide_id );
+    }
+}
+
+add_action( 'admin_init', 'aegis_seed_sample_size_guide' );
+
+add_action( 'admin_notices', function () {
+    if ( ! current_user_can( 'edit_posts' ) ) {
+        return;
+    }
+
+    $guide_id = (int) get_option( 'aegis_size_guide_seed_notice' );
+
+    if ( ! $guide_id ) {
+        return;
+    }
+
+    $edit_link = get_edit_post_link( $guide_id );
+
+    if ( ! $edit_link ) {
+        delete_option( 'aegis_size_guide_seed_notice' );
+        return;
+    }
+
+    echo '<div class="notice notice-success is-dismissible"><p>';
+    printf(
+        /* translators: %s: edit link */
+        esc_html__( 'A sample Size & Fit Guide was created. %s', 'aegis-themes' ),
+        '<a href="' . esc_url( $edit_link ) . '">' . esc_html__( 'Edit the guide', 'aegis-themes' ) . '</a>'
+    );
+    echo '</p></div>';
+
+    delete_option( 'aegis_size_guide_seed_notice' );
+} );
+
+add_action( 'init', function () {
+    if ( get_option( 'aegis_size_guide_rewrite_flushed' ) ) {
+        return;
+    }
+
+    flush_rewrite_rules( false );
+    update_option( 'aegis_size_guide_rewrite_flushed', 1 );
+}, 20 );
 
 /**
  * Render the meta box for selecting a Size Guide.
