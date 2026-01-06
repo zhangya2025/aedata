@@ -41,6 +41,10 @@ function aegis_wc_pdp_filter_tabs( $tabs ) {
         unset( $tabs['reviews'] );
     }
 
+    if ( isset( $tabs['additional_information'] ) ) {
+        unset( $tabs['additional_information'] );
+    }
+
     return $tabs;
 }
 

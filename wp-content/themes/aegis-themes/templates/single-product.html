@@ -14,14 +14,83 @@
         <!-- /wp:group -->
 
         <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--buybox aegis-wc-top__buybox"} -->
-        <div class="wp-block-group aegis-wc-module aegis-wc-module--buybox aegis-wc-top__buybox">
+            <div class="wp-block-group aegis-wc-module aegis-wc-module--buybox aegis-wc-top__buybox">
             <!-- wp:group {"className":"aegis-wc-buybox__inner"} -->
             <div class="wp-block-group aegis-wc-buybox__inner">
                 <!-- wp:post-title {"level":1,"__woocommerceNamespace":"woocommerce/product-query/product-title"} /-->
                 <!-- wp:woocommerce/product-rating {"isDescendentOfSingleProductTemplate":true} /-->
                 <!-- wp:woocommerce/product-price {"isDescendentOfSingleProductTemplate":true,"className":"is-style-default"} /-->
-                <!-- wp:post-excerpt {"__woocommerceNamespace":"woocommerce/product-query/product-summary","excerptLength":80} /-->
                 <!-- wp:woocommerce/add-to-cart-form /-->
+                <!-- wp:post-excerpt {"__woocommerceNamespace":"woocommerce/product-query/product-summary","excerptLength":80} /-->
+                <!-- wp:html -->
+<?php
+// Accordion sections for Description / Features / Specifications.
+$features        = get_post_meta( get_the_ID(), '_aegis_pdp_features', true );
+$specs           = get_post_meta( get_the_ID(), '_aegis_pdp_specs', true );
+$feature_lines   = array_filter( array_map( 'trim', preg_split( '/\r?\n/', (string) $features ) ) );
+$spec_lines      = array_filter( array_map( 'trim', preg_split( '/\r?\n/', (string) $specs ) ) );
+$description_raw = get_the_content();
+
+$has_description    = ! empty( trim( wp_strip_all_tags( $description_raw ) ) );
+$has_features       = ! empty( $feature_lines );
+$has_specifications = ! empty( $spec_lines );
+
+if ( $has_description || $has_features || $has_specifications ) :
+    ?>
+    <div class="aegis-wc-pdp-accordion">
+        <?php if ( $has_description ) : ?>
+            <details class="aegis-pdp-acc">
+                <summary><?php esc_html_e( 'Description', 'aegis-themes' ); ?></summary>
+                <div class="aegis-pdp-acc__body">
+                    <?php the_content(); ?>
+                </div>
+            </details>
+        <?php endif; ?>
+
+        <?php if ( $has_features ) : ?>
+            <details class="aegis-pdp-acc">
+                <summary><?php esc_html_e( 'Features', 'aegis-themes' ); ?></summary>
+                <div class="aegis-pdp-acc__body">
+                    <ul>
+                        <?php foreach ( $feature_lines as $line ) : ?>
+                            <li><?php echo esc_html( $line ); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </details>
+        <?php endif; ?>
+
+        <?php if ( $has_specifications ) : ?>
+            <details class="aegis-pdp-acc">
+                <summary><?php esc_html_e( 'Specifications', 'aegis-themes' ); ?></summary>
+                <div class="aegis-pdp-acc__body">
+                    <table>
+                        <tbody>
+                        <?php
+                        foreach ( $spec_lines as $line ) {
+                            $parts = array_map( 'trim', explode( ':', $line, 2 ) );
+
+                            if ( empty( $parts[0] ) ) {
+                                continue;
+                            }
+
+                            $value = isset( $parts[1] ) ? $parts[1] : '';
+                            ?>
+                            <tr>
+                                <th scope="row"><?php echo esc_html( $parts[0] ); ?></th>
+                                <td><?php echo esc_html( $value ); ?></td>
+                            </tr>
+                            <?php
+                        }
+                        ?>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
+                <!-- /wp:html -->
                 <!-- wp:woocommerce/product-meta /-->
             </div>
             <!-- /wp:group -->
@@ -38,24 +107,6 @@
         <!-- wp:paragraph -->
         <p class="aegis-wc-trust__badges"><span class="aegis-wc-trust__badge">Secure checkout</span><span class="aegis-wc-trust__badge">Free returns</span><span class="aegis-wc-trust__badge">24/7 support</span></p>
         <!-- /wp:paragraph -->
-    </div>
-    <!-- /wp:group -->
-
-    <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--highlights"} -->
-    <div class="wp-block-group aegis-wc-module aegis-wc-module--highlights">
-        <!-- wp:heading {"level":3} -->
-        <h3>Highlights</h3>
-        <!-- /wp:heading -->
-        <!-- wp:woocommerce/product-summary /-->
-    </div>
-    <!-- /wp:group -->
-
-    <!-- wp:group {"className":"aegis-wc-module aegis-wc-module--details"} -->
-    <div class="wp-block-group aegis-wc-module aegis-wc-module--details">
-        <!-- wp:heading {"level":3} -->
-        <h3>Product details</h3>
-        <!-- /wp:heading -->
-        <!-- wp:woocommerce/product-details {"className":"is-style-minimal"} /-->
     </div>
     <!-- /wp:group -->
 
