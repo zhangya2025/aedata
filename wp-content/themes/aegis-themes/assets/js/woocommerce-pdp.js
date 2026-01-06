@@ -119,12 +119,12 @@
 
     const buildVariantToggle = (select) => {
         if (select.dataset.aegisVariantInit === '1') {
-            return;
+            return null;
         }
 
         const options = Array.from(select.options).filter((opt) => opt.value);
         if (!options.length) {
-            return;
+            return null;
         }
 
         select.dataset.aegisVariantInit = '1';
@@ -161,6 +161,8 @@
 
         select.addEventListener('change', () => updateVariantToggleState(select, toggle));
         updateVariantToggleState(select, toggle);
+
+        return toggle;
     };
 
     const initTitlePriceMirror = () => {
@@ -169,19 +171,21 @@
             return null;
         }
 
-        let slot = buybox.querySelector('.aegis-buybox-titleprice__price');
+        let slot = buybox.querySelector('.aegis-buybox-price-mirror');
         const title = buybox.querySelector('.wp-block-post-title, .product_title, h1');
         if (!slot) {
             slot = document.createElement('div');
-            slot.className = 'aegis-buybox-titleprice__price';
-            if (title) {
+            slot.className = 'aegis-buybox-price-mirror';
+            if (title && title.parentElement) {
                 title.insertAdjacentElement('afterend', slot);
             } else {
                 buybox.insertAdjacentElement('afterbegin', slot);
             }
         }
 
-        const priceSource = buybox.querySelector('.wp-block-woocommerce-product-price, .wc-block-components-product-price, .price');
+        const priceSource = buybox.querySelector(
+            '.wp-block-woocommerce-product-price, .wc-block-components-product-price, .price'
+        );
         const initialHtml = priceSource ? priceSource.innerHTML : '';
 
         if (!slot.dataset.initialPrice) {
@@ -238,10 +242,14 @@
     const initVariantToggles = () => {
         const forms = document.querySelectorAll('.aegis-wc-module--buybox form.variations_form');
         const selects = [];
+        const toggles = [];
 
         forms.forEach((form) => {
             form.querySelectorAll('select').forEach((select) => {
-                buildVariantToggle(select);
+                const toggle = buildVariantToggle(select);
+                if (toggle) {
+                    toggles.push(toggle);
+                }
                 selects.push(select);
             });
 
@@ -258,6 +266,10 @@
                 });
             }
         });
+
+        if (toggles.length) {
+            document.body.classList.add('aegis-variants-ready');
+        }
     };
 
     const bindScrollButtons = () => {
