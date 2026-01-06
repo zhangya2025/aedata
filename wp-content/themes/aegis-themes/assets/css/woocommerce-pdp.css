@@ -274,6 +274,14 @@ body.single-product .aegis-wc-module--recommendations {
     color: #111827;
 }
 
+.aegis-wc-buybox__inner .wc-block-components-product-rating__stars::before {
+    color: #d1d5db !important;
+}
+
+.aegis-wc-buybox__inner .wc-block-components-product-rating__stars span::before {
+    color: #111827 !important;
+}
+
 .aegis-wc-buybox__inner .woocommerce-review-link {
     display: none !important;
 }
@@ -619,7 +627,7 @@ body.aegis-variants-ready .aegis-variant-toggle {
 }
 
 .aegis-size-guide-inline {
-    margin-left: auto;
+    margin-left: auto !important;
     display: inline-flex;
     align-items: center;
 }
