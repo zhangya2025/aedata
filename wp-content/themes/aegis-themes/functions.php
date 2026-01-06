@@ -9,6 +9,7 @@ require_once get_theme_file_path( 'inc/woocommerce-pdp.php' );
 require_once get_theme_file_path( 'inc/woocommerce-pdp-block.php' );
 require_once get_theme_file_path( 'inc/woocommerce-pdp-modules.php' );
 require_once get_theme_file_path( 'inc/woocommerce-gallery-wall.php' );
+require_once get_theme_file_path( 'inc/pdp-fields.php' );
 
 add_action( 'after_setup_theme', function () {
     add_theme_support( 'title-tag' );
