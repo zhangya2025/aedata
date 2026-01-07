@@ -513,6 +513,69 @@
         closeBtn.focus({ preventScroll: true });
     };
 
+    const renderTechFeatureModal = (featureData, onClose, triggerButton) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'aegis-size-guide-overlay';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'aegis-size-guide-modal';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-label', featureData && featureData.title ? `${featureData.title} - Technical Feature` : 'Technical Feature');
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'aegis-size-guide-close';
+        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.textContent = '×';
+
+        const title = document.createElement('h2');
+        title.className = 'aegis-size-guide-heading';
+        title.textContent = featureData && featureData.title ? featureData.title : 'Technical Feature';
+
+        const body = document.createElement('div');
+        body.className = 'aegis-size-guide-content';
+        body.innerHTML = featureData && featureData.content ? featureData.content : '<p>No details available.</p>';
+
+        dialog.appendChild(closeBtn);
+        dialog.appendChild(title);
+        dialog.appendChild(body);
+
+        overlay.appendChild(dialog);
+
+        const handleClose = () => {
+            overlay.remove();
+            document.removeEventListener('keydown', escHandler);
+            unlockBodyScroll();
+            if (triggerButton) {
+                triggerButton.focus({ preventScroll: true });
+            }
+            if (typeof onClose === 'function') {
+                onClose();
+            }
+        };
+
+        const escHandler = (event) => {
+            if (event.key === 'Escape') {
+                handleClose();
+            }
+        };
+
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                handleClose();
+            }
+        });
+
+        closeBtn.addEventListener('click', handleClose);
+
+        document.addEventListener('keydown', escHandler);
+
+        document.body.appendChild(overlay);
+        lockBodyScroll();
+        closeBtn.focus({ preventScroll: true });
+    };
+
     const initSizeGuide = () => {
         if (!window.AEGIS_SIZE_GUIDE || !window.AEGIS_SIZE_GUIDE.guideId) {
             return;
@@ -599,6 +662,86 @@
         });
     };
 
+    const initTechFeatures = () => {
+        if (!window.AEGIS_TECH_FEATURES || !window.AEGIS_TECH_FEATURES.restBase) {
+            return;
+        }
+
+        const restBase = window.AEGIS_TECH_FEATURES.restBase;
+        const cards = document.querySelectorAll('.aegis-tech-feature-card[data-tech-id]');
+        if (!cards.length) {
+            return;
+        }
+
+        const cache = new Map();
+        const pending = new Map();
+
+        const fetchFeature = (featureId) => {
+            if (cache.has(featureId)) {
+                return Promise.resolve(cache.get(featureId));
+            }
+
+            if (pending.has(featureId)) {
+                return pending.get(featureId);
+            }
+
+            const request = fetch(`${restBase}${featureId}`, {
+                credentials: 'same-origin',
+            })
+                .then((res) => {
+                    if (!res.ok) {
+                        throw new Error('Feature request failed');
+                    }
+                    return res.json();
+                })
+                .then((data) => {
+                    const normalized = {
+                        title: data && data.title ? data.title.rendered : '',
+                        content: data && data.content ? data.content.rendered : '',
+                    };
+                    cache.set(featureId, normalized);
+                    pending.delete(featureId);
+                    return normalized;
+                })
+                .catch((error) => {
+                    pending.delete(featureId);
+                    throw error;
+                });
+
+            pending.set(featureId, request);
+            return request;
+        };
+
+        cards.forEach((card) => {
+            card.addEventListener('click', () => {
+                const featureId = parseInt(card.dataset.techId, 10);
+                if (!featureId) {
+                    return;
+                }
+
+                card.disabled = true;
+                fetchFeature(featureId)
+                    .then((featureData) => {
+                        renderTechFeatureModal(featureData, () => {
+                            card.disabled = false;
+                        }, card);
+                    })
+                    .catch(() => {
+                        renderTechFeatureModal(
+                            {
+                                title: 'Technical Feature',
+                                content: '<p>Unable to load details. Please try again later.</p>',
+                            },
+                            () => {
+                                card.disabled = false;
+                            },
+                            card
+                        );
+                    });
+            });
+        });
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         ensureModuleDataAttributes();
         hideDisabledModules();
@@ -606,5 +749,6 @@
         initVariantToggles();
         bindPriceSync();
         initSizeGuide();
+        initTechFeatures();
     });
 })();
