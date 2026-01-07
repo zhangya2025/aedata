@@ -12,6 +12,7 @@ require_once get_theme_file_path( 'inc/woocommerce-gallery-wall.php' );
 require_once get_theme_file_path( 'inc/pdp-fields.php' );
 require_once get_theme_file_path( 'inc/pdp-accordion.php' );
 require_once get_theme_file_path( 'inc/size-guides.php' );
+require_once get_theme_file_path( 'inc/faq-library.php' );
 
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
