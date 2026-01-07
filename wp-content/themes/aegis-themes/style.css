@@ -8,3 +8,35 @@ Tags: block-styles, full-site-editing, editor-style, wide-blocks
 */
 
 /* Minimal base styles can be added in assets/css/main.css */
+
+.woocommerce-cart .aegis-cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 24px;
+  align-items: start;
+}
+
+.woocommerce-cart .cart-collaterals {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.woocommerce-cart .cart-collaterals .cart_totals,
+.woocommerce-cart .cart-collaterals .cart_totals table {
+  margin-bottom: 0;
+}
+
+@media (min-width: 961px) {
+  .woocommerce-cart .cart-collaterals {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+@media (max-width: 960px) {
+  .woocommerce-cart .aegis-cart-layout {
+    grid-template-columns: 1fr;
+  }
+}

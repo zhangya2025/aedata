@@ -10,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 exit;
 }
 
+function aegis_mega_header_has_woocommerce() {
+    return function_exists( 'WC' ) && WC();
+}
+
 function aegis_mega_header_register_block() {
     $style_path  = plugin_dir_path( __FILE__ ) . 'style.css';
     $script_path = plugin_dir_path( __FILE__ ) . 'view.js';
@@ -1084,6 +1088,11 @@ $nav_defaults = aegis_mega_header_default_nav();
 $top_settings = isset( $settings['top'] ) ? $settings['top'] : $nav_defaults['top'];
 $nav_items    = isset( $settings['nav']['items'] ) ? $settings['nav']['items'] : ( isset( $settings['nav'] ) ? $settings['nav'] : [] );
 $default_map  = aegis_mega_header_default_item_map();
+$cart_count   = 0;
+
+if ( aegis_mega_header_has_woocommerce() && WC()->cart ) {
+    $cart_count = WC()->cart->get_cart_contents_count();
+}
 
 if ( aegis_mega_header_array_is_assoc( $nav_items ) ) {
     $nav_items = array_values( $nav_items );
@@ -1228,8 +1237,9 @@ $header_style = sprintf(
             <span class="screen-reader-text">Account</span>
         </a>
         <?php if ( ! empty( $attributes['showCart'] ) ) : ?>
-            <a class="aegis-mobile-icon" href="#" aria-label="Cart">
+            <a class="aegis-mobile-icon" href="#" aria-label="Cart" data-aegis-mini-cart-trigger>
                 <?php echo aegis_mega_header_icon( 'cart' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <span class="aegis-header__cart-count"><?php echo esc_html( $cart_count ); ?></span>
                 <span class="screen-reader-text">Cart</span>
             </a>
         <?php endif; ?>
@@ -1290,7 +1300,10 @@ aria-haspopup="true"
 </form>
 <?php endif; ?>
 <?php if ( ! empty( $attributes['showCart'] ) ) : ?>
-<div class="aegis-header__cart" aria-label="Cart">Cart</div>
+<button class="aegis-header__cart" type="button" aria-label="Cart" data-aegis-mini-cart-trigger>
+Cart
+<span class="aegis-header__cart-count"><?php echo esc_html( $cart_count ); ?></span>
+</button>
 <?php endif; ?>
 </div>
 </div>
@@ -1395,6 +1408,104 @@ echo $panel_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscap
 
 return ob_get_clean();
 }
+
+function aegis_mega_header_get_cart_subtotal() {
+    if ( ! aegis_mega_header_has_woocommerce() || ! WC()->cart ) {
+        return '';
+    }
+
+    return WC()->cart->get_cart_subtotal();
+}
+
+function aegis_mega_header_get_cart_count() {
+    if ( ! aegis_mega_header_has_woocommerce() || ! WC()->cart ) {
+        return 0;
+    }
+
+    return WC()->cart->get_cart_contents_count();
+}
+
+function aegis_mega_header_render_mini_cart_fragment() {
+    if ( ! aegis_mega_header_has_woocommerce() ) {
+        return '';
+    }
+
+    ob_start();
+    woocommerce_mini_cart();
+    return ob_get_clean();
+}
+
+function aegis_mega_header_render_mini_cart_drawer() {
+    if ( ! aegis_mega_header_has_woocommerce() ) {
+        return;
+    }
+
+    $cart_url   = wc_get_cart_url();
+    $count      = aegis_mega_header_get_cart_count();
+    $subtotal   = aegis_mega_header_get_cart_subtotal();
+    $mini_cart  = aegis_mega_header_render_mini_cart_fragment();
+    $view_label = sprintf( 'View your cart (%d)', $count );
+    ?>
+    <div class="aegis-mini-cart" data-aegis-mini-cart>
+        <div class="aegis-mini-cart__overlay" data-aegis-mini-cart-close hidden></div>
+        <aside class="aegis-mini-cart__drawer" role="dialog" aria-modal="true" aria-hidden="true" hidden>
+            <header class="aegis-mini-cart__header">
+                <button class="aegis-mini-cart__close" type="button" data-aegis-mini-cart-close aria-label="Close mini cart">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <div class="aegis-mini-cart__title">Cart</div>
+            </header>
+            <div class="aegis-mini-cart__notice" data-aegis-mini-cart-notice role="status" aria-live="polite">
+                <?php echo esc_html__( '已加入购物车', 'aegis-mega-header' ); ?>
+            </div>
+            <div id="aegis-mini-cart-fragment" class="aegis-mini-cart__items">
+                <?php echo $mini_cart; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
+            <div class="aegis-mini-cart__summary">
+                <div class="aegis-mini-cart__subtotal">
+                    <span class="aegis-mini-cart__subtotal-label"><?php echo esc_html__( 'Subtotal', 'aegis-mega-header' ); ?></span>
+                    <span class="aegis-mini-cart__subtotal-amount"><?php echo wp_kses_post( $subtotal ); ?></span>
+                </div>
+                <a class="aegis-mini-cart__view-cart" href="<?php echo esc_url( $cart_url ); ?>">
+                    <span class="aegis-mini-cart__view-cart-text"><?php echo esc_html( $view_label ); ?></span>
+                </a>
+            </div>
+        </aside>
+    </div>
+    <?php
+}
+add_action( 'wp_footer', 'aegis_mega_header_render_mini_cart_drawer' );
+
+function aegis_mega_header_add_to_cart_fragments( $fragments ) {
+    if ( ! aegis_mega_header_has_woocommerce() ) {
+        return $fragments;
+    }
+
+    $count      = aegis_mega_header_get_cart_count();
+    $subtotal   = aegis_mega_header_get_cart_subtotal();
+    $mini_cart  = aegis_mega_header_render_mini_cart_fragment();
+    $view_label = sprintf( 'View your cart (%d)', $count );
+
+    $fragments['#aegis-mini-cart-fragment'] = sprintf(
+        '<div id="aegis-mini-cart-fragment" class="aegis-mini-cart__items">%s</div>',
+        $mini_cart
+    );
+    $fragments['.aegis-mini-cart__subtotal-amount'] = sprintf(
+        '<span class="aegis-mini-cart__subtotal-amount">%s</span>',
+        wp_kses_post( $subtotal )
+    );
+    $fragments['.aegis-mini-cart__view-cart-text'] = sprintf(
+        '<span class="aegis-mini-cart__view-cart-text">%s</span>',
+        esc_html( $view_label )
+    );
+    $fragments['.aegis-header__cart-count'] = sprintf(
+        '<span class="aegis-header__cart-count">%d</span>',
+        absint( $count )
+    );
+
+    return $fragments;
+}
+add_filter( 'woocommerce_add_to_cart_fragments', 'aegis_mega_header_add_to_cart_fragments' );
 
 function aegis_mega_header_render_slot_fields( $slot_key, $slot_settings ) {
     $image_id   = isset( $slot_settings['image_id'] ) ? absint( $slot_settings['image_id'] ) : 0;
