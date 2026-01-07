@@ -131,19 +131,27 @@ function aegis_render_product_tech_feature_metabox( $post ) {
         )
     );
 
+    $selected_count = count( $selected );
+
     echo '<p>' . esc_html__( 'Select technical features to display on the product page.', 'aegis' ) . '</p>';
-    echo '<select name="aegis_tech_feature_ids[]" multiple="multiple" style="width:100%; min-height: 140px;">';
+    echo '<div class="aegis-tech-picker" data-selected-count="' . esc_attr( $selected_count ) . '">';
+    echo '<input type="search" class="aegis-tech-picker__search" placeholder="' . esc_attr__( 'Search technical features…', 'aegis' ) . '" aria-label="' . esc_attr__( 'Search technical features', 'aegis' ) . '" style="width:100%; margin: 6px 0 10px;">';
+    echo '<div class="aegis-tech-picker__count" style="margin-bottom: 8px;">' . esc_html__( 'Selected:', 'aegis' ) . ' <span>' . esc_html( (string) $selected_count ) . '</span></div>';
+    echo '<div class="aegis-tech-picker__list" role="list" style="max-height: 280px; overflow-y: auto; border: 1px solid #d1d5db; padding: 8px;">';
 
     foreach ( $features as $feature ) {
+        $is_checked = in_array( $feature->ID, $selected, true );
+        $title = trim( wp_strip_all_tags( get_the_title( $feature ) ) );
         printf(
-            '<option value="%1$d"%2$s>%3$s</option>',
+            '<label class="aegis-tech-picker__item" role="listitem"><input type="checkbox" name="aegis_tech_feature_ids[]" value="%1$d"%2$s> <span class="aegis-tech-picker__label">%3$s</span></label>',
             absint( $feature->ID ),
-            selected( in_array( $feature->ID, $selected, true ), true, false ),
-            esc_html( get_the_title( $feature ) )
+            checked( $is_checked, true, false ),
+            esc_html( $title )
         );
     }
 
-    echo '</select>';
+    echo '</div>';
+    echo '</div>';
 }
 
 function aegis_save_product_tech_feature_meta( $post_id ) {
@@ -206,28 +214,30 @@ function aegis_pdp_tech_features_shortcode() {
         return '';
     }
 
-    ob_start();
-    ?>
-    <div class="aegis-wc-module aegis-wc-module--tech-features">
-        <h3><?php echo esc_html__( 'Technical features', 'aegis' ); ?></h3>
-        <div class="aegis-tech-features-grid">
-            <?php foreach ( $features as $feature ) : ?>
-                <button type="button" class="aegis-tech-feature-card" data-tech-id="<?php echo esc_attr( $feature->ID ); ?>">
-                    <div class="aegis-tech-feature-card__media">
-                        <?php
-                        if ( has_post_thumbnail( $feature ) ) {
-                            echo get_the_post_thumbnail( $feature, 'medium' );
-                        } else {
-                            echo '<div class="aegis-tech-feature-card__placeholder"></div>';
-                        }
-                        ?>
-                    </div>
-                    <div class="aegis-tech-feature-card__title"><?php echo esc_html( get_the_title( $feature ) ); ?></div>
-                </button>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    <?php
-    return ob_get_clean();
+    $items_markup = '';
+
+    foreach ( $features as $feature ) {
+        $title = trim( wp_strip_all_tags( get_the_title( $feature ) ) );
+        $media = has_post_thumbnail( $feature )
+            ? get_the_post_thumbnail( $feature, 'medium' )
+            : '<div class="aegis-tech-feature-card__placeholder"></div>';
+
+        $items_markup .= sprintf(
+            '<button type="button" class="aegis-tech-feature-card" data-tech-id="%1$d"><div class="aegis-tech-feature-card__media">%2$s</div><div class="aegis-tech-feature-card__title">%3$s</div></button>',
+            absint( $feature->ID ),
+            $media,
+            esc_html( $title )
+        );
+    }
+
+    $items_markup = preg_replace( '/<(br|p)([^>]*)>\\s*<\\/\\1>/', '', $items_markup );
+    $items_markup = str_replace( '<br />', '', $items_markup );
+    $items_markup = str_replace( '<br>', '', $items_markup );
+
+    return sprintf(
+        '<div class="aegis-wc-module aegis-wc-module--tech-features"><h3>%1$s</h3><div class="aegis-tech-features-grid">%2$s</div></div>',
+        esc_html__( 'Technical features', 'aegis' ),
+        $items_markup
+    );
 }
 add_shortcode( 'aegis_pdp_tech_features', 'aegis_pdp_tech_features_shortcode' );

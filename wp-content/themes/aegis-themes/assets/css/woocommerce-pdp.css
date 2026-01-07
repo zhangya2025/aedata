@@ -877,6 +877,10 @@ body.aegis-variants-ready .aegis-variant-toggle {
     gap: 16px;
 }
 
+.aegis-tech-features-grid > br {
+    display: none;
+}
+
 .aegis-tech-feature-card {
     display: flex;
     flex-direction: column;
