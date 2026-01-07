@@ -12,6 +12,7 @@ require_once get_theme_file_path( 'inc/woocommerce-gallery-wall.php' );
 require_once get_theme_file_path( 'inc/pdp-fields.php' );
 require_once get_theme_file_path( 'inc/pdp-accordion.php' );
 require_once get_theme_file_path( 'inc/size-guides.php' );
+require_once get_theme_file_path( 'inc/faq-library.php' );
 
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
@@ -29,6 +30,25 @@ add_action( 'after_setup_theme', function () {
 add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-font-noto-sans-sc', get_stylesheet_directory_uri() . '/assets/fonts/noto-sans-sc/noto-sans-sc.css', array(), AEGIS_THEMES_VERSION );
 }, 5 );
+
+add_action( 'admin_enqueue_scripts', function ( $hook ) {
+    if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if ( ! $screen || 'product' !== $screen->post_type ) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'aegis-admin-faq-picker',
+        get_theme_file_uri( 'assets/js/admin-faq-picker.js' ),
+        array(),
+        AEGIS_THEMES_VERSION,
+        true
+    );
+}, 20 );
 
 add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-themes-style', get_theme_file_uri( 'assets/css/main.css' ), array(), AEGIS_THEMES_VERSION );
