@@ -31,6 +31,25 @@ add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-font-noto-sans-sc', get_stylesheet_directory_uri() . '/assets/fonts/noto-sans-sc/noto-sans-sc.css', array(), AEGIS_THEMES_VERSION );
 }, 5 );
 
+add_action( 'admin_enqueue_scripts', function ( $hook ) {
+    if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if ( ! $screen || 'product' !== $screen->post_type ) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'aegis-admin-faq-picker',
+        get_theme_file_uri( 'assets/js/admin-faq-picker.js' ),
+        array(),
+        AEGIS_THEMES_VERSION,
+        true
+    );
+}, 20 );
+
 add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-themes-style', get_theme_file_uri( 'assets/css/main.css' ), array(), AEGIS_THEMES_VERSION );
     wp_enqueue_script( 'aegis-themes-script', get_theme_file_uri( 'assets/js/main.js' ), array(), AEGIS_THEMES_VERSION, true );

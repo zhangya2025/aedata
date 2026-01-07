@@ -121,6 +121,7 @@ function aegis_render_product_faq_metabox( $post ) {
         $selected = array_filter( array_map( 'absint', explode( ',', (string) $selected ) ) );
     }
 
+    $selected = array_values( array_unique( array_map( 'absint', $selected ) ) );
     $faqs = get_posts(
         array(
             'post_type'      => 'aegis_faq',
@@ -130,19 +131,26 @@ function aegis_render_product_faq_metabox( $post ) {
         )
     );
 
+    $selected_count = count( $selected );
+
     echo '<p>' . esc_html__( 'Select FAQs to display on the product page.', 'aegis' ) . '</p>';
-    echo '<select name="aegis_faq_ids[]" multiple="multiple" style="width:100%; min-height: 140px;">';
+    echo '<div class="aegis-faq-picker" data-selected-count="' . esc_attr( $selected_count ) . '">';
+    echo '<input type="search" class="aegis-faq-picker__search" placeholder="' . esc_attr__( 'Search FAQs…', 'aegis' ) . '" aria-label="' . esc_attr__( 'Search FAQs', 'aegis' ) . '" style="width:100%; margin: 6px 0 10px;">';
+    echo '<div class="aegis-faq-picker__count" style="margin-bottom: 8px;">' . esc_html__( 'Selected:', 'aegis' ) . ' <span>' . esc_html( (string) $selected_count ) . '</span></div>';
+    echo '<div class="aegis-faq-picker__list" role="list" style="max-height: 280px; overflow-y: auto; border: 1px solid #d1d5db; padding: 8px;">';
 
     foreach ( $faqs as $faq ) {
+        $is_checked = in_array( $faq->ID, $selected, true );
         printf(
-            '<option value="%1$d"%2$s>%3$s</option>',
+            '<label class="aegis-faq-picker__item" role="listitem"><input type="checkbox" name="aegis_faq_ids[]" value="%1$d"%2$s> <span class="aegis-faq-picker__label">%3$s</span></label>',
             absint( $faq->ID ),
-            selected( in_array( $faq->ID, $selected, true ), true, false ),
+            checked( $is_checked, true, false ),
             esc_html( get_the_title( $faq ) )
         );
     }
 
-    echo '</select>';
+    echo '</div>';
+    echo '</div>';
 }
 
 function aegis_save_product_faq_meta( $post_id ) {
@@ -154,7 +162,7 @@ function aegis_save_product_faq_meta( $post_id ) {
         return;
     }
 
-    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+    if ( ! current_user_can( 'edit_product', $post_id ) ) {
         return;
     }
 
