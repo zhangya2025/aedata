@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const pickers = document.querySelectorAll(
-    ".aegis-faq-picker, .aegis-tech-picker"
+    ".aegis-faq-picker, .aegis-tech-picker, .aegis-certificate-picker"
   );
   if (!pickers.length) {
     return;
@@ -52,6 +52,13 @@ document.addEventListener("DOMContentLoaded", () => {
         count: ".aegis-tech-picker__count",
         item: ".aegis-tech-picker__item",
         label: ".aegis-tech-picker__label",
+      });
+    } else if (picker.classList.contains("aegis-certificate-picker")) {
+      bindPicker(picker, {
+        search: ".aegis-certificate-picker__search",
+        count: ".aegis-certificate-picker__count",
+        item: ".aegis-certificate-picker__item",
+        label: ".aegis-certificate-picker__label",
       });
     } else {
       bindPicker(picker, {
