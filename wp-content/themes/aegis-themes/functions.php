@@ -12,6 +12,9 @@ require_once get_theme_file_path( 'inc/woocommerce-gallery-wall.php' );
 require_once get_theme_file_path( 'inc/pdp-fields.php' );
 require_once get_theme_file_path( 'inc/pdp-accordion.php' );
 require_once get_theme_file_path( 'inc/size-guides.php' );
+require_once get_theme_file_path( 'inc/faq-library.php' );
+require_once get_theme_file_path( 'inc/tech-features.php' );
+require_once get_theme_file_path( 'inc/certificates.php' );
 
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
@@ -29,6 +32,32 @@ add_action( 'after_setup_theme', function () {
 add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-font-noto-sans-sc', get_stylesheet_directory_uri() . '/assets/fonts/noto-sans-sc/noto-sans-sc.css', array(), AEGIS_THEMES_VERSION );
 }, 5 );
+
+add_action( 'admin_enqueue_scripts', function ( $hook ) {
+    if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if ( ! $screen ) {
+        return;
+    }
+
+    if ( in_array( $screen->post_type, array( 'product', 'aegis_certificate' ), true ) ) {
+        wp_enqueue_script(
+            'aegis-admin-faq-picker',
+            get_theme_file_uri( 'assets/js/admin-faq-picker.js' ),
+            array(),
+            AEGIS_THEMES_VERSION,
+            true
+        );
+    }
+
+    if ( 'aegis_certificate' === $screen->post_type ) {
+        wp_enqueue_media();
+    }
+
+}, 20 );
 
 add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-themes-style', get_theme_file_uri( 'assets/css/main.css' ), array(), AEGIS_THEMES_VERSION );
@@ -79,6 +108,22 @@ add_action( 'wp_enqueue_scripts', function () {
             array(
                 'guideId' => $size_guide_id,
                 'restBase' => esc_url_raw( rest_url( 'aegis/v1/size-guide/' ) ),
+            )
+        );
+
+        wp_localize_script(
+            'aegis-themes-woocommerce-pdp',
+            'AEGIS_TECH_FEATURES',
+            array(
+                'restBase' => esc_url_raw( rest_url( 'wp/v2/aegis_tech_feature/' ) ),
+            )
+        );
+
+        wp_localize_script(
+            'aegis-themes-woocommerce-pdp',
+            'AEGIS_CERTIFICATES',
+            array(
+                'restBase' => esc_url_raw( rest_url( 'aegis/v1/certificate-file/' ) ),
             )
         );
     }
