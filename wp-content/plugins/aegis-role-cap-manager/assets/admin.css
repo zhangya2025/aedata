@@ -1,0 +1,108 @@
+.aegis-rcm-layout {
+	display: flex;
+	gap: 24px;
+	align-items: flex-start;
+}
+
+.aegis-rcm-users {
+	width: 30%;
+	max-width: 320px;
+}
+
+.aegis-rcm-details {
+	width: 70%;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 16px;
+}
+
+.aegis-rcm-user-list {
+	list-style: none;
+	margin: 16px 0 0;
+	padding: 0;
+	border: 1px solid #c3c4c7;
+	background: #fff;
+	max-height: 70vh;
+	overflow: auto;
+}
+
+.aegis-rcm-user {
+	padding: 12px 12px;
+	border-bottom: 1px solid #e0e0e0;
+	cursor: pointer;
+}
+
+.aegis-rcm-user.is-selected {
+	background: #f0f6fc;
+}
+
+.aegis-rcm-user-name {
+	font-weight: 600;
+}
+
+.aegis-rcm-user-meta {
+	font-size: 12px;
+	color: #50575e;
+}
+
+.aegis-rcm-badge {
+	display: inline-block;
+	margin-left: 6px;
+	padding: 2px 6px;
+	background: #f6c343;
+	color: #1d2327;
+	border-radius: 10px;
+	font-size: 11px;
+}
+
+.aegis-rcm-pagination a {
+	margin-right: 6px;
+	text-decoration: none;
+}
+
+.aegis-rcm-pagination .is-current {
+	font-weight: 700;
+}
+
+.aegis-rcm-section {
+	margin-top: 20px;
+}
+
+.aegis-rcm-checkboxes {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 8px 16px;
+	max-height: 240px;
+	overflow: auto;
+	padding: 8px;
+	background: #f9f9f9;
+	border: 1px solid #dcdcde;
+}
+
+.aegis-rcm-checkboxes label {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.aegis-rcm-readonly {
+	margin-bottom: 12px;
+}
+
+.aegis-rcm-readonly.hidden {
+	display: none;
+}
+
+.aegis-rcm-form[aria-readonly="true"] {
+	opacity: 0.7;
+}
+
+.aegis-rcm-form[aria-readonly="true"] input[type="checkbox"],
+.aegis-rcm-form[aria-readonly="true"] button {
+	pointer-events: none;
+}
+
+.aegis-rcm-cap-search {
+	margin-bottom: 8px;
+	width: 100%;
+}
