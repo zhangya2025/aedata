@@ -134,3 +134,19 @@ add_action( 'wp_head', function () {
         echo "<!-- AEGIS_PDP_ACTIVE_HEAD -->\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 }, 5 );
+
+add_action( 'woocommerce_before_cart', function () {
+    if ( function_exists( 'is_cart' ) && ! is_cart() ) {
+        return;
+    }
+
+    echo '<div class="aegis-cart-layout">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}, 5 );
+
+add_action( 'woocommerce_after_cart', function () {
+    if ( function_exists( 'is_cart' ) && ! is_cart() ) {
+        return;
+    }
+
+    echo '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}, 50 );
