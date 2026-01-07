@@ -12,12 +12,15 @@ Aegis Rewrite Doctor provides a read-only diagnostics page and a few opt-in, adm
   3. Toggle optional fixes:
      - Product request fallback for `index.php/product/{slug}`.
      - Optional normalization of `index.php//product/` in product permalinks only.
+- Protects `woocommerce_permalinks['product_base']` from being saved with leading/trailing slashes when saving permalinks in wp-admin (normalizes before DB write).
+- Captures a backtrace snapshot when a slash-prefixed product base is attempted and shows it in the admin page for diagnosis.
 
 ## Access & Security
 
 - **Admins only**: Multisite uses `is_super_admin()`; non-multisite uses `manage_options`.
 - No frontend output, no logging, and no automatic writes on page load.
 - All writes require a manual admin action and nonce verification.
+- The product_base normalization only runs in wp-admin for users with required permissions.
 
 ## How to uninstall / disable
 
@@ -28,3 +31,10 @@ Aegis Rewrite Doctor provides a read-only diagnostics page and a few opt-in, adm
 
 - The fallback routing is a temporary, opt-in rescue path for index.php-based sites. Disable it once rewrite rules are stable.
 - Avoid frequent flushes to prevent performance impact.
+
+## Acceptance validation (suggested)
+
+1. Visit **Settings → Permalinks**, click “Save Changes” three times.
+2. Confirm `woocommerce_permalinks.product_base` remains `product` (no leading slash).
+3. Confirm `/index.php/product/{slug}/` remains reachable.
+4. If a slash-prefixed save attempt occurs, verify the Doctor page shows the latest backtrace evidence.

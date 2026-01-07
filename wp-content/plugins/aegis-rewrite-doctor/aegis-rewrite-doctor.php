@@ -12,12 +12,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Aegis_Rewrite_Doctor {
 	private const OPTION_KEY = 'aegis_rewrite_doctor_settings';
+	private const TRANSIENT_SLASH_TRACE = 'aegis_rewrite_doctor_last_slash_trace';
+	private const TRANSIENT_AUTO_FLUSH = 'aegis_rewrite_doctor_last_auto_flush';
 	private static $notices = array();
 	private static $quick_check = null;
+	private static $normalization_notice = null;
 
 	public static function init(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_actions' ) );
+		add_filter( 'pre_update_option_woocommerce_permalinks', array( __CLASS__, 'normalize_product_base_on_save' ), 10, 2 );
+		add_action( 'update_option_woocommerce_permalinks', array( __CLASS__, 'capture_product_base_write' ), 10, 2 );
 		add_action( 'parse_request', array( __CLASS__, 'maybe_apply_product_fallback' ) );
 		add_filter( 'post_type_link', array( __CLASS__, 'maybe_normalize_product_permalink' ), 10, 2 );
 	}
@@ -44,6 +49,7 @@ final class Aegis_Rewrite_Doctor {
 		$defaults = array(
 			'fallback_enabled'  => false,
 			'normalize_enabled' => false,
+			'auto_flush'        => false,
 		);
 
 		$stored = get_option( self::OPTION_KEY, array() );
@@ -105,6 +111,7 @@ final class Aegis_Rewrite_Doctor {
 			$settings = self::get_settings();
 			$settings['fallback_enabled']  = ! empty( $_POST['fallback_enabled'] );
 			$settings['normalize_enabled'] = ! empty( $_POST['normalize_enabled'] );
+			$settings['auto_flush']        = ! empty( $_POST['auto_flush'] );
 			update_option( self::OPTION_KEY, $settings );
 			self::$notices[] = array(
 				'type'    => 'success',
@@ -165,6 +172,115 @@ final class Aegis_Rewrite_Doctor {
 		$result['has_double'] = ( false !== strpos( $permalink, '/index.php//product/' ) );
 
 		return $result;
+	}
+
+	private static function current_user_is_admin_context(): bool {
+		if ( ! is_admin() ) {
+			return false;
+		}
+
+		return self::current_user_is_allowed();
+	}
+
+	public static function normalize_product_base_on_save( $new_value, $old_value ) {
+		if ( ! self::current_user_is_admin_context() ) {
+			return $new_value;
+		}
+
+		if ( ! is_array( $new_value ) || ! isset( $new_value['product_base'] ) ) {
+			return $new_value;
+		}
+
+		$original = (string) $new_value['product_base'];
+		$normalized = trim( $original, '/' );
+
+		if ( $original === $normalized ) {
+			return $new_value;
+		}
+
+		$new_value['product_base'] = $normalized;
+		self::store_slash_trace( $old_value, $original, $normalized );
+		self::maybe_auto_flush();
+
+		return $new_value;
+	}
+
+	public static function capture_product_base_write( $old_value, $new_value ): void {
+		if ( ! self::current_user_is_admin_context() ) {
+			return;
+		}
+
+		if ( ! is_array( $new_value ) || ! isset( $new_value['product_base'] ) ) {
+			return;
+		}
+
+		$original = (string) $new_value['product_base'];
+		$normalized = trim( $original, '/' );
+
+		if ( $original === $normalized ) {
+			return;
+		}
+
+		self::store_slash_trace( $old_value, $original, $normalized );
+	}
+
+	private static function store_slash_trace( $old_value, string $original, string $normalized ): void {
+		$trace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS );
+		$frames = array_slice( $trace, 0, 20 );
+		$summary = array();
+		foreach ( $frames as $frame ) {
+			$function = $frame['function'] ?? '';
+			$classname = $frame['class'] ?? '';
+			$type = $frame['type'] ?? '';
+			$call = trim( $classname . $type . $function );
+			$file = isset( $frame['file'] ) ? basename( (string) $frame['file'] ) : '';
+			$line = isset( $frame['line'] ) ? (int) $frame['line'] : 0;
+			$summary[] = array(
+				'call' => $call ? $call : '(unknown)',
+				'file' => $file,
+				'line' => $line,
+			);
+		}
+
+		$uri = wp_parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH );
+		$old_base = '';
+		if ( is_array( $old_value ) && isset( $old_value['product_base'] ) ) {
+			$old_base = (string) $old_value['product_base'];
+		}
+
+		set_transient(
+			self::TRANSIENT_SLASH_TRACE,
+			array(
+				'timestamp'   => time(),
+				'user_id'     => get_current_user_id(),
+				'request_uri' => $uri ? $uri : '',
+				'old_base'    => $old_base,
+				'new_base'    => $original,
+				'fixed_base'  => $normalized,
+				'trace'       => $summary,
+			),
+			7 * DAY_IN_SECONDS
+		);
+
+		self::$normalization_notice = sprintf(
+			'检测到 product_base 回滚写入（%s），已修正为 %s。建议点击 Flush rewrite。',
+			esc_html( $original ),
+			esc_html( $normalized )
+		);
+	}
+
+	private static function maybe_auto_flush(): void {
+		$settings = self::get_settings();
+		if ( empty( $settings['auto_flush'] ) ) {
+			return;
+		}
+
+		if ( get_transient( self::TRANSIENT_AUTO_FLUSH ) ) {
+			return;
+		}
+
+		flush_rewrite_rules();
+		set_transient( self::TRANSIENT_AUTO_FLUSH, time(), 5 * MINUTE_IN_SECONDS );
 	}
 
 	public static function maybe_apply_product_fallback( WP $wp ): void {
@@ -277,6 +393,7 @@ final class Aegis_Rewrite_Doctor {
 			$product_rewrite = $product_post_type->rewrite;
 		}
 
+		$last_trace = get_transient( self::TRANSIENT_SLASH_TRACE );
 		$quick_check = self::$quick_check;
 		?>
 		<div class="wrap">
@@ -287,6 +404,12 @@ final class Aegis_Rewrite_Doctor {
 					<p><?php echo wp_kses_post( $notice['message'] ); ?></p>
 				</div>
 			<?php endforeach; ?>
+
+			<?php if ( self::$normalization_notice ) : ?>
+				<div class="notice notice-warning is-dismissible">
+					<p><?php echo wp_kses_post( self::$normalization_notice ); ?></p>
+				</div>
+			<?php endif; ?>
 
 			<h2>环境与固定链接状态</h2>
 			<table class="widefat striped">
@@ -329,6 +452,24 @@ final class Aegis_Rewrite_Doctor {
 					</tr>
 				</tbody>
 			</table>
+
+			<h2>最近一次 product_base 回滚写入证据</h2>
+			<?php if ( is_array( $last_trace ) ) : ?>
+				<p><strong>检测时间：</strong><?php echo esc_html( date_i18n( 'Y-m-d H:i:s', (int) $last_trace['timestamp'] ) ); ?></p>
+				<p><strong>旧值 → 新值 → 修正值：</strong><?php echo esc_html( $last_trace['old_base'] ); ?> → <?php echo esc_html( $last_trace['new_base'] ); ?> → <?php echo esc_html( $last_trace['fixed_base'] ); ?></p>
+				<p><strong>请求路径：</strong><?php echo esc_html( $last_trace['request_uri'] ); ?></p>
+				<p><strong>用户 ID：</strong><?php echo esc_html( (string) $last_trace['user_id'] ); ?></p>
+				<details>
+					<summary>Backtrace 摘要</summary>
+					<ol>
+						<?php foreach ( $last_trace['trace'] as $frame ) : ?>
+							<li><?php echo esc_html( $frame['call'] . ' - ' . $frame['file'] . ':' . $frame['line'] ); ?></li>
+						<?php endforeach; ?>
+					</ol>
+				</details>
+			<?php else : ?>
+				<p>尚未检测到回滚写入。</p>
+			<?php endif; ?>
 
 			<h2>WooCommerce 相关</h2>
 			<table class="widefat striped">
@@ -432,6 +573,11 @@ final class Aegis_Rewrite_Doctor {
 					仅对 product permalink 输出做 index.php//product 归一化
 				</label>
 				<p class="description">仅替换 /index.php//product/ → /index.php/product/，默认关闭。</p>
+				<label>
+					<input type="checkbox" name="auto_flush" value="1" <?php checked( $settings['auto_flush'] ); ?> />
+					修正后自动 Flush（限频 5 分钟一次）
+				</label>
+				<p class="description">默认关闭，仅当检测到 product_base 回滚并已修正时触发。</p>
 				<p>
 					<button class="button button-primary">保存开关设置</button>
 				</p>
