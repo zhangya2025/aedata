@@ -307,7 +307,7 @@
   min-width: 16px;
 }
 
-body.aegis-mini-cart-open {
+body.aegis-mini-cart--open {
   overflow: hidden;
 }
 
@@ -316,6 +316,14 @@ body.aegis-mini-cart-open {
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
   z-index: 99990;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+body.aegis-mini-cart--open .aegis-mini-cart__overlay {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .aegis-mini-cart__overlay[hidden] {
@@ -341,7 +349,7 @@ body.aegis-mini-cart-open {
   display: none;
 }
 
-.aegis-mini-cart.is-open .aegis-mini-cart__drawer {
+body.aegis-mini-cart--open .aegis-mini-cart__drawer {
   transform: translateX(0);
 }
 

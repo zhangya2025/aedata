@@ -9,23 +9,23 @@ Tags: block-styles, full-site-editing, editor-style, wide-blocks
 
 /* Minimal base styles can be added in assets/css/main.css */
 
-.woocommerce-cart .aegis-cart-layout {
+body.woocommerce-cart .aegis-cart-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
-  gap: 28px;
+  grid-template-columns: 1fr 420px;
+  gap: 32px;
   align-items: start;
 }
 
-.woocommerce-cart .aegis-cart-main {
+body.woocommerce-cart .aegis-cart-main {
   display: contents;
 }
 
-.woocommerce-cart .woocommerce-cart-form {
+body.woocommerce-cart .aegis-cart-layout .woocommerce-cart-form {
   grid-column: 1;
   min-width: 0;
 }
 
-.woocommerce-cart .cart-collaterals {
+body.woocommerce-cart .aegis-cart-layout .cart-collaterals {
   grid-column: 2;
   padding: 20px;
   border: 1px solid #e2e8f0;
@@ -33,26 +33,26 @@ Tags: block-styles, full-site-editing, editor-style, wide-blocks
   border-radius: 8px;
 }
 
-.woocommerce-cart .cart-collaterals .cart_totals,
-.woocommerce-cart .cart-collaterals .cart_totals table {
+body.woocommerce-cart .cart-collaterals .cart_totals,
+body.woocommerce-cart .cart-collaterals .cart_totals table {
   margin-bottom: 0;
 }
 
-@media (min-width: 961px) {
-  .woocommerce-cart .cart-collaterals {
+@media (min-width: 901px) {
+  body.woocommerce-cart .cart-collaterals {
     position: sticky;
     top: 24px;
   }
 }
 
-@media (max-width: 960px) {
-  .woocommerce-cart .aegis-cart-layout {
+@media (max-width: 900px) {
+  body.woocommerce-cart .aegis-cart-layout {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 
-  .woocommerce-cart .woocommerce-cart-form,
-  .woocommerce-cart .cart-collaterals {
+  body.woocommerce-cart .aegis-cart-layout .woocommerce-cart-form,
+  body.woocommerce-cart .aegis-cart-layout .cart-collaterals {
     grid-column: 1;
   }
 }

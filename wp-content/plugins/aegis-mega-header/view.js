@@ -539,8 +539,7 @@
       overlay.hidden = false;
       drawer.hidden = false;
       drawer.setAttribute('aria-hidden', 'false');
-      wrapper.classList.add('is-open');
-      document.body.classList.add('aegis-mini-cart-open');
+      document.body.classList.add('aegis-mini-cart--open');
       isOpen = true;
 
       if ( showSuccess ) {
@@ -555,8 +554,7 @@
       overlay.hidden = true;
       drawer.hidden = true;
       drawer.setAttribute('aria-hidden', 'true');
-      wrapper.classList.remove('is-open');
-      document.body.classList.remove('aegis-mini-cart-open');
+      document.body.classList.remove('aegis-mini-cart--open');
       isOpen = false;
     }
 
@@ -586,8 +584,42 @@
     if ( window.jQuery ) {
       window.jQuery( document.body ).on('added_to_cart', () => {
         refreshFragments();
-        openDrawer( true );
+        if ( window.__aegisPendingOpenMiniCart ) {
+          openDrawer( true );
+          window.__aegisPendingOpenMiniCart = false;
+        }
       } );
+
+      window.jQuery( document.body ).on('wc_fragments_refreshed', () => {
+        if ( window.__aegisPendingOpenMiniCart ) {
+          openDrawer( true );
+          window.__aegisPendingOpenMiniCart = false;
+        }
+      } );
+    }
+
+    document.addEventListener('click', ( event ) => {
+      if ( event.target.closest('.single_add_to_cart_button') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    document.addEventListener('submit', ( event ) => {
+      if ( event.target && event.target.matches('form.cart') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    const params = new URLSearchParams( window.location.search );
+    const addToCartParam = params.has('add-to-cart') || params.has('added-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    const errorNotice = document.querySelector('.woocommerce-error');
+    if ( addToCartParam || ( successNotice && ! errorNotice ) ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
     }
 
     const addToCartParam = new URLSearchParams( window.location.search ).has('add-to-cart');
