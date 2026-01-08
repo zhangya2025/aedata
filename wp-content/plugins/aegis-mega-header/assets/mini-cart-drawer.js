@@ -8,7 +8,6 @@
       return;
     }
 
-    const isSingleProduct = document.body.classList.contains('single-product');
     const overlay = wrapper.querySelector('.aegis-mini-cart__overlay');
     const drawer = wrapper.querySelector('.aegis-mini-cart__drawer');
     let noticeTimer = null;
@@ -259,15 +258,19 @@
 
     document.addEventListener('submit', ( event ) => {
       if ( event.target && event.target.matches('form.cart') ) {
-        window.__aegisPendingOpenMiniCart = true;
-        if ( isSingleProduct ) {
-          const variationInput = event.target.querySelector('input[name="variation_id"]');
-          if ( variationInput && parseInt( variationInput.value || '0', 10 ) <= 0 ) {
-            return;
-          }
-          event.preventDefault();
-          sendAddToCartRequest( event.target );
+        const variationInput = event.target.querySelector('input[name="variation_id"]');
+        const variationId = variationInput
+          ? parseInt( variationInput.value || '0', 10 )
+          : null;
+        const shouldIntercept = variationInput ? variationId > 0 : true;
+        if ( ! shouldIntercept ) {
+          return;
         }
+        window.__aegisPendingOpenMiniCart = true;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        console.log('[AEGIS MINI CART] intercepted submit', { variationId });
+        sendAddToCartRequest( event.target );
       }
     } );
 
