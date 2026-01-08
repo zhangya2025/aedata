@@ -598,13 +598,31 @@
           window.__aegisPendingOpenMiniCart = false;
         }
       } );
+    }
 
-      window.jQuery( document.body ).on('wc_fragments_refreshed', () => {
-        if ( window.__aegisPendingOpenMiniCart ) {
-          openDrawer( true );
-          window.__aegisPendingOpenMiniCart = false;
-        }
-      } );
+    document.addEventListener('click', ( event ) => {
+      if ( event.target.closest('.single_add_to_cart_button') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    document.addEventListener('submit', ( event ) => {
+      if ( event.target && event.target.matches('form.cart') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    const params = new URLSearchParams( window.location.search );
+    let aegisAddToCartParam = false;
+    aegisAddToCartParam = params.has('add-to-cart') || params.has('added-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    const errorNotice = document.querySelector('.woocommerce-error');
+    if ( aegisAddToCartParam || ( successNotice && ! errorNotice ) ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
     }
 
     document.addEventListener('click', ( event ) => {
