@@ -1,6 +1,15 @@
 ( function () {
   console.log('[AEGIS MINI CART] loaded');
   window.AEGIS_MINICART_LOADED = true;
+  const aegisSettings = window.AegisMiniCartSettings || {};
+  const aegisDebugEnabled = !! aegisSettings.debug;
+
+  function debugLog( ...args ) {
+    if ( ! aegisDebugEnabled || ! window.console || ! window.console.log ) {
+      return;
+    }
+    window.console.log( ...args );
+  }
 
   function initMiniCartDrawer() {
     const wrapper = document.querySelector('[data-aegis-mini-cart]');
@@ -108,6 +117,52 @@
       button.classList.toggle('loading', !! loading);
     }
 
+    function showErrorNotice( message ) {
+      const noticeMessage = message || '无法加入购物车，请检查所选属性或库存。';
+      if ( window.wp && window.wp.data && window.wp.data.dispatch ) {
+        try {
+          const noticesDispatch = window.wp.data.dispatch( 'wc/store/notices' );
+          if ( noticesDispatch && typeof noticesDispatch.addNotice === 'function' ) {
+            noticesDispatch.addNotice( {
+              status: 'error',
+              content: noticeMessage,
+              isDismissible: true,
+            } );
+            return;
+          }
+        } catch ( error ) {
+          // noop
+        }
+      }
+
+      const wrapperNode = document.querySelector('.woocommerce-notices-wrapper') || document.querySelector('.woocommerce-notices');
+      if ( ! wrapperNode ) {
+        return;
+      }
+
+      const notice = document.createElement('div');
+      notice.className = 'woocommerce-error';
+      notice.setAttribute('role', 'alert');
+      notice.textContent = noticeMessage;
+      wrapperNode.appendChild( notice );
+    }
+
+    function serializeFormData( formData ) {
+      const payload = {};
+      for ( const [ key, value ] of formData.entries() ) {
+        if ( Object.prototype.hasOwnProperty.call( payload, key ) ) {
+          if ( Array.isArray( payload[ key ] ) ) {
+            payload[ key ].push( value );
+          } else {
+            payload[ key ] = [ payload[ key ], value ];
+          }
+        } else {
+          payload[ key ] = value;
+        }
+      }
+      return payload;
+    }
+
     function getAjaxEndpoint() {
       if ( window.wc_add_to_cart_params && window.wc_add_to_cart_params.wc_ajax_url ) {
         return window.wc_add_to_cart_params.wc_ajax_url.replace('%%endpoint%%', 'add_to_cart');
@@ -139,17 +194,26 @@
       selects.forEach( ( select ) => {
         formData.set( select.name, select.value );
       } );
+      const variationId = parseInt( vid || '0', 10 );
+      if ( variationId > 0 ) {
+        formData.set('product_id', String( variationId ) );
+        formData.set('add-to-cart', String( variationId ) );
+      }
 
       clearBlocksErrorDom();
       setButtonLoading( button, true );
+      const ajaxEndpoint = getAjaxEndpoint();
+      debugLog('[AEGIS MINI CART] add_to_cart payload', serializeFormData( formData ) );
+      debugLog('[AEGIS MINI CART] add_to_cart url', ajaxEndpoint );
 
-      return fetch( getAjaxEndpoint(), {
+      return fetch( ajaxEndpoint, {
         method: 'POST',
         credentials: 'same-origin',
         body: formData,
       } )
         .then( ( response ) => response.json() )
         .then( ( response ) => {
+          debugLog('[AEGIS MINI CART] add_to_cart response', response );
           if ( response && response.error === true ) {
             if ( window.console && window.console.warn ) {
               window.console.warn('[AEGIS MINI CART] add_to_cart error payload', {
@@ -162,6 +226,7 @@
                 response,
               } );
             }
+            showErrorNotice();
             return;
           }
 
@@ -195,6 +260,7 @@
           if ( window.console && window.console.warn ) {
             window.console.warn('[AEGIS MINI CART] add to cart failed');
           }
+          showErrorNotice('加入购物车失败，请稍后再试。');
         } )
         .finally( () => {
           setButtonLoading( button, false );
@@ -293,7 +359,7 @@
         }
         window.__aegisPendingOpenMiniCart = true;
         event.preventDefault();
-        console.log('[AEGIS MINI CART] submit intercepted', { variationId, attrsOk });
+        debugLog('[AEGIS MINI CART] submit intercepted', { variationId, attrsOk });
         sendAddToCartRequest( form );
       }
     } );
