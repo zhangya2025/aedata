@@ -3,6 +3,9 @@
   window.AEGIS_MINICART_LOADED = true;
   const aegisSettings = window.AegisMiniCartSettings || {};
   const aegisDebugEnabled = !! aegisSettings.debug;
+  const miniCartAjaxUrl = aegisSettings.ajaxUrl || '';
+  const miniCartNonce = aegisSettings.nonce || '';
+  const i18n = aegisSettings.i18n || {};
 
   function debugLog( ...args ) {
     if ( ! aegisDebugEnabled || ! window.console || ! window.console.log ) {
@@ -117,8 +120,31 @@
       button.classList.toggle('loading', !! loading);
     }
 
+    function setItemLoading( item, loading ) {
+      if ( ! item ) {
+        return;
+      }
+      item.classList.toggle('is-loading', !! loading);
+      const inputs = item.querySelectorAll('input, button, a');
+      inputs.forEach( ( input ) => {
+        if ( input.classList.contains('remove_from_cart_button') ) {
+          return;
+        }
+        if ( input.tagName === 'A' ) {
+          input.setAttribute('aria-disabled', loading ? 'true' : 'false');
+          if ( loading ) {
+            input.setAttribute('data-disabled', 'true');
+          } else {
+            input.removeAttribute('data-disabled');
+          }
+          return;
+        }
+        input.disabled = !! loading;
+      } );
+    }
+
     function showErrorNotice( message ) {
-      const noticeMessage = message || '无法加入购物车，请检查所选属性或库存。';
+      const noticeMessage = message || i18n.addToCartError || 'Unable to add to cart.';
       if ( window.wp && window.wp.data && window.wp.data.dispatch ) {
         try {
           const noticesDispatch = window.wp.data.dispatch( 'wc/store/notices' );
@@ -168,6 +194,17 @@
         return window.wc_add_to_cart_params.wc_ajax_url.replace('%%endpoint%%', 'add_to_cart');
       }
       return '/?wc-ajax=add_to_cart';
+    }
+
+    function updateMiniCartFragments( response ) {
+      if ( response && response.fragments && response.fragments['#aegis-mini-cart-fragment'] ) {
+        const fragment = wrapper.querySelector('#aegis-mini-cart-fragment');
+        if ( fragment ) {
+          fragment.innerHTML = response.fragments['#aegis-mini-cart-fragment'];
+        }
+        return true;
+      }
+      return false;
     }
 
     function sendAddToCartRequest( form ) {
@@ -226,7 +263,7 @@
                 response,
               } );
             }
-            showErrorNotice();
+            showErrorNotice( i18n.addToCartError );
             return;
           }
 
@@ -236,12 +273,7 @@
             setTimeout( clearBlocksErrorDom, 0 );
             setTimeout( clearBlocksErrorDom, 250 );
           }
-          if ( response && response.fragments && response.fragments['#aegis-mini-cart-fragment'] ) {
-            const fragment = wrapper.querySelector('#aegis-mini-cart-fragment');
-            if ( fragment ) {
-              fragment.innerHTML = response.fragments['#aegis-mini-cart-fragment'];
-            }
-          } else if ( window.jQuery ) {
+          if ( ! updateMiniCartFragments( response ) && window.jQuery ) {
             reopenAfterRefresh = true;
             window.jQuery( document.body ).trigger('wc_fragment_refresh');
           }
@@ -260,7 +292,7 @@
           if ( window.console && window.console.warn ) {
             window.console.warn('[AEGIS MINI CART] add to cart failed');
           }
-          showErrorNotice('加入购物车失败，请稍后再试。');
+          showErrorNotice( i18n.addToCartFailure );
         } )
         .finally( () => {
           setButtonLoading( button, false );
@@ -300,13 +332,104 @@
       } );
     }
 
+    const quantityTimers = new Map();
+
+    function sendUpdateQuantityRequest( cartItemKey, quantity, itemNode ) {
+      if ( ! miniCartAjaxUrl || ! miniCartNonce ) {
+        refreshFragments();
+        return Promise.resolve();
+      }
+
+      if ( itemNode && itemNode.classList.contains('is-loading') ) {
+        return Promise.resolve();
+      }
+      const payload = new FormData();
+      payload.set('action', 'aegis_update_cart_item');
+      payload.set('cart_item_key', cartItemKey );
+      payload.set('quantity', String( quantity ) );
+      payload.set('security', miniCartNonce );
+
+      setItemLoading( itemNode, true );
+
+      return fetch( miniCartAjaxUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: payload,
+      } )
+        .then( ( response ) => response.json() )
+        .then( ( response ) => {
+          debugLog('[AEGIS MINI CART] update cart item response', response );
+          if ( response && response.success === false ) {
+            showErrorNotice( response.data && response.data.message ? response.data.message : i18n.updateCartFailure );
+            return;
+          }
+
+          syncBlocksStoresOnSuccess();
+          if ( ! updateMiniCartFragments( response ) ) {
+            refreshFragments();
+          }
+        } )
+        .catch( () => {
+          showErrorNotice( i18n.updateCartFailure );
+        } )
+        .finally( () => {
+          setItemLoading( itemNode, false );
+        } );
+    }
+
     wrapper.addEventListener('click', ( event ) => {
       const closer = event.target.closest('[data-aegis-mini-cart-close]');
       if ( ! closer ) {
+        const qtyButton = event.target.closest('[data-aegis-mini-cart-qty]');
+        if ( ! qtyButton ) {
+          return;
+        }
+        event.preventDefault();
+        const cartItemKey = qtyButton.getAttribute('data-cart-item-key');
+        const direction = qtyButton.getAttribute('data-aegis-mini-cart-qty');
+        if ( ! cartItemKey || ! direction ) {
+          return;
+        }
+        const itemNode = qtyButton.closest('.aegis-mini-cart__item');
+        const input = itemNode ? itemNode.querySelector('.aegis-mini-cart__qty-input') : null;
+        const currentQty = input ? parseInt( input.value || '1', 10 ) : 1;
+        const delta = direction === 'increase' ? 1 : -1;
+        const nextQty = Math.max( 1, currentQty + delta );
+        if ( input ) {
+          input.value = String( nextQty );
+        }
+        if ( quantityTimers.has( cartItemKey ) ) {
+          window.clearTimeout( quantityTimers.get( cartItemKey ) );
+          quantityTimers.delete( cartItemKey );
+        }
+        sendUpdateQuantityRequest( cartItemKey, nextQty, itemNode );
         return;
       }
       event.preventDefault();
       closeDrawer();
+    } );
+
+    wrapper.addEventListener('change', ( event ) => {
+      const input = event.target.closest('.aegis-mini-cart__qty-input');
+      if ( ! input ) {
+        return;
+      }
+      const cartItemKey = input.getAttribute('data-cart-item-key');
+      if ( ! cartItemKey ) {
+        return;
+      }
+      const itemNode = input.closest('.aegis-mini-cart__item');
+      const parsedQty = parseInt( input.value || '1', 10 );
+      const nextQty = Number.isFinite( parsedQty ) && parsedQty > 0 ? parsedQty : 1;
+      input.value = String( nextQty );
+      if ( quantityTimers.has( cartItemKey ) ) {
+        window.clearTimeout( quantityTimers.get( cartItemKey ) );
+      }
+      const timerId = window.setTimeout( () => {
+        sendUpdateQuantityRequest( cartItemKey, nextQty, itemNode );
+        quantityTimers.delete( cartItemKey );
+      }, 400 );
+      quantityTimers.set( cartItemKey, timerId );
     } );
 
     document.addEventListener('keydown', ( event ) => {
