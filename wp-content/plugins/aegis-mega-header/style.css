@@ -429,8 +429,9 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.aegis-mini-cart__drawer .aegis-mini-cart__item {
+.woocommerce .aegis-mini-cart__drawer .aegis-mini-cart__item {
   position: relative;
+  padding-right: 28px;
 }
 
 .aegis-mini-cart__item:last-child {
@@ -529,7 +530,7 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
   text-decoration: underline;
 }
 
-.aegis-mini-cart__drawer a.aegis-mini-cart__remove {
+.woocommerce .aegis-mini-cart__drawer a.aegis-mini-cart__remove.remove {
   position: absolute;
   top: 0;
   right: 0;
@@ -540,28 +541,32 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0;
-  line-height: 1;
-  color: inherit !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  text-indent: -9999px;
+  overflow: hidden;
+  color: #334155 !important;
   opacity: 0.55;
   background: transparent !important;
   border: 0 !important;
   border-radius: 4px;
   text-decoration: none;
-  transform: none;
+  transform: none !important;
 }
 
-.aegis-mini-cart__drawer a.aegis-mini-cart__remove::before {
+.woocommerce .aegis-mini-cart__drawer a.aegis-mini-cart__remove.remove::before {
   content: "×";
   font-size: 16px;
   line-height: 1;
+  text-indent: 0;
+  display: block;
 }
 
-.aegis-mini-cart__drawer a.aegis-mini-cart__remove:hover,
-.aegis-mini-cart__drawer a.aegis-mini-cart__remove:focus {
+.woocommerce .aegis-mini-cart__drawer a.aegis-mini-cart__remove.remove:hover,
+.woocommerce .aegis-mini-cart__drawer a.aegis-mini-cart__remove.remove:focus {
   opacity: 0.85;
   text-decoration: none;
-  transform: none;
+  transform: none !important;
 }
 
 .aegis-mini-cart__empty {
