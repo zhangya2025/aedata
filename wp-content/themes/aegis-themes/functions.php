@@ -29,10 +29,6 @@ add_action( 'after_setup_theme', function () {
     add_editor_style( 'assets/css/main.css' );
 } );
 
-add_action( 'wp_enqueue_scripts', function () {
-    wp_enqueue_style( 'aegis-font-noto-sans-sc', get_stylesheet_directory_uri() . '/assets/fonts/noto-sans-sc/noto-sans-sc.css', array(), AEGIS_THEMES_VERSION );
-}, 5 );
-
 add_action( 'admin_enqueue_scripts', function ( $hook ) {
     if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
         return;

@@ -25,3 +25,17 @@ body.home .aegis-mega-header {
   position: relative;
   z-index: 50;
 }
+
+html,
+body {
+  font-family: var(--wp--preset--font-family--noto-sans-sc);
+}
+
+button,
+input,
+select,
+textarea,
+.woocommerce,
+.aegis-mini-cart__drawer {
+  font-family: inherit;
+}
