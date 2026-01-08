@@ -29,10 +29,6 @@ add_action( 'after_setup_theme', function () {
     add_editor_style( 'assets/css/main.css' );
 } );
 
-add_action( 'wp_enqueue_scripts', function () {
-    wp_enqueue_style( 'aegis-font-noto-sans-sc', get_stylesheet_directory_uri() . '/assets/fonts/noto-sans-sc/noto-sans-sc.css', array(), AEGIS_THEMES_VERSION );
-}, 5 );
-
 add_action( 'admin_enqueue_scripts', function ( $hook ) {
     if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
         return;
@@ -157,6 +153,15 @@ add_action( 'wp_enqueue_scripts', function () {
         return ob_get_clean();
     }, 10, 2 );
 }, 30 );
+
+add_action( 'wp_enqueue_scripts', function () {
+    wp_enqueue_style(
+        'aegis-themes-design-system',
+        get_theme_file_uri( 'assets/css/design-system.css' ),
+        array(),
+        AEGIS_THEMES_VERSION
+    );
+}, 100 );
 
 add_action( 'wp_head', function () {
     if ( function_exists( 'is_product' ) && is_product() ) {

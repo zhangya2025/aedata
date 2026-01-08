@@ -1,0 +1,277 @@
+:root {
+  --ds-black: #000000;
+  --ds-white: #ffffff;
+  --ds-gray-50: #f5f5f5;
+  --ds-gray-100: #e5e5e5;
+  --ds-gray-200: #d4d4d4;
+  --ds-gray-400: #a3a3a3;
+  --ds-gray-700: #404040;
+  --ds-border-color: var(--ds-gray-200);
+  --ds-border: 1px solid var(--ds-border-color);
+  --ds-radius: 0px;
+  --ds-font-family: "Noto Sans SC", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  border-radius: var(--ds-radius) !important;
+}
+
+body {
+  background-color: var(--ds-white);
+  color: var(--ds-black);
+  font-family: var(--ds-font-family);
+  font-weight: 400;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.wp-block-heading,
+.wp-block-button__link,
+button,
+input[type="submit"],
+input[type="button"],
+input[type="reset"] {
+  font-family: var(--ds-font-family);
+  font-weight: 600;
+}
+
+a,
+a:visited {
+  color: var(--ds-black);
+}
+
+a:hover,
+a:focus {
+  color: var(--ds-gray-700);
+}
+
+button,
+.button,
+.wp-element-button,
+.wp-block-button__link,
+.woocommerce button.button,
+.woocommerce .button,
+.woocommerce a.button,
+.woocommerce button,
+.woocommerce input.button,
+.woocommerce input[type="submit"] {
+  background-color: var(--ds-black);
+  border: 1px solid var(--ds-black);
+  color: var(--ds-white);
+  box-shadow: none;
+  text-transform: none;
+}
+
+button:hover,
+.button:hover,
+.wp-element-button:hover,
+.wp-block-button__link:hover,
+.woocommerce button.button:hover,
+.woocommerce .button:hover,
+.woocommerce a.button:hover,
+.woocommerce button:hover,
+.woocommerce input.button:hover,
+.woocommerce input[type="submit"]:hover,
+button:focus,
+.button:focus,
+.wp-element-button:focus,
+.wp-block-button__link:focus,
+.woocommerce button.button:focus,
+.woocommerce .button:focus,
+.woocommerce a.button:focus,
+.woocommerce button:focus,
+.woocommerce input.button:focus,
+.woocommerce input[type="submit"]:focus {
+  background-color: var(--ds-gray-700);
+  border-color: var(--ds-gray-700);
+  color: var(--ds-white);
+}
+
+input,
+select,
+textarea,
+.woocommerce input.input-text,
+.woocommerce-page input.input-text,
+.woocommerce form .form-row input.input-text,
+.woocommerce form .form-row textarea {
+  background-color: var(--ds-white);
+  border: var(--ds-border);
+  color: var(--ds-black);
+  box-shadow: none;
+}
+
+.woocommerce-message,
+.woocommerce-error,
+.woocommerce-info,
+.woocommerce-notices-wrapper .woocommerce-message,
+.woocommerce-notices-wrapper .woocommerce-error,
+.woocommerce-notices-wrapper .woocommerce-info {
+  background-color: var(--ds-gray-50);
+  border: 1px solid var(--ds-gray-200);
+  color: var(--ds-black);
+}
+
+.woocommerce-message::before,
+.woocommerce-error::before,
+.woocommerce-info::before {
+  color: var(--ds-black);
+}
+
+.woocommerce-message a,
+.woocommerce-error a,
+.woocommerce-info a {
+  color: var(--ds-black);
+}
+
+.woocommerce table.shop_table {
+  border: var(--ds-border);
+  border-collapse: collapse;
+}
+
+.woocommerce table.shop_table th,
+.woocommerce table.shop_table td,
+.woocommerce table.shop_table tr,
+.woocommerce table.shop_table tbody th,
+.woocommerce table.shop_table tbody td {
+  border: var(--ds-border);
+}
+
+.woocommerce-cart .cart-collaterals .cart_totals,
+.woocommerce-cart .cart-collaterals .cart_totals table,
+.woocommerce-cart .cart-collaterals .cart_totals th,
+.woocommerce-cart .cart-collaterals .cart_totals td,
+.woocommerce-cart .woocommerce-cart-form,
+.woocommerce-cart .woocommerce-cart-form table,
+.woocommerce-cart .woocommerce-cart-form th,
+.woocommerce-cart .woocommerce-cart-form td {
+  border: var(--ds-border);
+}
+
+.woocommerce-cart .cart-collaterals .cart_totals th,
+.woocommerce-cart .cart-collaterals .cart_totals td,
+.woocommerce-cart .woocommerce-cart-form th,
+.woocommerce-cart .woocommerce-cart-form td {
+  border-left: var(--ds-border);
+  border-right: var(--ds-border);
+}
+
+.woocommerce-cart .cart-collaterals .cart_totals tr,
+.woocommerce-cart .woocommerce-cart-form tr {
+  border-bottom: var(--ds-border);
+}
+
+.woocommerce-cart .woocommerce-cart-form .actions,
+.woocommerce-cart .cart-collaterals .cart_totals {
+  background-color: var(--ds-white);
+}
+
+.woocommerce-cart .cart_totals .order-total .amount,
+.woocommerce-cart .cart_totals .order-total .woocommerce-Price-amount,
+.woocommerce-cart .order-total .amount,
+.woocommerce-cart .order-total .woocommerce-Price-amount,
+.woocommerce-cart .product-price .amount,
+.woocommerce-cart .product-subtotal .amount,
+.woocommerce-cart .cart-subtotal .amount,
+.woocommerce-cart .cart-subtotal .woocommerce-Price-amount,
+.woocommerce-cart .order-total .woocommerce-Price-amount {
+  font-weight: 900;
+}
+
+.aegis-mini-cart__drawer,
+.aegis-mini-cart__header,
+.aegis-mini-cart__summary,
+.aegis-mini-cart__actions,
+.aegis-mini-cart__item,
+.aegis-mini-cart__notice,
+.aegis-mini-cart__qty-control,
+.aegis-mini-cart__qty-btn,
+.aegis-mini-cart__qty-input,
+.aegis-mini-cart__close,
+.aegis-mini-cart__view-cart,
+.aegis-mini-cart__checkout,
+.aegis-mini-cart__overlay {
+  border: var(--ds-border);
+}
+
+.aegis-mini-cart__drawer {
+  background-color: var(--ds-white);
+  color: var(--ds-black);
+}
+
+.aegis-mini-cart__header,
+.aegis-mini-cart__summary {
+  border-bottom: var(--ds-border);
+}
+
+.aegis-mini-cart__item {
+  border-bottom: var(--ds-border);
+}
+
+.aegis-mini-cart__item:last-child {
+  border-bottom: none;
+}
+
+.aegis-mini-cart__notice {
+  background-color: var(--ds-gray-50);
+  color: var(--ds-black);
+}
+
+.aegis-mini-cart__qty-control {
+  background-color: var(--ds-white);
+}
+
+.aegis-mini-cart__qty-btn,
+.aegis-mini-cart__view-cart,
+.aegis-mini-cart__checkout,
+.aegis-mini-cart__close {
+  background-color: var(--ds-black);
+  color: var(--ds-white);
+  border: 1px solid var(--ds-black);
+}
+
+.aegis-mini-cart__qty-input {
+  border: var(--ds-border);
+  color: var(--ds-black);
+}
+
+.aegis-mini-cart__qty-btn:hover,
+.aegis-mini-cart__view-cart:hover,
+.aegis-mini-cart__checkout:hover,
+.aegis-mini-cart__close:hover,
+.aegis-mini-cart__qty-btn:focus,
+.aegis-mini-cart__view-cart:focus,
+.aegis-mini-cart__checkout:focus,
+.aegis-mini-cart__close:focus {
+  background-color: var(--ds-gray-700);
+  border-color: var(--ds-gray-700);
+}
+
+.aegis-mini-cart__title,
+.aegis-mini-cart__subtotal-amount {
+  font-weight: 600;
+}
+
+.aegis-mini-cart__subtotal-amount,
+.aegis-mini-cart__line-total {
+  font-weight: 900;
+}
+
+.wp-site-blocks {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+footer {
+  margin-top: auto;
+}
