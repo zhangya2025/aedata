@@ -103,11 +103,23 @@
 body.woocommerce-cart .aegis-cart-layout {
   display: grid;
   gap: 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+body.woocommerce-cart .wp-block-group.is-layout-constrained,
+body.woocommerce-cart .wp-block-post-content,
+body.woocommerce-cart .woocommerce {
+  max-width: 1280px !important;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 @media (min-width: 960px) {
   body.woocommerce-cart .aegis-cart-layout {
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 34%);
     align-items: start;
   }
 }
@@ -130,6 +142,8 @@ body.woocommerce-cart .aegis-cart-item {
   grid-template-columns: 96px minmax(0, 1fr);
   gap: 16px;
   padding: 16px;
+  padding-right: 44px;
+  position: relative;
   border: 1px solid var(--aegis-wc-border);
   border-radius: 16px;
   background: #ffffff;
@@ -137,7 +151,7 @@ body.woocommerce-cart .aegis-cart-item {
 
 @media (min-width: 960px) {
   body.woocommerce-cart .aegis-cart-item {
-    grid-template-columns: 96px minmax(0, 1fr) auto;
+    grid-template-columns: 104px minmax(0, 1fr) 120px 140px;
     align-items: start;
   }
 }
@@ -163,32 +177,118 @@ body.woocommerce-cart .aegis-cart-item__meta {
   font-size: 12px;
 }
 
-body.woocommerce-cart .aegis-cart-item__pricing {
+body.woocommerce-cart .aegis-cart-item__meta dl.variation {
   display: grid;
-  gap: 12px;
-  justify-items: end;
-  text-align: right;
+  grid-template-columns: max-content 1fr;
+  column-gap: 10px;
+  row-gap: 6px;
+  margin: 0;
+}
+
+body.woocommerce-cart .aegis-cart-item__meta dl.variation dt {
+  grid-column: 1;
+  margin: 0;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+body.woocommerce-cart .aegis-cart-item__meta dl.variation dd {
+  grid-column: 2;
+  margin: 0;
+}
+
+body.woocommerce-cart .aegis-cart-item__meta dl.variation dd p {
+  margin: 0;
+  display: inline;
+}
+
+body.woocommerce-cart .aegis-cart-item__pricing {
+  display: contents;
 }
 
 @media (min-width: 960px) {
   body.woocommerce-cart .aegis-cart-item__pricing {
-    min-width: 180px;
+    min-width: 0;
   }
 }
 
 body.woocommerce-cart .aegis-cart-item__unit-price {
-  font-size: 13px;
-  color: var(--aegis-wc-muted);
+  display: none;
 }
 
 body.woocommerce-cart .aegis-cart-item__subtotal {
   font-weight: 600;
 }
 
-body.woocommerce-cart .aegis-cart-item__remove a {
-  color: var(--aegis-wc-muted);
-  text-decoration: underline;
-  font-size: 12px;
+@media (max-width: 959px) {
+  body.woocommerce-cart .aegis-cart-item__quantity,
+  body.woocommerce-cart .aegis-cart-item__subtotal {
+    grid-column: 2;
+    justify-self: start;
+    text-align: left;
+  }
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .aegis-cart-item__details {
+    grid-column: 2;
+  }
+
+  body.woocommerce-cart .aegis-cart-item__quantity {
+    grid-column: 3;
+    justify-self: center;
+    text-align: center;
+  }
+
+  body.woocommerce-cart .aegis-cart-item__subtotal {
+    grid-column: 4;
+    justify-self: end;
+    text-align: right;
+  }
+
+  body.woocommerce-cart .aegis-cart-item__remove {
+    margin-top: 0;
+  }
+}
+
+body.woocommerce-cart .aegis-cart-item__remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+body.woocommerce-cart .aegis-cart-item__remove a.remove {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  text-indent: -9999px;
+  overflow: hidden;
+  color: #334155 !important;
+  opacity: 0.6;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 4px;
+  text-decoration: none;
+  transform: none !important;
+}
+
+body.woocommerce-cart .aegis-cart-item__remove a.remove::before {
+  content: "×";
+  font-size: 16px;
+  line-height: 1;
+  text-indent: 0;
+  display: block;
+}
+
+body.woocommerce-cart .aegis-cart-item__remove a.remove:hover,
+body.woocommerce-cart .aegis-cart-item__remove a.remove:focus {
+  opacity: 0.85;
+  text-decoration: none;
+  transform: none !important;
 }
 
 body.woocommerce-cart .aegis-cart-actions {
