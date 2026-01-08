@@ -11,16 +11,22 @@ Tags: block-styles, full-site-editing, editor-style, wide-blocks
 
 .woocommerce-cart .aegis-cart-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  grid-template-columns: minmax(0, 1fr) 400px;
   gap: 28px;
   align-items: start;
 }
 
 .woocommerce-cart .aegis-cart-main {
+  display: contents;
+}
+
+.woocommerce-cart .woocommerce-cart-form {
+  grid-column: 1;
   min-width: 0;
 }
 
 .woocommerce-cart .cart-collaterals {
+  grid-column: 2;
   padding: 20px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
@@ -43,5 +49,10 @@ Tags: block-styles, full-site-editing, editor-style, wide-blocks
   .woocommerce-cart .aegis-cart-layout {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+
+  .woocommerce-cart .woocommerce-cart-form,
+  .woocommerce-cart .cart-collaterals {
+    grid-column: 1;
   }
 }

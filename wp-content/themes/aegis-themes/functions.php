@@ -143,18 +143,10 @@ add_action( 'woocommerce_before_cart', function () {
     echo '<div class="aegis-cart-layout"><div class="aegis-cart-main">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }, 5 );
 
-add_action( 'woocommerce_before_cart_collaterals', function () {
-    if ( function_exists( 'is_cart' ) && ! is_cart() ) {
-        return;
-    }
-
-    echo '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-}, 5 );
-
 add_action( 'woocommerce_after_cart', function () {
     if ( function_exists( 'is_cart' ) && ! is_cart() ) {
         return;
     }
 
-    echo '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    echo '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }, 50 );
