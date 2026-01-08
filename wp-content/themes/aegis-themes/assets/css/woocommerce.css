@@ -103,9 +103,18 @@
 body.woocommerce-cart .aegis-cart-layout {
   display: grid;
   gap: 32px;
-  max-width: 1240px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 20px;
+}
+
+body.woocommerce-cart .wp-block-group.is-layout-constrained,
+body.woocommerce-cart .wp-block-post-content,
+body.woocommerce-cart .woocommerce {
+  max-width: 1280px !important;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 @media (min-width: 960px) {
@@ -133,6 +142,8 @@ body.woocommerce-cart .aegis-cart-item {
   grid-template-columns: 96px minmax(0, 1fr);
   gap: 16px;
   padding: 16px;
+  padding-right: 44px;
+  position: relative;
   border: 1px solid var(--aegis-wc-border);
   border-radius: 16px;
   background: #ffffff;
@@ -186,15 +197,10 @@ body.woocommerce-cart .aegis-cart-item__subtotal {
 
 @media (max-width: 959px) {
   body.woocommerce-cart .aegis-cart-item__quantity,
-  body.woocommerce-cart .aegis-cart-item__subtotal,
-  body.woocommerce-cart .aegis-cart-item__remove {
+  body.woocommerce-cart .aegis-cart-item__subtotal {
     grid-column: 2;
     justify-self: start;
     text-align: left;
-  }
-
-  body.woocommerce-cart .aegis-cart-item__remove {
-    margin-top: 6px;
   }
 }
 
@@ -216,13 +222,17 @@ body.woocommerce-cart .aegis-cart-item__subtotal {
   }
 
   body.woocommerce-cart .aegis-cart-item__remove {
-    grid-column: 2 / -1;
-    justify-self: end;
-    margin-top: 8px;
+    margin-top: 0;
   }
 }
 
-body.woocommerce-cart .aegis-cart-item__remove a {
+body.woocommerce-cart .aegis-cart-item__remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+body.woocommerce-cart .aegis-cart-item__remove a.remove {
   width: 18px !important;
   height: 18px !important;
   display: inline-flex;
@@ -241,7 +251,7 @@ body.woocommerce-cart .aegis-cart-item__remove a {
   transform: none !important;
 }
 
-body.woocommerce-cart .aegis-cart-item__remove a::before {
+body.woocommerce-cart .aegis-cart-item__remove a.remove::before {
   content: "×";
   font-size: 16px;
   line-height: 1;
@@ -249,8 +259,8 @@ body.woocommerce-cart .aegis-cart-item__remove a::before {
   display: block;
 }
 
-body.woocommerce-cart .aegis-cart-item__remove a:hover,
-body.woocommerce-cart .aegis-cart-item__remove a:focus {
+body.woocommerce-cart .aegis-cart-item__remove a.remove:hover,
+body.woocommerce-cart .aegis-cart-item__remove a.remove:focus {
   opacity: 0.85;
   text-decoration: none;
   transform: none !important;
