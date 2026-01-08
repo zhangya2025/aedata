@@ -98,3 +98,114 @@
 .woocommerce-MyAccount-navigation a {
   color: inherit;
 }
+
+/* Cart layout (classic shortcode override) */
+body.woocommerce-cart .aegis-cart-layout {
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .aegis-cart-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: start;
+  }
+}
+
+body.woocommerce-cart .woocommerce-cart-form,
+body.woocommerce-cart .aegis-cart-summary {
+  background: #ffffff;
+  border: 1px solid var(--aegis-wc-border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+body.woocommerce-cart .aegis-cart-items {
+  display: grid;
+  gap: 16px;
+}
+
+body.woocommerce-cart .aegis-cart-item {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--aegis-wc-border);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .aegis-cart-item {
+    grid-template-columns: 96px minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
+
+body.woocommerce-cart .aegis-cart-item__thumb img {
+  border-radius: 12px;
+  border: 1px solid var(--aegis-wc-border);
+}
+
+body.woocommerce-cart .aegis-cart-item__details {
+  display: grid;
+  gap: 8px;
+}
+
+body.woocommerce-cart .aegis-cart-item__name a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+body.woocommerce-cart .aegis-cart-item__meta {
+  color: var(--aegis-wc-muted);
+  font-size: 12px;
+}
+
+body.woocommerce-cart .aegis-cart-item__pricing {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+  text-align: right;
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .aegis-cart-item__pricing {
+    min-width: 180px;
+  }
+}
+
+body.woocommerce-cart .aegis-cart-item__unit-price {
+  font-size: 13px;
+  color: var(--aegis-wc-muted);
+}
+
+body.woocommerce-cart .aegis-cart-item__subtotal {
+  font-weight: 600;
+}
+
+body.woocommerce-cart .aegis-cart-item__remove a {
+  color: var(--aegis-wc-muted);
+  text-decoration: underline;
+  font-size: 12px;
+}
+
+body.woocommerce-cart .aegis-cart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .aegis-cart-summary {
+    position: sticky;
+    top: 120px;
+  }
+}
+
+body.woocommerce-cart .aegis-cart-summary .cart_totals,
+body.woocommerce-cart .aegis-cart-summary .cart_totals table {
+  margin-bottom: 0;
+}

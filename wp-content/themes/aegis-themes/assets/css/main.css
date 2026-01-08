@@ -4,7 +4,13 @@ a {
 }
 
 .wp-site-blocks {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+.wp-site-blocks > main {
+  flex: 1 0 auto;
 }
 
 body.home {
