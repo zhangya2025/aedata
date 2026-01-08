@@ -111,6 +111,11 @@ add_action( 'wp_enqueue_scripts', function () {
         'debug' => aegis_mega_header_is_minicart_debug(),
         'ajaxUrl' => admin_url( 'admin-ajax.php' ),
         'nonce' => wp_create_nonce( 'aegis-mini-cart' ),
+        'i18n' => [
+            'addToCartError' => __( 'Unable to add to cart. Please check your options or stock.', 'aegis-mega-header' ),
+            'addToCartFailure' => __( 'Unable to add to cart. Please try again.', 'aegis-mega-header' ),
+            'updateCartFailure' => __( 'Unable to update the cart. Please try again.', 'aegis-mega-header' ),
+        ],
     ];
     wp_add_inline_script(
         'aegis-mini-cart-drawer',
@@ -1653,7 +1658,8 @@ function aegis_mega_header_render_mini_cart_fragment() {
                         );
                         $thumbnail     = $product->get_image( 'woocommerce_thumbnail' );
                         $item_data     = wc_get_formatted_cart_item_data( $cart_item );
-                        $price         = WC()->cart ? WC()->cart->get_product_price( $product ) : '';
+                        $unit_price    = WC()->cart ? WC()->cart->get_product_price( $product ) : '';
+                        $line_subtotal = WC()->cart ? WC()->cart->get_product_subtotal( $product, $cart_item['quantity'] ) : '';
                         $remove_url    = wc_get_cart_remove_url( $cart_item_key );
                         $product_sku   = $product->get_sku();
                         $quantity      = isset( $cart_item['quantity'] ) ? (int) $cart_item['quantity'] : 1;
@@ -1683,7 +1689,10 @@ function aegis_mega_header_render_mini_cart_fragment() {
                                 <?php endif; ?>
                             </div>
                             <div class="aegis-mini-cart__controls" aria-label="<?php echo esc_attr__( 'Cart item controls', 'aegis-mega-header' ); ?>">
-                                <div class="aegis-mini-cart__price"><?php echo wp_kses_post( $price ); ?></div>
+                                <div class="aegis-mini-cart__unit-price">
+                                    <span class="screen-reader-text"><?php echo esc_html__( 'Price', 'aegis-mega-header' ); ?></span>
+                                    <?php echo wp_kses_post( $unit_price ); ?>
+                                </div>
                                 <div class="aegis-mini-cart__qty-control" data-cart-item-key="<?php echo esc_attr( $cart_item_key ); ?>">
                                     <button
                                         type="button"
@@ -1709,6 +1718,10 @@ function aegis_mega_header_render_mini_cart_fragment() {
                                         data-cart-item-key="<?php echo esc_attr( $cart_item_key ); ?>"
                                         aria-label="<?php echo esc_attr__( 'Increase quantity', 'aegis-mega-header' ); ?>"
                                     >+</button>
+                                </div>
+                                <div class="aegis-mini-cart__line-total">
+                                    <span class="screen-reader-text"><?php echo esc_html__( 'Subtotal', 'aegis-mega-header' ); ?></span>
+                                    <?php echo wp_kses_post( $line_subtotal ); ?>
                                 </div>
                                 <a
                                     href="<?php echo esc_url( $remove_url ); ?>"

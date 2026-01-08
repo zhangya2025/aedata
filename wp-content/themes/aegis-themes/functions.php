@@ -164,22 +164,6 @@ add_action( 'wp_head', function () {
     }
 }, 5 );
 
-add_action( 'woocommerce_before_cart', function () {
-    if ( function_exists( 'is_cart' ) && ! is_cart() ) {
-        return;
-    }
-
-    echo '<div class="aegis-cart-layout"><div class="aegis-cart-main">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-}, 5 );
-
-add_action( 'woocommerce_after_cart', function () {
-    if ( function_exists( 'is_cart' ) && ! is_cart() ) {
-        return;
-    }
-
-    echo '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-}, 50 );
-
 add_filter( 'the_title', function ( $title, $post_id ) {
     if ( is_admin() || ! function_exists( 'is_cart' ) || ! is_cart() ) {
         return $title;

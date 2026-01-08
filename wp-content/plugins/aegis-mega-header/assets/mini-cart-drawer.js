@@ -5,6 +5,7 @@
   const aegisDebugEnabled = !! aegisSettings.debug;
   const miniCartAjaxUrl = aegisSettings.ajaxUrl || '';
   const miniCartNonce = aegisSettings.nonce || '';
+  const i18n = aegisSettings.i18n || {};
 
   function debugLog( ...args ) {
     if ( ! aegisDebugEnabled || ! window.console || ! window.console.log ) {
@@ -143,7 +144,7 @@
     }
 
     function showErrorNotice( message ) {
-      const noticeMessage = message || '无法加入购物车，请检查所选属性或库存。';
+      const noticeMessage = message || i18n.addToCartError || 'Unable to add to cart.';
       if ( window.wp && window.wp.data && window.wp.data.dispatch ) {
         try {
           const noticesDispatch = window.wp.data.dispatch( 'wc/store/notices' );
@@ -262,7 +263,7 @@
                 response,
               } );
             }
-            showErrorNotice();
+            showErrorNotice( i18n.addToCartError );
             return;
           }
 
@@ -291,7 +292,7 @@
           if ( window.console && window.console.warn ) {
             window.console.warn('[AEGIS MINI CART] add to cart failed');
           }
-          showErrorNotice('加入购物车失败，请稍后再试。');
+          showErrorNotice( i18n.addToCartFailure );
         } )
         .finally( () => {
           setButtonLoading( button, false );
@@ -331,9 +332,15 @@
       } );
     }
 
+    const quantityTimers = new Map();
+
     function sendUpdateQuantityRequest( cartItemKey, quantity, itemNode ) {
       if ( ! miniCartAjaxUrl || ! miniCartNonce ) {
         refreshFragments();
+        return Promise.resolve();
+      }
+
+      if ( itemNode && itemNode.classList.contains('is-loading') ) {
         return Promise.resolve();
       }
       const payload = new FormData();
@@ -353,7 +360,7 @@
         .then( ( response ) => {
           debugLog('[AEGIS MINI CART] update cart item response', response );
           if ( response && response.success === false ) {
-            showErrorNotice( response.data && response.data.message ? response.data.message : undefined );
+            showErrorNotice( response.data && response.data.message ? response.data.message : i18n.updateCartFailure );
             return;
           }
 
@@ -363,7 +370,7 @@
           }
         } )
         .catch( () => {
-          showErrorNotice('更新购物车失败，请稍后再试。');
+          showErrorNotice( i18n.updateCartFailure );
         } )
         .finally( () => {
           setItemLoading( itemNode, false );
@@ -391,6 +398,10 @@
         if ( input ) {
           input.value = String( nextQty );
         }
+        if ( quantityTimers.has( cartItemKey ) ) {
+          window.clearTimeout( quantityTimers.get( cartItemKey ) );
+          quantityTimers.delete( cartItemKey );
+        }
         sendUpdateQuantityRequest( cartItemKey, nextQty, itemNode );
         return;
       }
@@ -411,7 +422,14 @@
       const parsedQty = parseInt( input.value || '1', 10 );
       const nextQty = Number.isFinite( parsedQty ) && parsedQty > 0 ? parsedQty : 1;
       input.value = String( nextQty );
-      sendUpdateQuantityRequest( cartItemKey, nextQty, itemNode );
+      if ( quantityTimers.has( cartItemKey ) ) {
+        window.clearTimeout( quantityTimers.get( cartItemKey ) );
+      }
+      const timerId = window.setTimeout( () => {
+        sendUpdateQuantityRequest( cartItemKey, nextQty, itemNode );
+        quantityTimers.delete( cartItemKey );
+      }, 400 );
+      quantityTimers.set( cartItemKey, timerId );
     } );
 
     document.addEventListener('keydown', ( event ) => {

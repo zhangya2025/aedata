@@ -157,13 +157,19 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
 
 .aegis-mini-cart__controls {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   justify-items: end;
   text-align: right;
+  min-width: 110px;
 }
 
-.aegis-mini-cart__price {
-  font-size: 13px;
+.aegis-mini-cart__unit-price {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.aegis-mini-cart__line-total {
+  font-size: 14px;
   color: #0f172a;
   font-weight: 600;
 }
