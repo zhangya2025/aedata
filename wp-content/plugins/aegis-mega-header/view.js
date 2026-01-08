@@ -1,4 +1,6 @@
 ( function () {
+  console.log('[AEGIS HEADER] view.js loaded');
+  window.AEGIS_HEADER_VIEW_LOADED = true;
   function initMegaHeader( header ) {
     const panelShell = header.querySelector('[data-mega-panels]');
     const panels = header.querySelectorAll('.aegis-mega-header__panel');
@@ -509,13 +511,11 @@
 
     const overlay = wrapper.querySelector('.aegis-mini-cart__overlay');
     const drawer = wrapper.querySelector('.aegis-mini-cart__drawer');
-    const closeButtons = wrapper.querySelectorAll('[data-aegis-mini-cart-close]');
-    const notice = wrapper.querySelector('[data-aegis-mini-cart-notice]');
-    const triggers = document.querySelectorAll('[data-aegis-mini-cart-trigger]');
     let noticeTimer = null;
     let isOpen = false;
 
     function showNotice() {
+      const notice = wrapper.querySelector('[data-aegis-mini-cart-notice]');
       if ( ! notice ) {
         return;
       }
@@ -541,8 +541,7 @@
       overlay.hidden = false;
       drawer.hidden = false;
       drawer.setAttribute('aria-hidden', 'false');
-      wrapper.classList.add('is-open');
-      document.body.classList.add('aegis-mini-cart-open');
+      document.body.classList.add('aegis-mini-cart--open');
       isOpen = true;
 
       if ( showSuccess ) {
@@ -557,25 +556,9 @@
       overlay.hidden = true;
       drawer.hidden = true;
       drawer.setAttribute('aria-hidden', 'true');
-      wrapper.classList.remove('is-open');
-      document.body.classList.remove('aegis-mini-cart-open');
+      document.body.classList.remove('aegis-mini-cart--open');
       isOpen = false;
     }
-
-    triggers.forEach( ( trigger ) => {
-      trigger.addEventListener('click', ( event ) => {
-        event.preventDefault();
-        refreshFragments();
-        openDrawer( false );
-      } );
-    } );
-
-    closeButtons.forEach( ( btn ) => {
-      btn.addEventListener('click', ( event ) => {
-        event.preventDefault();
-        closeDrawer();
-      } );
-    } );
 
     if ( overlay ) {
       overlay.addEventListener('click', ( event ) => {
@@ -583,6 +566,15 @@
         closeDrawer();
       } );
     }
+
+    wrapper.addEventListener('click', ( event ) => {
+      const closer = event.target.closest('[data-aegis-mini-cart-close]');
+      if ( ! closer ) {
+        return;
+      }
+      event.preventDefault();
+      closeDrawer();
+    } );
 
     document.addEventListener('keydown', ( event ) => {
       if ( event.key === 'Escape' && isOpen ) {
@@ -594,8 +586,42 @@
     if ( window.jQuery ) {
       window.jQuery( document.body ).on('added_to_cart', () => {
         refreshFragments();
-        openDrawer( true );
+        if ( window.__aegisPendingOpenMiniCart ) {
+          openDrawer( true );
+          window.__aegisPendingOpenMiniCart = false;
+        }
       } );
+
+      window.jQuery( document.body ).on('wc_fragments_refreshed', () => {
+        if ( window.__aegisPendingOpenMiniCart ) {
+          openDrawer( true );
+          window.__aegisPendingOpenMiniCart = false;
+        }
+      } );
+    }
+
+    document.addEventListener('click', ( event ) => {
+      if ( event.target.closest('.single_add_to_cart_button') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    document.addEventListener('submit', ( event ) => {
+      if ( event.target && event.target.matches('form.cart') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    const params = new URLSearchParams( window.location.search );
+    const aegisAddToCartParam = params.has('add-to-cart') || params.has('added-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    const errorNotice = document.querySelector('.woocommerce-error');
+    if ( aegisAddToCartParam || ( successNotice && ! errorNotice ) ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
     }
   }
 
