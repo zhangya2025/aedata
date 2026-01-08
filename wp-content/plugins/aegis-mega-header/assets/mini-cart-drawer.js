@@ -8,6 +8,7 @@
       return;
     }
 
+    const isSingleProduct = document.body.classList.contains('single-product');
     const overlay = wrapper.querySelector('.aegis-mini-cart__overlay');
     const drawer = wrapper.querySelector('.aegis-mini-cart__drawer');
     let noticeTimer = null;
@@ -31,6 +32,67 @@
       if ( window.jQuery && window.jQuery( document.body ).trigger ) {
         window.jQuery( document.body ).trigger('wc_fragment_refresh');
       }
+    }
+
+    function setButtonLoading( button, loading ) {
+      if ( ! button ) {
+        return;
+      }
+      button.disabled = !! loading;
+      button.classList.toggle('is-loading', !! loading);
+      button.classList.toggle('loading', !! loading);
+    }
+
+    function getAjaxEndpoint() {
+      if ( window.wc_add_to_cart_params && window.wc_add_to_cart_params.wc_ajax_url ) {
+        return window.wc_add_to_cart_params.wc_ajax_url.replace('%%endpoint%%', 'add_to_cart');
+      }
+      return '/?wc-ajax=add_to_cart';
+    }
+
+    function sendAddToCartRequest( form ) {
+      const button = form.querySelector('.single_add_to_cart_button');
+      const formData = new FormData( form );
+      if ( button && button.value ) {
+        formData.set('add-to-cart', button.value);
+      }
+      if ( ! formData.has('quantity') ) {
+        formData.set('quantity', '1');
+      }
+
+      setButtonLoading( button, true );
+
+      return fetch( getAjaxEndpoint(), {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+      } )
+        .then( ( response ) => response.json() )
+        .then( ( response ) => {
+          if ( response && response.error && response.product_url ) {
+            window.location = response.product_url;
+            return;
+          }
+
+          if ( window.jQuery ) {
+            window.jQuery( document.body ).trigger('wc_fragment_refresh');
+            window.jQuery( document.body ).trigger('added_to_cart', [
+              response && response.fragments ? response.fragments : {},
+              response && response.cart_hash ? response.cart_hash : '',
+              window.jQuery( button ),
+            ] );
+          }
+
+          openDrawer( true );
+        } )
+        .catch( () => {
+          if ( window.console && window.console.warn ) {
+            window.console.warn('[AEGIS MINI CART] add to cart failed');
+          }
+        } )
+        .finally( () => {
+          setButtonLoading( button, false );
+        } );
     }
 
     function openDrawer( showSuccess ) {
@@ -108,6 +170,10 @@
     document.addEventListener('submit', ( event ) => {
       if ( event.target && event.target.matches('form.cart') ) {
         window.__aegisPendingOpenMiniCart = true;
+        if ( isSingleProduct ) {
+          event.preventDefault();
+          sendAddToCartRequest( event.target );
+        }
       }
     } );
 
