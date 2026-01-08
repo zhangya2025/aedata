@@ -140,7 +140,7 @@ add_action( 'woocommerce_before_cart', function () {
         return;
     }
 
-    echo '<div class="aegis-cart-layout">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    echo '<div class="aegis-cart-layout"><div class="aegis-cart-main">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }, 5 );
 
 add_action( 'woocommerce_after_cart', function () {
@@ -148,5 +148,5 @@ add_action( 'woocommerce_after_cart', function () {
         return;
     }
 
-    echo '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    echo '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }, 50 );
