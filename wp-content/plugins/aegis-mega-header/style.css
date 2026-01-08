@@ -429,6 +429,10 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
   border-bottom: 1px solid #e2e8f0;
 }
 
+.aegis-mini-cart__drawer .aegis-mini-cart__item {
+  position: relative;
+}
+
 .aegis-mini-cart__item:last-child {
   border-bottom: 0;
   padding-bottom: 0;
@@ -523,6 +527,41 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
   color: #64748b;
   font-size: 12px;
   text-decoration: underline;
+}
+
+.aegis-mini-cart__drawer a.aegis-mini-cart__remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  line-height: 1;
+  color: inherit !important;
+  opacity: 0.55;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 4px;
+  text-decoration: none;
+  transform: none;
+}
+
+.aegis-mini-cart__drawer a.aegis-mini-cart__remove::before {
+  content: "×";
+  font-size: 16px;
+  line-height: 1;
+}
+
+.aegis-mini-cart__drawer a.aegis-mini-cart__remove:hover,
+.aegis-mini-cart__drawer a.aegis-mini-cart__remove:focus {
+  opacity: 0.85;
+  text-decoration: none;
+  transform: none;
 }
 
 .aegis-mini-cart__empty {
