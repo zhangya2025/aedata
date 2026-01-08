@@ -621,6 +621,16 @@
       refreshFragments();
       openDrawer( true );
     }
+
+    const addToCartParam = new URLSearchParams( window.location.search ).has('add-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    if ( addToCartParam || successNotice ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
+    }
   }
 
   function init() {
