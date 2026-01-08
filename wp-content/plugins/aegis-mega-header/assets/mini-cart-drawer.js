@@ -8,7 +8,6 @@
       return;
     }
 
-    const isSingleProduct = document.body.classList.contains('single-product');
     const overlay = wrapper.querySelector('.aegis-mini-cart__overlay');
     const drawer = wrapper.querySelector('.aegis-mini-cart__drawer');
     let noticeTimer = null;
@@ -119,12 +118,36 @@
     function sendAddToCartRequest( form ) {
       const button = form.querySelector('.single_add_to_cart_button');
       const formData = new FormData( form );
+      const variationInput = form.querySelector('input[name="variation_id"]');
+      const selects = Array.from( form.querySelectorAll('select[name^="attribute_"]') );
+      const pid =
+        formData.get('product_id') ||
+        form.getAttribute('data-product_id') ||
+        form.dataset.product_id ||
+        ( form.querySelector('input[name="product_id"]') || {} ).value ||
+        formData.get('add-to-cart');
       if ( button && button.value ) {
         formData.set('add-to-cart', button.value);
       }
       if ( ! formData.has('quantity') ) {
         formData.set('quantity', '1');
       }
+      if ( pid ) {
+        formData.set('product_id', pid);
+        formData.set('add-to-cart', pid);
+      }
+      if ( variationInput ) {
+        formData.set('variation_id', variationInput.value || '0');
+      }
+      const vid =
+        ( form.querySelector('input[name="variation_id"]') || {} ).value ||
+        formData.get('variation_id');
+      if ( vid ) {
+        formData.set('variation_id', vid);
+      }
+      selects.forEach( ( select ) => {
+        formData.set( select.name, select.value );
+      } );
 
       clearBlocksErrorDom();
       setButtonLoading( button, true );
@@ -136,12 +159,10 @@
       } )
         .then( ( response ) => response.json() )
         .then( ( response ) => {
-          if ( response && response.error && response.product_url ) {
-            window.location = response.product_url;
-            return;
-          }
-
           if ( response && response.error ) {
+            if ( window.console && window.console.warn ) {
+              window.console.warn('[AEGIS MINI CART] add_to_cart error', response);
+            }
             return;
           }
 
@@ -259,15 +280,22 @@
 
     document.addEventListener('submit', ( event ) => {
       if ( event.target && event.target.matches('form.cart') ) {
-        window.__aegisPendingOpenMiniCart = true;
-        if ( isSingleProduct ) {
-          const variationInput = event.target.querySelector('input[name="variation_id"]');
-          if ( variationInput && parseInt( variationInput.value || '0', 10 ) <= 0 ) {
-            return;
-          }
-          event.preventDefault();
-          sendAddToCartRequest( event.target );
+        const form = event.target;
+        const variationInput = form.querySelector('input[name="variation_id"]');
+        const selects = Array.from( form.querySelectorAll('select[name^="attribute_"]') );
+        const variationId = variationInput
+          ? parseInt( variationInput.value || '0', 10 )
+          : null;
+        const attrsOk = selects.length
+          ? selects.every( ( select ) => ( select.value || '' ).trim().length > 0 )
+          : true;
+        if ( variationInput && ( variationId <= 0 || ! attrsOk ) ) {
+          return;
         }
+        window.__aegisPendingOpenMiniCart = true;
+        event.preventDefault();
+        console.log('[AEGIS MINI CART] submit intercepted', { variationId, attrsOk });
+        sendAddToCartRequest( form );
       }
     } );
 
