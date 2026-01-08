@@ -129,6 +129,35 @@ add_action( 'wp_enqueue_scripts', function () {
     }
 }, 25 );
 
+add_action( 'wp_enqueue_scripts', function () {
+    if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+        return;
+    }
+
+    $can_enqueue_modules = function_exists( 'wp_enqueue_script_module' );
+
+    if ( $can_enqueue_modules ) {
+        wp_enqueue_script_module( '@wordpress/interactivity' );
+        wp_enqueue_script_module( '@woocommerce/stores/store-notices' );
+        wp_enqueue_script_module( '@woocommerce/stores/woocommerce/cart' );
+        return;
+    }
+
+    add_filter( 'render_block', function ( $block_content, $block ) {
+        if ( ! function_exists( 'woocommerce_output_all_notices' ) ) {
+            return $block_content;
+        }
+
+        if ( empty( $block['blockName'] ) || 'woocommerce/store-notices' !== $block['blockName'] ) {
+            return $block_content;
+        }
+
+        ob_start();
+        woocommerce_output_all_notices();
+        return ob_get_clean();
+    }, 10, 2 );
+}, 30 );
+
 add_action( 'wp_head', function () {
     if ( function_exists( 'is_product' ) && is_product() ) {
         echo "<!-- AEGIS_PDP_ACTIVE_HEAD -->\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
