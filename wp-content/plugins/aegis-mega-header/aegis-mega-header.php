@@ -17,6 +17,8 @@ function aegis_mega_header_has_woocommerce() {
 function aegis_mega_header_register_block() {
     $style_path  = plugin_dir_path( __FILE__ ) . 'style.css';
     $script_path = plugin_dir_path( __FILE__ ) . 'view.js';
+    $mini_cart_style_path  = plugin_dir_path( __FILE__ ) . 'assets/mini-cart-drawer.css';
+    $mini_cart_script_path = plugin_dir_path( __FILE__ ) . 'assets/mini-cart-drawer.js';
 
     wp_register_style(
         'aegis-mega-header',
@@ -33,6 +35,21 @@ function aegis_mega_header_register_block() {
         true
     );
 
+    wp_register_style(
+        'aegis-mini-cart-drawer',
+        plugins_url( 'assets/mini-cart-drawer.css', __FILE__ ),
+        [],
+        filemtime( $mini_cart_style_path )
+    );
+
+    wp_register_script(
+        'aegis-mini-cart-drawer',
+        plugins_url( 'assets/mini-cart-drawer.js', __FILE__ ),
+        [ 'jquery', 'wc-add-to-cart', 'wc-cart-fragments' ],
+        filemtime( $mini_cart_script_path ),
+        true
+    );
+
     register_block_type(
         __DIR__,
         [
@@ -43,6 +60,15 @@ function aegis_mega_header_register_block() {
     );
 }
 add_action( 'init', 'aegis_mega_header_register_block' );
+
+add_action( 'wp_enqueue_scripts', function () {
+    if ( is_admin() || ! aegis_mega_header_has_woocommerce() ) {
+        return;
+    }
+
+    wp_enqueue_style( 'aegis-mini-cart-drawer' );
+    wp_enqueue_script( 'aegis-mini-cart-drawer' );
+}, 20 );
 
 function aegis_mega_header_default_promo_config() {
     return [
@@ -1550,6 +1576,13 @@ function aegis_mega_header_render_mini_cart_drawer() {
     if ( ! aegis_mega_header_has_woocommerce() ) {
         return;
     }
+
+    static $rendered = false;
+    if ( $rendered ) {
+        return;
+    }
+
+    $rendered = true;
 
     $mini_cart = aegis_mega_header_render_mini_cart_fragment();
     ?>
