@@ -179,3 +179,25 @@ add_action( 'woocommerce_after_cart', function () {
 
     echo '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }, 50 );
+
+add_filter( 'the_title', function ( $title, $post_id ) {
+    if ( is_admin() || ! function_exists( 'is_cart' ) || ! is_cart() ) {
+        return $title;
+    }
+
+    if ( ! in_the_loop() || ! is_main_query() ) {
+        return $title;
+    }
+
+    if ( (int) $post_id !== (int) get_queried_object_id() ) {
+        return $title;
+    }
+
+    if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+        return $title;
+    }
+
+    $count = WC()->cart->get_cart_contents_count();
+
+    return sprintf( '%s (%d)', esc_html__( 'Shopping Cart', 'aegis-themes' ), (int) $count );
+}, 20, 2 );
