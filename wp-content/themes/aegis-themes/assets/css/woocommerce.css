@@ -98,3 +98,113 @@
 .woocommerce-MyAccount-navigation a {
   color: inherit;
 }
+
+/* Cart layout (classic shortcode) */
+body.woocommerce-cart .aegis-cart-layout {
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .aegis-cart-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: start;
+  }
+
+  body.woocommerce-cart .aegis-cart-main {
+    display: contents;
+  }
+}
+
+body.woocommerce-cart .woocommerce-cart-form {
+  background: #ffffff;
+  border: 1px solid var(--aegis-wc-border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+body.woocommerce-cart table.shop_table.cart {
+  border: 0;
+  margin: 0;
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart table.shop_table.cart thead {
+    display: none;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody {
+    display: grid;
+    gap: 16px;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody tr {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr) auto;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--aegis-wc-border);
+    border-radius: 16px;
+    background: #ffffff;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody td {
+    border: 0;
+    padding: 0;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody td.product-thumbnail {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody td.product-name {
+    grid-column: 2;
+    grid-row: 1;
+    font-weight: 600;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody td.product-price {
+    grid-column: 2;
+    grid-row: 2;
+    color: var(--aegis-wc-muted);
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody td.product-quantity {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody td.product-subtotal {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    font-weight: 600;
+  }
+
+  body.woocommerce-cart table.shop_table.cart tbody td.product-remove {
+    grid-column: 3;
+    grid-row: 3;
+    justify-self: end;
+  }
+}
+
+body.woocommerce-cart .cart-collaterals {
+  background: #ffffff;
+  border: 1px solid var(--aegis-wc-border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .cart-collaterals {
+    position: sticky;
+    top: 120px;
+  }
+}
+
+body.woocommerce-cart .cart-collaterals .cart_totals,
+body.woocommerce-cart .cart-collaterals .cart_totals table {
+  margin-bottom: 0;
+}
