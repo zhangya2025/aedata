@@ -11,9 +11,13 @@ Tags: block-styles, full-site-editing, editor-style, wide-blocks
 
 .woocommerce-cart .aegis-cart-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  gap: 28px;
   align-items: start;
+}
+
+.woocommerce-cart .aegis-cart-main {
+  min-width: 0;
 }
 
 .woocommerce-cart .cart-collaterals {
@@ -38,5 +42,6 @@ Tags: block-styles, full-site-editing, editor-style, wide-blocks
 @media (max-width: 960px) {
   .woocommerce-cart .aegis-cart-layout {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
 }
