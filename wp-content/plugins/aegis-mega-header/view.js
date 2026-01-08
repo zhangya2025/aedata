@@ -1,4 +1,6 @@
 ( function () {
+  console.log('[AEGIS HEADER] view.js loaded');
+  window.AEGIS_HEADER_VIEW_LOADED = true;
   function initMegaHeader( header ) {
     const panelShell = header.querySelector('[data-mega-panels]');
     const panels = header.querySelectorAll('.aegis-mega-header__panel');
@@ -501,108 +503,9 @@
     window.addEventListener('scroll', onScroll, { passive: true } );
   }
 
-  function initMiniCartDrawer() {
-    const wrapper = document.querySelector('[data-aegis-mini-cart]');
-    if ( ! wrapper ) {
-      return;
-    }
-
-    const overlay = wrapper.querySelector('.aegis-mini-cart__overlay');
-    const drawer = wrapper.querySelector('.aegis-mini-cart__drawer');
-    const closeButtons = wrapper.querySelectorAll('[data-aegis-mini-cart-close]');
-    const notice = wrapper.querySelector('[data-aegis-mini-cart-notice]');
-    const triggers = document.querySelectorAll('[data-aegis-mini-cart-trigger]');
-    let noticeTimer = null;
-    let isOpen = false;
-
-    function showNotice() {
-      if ( ! notice ) {
-        return;
-      }
-      notice.classList.add('is-visible');
-      if ( noticeTimer ) {
-        window.clearTimeout( noticeTimer );
-      }
-      noticeTimer = window.setTimeout( () => {
-        notice.classList.remove('is-visible');
-      }, 2400 );
-    }
-
-    function refreshFragments() {
-      if ( window.jQuery && window.jQuery( document.body ).trigger ) {
-        window.jQuery( document.body ).trigger('wc_fragment_refresh');
-      }
-    }
-
-    function openDrawer( showSuccess ) {
-      if ( ! drawer || ! overlay ) {
-        return;
-      }
-      overlay.hidden = false;
-      drawer.hidden = false;
-      drawer.setAttribute('aria-hidden', 'false');
-      wrapper.classList.add('is-open');
-      document.body.classList.add('aegis-mini-cart-open');
-      isOpen = true;
-
-      if ( showSuccess ) {
-        showNotice();
-      }
-    }
-
-    function closeDrawer() {
-      if ( ! drawer || ! overlay ) {
-        return;
-      }
-      overlay.hidden = true;
-      drawer.hidden = true;
-      drawer.setAttribute('aria-hidden', 'true');
-      wrapper.classList.remove('is-open');
-      document.body.classList.remove('aegis-mini-cart-open');
-      isOpen = false;
-    }
-
-    triggers.forEach( ( trigger ) => {
-      trigger.addEventListener('click', ( event ) => {
-        event.preventDefault();
-        refreshFragments();
-        openDrawer( false );
-      } );
-    } );
-
-    closeButtons.forEach( ( btn ) => {
-      btn.addEventListener('click', ( event ) => {
-        event.preventDefault();
-        closeDrawer();
-      } );
-    } );
-
-    if ( overlay ) {
-      overlay.addEventListener('click', ( event ) => {
-        event.preventDefault();
-        closeDrawer();
-      } );
-    }
-
-    document.addEventListener('keydown', ( event ) => {
-      if ( event.key === 'Escape' && isOpen ) {
-        event.preventDefault();
-        closeDrawer();
-      }
-    } );
-
-    if ( window.jQuery ) {
-      window.jQuery( document.body ).on('added_to_cart', () => {
-        refreshFragments();
-        openDrawer( true );
-      } );
-    }
-  }
-
   function init() {
     const headers = document.querySelectorAll('.aegis-mega-header');
     headers.forEach( initMegaHeader );
-    initMiniCartDrawer();
   }
 
   if ( document.readyState === 'loading' ) {
