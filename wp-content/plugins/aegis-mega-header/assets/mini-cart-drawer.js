@@ -13,6 +13,7 @@
     const drawer = wrapper.querySelector('.aegis-mini-cart__drawer');
     let noticeTimer = null;
     let isOpen = false;
+    let reopenAfterRefresh = false;
 
     function showNotice() {
       const notice = wrapper.querySelector('[data-aegis-mini-cart-notice]');
@@ -32,6 +33,15 @@
       if ( window.jQuery && window.jQuery( document.body ).trigger ) {
         window.jQuery( document.body ).trigger('wc_fragment_refresh');
       }
+    }
+
+    function clearBlocksErrorNotices() {
+      const wrapperNode = document.querySelector('.woocommerce-notices-wrapper');
+      if ( ! wrapperNode ) {
+        return;
+      }
+      const notices = wrapperNode.querySelectorAll('.wc-block-components-notice-banner.is-error');
+      notices.forEach( ( notice ) => notice.remove() );
     }
 
     function setButtonLoading( button, loading ) {
@@ -60,6 +70,7 @@
         formData.set('quantity', '1');
       }
 
+      clearBlocksErrorNotices();
       setButtonLoading( button, true );
 
       return fetch( getAjaxEndpoint(), {
@@ -74,8 +85,22 @@
             return;
           }
 
-          if ( window.jQuery ) {
+          if ( response && response.error ) {
+            return;
+          }
+
+          clearBlocksErrorNotices();
+          if ( response && response.fragments && response.fragments['#aegis-mini-cart-fragment'] ) {
+            const fragment = wrapper.querySelector('#aegis-mini-cart-fragment');
+            if ( fragment ) {
+              fragment.innerHTML = response.fragments['#aegis-mini-cart-fragment'];
+            }
+          } else if ( window.jQuery ) {
+            reopenAfterRefresh = true;
             window.jQuery( document.body ).trigger('wc_fragment_refresh');
+          }
+
+          if ( window.jQuery ) {
             window.jQuery( document.body ).trigger('added_to_cart', [
               response && response.fragments ? response.fragments : {},
               response && response.cart_hash ? response.cart_hash : '',
@@ -158,6 +183,10 @@
           openDrawer( true );
           window.__aegisPendingOpenMiniCart = false;
         }
+        if ( reopenAfterRefresh ) {
+          openDrawer( true );
+          reopenAfterRefresh = false;
+        }
       } );
     }
 
@@ -171,6 +200,10 @@
       if ( event.target && event.target.matches('form.cart') ) {
         window.__aegisPendingOpenMiniCart = true;
         if ( isSingleProduct ) {
+          const variationInput = event.target.querySelector('input[name="variation_id"]');
+          if ( variationInput && parseInt( variationInput.value || '0', 10 ) <= 0 ) {
+            return;
+          }
           event.preventDefault();
           sendAddToCartRequest( event.target );
         }
