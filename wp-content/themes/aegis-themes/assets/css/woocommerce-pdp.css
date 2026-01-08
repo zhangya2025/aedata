@@ -710,6 +710,12 @@ body.aegis-variants-ready .aegis-variant-toggle {
     width: 100%;
 }
 
+body.single-product .aegis-wc-buybox__inner form.cart a.added_to_cart.wc-forward,
+body.single-product .aegis-wc-buybox__inner form.cart a.wc-forward,
+body.single-product .woocommerce-notices-wrapper .woocommerce-message a.wc-forward {
+    display: none !important;
+}
+
 .aegis-wc-buybox__inner .woocommerce-variation-add-to-cart .quantity {
     flex: 0 0 auto;
 }

@@ -211,9 +211,31 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
 
 .aegis-mini-cart__remove {
   align-self: center;
-  color: #64748b;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
   font-size: 12px;
-  text-decoration: underline;
+  line-height: 1;
+  padding: 2px 6px;
+  min-height: 20px;
+  min-width: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  transform: none;
+}
+
+.aegis-mini-cart__remove:hover,
+.aegis-mini-cart__remove:focus {
+  color: #334155;
+  background: #f1f5f9;
+  opacity: 0.9;
+  text-decoration: none;
+  transform: none;
 }
 
 .aegis-mini-cart__empty {
