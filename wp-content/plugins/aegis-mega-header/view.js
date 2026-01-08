@@ -1,4 +1,6 @@
 ( function () {
+  console.log('[AEGIS HEADER] view.js loaded');
+  window.AEGIS_HEADER_VIEW_LOADED = true;
   function initMegaHeader( header ) {
     const panelShell = header.querySelector('[data-mega-panels]');
     const panels = header.querySelectorAll('.aegis-mega-header__panel');
@@ -596,6 +598,13 @@
           window.__aegisPendingOpenMiniCart = false;
         }
       } );
+
+      window.jQuery( document.body ).on('wc_fragments_refreshed', () => {
+        if ( window.__aegisPendingOpenMiniCart ) {
+          openDrawer( true );
+          window.__aegisPendingOpenMiniCart = false;
+        }
+      } );
     }
 
     document.addEventListener('click', ( event ) => {
@@ -625,6 +634,30 @@
     const addToCartParam = new URLSearchParams( window.location.search ).has('add-to-cart');
     const successNotice = document.querySelector('.woocommerce-message');
     if ( addToCartParam || successNotice ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
+    }
+
+    document.addEventListener('click', ( event ) => {
+      if ( event.target.closest('.single_add_to_cart_button') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    document.addEventListener('submit', ( event ) => {
+      if ( event.target && event.target.matches('form.cart') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    const params = new URLSearchParams( window.location.search );
+    const aegisAddToCartParam = params.has('add-to-cart') || params.has('added-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    const errorNotice = document.querySelector('.woocommerce-error');
+    if ( aegisAddToCartParam || ( successNotice && ! errorNotice ) ) {
       if ( successNotice ) {
         successNotice.style.display = 'none';
       }
