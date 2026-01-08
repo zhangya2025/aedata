@@ -1630,7 +1630,7 @@ function aegis_mega_header_render_mini_cart_fragment() {
             </button>
         </header>
         <div class="aegis-mini-cart__notice" data-aegis-mini-cart-notice role="status" aria-live="polite">
-            <?php echo esc_html__( '已加入购物车', 'aegis-mega-header' ); ?>
+            <?php echo esc_html__( '✅ Product has been added to your cart.', 'aegis-mega-header' ); ?>
         </div>
         <div class="aegis-mini-cart__items">
             <?php if ( empty( $cart_items ) ) : ?>

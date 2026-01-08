@@ -22,7 +22,6 @@
 
     const overlay = wrapper.querySelector('.aegis-mini-cart__overlay');
     const drawer = wrapper.querySelector('.aegis-mini-cart__drawer');
-    let noticeTimer = null;
     let isOpen = false;
     let reopenAfterRefresh = false;
 
@@ -32,12 +31,6 @@
         return;
       }
       notice.classList.add('is-visible');
-      if ( noticeTimer ) {
-        window.clearTimeout( noticeTimer );
-      }
-      noticeTimer = window.setTimeout( () => {
-        notice.classList.remove('is-visible');
-      }, 2400 );
     }
 
     function refreshFragments() {
@@ -317,6 +310,10 @@
     function closeDrawer() {
       if ( ! drawer || ! overlay ) {
         return;
+      }
+      const notice = wrapper.querySelector('[data-aegis-mini-cart-notice]');
+      if ( notice ) {
+        notice.classList.remove('is-visible');
       }
       overlay.hidden = true;
       drawer.hidden = true;

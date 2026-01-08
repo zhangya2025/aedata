@@ -386,8 +386,8 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
 
 .aegis-mini-cart__notice {
   padding: 12px 18px;
-  background: #ecfdf3;
-  color: #047857;
+  background: #0f172a;
+  color: #ffffff;
   font-size: 14px;
   opacity: 0;
   transform: translateY(-6px);
