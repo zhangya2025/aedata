@@ -35,13 +35,69 @@
       }
     }
 
-    function clearBlocksErrorNotices() {
+    function clearBlocksErrorDom() {
       const wrapperNode = document.querySelector('.woocommerce-notices-wrapper');
       if ( ! wrapperNode ) {
         return;
       }
       const notices = wrapperNode.querySelectorAll('.wc-block-components-notice-banner.is-error');
       notices.forEach( ( notice ) => notice.remove() );
+    }
+
+    function syncBlocksStoresOnSuccess() {
+      if ( ! window.wp || ! window.wp.data || ! window.wp.data.dispatch || ! window.wp.data.select ) {
+        return false;
+      }
+
+      let didSync = false;
+      try {
+        const noticesStore = 'wc/store/notices';
+        const noticesSelector = window.wp.data.select( noticesStore );
+        const notices = ( noticesSelector && noticesSelector.getNotices && noticesSelector.getNotices() ) || [];
+        const errorNotices = notices.filter( ( notice ) => notice && notice.status === 'error' );
+        if ( errorNotices.length ) {
+          const noticesDispatch = window.wp.data.dispatch( noticesStore );
+          if ( noticesDispatch ) {
+            if ( typeof noticesDispatch.removeNotice === 'function' ) {
+              errorNotices.forEach( ( notice ) => {
+                if ( notice && typeof notice.id !== 'undefined' ) {
+                  noticesDispatch.removeNotice( notice.id );
+                  didSync = true;
+                }
+              } );
+            } else if ( typeof noticesDispatch.removeNotices === 'function' ) {
+              noticesDispatch.removeNotices( errorNotices );
+              didSync = true;
+            } else if ( typeof noticesDispatch.clearNotices === 'function' ) {
+              noticesDispatch.clearNotices();
+              didSync = true;
+            } else if ( typeof noticesDispatch.removeAllNotices === 'function' ) {
+              noticesDispatch.removeAllNotices();
+              didSync = true;
+            }
+          }
+        }
+      } catch ( error ) {
+        // noop
+      }
+
+      try {
+        const cartStore = 'wc/store/cart';
+        const cartDispatch = window.wp.data.dispatch( cartStore );
+        if ( cartDispatch ) {
+          if ( typeof cartDispatch.invalidateResolutionForStoreSelector === 'function' ) {
+            cartDispatch.invalidateResolutionForStoreSelector( 'getCart' );
+            didSync = true;
+          } else if ( typeof cartDispatch.invalidateResolution === 'function' ) {
+            cartDispatch.invalidateResolution( 'getCart' );
+            didSync = true;
+          }
+        }
+      } catch ( error ) {
+        // noop
+      }
+
+      return didSync;
     }
 
     function setButtonLoading( button, loading ) {
@@ -70,7 +126,7 @@
         formData.set('quantity', '1');
       }
 
-      clearBlocksErrorNotices();
+      clearBlocksErrorDom();
       setButtonLoading( button, true );
 
       return fetch( getAjaxEndpoint(), {
@@ -89,7 +145,12 @@
             return;
           }
 
-          clearBlocksErrorNotices();
+          const synced = syncBlocksStoresOnSuccess();
+          if ( ! synced ) {
+            clearBlocksErrorDom();
+            setTimeout( clearBlocksErrorDom, 0 );
+            setTimeout( clearBlocksErrorDom, 250 );
+          }
           if ( response && response.fragments && response.fragments['#aegis-mini-cart-fragment'] ) {
             const fragment = wrapper.querySelector('#aegis-mini-cart-fragment');
             if ( fragment ) {
