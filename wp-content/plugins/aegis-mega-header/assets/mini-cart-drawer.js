@@ -118,12 +118,20 @@
     function sendAddToCartRequest( form ) {
       const button = form.querySelector('.single_add_to_cart_button');
       const formData = new FormData( form );
+      const variationInput = form.querySelector('input[name="variation_id"]');
+      const selects = Array.from( form.querySelectorAll('select[name^="attribute_"]') );
       if ( button && button.value ) {
         formData.set('add-to-cart', button.value);
       }
       if ( ! formData.has('quantity') ) {
         formData.set('quantity', '1');
       }
+      if ( variationInput ) {
+        formData.set('variation_id', variationInput.value || '0');
+      }
+      selects.forEach( ( select ) => {
+        formData.set( select.name, select.value );
+      } );
 
       clearBlocksErrorDom();
       setButtonLoading( button, true );
@@ -258,19 +266,22 @@
 
     document.addEventListener('submit', ( event ) => {
       if ( event.target && event.target.matches('form.cart') ) {
-        const variationInput = event.target.querySelector('input[name="variation_id"]');
+        const form = event.target;
+        const variationInput = form.querySelector('input[name="variation_id"]');
+        const selects = Array.from( form.querySelectorAll('select[name^="attribute_"]') );
         const variationId = variationInput
           ? parseInt( variationInput.value || '0', 10 )
           : null;
-        const shouldIntercept = variationInput ? variationId > 0 : true;
-        if ( ! shouldIntercept ) {
+        const attrsOk = selects.length
+          ? selects.every( ( select ) => ( select.value || '' ).trim().length > 0 )
+          : true;
+        if ( variationInput && ( variationId <= 0 || ! attrsOk ) ) {
           return;
         }
         window.__aegisPendingOpenMiniCart = true;
         event.preventDefault();
-        event.stopImmediatePropagation();
-        console.log('[AEGIS MINI CART] intercepted submit', { variationId });
-        sendAddToCartRequest( event.target );
+        console.log('[AEGIS MINI CART] submit intercepted', { variationId, attrsOk });
+        sendAddToCartRequest( form );
       }
     } );
 
