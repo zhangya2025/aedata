@@ -1614,6 +1614,14 @@ function aegis_mega_header_add_to_cart_fragments( $fragments ) {
 }
 add_filter( 'woocommerce_add_to_cart_fragments', 'aegis_mega_header_add_to_cart_fragments' );
 
+add_filter( 'wc_add_to_cart_message_html', function () {
+    if ( ! aegis_mega_header_has_woocommerce() ) {
+        return '';
+    }
+
+    return '';
+} );
+
 function aegis_mega_header_render_slot_fields( $slot_key, $slot_settings ) {
     $image_id   = isset( $slot_settings['image_id'] ) ? absint( $slot_settings['image_id'] ) : 0;
     $title      = isset( $slot_settings['title'] ) ? $slot_settings['title'] : '';
