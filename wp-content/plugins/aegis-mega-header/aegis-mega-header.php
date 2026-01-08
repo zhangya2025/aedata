@@ -14,6 +14,44 @@ function aegis_mega_header_has_woocommerce() {
     return class_exists( 'WooCommerce' ) && function_exists( 'WC' ) && WC();
 }
 
+function aegis_mega_header_is_minicart_debug() {
+    if ( defined( 'AEGIS_MINICART_DEBUG' ) && AEGIS_MINICART_DEBUG ) {
+        return true;
+    }
+
+    return isset( $_GET['aegis-mini-cart-debug'] ) && '1' === $_GET['aegis-mini-cart-debug'];
+}
+
+function aegis_mega_header_get_minicart_logger() {
+    if ( ! aegis_mega_header_has_woocommerce() ) {
+        return null;
+    }
+
+    return wc_get_logger();
+}
+
+function aegis_mega_header_describe_callback( $callback ) {
+    if ( is_string( $callback ) ) {
+        return $callback;
+    }
+
+    if ( is_array( $callback ) ) {
+        $object = $callback[0];
+        $method = $callback[1];
+        if ( is_object( $object ) ) {
+            return get_class( $object ) . '->' . $method;
+        }
+
+        return $object . '::' . $method;
+    }
+
+    if ( $callback instanceof Closure ) {
+        return 'Closure';
+    }
+
+    return 'Callback';
+}
+
 function aegis_mega_header_register_block() {
     $style_path  = plugin_dir_path( __FILE__ ) . 'style.css';
     $script_path = plugin_dir_path( __FILE__ ) . 'view.js';
@@ -68,7 +106,110 @@ add_action( 'wp_enqueue_scripts', function () {
 
     wp_enqueue_style( 'aegis-mini-cart-drawer' );
     wp_enqueue_script( 'aegis-mini-cart-drawer' );
+
+    $settings = [
+        'debug' => aegis_mega_header_is_minicart_debug(),
+    ];
+    wp_add_inline_script(
+        'aegis-mini-cart-drawer',
+        'window.AegisMiniCartSettings = ' . wp_json_encode( $settings ) . ';',
+        'before'
+    );
 }, 20 );
+
+add_filter( 'woocommerce_add_to_cart_validation', function ( $passed, $product_id, $quantity, $variation_id = 0, $variations = [] ) {
+    if ( ! aegis_mega_header_is_minicart_debug() ) {
+        return $passed;
+    }
+
+    $logger = aegis_mega_header_get_minicart_logger();
+    if ( ! $logger ) {
+        return $passed;
+    }
+
+    $context = [ 'source' => 'aegis-mini-cart' ];
+    $logger->debug(
+        'add_to_cart_validation',
+        [
+            'passed'       => (bool) $passed,
+            'product_id'   => (int) $product_id,
+            'variation_id' => (int) $variation_id,
+            'quantity'     => (float) $quantity,
+            'variations'   => $variations,
+            'request'      => isset( $_REQUEST ) ? wc_clean( wp_unslash( $_REQUEST ) ) : [],
+        ],
+        $context
+    );
+
+    if ( ! $passed ) {
+        $callbacks = [];
+        if ( isset( $GLOBALS['wp_filter']['woocommerce_add_to_cart_validation'] ) && $GLOBALS['wp_filter']['woocommerce_add_to_cart_validation'] instanceof WP_Hook ) {
+            foreach ( $GLOBALS['wp_filter']['woocommerce_add_to_cart_validation']->callbacks as $priority => $hooks ) {
+                foreach ( $hooks as $hook ) {
+                    $callbacks[] = $priority . ':' . aegis_mega_header_describe_callback( $hook['function'] );
+                }
+            }
+        }
+
+        $logger->debug(
+            'add_to_cart_validation_failed',
+            [
+                'notices'   => wc_get_notices( 'error' ),
+                'callbacks' => $callbacks,
+            ],
+            $context
+        );
+    }
+
+    return $passed;
+}, PHP_INT_MAX, 5 );
+
+add_action( 'woocommerce_add_to_cart', function ( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
+    if ( ! aegis_mega_header_is_minicart_debug() ) {
+        return;
+    }
+
+    $logger = aegis_mega_header_get_minicart_logger();
+    if ( ! $logger ) {
+        return;
+    }
+
+    $logger->debug(
+        'add_to_cart_success',
+        [
+            'cart_item_key' => (string) $cart_item_key,
+            'product_id'    => (int) $product_id,
+            'variation_id'  => (int) $variation_id,
+            'quantity'      => (float) $quantity,
+            'variation'     => $variation,
+            'cart_item'     => $cart_item_data,
+        ],
+        [ 'source' => 'aegis-mini-cart' ]
+    );
+}, 10, 6 );
+
+add_filter( 'woocommerce_cart_redirect_after_error', function ( $url, $product_id ) {
+    if ( ! aegis_mega_header_is_minicart_debug() ) {
+        return $url;
+    }
+
+    $logger = aegis_mega_header_get_minicart_logger();
+    if ( ! $logger ) {
+        return $url;
+    }
+
+    $logger->debug(
+        'add_to_cart_error',
+        [
+            'product_id' => (int) $product_id,
+            'url'        => $url,
+            'request'    => isset( $_REQUEST ) ? wc_clean( wp_unslash( $_REQUEST ) ) : [],
+        ],
+        [ 'source' => 'aegis-mini-cart' ]
+    );
+
+    return $url;
+}, 10, 2 );
 
 function aegis_mega_header_default_promo_config() {
     return [
