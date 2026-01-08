@@ -118,33 +118,24 @@
     function sendAddToCartRequest( form ) {
       const button = form.querySelector('.single_add_to_cart_button');
       const formData = new FormData( form );
-      const variationInput = form.querySelector('input[name="variation_id"]');
       const selects = Array.from( form.querySelectorAll('select[name^="attribute_"]') );
-      const pid =
-        formData.get('product_id') ||
-        form.getAttribute('data-product_id') ||
-        form.dataset.product_id ||
+      const parentId =
         ( form.querySelector('input[name="product_id"]') || {} ).value ||
-        formData.get('add-to-cart');
+        ( form.querySelector('input[name="add-to-cart"]') || {} ).value ||
+        form.dataset.product_id ||
+        form.getAttribute('data-product_id');
       if ( button && button.value ) {
         formData.set('add-to-cart', button.value);
       }
       if ( ! formData.has('quantity') ) {
         formData.set('quantity', '1');
       }
-      if ( pid ) {
-        formData.set('product_id', pid);
-        formData.set('add-to-cart', pid);
+      if ( parentId ) {
+        formData.set('product_id', parentId);
+        formData.set('add-to-cart', parentId);
       }
-      if ( variationInput ) {
-        formData.set('variation_id', variationInput.value || '0');
-      }
-      const vid =
-        ( form.querySelector('input[name="variation_id"]') || {} ).value ||
-        formData.get('variation_id');
-      if ( vid ) {
-        formData.set('variation_id', vid);
-      }
+      const vid = ( form.querySelector('input[name="variation_id"]') || {} ).value || '';
+      formData.set('variation_id', vid );
       selects.forEach( ( select ) => {
         formData.set( select.name, select.value );
       } );
@@ -159,9 +150,17 @@
       } )
         .then( ( response ) => response.json() )
         .then( ( response ) => {
-          if ( response && response.error ) {
+          if ( response && response.error === true ) {
             if ( window.console && window.console.warn ) {
-              window.console.warn('[AEGIS MINI CART] add_to_cart error', response);
+              window.console.warn('[AEGIS MINI CART] add_to_cart error payload', {
+                product_id: formData.get('product_id'),
+                add_to_cart: formData.get('add-to-cart'),
+                variation_id: formData.get('variation_id'),
+                attrs: Array.from( form.querySelectorAll('select[name^="attribute_"]') ).map(
+                  ( select ) => [ select.name, select.value ]
+                ),
+                response,
+              } );
             }
             return;
           }
