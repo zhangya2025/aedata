@@ -91,7 +91,6 @@ add_action( 'wp_enqueue_scripts', function () {
             AEGIS_THEMES_VERSION
         );
 
-        // PDP uses the WooCommerce classic template; avoid Blocks interactivity runtime.
         wp_enqueue_script( 'wc-single-product' );
 
         wp_enqueue_script(
