@@ -624,6 +624,64 @@
       refreshFragments();
       openDrawer( true );
     }
+
+    document.addEventListener('click', ( event ) => {
+      if ( event.target.closest('.single_add_to_cart_button') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    document.addEventListener('submit', ( event ) => {
+      if ( event.target && event.target.matches('form.cart') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    const params = new URLSearchParams( window.location.search );
+    const addToCartParam = params.has('add-to-cart') || params.has('added-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    const errorNotice = document.querySelector('.woocommerce-error');
+    if ( addToCartParam || ( successNotice && ! errorNotice ) ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
+    }
+
+    const addToCartParam = new URLSearchParams( window.location.search ).has('add-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    if ( addToCartParam || successNotice ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
+    }
+
+    document.addEventListener('click', ( event ) => {
+      if ( event.target.closest('.single_add_to_cart_button') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    document.addEventListener('submit', ( event ) => {
+      if ( event.target && event.target.matches('form.cart') ) {
+        window.__aegisPendingOpenMiniCart = true;
+      }
+    } );
+
+    const params = new URLSearchParams( window.location.search );
+    const aegisAddToCartParam = params.has('add-to-cart') || params.has('added-to-cart');
+    const successNotice = document.querySelector('.woocommerce-message');
+    const errorNotice = document.querySelector('.woocommerce-error');
+    if ( aegisAddToCartParam || ( successNotice && ! errorNotice ) ) {
+      if ( successNotice ) {
+        successNotice.style.display = 'none';
+      }
+      refreshFragments();
+      openDrawer( true );
+    }
   }
 
   function init() {
