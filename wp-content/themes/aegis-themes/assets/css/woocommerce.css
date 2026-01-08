@@ -103,11 +103,14 @@
 body.woocommerce-cart .aegis-cart-layout {
   display: grid;
   gap: 32px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
 @media (min-width: 960px) {
   body.woocommerce-cart .aegis-cart-layout {
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 40%);
     align-items: start;
   }
 }
@@ -137,7 +140,7 @@ body.woocommerce-cart .aegis-cart-item {
 
 @media (min-width: 960px) {
   body.woocommerce-cart .aegis-cart-item {
-    grid-template-columns: 96px minmax(0, 1fr) auto;
+    grid-template-columns: 104px minmax(0, 1fr) 120px 140px;
     align-items: start;
   }
 }
@@ -164,31 +167,93 @@ body.woocommerce-cart .aegis-cart-item__meta {
 }
 
 body.woocommerce-cart .aegis-cart-item__pricing {
-  display: grid;
-  gap: 12px;
-  justify-items: end;
-  text-align: right;
+  display: contents;
 }
 
 @media (min-width: 960px) {
   body.woocommerce-cart .aegis-cart-item__pricing {
-    min-width: 180px;
+    min-width: 0;
   }
 }
 
 body.woocommerce-cart .aegis-cart-item__unit-price {
-  font-size: 13px;
-  color: var(--aegis-wc-muted);
+  display: none;
 }
 
 body.woocommerce-cart .aegis-cart-item__subtotal {
   font-weight: 600;
 }
 
+@media (max-width: 959px) {
+  body.woocommerce-cart .aegis-cart-item__quantity,
+  body.woocommerce-cart .aegis-cart-item__subtotal,
+  body.woocommerce-cart .aegis-cart-item__remove {
+    grid-column: 2;
+    justify-self: start;
+    text-align: left;
+  }
+
+  body.woocommerce-cart .aegis-cart-item__remove {
+    margin-top: 6px;
+  }
+}
+
+@media (min-width: 960px) {
+  body.woocommerce-cart .aegis-cart-item__details {
+    grid-column: 2;
+  }
+
+  body.woocommerce-cart .aegis-cart-item__quantity {
+    grid-column: 3;
+    justify-self: center;
+    text-align: center;
+  }
+
+  body.woocommerce-cart .aegis-cart-item__subtotal {
+    grid-column: 4;
+    justify-self: end;
+    text-align: right;
+  }
+
+  body.woocommerce-cart .aegis-cart-item__remove {
+    grid-column: 2 / -1;
+    justify-self: end;
+    margin-top: 8px;
+  }
+}
+
 body.woocommerce-cart .aegis-cart-item__remove a {
-  color: var(--aegis-wc-muted);
-  text-decoration: underline;
-  font-size: 12px;
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  text-indent: -9999px;
+  overflow: hidden;
+  color: #334155 !important;
+  opacity: 0.6;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 4px;
+  text-decoration: none;
+  transform: none !important;
+}
+
+body.woocommerce-cart .aegis-cart-item__remove a::before {
+  content: "×";
+  font-size: 16px;
+  line-height: 1;
+  text-indent: 0;
+  display: block;
+}
+
+body.woocommerce-cart .aegis-cart-item__remove a:hover,
+body.woocommerce-cart .aegis-cart-item__remove a:focus {
+  opacity: 0.85;
+  text-decoration: none;
+  transform: none !important;
 }
 
 body.woocommerce-cart .aegis-cart-actions {
