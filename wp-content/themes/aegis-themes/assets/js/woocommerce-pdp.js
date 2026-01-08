@@ -90,6 +90,29 @@
         });
     };
 
+    const setVariationValue = (select, value) => {
+        const form = select.closest('form.variations_form');
+
+        if (window.jQuery) {
+            const $select = window.jQuery(select);
+            $select.val(value).trigger('change');
+
+            if (form) {
+                window.jQuery(form).trigger('check_variations');
+            }
+
+            window.jQuery(document.body).trigger('woocommerce_variation_has_changed');
+            return;
+        }
+
+        select.value = value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        if (form) {
+            form.dispatchEvent(new Event('check_variations', { bubbles: true }));
+        }
+        document.body.dispatchEvent(new Event('woocommerce_variation_has_changed', { bubbles: true }));
+    };
+
     const mapLabelText = (select) => {
         const key = `${select.name || ''} ${select.id || ''}`.toLowerCase();
 
@@ -142,8 +165,7 @@
             btn.setAttribute('aria-pressed', 'false');
 
             btn.addEventListener('click', () => {
-                select.value = opt.value;
-                select.dispatchEvent(new Event('change', { bubbles: true }));
+                setVariationValue(select, opt.value);
                 updateVariantToggleState(select, toggle);
             });
 
