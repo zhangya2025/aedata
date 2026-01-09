@@ -1,5 +1,5 @@
 /* cart_only scope */
-body.woocommerce-cart .woocommerce-message,
-body.woocommerce-cart .wc-block-components-notice-banner.is-success {
+body.woocommerce-cart main .woocommerce-message,
+body.woocommerce-cart main .wc-block-components-notice-banner.is-success {
   border-width: 1px;
 }

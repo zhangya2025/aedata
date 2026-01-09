@@ -97,10 +97,10 @@ wp-content/plugins/aegis-woo-color-manager/
 - 依赖探测：`woocommerce-general`, `woocommerce-layout`, `woocommerce-smallscreen`, `wc-blocks-style` 等存在则挂载。
 
 ### 3.4 作用域策略
-- **all_woo**：`body.woocommerce` / `.woocommerce` 容器作用域，避免污染非 Woo 页面。
-- **cart_only**：`body.woocommerce-cart`。
-- **mini_cart_only**：`.aegis-mini-cart__drawer`，不依赖 `body.woocommerce`。
-- 确保不会影响 wp-admin。
+- **all_woo**：`.woocommerce` + Woo 页面 `main` 容器作用域，默认不污染 header/footer。
+- **cart_only**：`body.woocommerce-cart main`。
+- **mini_cart_only**：`.aegis-mini-cart__drawer`，不依赖 Woo body class。
+- 通过后台“作用范围”开关控制是否扩展到全站。
 
 ### 3.5 可配置性
 - **POC**：tokens 直接在 CSS 中硬编码。
@@ -168,3 +168,4 @@ wp aegis-woo-color scan --format=csv --output=wp-content/uploads/aegis-woo-color
 - 菜单位置：WooCommerce -> Aegis Color Manager（WooCommerce 菜单不可用时落到 Settings）。【F:wp-content/plugins/aegis-woo-color-manager/aegis-woo-color-manager.php†L176-L209】
 - 使用 Settings API + wp-color-picker 管理 tokens，保存到 `aegis_woo_color_tokens` 选项并前台以 inline CSS 输出。 【F:wp-content/plugins/aegis-woo-color-manager/aegis-woo-color-manager.php†L14-L173】
 - 提供 JSON 导入/导出入口，用于快速迁移/审计。 【F:wp-content/plugins/aegis-woo-color-manager/aegis-woo-color-manager.php†L236-L333】
+- 作用范围开关：默认仅 Woo 内容区 + mini cart；全站模式会影响 header/footer。 【F:wp-content/plugins/aegis-woo-color-manager/aegis-woo-color-manager.php†L68-L204】

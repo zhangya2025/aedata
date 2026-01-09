@@ -43,6 +43,15 @@ function aegis_woo_color_manager_default_tokens() {
 }
 
 /**
+ * Default scope.
+ *
+ * @return string
+ */
+function aegis_woo_color_manager_default_scope() {
+	return 'woo_only';
+}
+
+/**
  * Get sanitized tokens merged with defaults.
  *
  * @return array<string, string>
@@ -68,25 +77,41 @@ function aegis_woo_color_manager_get_tokens() {
 }
 
 /**
+ * Get scope setting.
+ *
+ * @return string
+ */
+function aegis_woo_color_manager_get_scope() {
+	$scope = get_option( 'aegis_woo_color_scope', aegis_woo_color_manager_default_scope() );
+
+	return 'global' === $scope ? 'global' : 'woo_only';
+}
+
+/**
  * Render token CSS for frontend.
  *
  * @return string
  */
 function aegis_woo_color_manager_tokens_css() {
 	$tokens   = aegis_woo_color_manager_get_tokens();
-	$selector = implode(
-		",\n",
-		array(
-			'body.woocommerce',
-			'body.woocommerce-page',
-			'body.woocommerce-cart',
-			'body.woocommerce-checkout',
-			'body.woocommerce-account',
-			'body.single-product',
-			'body.post-type-archive-product',
-			'.woocommerce',
-		)
-	);
+	$scope    = aegis_woo_color_manager_get_scope();
+	$selector = ':root';
+
+	if ( 'woo_only' === $scope ) {
+		$selector = implode(
+			",\n",
+			array(
+				'.woocommerce',
+				'body.woocommerce main',
+				'body.woocommerce-page main',
+				'body.post-type-archive-product main',
+				'body.single-product main',
+				'body.woocommerce-cart main',
+				'body.woocommerce-checkout main',
+				'.aegis-mini-cart__drawer',
+			)
+		);
+	}
 
 	$lines = array(
 		"$selector {",
@@ -197,11 +222,32 @@ function aegis_woo_color_manager_register_settings() {
 		)
 	);
 
-	add_settings_section(
-		'aegis_woo_color_tokens_section',
-		__( 'Color Tokens', 'aegis-woo-color-manager' ),
-		'__return_false',
-		'aegis-woo-color-manager'
+	register_setting(
+		'aegis_woo_color_manager',
+		'aegis_woo_color_scope',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'aegis_woo_color_manager_sanitize_scope',
+			'default'           => aegis_woo_color_manager_default_scope(),
+		)
+	);
+
+	$sections = aegis_woo_color_manager_token_sections();
+	foreach ( $sections as $section_id => $section_label ) {
+		add_settings_section(
+			$section_id,
+			$section_label,
+			'__return_false',
+			'aegis-woo-color-manager'
+		);
+	}
+
+	add_settings_field(
+		'aegis_woo_color_scope',
+		esc_html__( '作用范围', 'aegis-woo-color-manager' ),
+		'aegis_woo_color_manager_render_scope_field',
+		'aegis-woo-color-manager',
+		'aegis_woo_color_scope_section'
 	);
 
 	foreach ( aegis_woo_color_manager_token_fields() as $field ) {
@@ -210,12 +256,27 @@ function aegis_woo_color_manager_register_settings() {
 			esc_html( $field['label'] ),
 			'aegis_woo_color_manager_render_field',
 			'aegis-woo-color-manager',
-			'aegis_woo_color_tokens_section',
+			$field['section'],
 			$field
 		);
 	}
 }
 add_action( 'admin_init', 'aegis_woo_color_manager_register_settings' );
+
+/**
+ * Define token sections.
+ *
+ * @return array<string, string>
+ */
+function aegis_woo_color_manager_token_sections() {
+	return array(
+		'aegis_woo_color_scope_section'  => __( '作用范围', 'aegis-woo-color-manager' ),
+		'aegis_woo_color_base_section'   => __( '基础', 'aegis-woo-color-manager' ),
+		'aegis_woo_color_button_section' => __( '按钮', 'aegis-woo-color-manager' ),
+		'aegis_woo_color_link_section'   => __( '链接', 'aegis-woo-color-manager' ),
+		'aegis_woo_color_notice_section' => __( '提示条（Notices）', 'aegis-woo-color-manager' ),
+	);
+}
 
 /**
  * Define token fields.
@@ -224,27 +285,132 @@ add_action( 'admin_init', 'aegis_woo_color_manager_register_settings' );
  */
 function aegis_woo_color_manager_token_fields() {
 	return array(
-		array( 'key' => 'aegis_fg', 'label' => '--aegis-fg' ),
-		array( 'key' => 'aegis_bg', 'label' => '--aegis-bg' ),
-		array( 'key' => 'aegis_surface', 'label' => '--aegis-surface' ),
-		array( 'key' => 'aegis_muted', 'label' => '--aegis-muted' ),
-		array( 'key' => 'aegis_border', 'label' => '--aegis-border' ),
-		array( 'key' => 'aegis_button_bg', 'label' => '--aegis-button-bg' ),
-		array( 'key' => 'aegis_button_fg', 'label' => '--aegis-button-fg' ),
-		array( 'key' => 'aegis_accent', 'label' => '--aegis-accent' ),
-		array( 'key' => 'aegis_link', 'label' => '--aegis-link' ),
-		array( 'key' => 'aegis_success_bg', 'label' => '--aegis-success-bg' ),
-		array( 'key' => 'aegis_success_fg', 'label' => '--aegis-success-fg' ),
-		array( 'key' => 'aegis_success_border', 'label' => '--aegis-success-border' ),
-		array( 'key' => 'aegis_danger_bg', 'label' => '--aegis-danger-bg' ),
-		array( 'key' => 'aegis_danger_fg', 'label' => '--aegis-danger-fg' ),
-		array( 'key' => 'aegis_danger_border', 'label' => '--aegis-danger-border' ),
-		array( 'key' => 'aegis_warning_bg', 'label' => '--aegis-warning-bg' ),
-		array( 'key' => 'aegis_warning_fg', 'label' => '--aegis-warning-fg' ),
-		array( 'key' => 'aegis_warning_border', 'label' => '--aegis-warning-border' ),
-		array( 'key' => 'aegis_info_bg', 'label' => '--aegis-info-bg' ),
-		array( 'key' => 'aegis_info_fg', 'label' => '--aegis-info-fg' ),
-		array( 'key' => 'aegis_info_border', 'label' => '--aegis-info-border' ),
+		array(
+			'key'         => 'aegis_fg',
+			'label'       => '--aegis-fg',
+			'section'     => 'aegis_woo_color_base_section',
+			'description' => '主要文字色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_bg',
+			'label'       => '--aegis-bg',
+			'section'     => 'aegis_woo_color_base_section',
+			'description' => 'Woo 内容区背景色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_surface',
+			'label'       => '--aegis-surface',
+			'section'     => 'aegis_woo_color_base_section',
+			'description' => '卡片/面板底色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_muted',
+			'label'       => '--aegis-muted',
+			'section'     => 'aegis_woo_color_base_section',
+			'description' => '次要文字色（说明/辅助文本）。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_border',
+			'label'       => '--aegis-border',
+			'section'     => 'aegis_woo_color_base_section',
+			'description' => '分割线/边框。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_button_bg',
+			'label'       => '--aegis-button-bg',
+			'section'     => 'aegis_woo_color_button_section',
+			'description' => 'Woo 实心按钮背景（加入购物车/选择选项/返回商店/去结算）。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_button_fg',
+			'label'       => '--aegis-button-fg',
+			'section'     => 'aegis_woo_color_button_section',
+			'description' => 'Woo 实心按钮文字色（与按钮背景反色）。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_accent',
+			'label'       => '--aegis-accent',
+			'section'     => 'aegis_woo_color_link_section',
+			'description' => '强调色（如价格高亮/少量强调场景）。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_link',
+			'label'       => '--aegis-link',
+			'section'     => 'aegis_woo_color_link_section',
+			'description' => 'Woo 页面链接色（例如“更换地址”等）。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_success_bg',
+			'label'       => '--aegis-success-bg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '成功提示条背景（购物车更新成功提示）。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_success_fg',
+			'label'       => '--aegis-success-fg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '成功提示条文字/图标色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_success_border',
+			'label'       => '--aegis-success-border',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '成功提示条边框色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_danger_bg',
+			'label'       => '--aegis-danger-bg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '错误提示条背景。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_danger_fg',
+			'label'       => '--aegis-danger-fg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '错误提示条文字/图标色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_danger_border',
+			'label'       => '--aegis-danger-border',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '错误提示条边框色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_warning_bg',
+			'label'       => '--aegis-warning-bg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '警告提示条背景。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_warning_fg',
+			'label'       => '--aegis-warning-fg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '警告提示条文字/图标色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_warning_border',
+			'label'       => '--aegis-warning-border',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '警告提示条边框色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_info_bg',
+			'label'       => '--aegis-info-bg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '信息提示条背景。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_info_fg',
+			'label'       => '--aegis-info-fg',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '信息提示条文字/图标色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
+		array(
+			'key'         => 'aegis_info_border',
+			'label'       => '--aegis-info-border',
+			'section'     => 'aegis_woo_color_notice_section',
+			'description' => '信息提示条边框色。作用范围：Woo 内容区 + mini cart（默认）/ 全站（开启全站模式才生效）。',
+		),
 	);
 }
 
@@ -271,6 +437,16 @@ function aegis_woo_color_manager_sanitize_tokens( $input ) {
 }
 
 /**
+ * Sanitize scope.
+ *
+ * @param string $input Input scope.
+ * @return string
+ */
+function aegis_woo_color_manager_sanitize_scope( $input ) {
+	return 'global' === $input ? 'global' : 'woo_only';
+}
+
+/**
  * Render a color field.
  *
  * @param array<string, string> $field Field data.
@@ -286,6 +462,33 @@ function aegis_woo_color_manager_render_field( $field ) {
 		esc_attr( $value ),
 		esc_attr( aegis_woo_color_manager_default_tokens()[ $key ] )
 	);
+
+	if ( ! empty( $field['description'] ) ) {
+		printf(
+			'<p class="description">%s</p>',
+			esc_html( $field['description'] )
+		);
+	}
+}
+
+/**
+ * Render scope field.
+ */
+function aegis_woo_color_manager_render_scope_field() {
+	$scope = aegis_woo_color_manager_get_scope();
+	?>
+	<select name="aegis_woo_color_scope">
+		<option value="woo_only" <?php selected( $scope, 'woo_only' ); ?>>
+			<?php esc_html_e( '仅 Woo 内容区 + mini cart（推荐）', 'aegis-woo-color-manager' ); ?>
+		</option>
+		<option value="global" <?php selected( $scope, 'global' ); ?>>
+			<?php esc_html_e( '全站（会影响 header/footer）', 'aegis-woo-color-manager' ); ?>
+		</option>
+	</select>
+	<p class="description">
+		<?php esc_html_e( '默认仅作用于 Woo 内容区与 mini cart 抽屉；全站模式会影响 header/footer 等区域。', 'aegis-woo-color-manager' ); ?>
+	</p>
+	<?php
 }
 
 /**
@@ -349,6 +552,9 @@ function aegis_woo_color_manager_render_settings_page() {
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Aegis Woo Color Manager', 'aegis-woo-color-manager' ); ?></h1>
+		<div class="notice notice-info">
+			<p><?php esc_html_e( '已覆盖场景（简版）：Notices（blocks + classic）、Buttons（产品列表/返回商店）、Links（Woo 页面链接）、Remove（mini cart 删除按钮/小×，逐步补齐）、Price（价格文字，逐步补齐）。', 'aegis-woo-color-manager' ); ?></p>
+		</div>
 		<form method="post" action="options.php">
 			<?php
 			settings_fields( 'aegis_woo_color_manager' );

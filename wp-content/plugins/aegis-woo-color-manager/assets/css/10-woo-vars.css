@@ -1,12 +1,12 @@
 /* all_woo scope */
-body.woocommerce,
-body.woocommerce-page,
-body.woocommerce-cart,
-body.woocommerce-checkout,
-body.woocommerce-account,
-body.single-product,
-body.post-type-archive-product,
-.woocommerce {
+.woocommerce,
+body.woocommerce main,
+body.woocommerce-page main,
+body.post-type-archive-product main,
+body.single-product main,
+body.woocommerce-cart main,
+body.woocommerce-checkout main,
+.aegis-mini-cart__drawer {
   --woocommerce: var(--aegis-accent);
   --wc-primary: var(--aegis-accent);
   --wc-primary-text: #ffffff;
@@ -20,11 +20,13 @@ body.post-type-archive-product,
   --wc-subtext: var(--aegis-muted);
 }
 
-body.woocommerce a,
-body.woocommerce-page a,
-body.woocommerce-cart a,
-body.woocommerce-checkout a,
-body.woocommerce-account a,
-.woocommerce a {
+.woocommerce a,
+body.woocommerce main a,
+body.woocommerce-page main a,
+body.post-type-archive-product main a,
+body.single-product main a,
+body.woocommerce-cart main a,
+body.woocommerce-checkout main a,
+.aegis-mini-cart__drawer a {
   color: var(--aegis-link);
 }
