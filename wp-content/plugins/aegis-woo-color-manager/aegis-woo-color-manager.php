@@ -48,7 +48,7 @@ function aegis_woo_color_manager_default_tokens() {
  * @return string
  */
 function aegis_woo_color_manager_default_scope() {
-	return 'woo_only';
+	return 'woo_content_only';
 }
 
 /**
@@ -84,7 +84,7 @@ function aegis_woo_color_manager_get_tokens() {
 function aegis_woo_color_manager_get_scope() {
 	$scope = get_option( 'aegis_woo_color_scope', aegis_woo_color_manager_default_scope() );
 
-	return 'global' === $scope ? 'global' : 'woo_only';
+	return 'global' === $scope ? 'global' : 'woo_content_only';
 }
 
 /**
@@ -97,7 +97,7 @@ function aegis_woo_color_manager_tokens_css() {
 	$scope    = aegis_woo_color_manager_get_scope();
 	$selector = ':root';
 
-	if ( 'woo_only' === $scope ) {
+	if ( 'woo_content_only' === $scope ) {
 		$selector = implode(
 			",\n",
 			array(
@@ -108,6 +108,7 @@ function aegis_woo_color_manager_tokens_css() {
 				'body.single-product main',
 				'body.woocommerce-cart main',
 				'body.woocommerce-checkout main',
+				'body.woocommerce-account main',
 				'.aegis-mini-cart__drawer',
 			)
 		);
@@ -443,7 +444,7 @@ function aegis_woo_color_manager_sanitize_tokens( $input ) {
  * @return string
  */
 function aegis_woo_color_manager_sanitize_scope( $input ) {
-	return 'global' === $input ? 'global' : 'woo_only';
+	return 'global' === $input ? 'global' : 'woo_content_only';
 }
 
 /**
@@ -478,16 +479,16 @@ function aegis_woo_color_manager_render_scope_field() {
 	$scope = aegis_woo_color_manager_get_scope();
 	?>
 	<select name="aegis_woo_color_scope">
-		<option value="woo_only" <?php selected( $scope, 'woo_only' ); ?>>
-			<?php esc_html_e( '仅 Woo 内容区 + mini cart（推荐）', 'aegis-woo-color-manager' ); ?>
-		</option>
-		<option value="global" <?php selected( $scope, 'global' ); ?>>
-			<?php esc_html_e( '全站（会影响 header/footer）', 'aegis-woo-color-manager' ); ?>
-		</option>
-	</select>
-	<p class="description">
-		<?php esc_html_e( '默认仅作用于 Woo 内容区与 mini cart 抽屉；全站模式会影响 header/footer 等区域。', 'aegis-woo-color-manager' ); ?>
-	</p>
+			<option value="woo_content_only" <?php selected( $scope, 'woo_content_only' ); ?>>
+				<?php esc_html_e( '仅 Woo 主内容区 + mini cart（推荐）', 'aegis-woo-color-manager' ); ?>
+			</option>
+			<option value="global" <?php selected( $scope, 'global' ); ?>>
+				<?php esc_html_e( '全站（会影响 header/footer）', 'aegis-woo-color-manager' ); ?>
+			</option>
+		</select>
+		<p class="description">
+			<?php esc_html_e( '默认仅影响 Woo 主内容区与 mini cart，不影响页眉页脚；全站模式会影响包括 footer 在内的全站元素。', 'aegis-woo-color-manager' ); ?>
+		</p>
 	<?php
 }
 
