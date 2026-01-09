@@ -109,3 +109,32 @@
     display: none;
   }
 }
+
+/* Footer color lock (Woo scope bleed guard) */
+footer.aegis-footer {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+footer.aegis-footer .aegis-footer__title {
+  color: #ffffff !important;
+}
+
+footer.aegis-footer a.aegis-footer__link {
+  color: rgba(255, 255, 255, 0.7) !important;
+  text-decoration: none;
+}
+
+footer.aegis-footer a.aegis-footer__link:hover,
+footer.aegis-footer a.aegis-footer__link:focus {
+  color: rgba(255, 255, 255, 0.92) !important;
+  text-decoration: none;
+}
+
+footer.aegis-footer .aegis-footer__copyright,
+footer.aegis-footer .aegis-footer__meta,
+footer.aegis-footer small,
+footer.aegis-footer p,
+footer.aegis-footer li,
+footer.aegis-footer span {
+  color: rgba(255, 255, 255, 0.6) !important;
+}

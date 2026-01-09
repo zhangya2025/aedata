@@ -1,0 +1,53 @@
+/* === Single product: restore native quantity arrows (no black block) === */
+body.single-product .woocommerce-variation-add-to-cart .quantity,
+body.single-product .woocommerce-variation-add-to-cart .quantity * {
+  background-image: none !important;
+}
+
+/* Disable any pseudo-element custom arrows/blocks */
+body.single-product .woocommerce-variation-add-to-cart .quantity::before,
+body.single-product .woocommerce-variation-add-to-cart .quantity::after,
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty::before,
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Restore native number input appearance */
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty {
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  border: 1px solid #111 !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+/* Native spin buttons: visible and dark */
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty::-webkit-inner-spin-button,
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty::-webkit-outer-spin-button {
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty:hover::-webkit-inner-spin-button,
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty:hover::-webkit-outer-spin-button {
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button {
+  background: #111 !important;
+  border: 1px solid #111 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button.disabled,
+body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button.wc-variation-selection-needed {
+  background: #111 !important;
+  border: 1px solid #111 !important;
+  color: #fff !important;
+  opacity: 0.65 !important;
+}
