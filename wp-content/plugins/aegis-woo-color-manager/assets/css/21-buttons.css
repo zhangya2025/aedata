@@ -1,0 +1,51 @@
+/* all_woo scope: solid buttons */
+body.woocommerce .wc-block-components-product-button__button,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-element-button {
+  background-color: var(--aegis-button-bg) !important;
+  border-color: var(--aegis-button-bg) !important;
+  color: var(--aegis-button-fg) !important;
+}
+
+body.woocommerce .wc-block-components-product-button__button span,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-element-button span {
+  color: inherit !important;
+}
+
+body.woocommerce .wc-block-components-product-button__button:hover,
+body.woocommerce .wc-block-components-product-button__button:focus,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+body.woocommerce .wp-block-button:not(.is-style-outline) .wp-element-button:focus {
+  opacity: 0.9;
+}
+
+/* all_woo scope: outline buttons */
+body.woocommerce .wp-block-button.is-style-outline .wp-block-button__link {
+  background: transparent !important;
+  color: var(--aegis-fg) !important;
+  border-color: var(--aegis-fg) !important;
+}
+
+/* cart_only scope: classic buttons */
+body.woocommerce-cart .woocommerce a.button,
+body.woocommerce-cart .woocommerce button.button,
+body.woocommerce-cart .woocommerce input.button,
+body.woocommerce-cart .woocommerce #respond input#submit {
+  background-color: var(--aegis-button-bg) !important;
+  border-color: var(--aegis-button-bg) !important;
+  color: var(--aegis-button-fg) !important;
+}
+
+body.woocommerce-cart .woocommerce a.button:hover,
+body.woocommerce-cart .woocommerce a.button:focus,
+body.woocommerce-cart .woocommerce button.button:hover,
+body.woocommerce-cart .woocommerce button.button:focus,
+body.woocommerce-cart .woocommerce input.button:hover,
+body.woocommerce-cart .woocommerce input.button:focus,
+body.woocommerce-cart .woocommerce #respond input#submit:hover,
+body.woocommerce-cart .woocommerce #respond input#submit:focus {
+  opacity: 0.9;
+}
