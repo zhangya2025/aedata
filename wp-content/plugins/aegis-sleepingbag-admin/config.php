@@ -76,8 +76,8 @@ return [
         ],
     ],
     [
-        'slug'  => 'sleepingbag_main_zipper_direction',
-        'name'  => 'Main Zipper Direction',
+        'slug'  => 'sleepingbag_zip_side',
+        'name'  => 'Zipper Side',
         'terms' => [
             'Left',
             'Right',
