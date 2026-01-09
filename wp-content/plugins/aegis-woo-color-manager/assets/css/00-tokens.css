@@ -1,0 +1,16 @@
+:root {
+  --aegis-fg: #111111;
+  --aegis-bg: #ffffff;
+  --aegis-muted: #6b7280;
+  --aegis-border: #d1d5db;
+  --aegis-accent: #111111;
+  --aegis-link: #111111;
+  --aegis-success-bg: #f2f2f2;
+  --aegis-success-fg: #111111;
+  --aegis-danger-bg: #f2f2f2;
+  --aegis-danger-fg: #111111;
+  --aegis-warning-bg: #f2f2f2;
+  --aegis-warning-fg: #111111;
+  --aegis-info-bg: #f2f2f2;
+  --aegis-info-fg: #111111;
+}

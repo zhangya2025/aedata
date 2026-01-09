@@ -38,27 +38,6 @@ body.woocommerce-cart .cart-collaterals .cart_totals table {
   margin-bottom: 0;
 }
 
-body.woocommerce-cart .wc-block-components-notice-banner.is-success,
-body.woocommerce-cart .woocommerce-store-notices .wc-block-components-notice-banner.is-success {
-  background: #f2f2f2;
-  border-color: #111 !important;
-  color: #111;
-}
-
-body.woocommerce-cart .wc-block-components-notice-banner.is-success,
-body.woocommerce-cart .wc-block-components-notice-banner.is-success * {
-  color: #111 !important;
-}
-
-body.woocommerce-cart .wc-block-components-notice-banner.is-success svg {
-  fill: #111 !important;
-  color: #111 !important;
-}
-
-body.woocommerce-cart .wc-block-components-notice-banner.is-success {
-  --wc-green: #111;
-}
-
 @media (min-width: 901px) {
   body.woocommerce-cart .cart-collaterals {
     position: sticky;
