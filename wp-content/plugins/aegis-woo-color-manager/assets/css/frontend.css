@@ -29,14 +29,12 @@ body.single-product .woocommerce-variation-add-to-cart .quantity input.qty::-web
   appearance: auto !important;
   opacity: 1 !important;
   background: transparent !important;
-  filter: grayscale(1) brightness(0.1) contrast(2.5) !important;
 }
 
 body.single-product .woocommerce-variation-add-to-cart .quantity input.qty:hover::-webkit-inner-spin-button,
 body.single-product .woocommerce-variation-add-to-cart .quantity input.qty:hover::-webkit-outer-spin-button {
   opacity: 1 !important;
   background: transparent !important;
-  filter: grayscale(1) brightness(0.1) contrast(2.5) !important;
 }
 
 body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button {
