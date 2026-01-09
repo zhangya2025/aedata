@@ -185,6 +185,7 @@ function aegis_woo_color_manager_enqueue_styles() {
 		'aegis-woo-color-manager-buttons'  => 'assets/css/21-buttons.css',
 		'aegis-woo-color-manager-mini'     => 'assets/css/30-mini-cart.css',
 		'aegis-woo-color-manager-cart'     => 'assets/css/31-cart-page.css',
+		'aegis-woo-color-manager-single'   => 'assets/css/32-single-product.css',
 	);
 
 	$previous_handle = '';

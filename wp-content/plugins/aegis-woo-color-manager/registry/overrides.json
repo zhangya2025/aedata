@@ -139,5 +139,19 @@
     "status": "done",
     "notes": "Classic cart buttons enforce contrast without affecting mini cart.",
     "last_verified": "2025-01-01"
+  },
+  {
+    "id": "single-product.quantity-add-to-cart",
+    "component": "single-product",
+    "scope": "single_product_only",
+    "tokens_used": [],
+    "selectors": [
+      "body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button",
+      "body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button.disabled",
+      "body.single-product .woocommerce-variation-add-to-cart .quantity input.qty"
+    ],
+    "status": "done",
+    "notes": "Force black borders on add-to-cart button and quantity input; ensure spin buttons visible.",
+    "last_verified": "2025-01-01"
   }
 ]

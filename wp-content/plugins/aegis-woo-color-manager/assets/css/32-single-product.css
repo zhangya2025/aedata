@@ -1,0 +1,28 @@
+/* Single product quantity/add-to-cart fixes */
+body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button {
+  border: 1px solid #111 !important;
+  box-shadow: none !important;
+}
+
+body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button.disabled,
+body.single-product .woocommerce-variation-add-to-cart button.single_add_to_cart_button.wc-variation-selection-needed {
+  border: 1px solid #111 !important;
+}
+
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty {
+  border: 1px solid #111 !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty::-webkit-inner-spin-button,
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty::-webkit-outer-spin-button {
+  opacity: 1 !important;
+  filter: grayscale(1) brightness(0.2) contrast(2) !important;
+}
+
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty:hover::-webkit-inner-spin-button,
+body.single-product .woocommerce-variation-add-to-cart .quantity input.qty:hover::-webkit-outer-spin-button {
+  opacity: 1 !important;
+  filter: grayscale(1) brightness(0.2) contrast(2) !important;
+}
