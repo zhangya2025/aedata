@@ -57,7 +57,10 @@ body.woocommerce-cart .cart-collaterals .cart_totals table {
   }
 }
 
-body.woocommerce-cart .aegis-cart-main,
-body.woocommerce-cart .aegis-cart-summary {
+body.woocommerce-cart form.woocommerce-cart-form {
+  border-radius: 0 !important;
+}
+
+body.woocommerce-cart aside.aegis-cart-summary {
   border-radius: 0 !important;
 }
