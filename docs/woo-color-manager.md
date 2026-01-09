@@ -38,6 +38,8 @@
 - `--aegis-surface`: 卡片/面板底色
 - `--aegis-muted`: 次要文字色
 - `--aegis-border`: 边框/分割线
+- `--aegis-button-bg`: 实心按钮背景色（默认等于 --aegis-fg）
+- `--aegis-button-fg`: 实心按钮文字色（默认等于 --aegis-bg）
 - `--aegis-accent`: 强调色（主按钮/链接）
 - `--aegis-link`: 链接色
 - `--aegis-success-bg` / `--aegis-success-fg` / `--aegis-success-border`
@@ -79,6 +81,7 @@ wp-content/plugins/aegis-woo-color-manager/
 │   ├── 00-tokens.css
 │   ├── 10-woo-vars.css
 │   ├── 20-notices.css
+│   ├── 21-buttons.css
 │   ├── 30-mini-cart.css
 │   └── 31-cart-page.css
 └── registry/overrides.json
@@ -134,6 +137,11 @@ wp aegis-woo-color scan --format=csv --output=wp-content/uploads/aegis-woo-color
 ### 6.2 Cart 成功提示条覆盖依据
 - Blocks notice banner 在 `wc-blocks.css` 中对 `.wc-block-components-notice-banner.is-success` 写死背景/边框色。 【F:wp-content/plugins/woocommerce/assets/client/blocks/wc-blocks.css†L2】
 - 主题中已移除针对 cart success notice 的重复覆盖，统一由插件管理。 【F:wp-content/themes/aegis-themes/style.css†L1-L36】
+
+### 6.3 Button 反色规则说明
+- 实心按钮使用 `--aegis-button-bg` / `--aegis-button-fg` 反色确保高对比度（Woo Blocks 产品按钮 + WP block button）。【F:wp-content/plugins/aegis-woo-color-manager/assets/css/21-buttons.css†L1-L24】
+- Outline 按钮保持透明背景 + 深色文字/边框，不被实心规则覆盖。 【F:wp-content/plugins/aegis-woo-color-manager/assets/css/21-buttons.css†L26-L30】
+- Cart 页面 classic 按钮在 `body.woocommerce-cart` 作用域内覆写，避免影响 mini cart 抽屉。 【F:wp-content/plugins/aegis-woo-color-manager/assets/css/21-buttons.css†L32-L51】
 
 ---
 

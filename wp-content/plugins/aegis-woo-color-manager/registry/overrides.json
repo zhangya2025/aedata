@@ -87,5 +87,54 @@
     "status": "done",
     "notes": "Blocks error/warning/info banners mapped to tokens.",
     "last_verified": "2025-01-01"
+  },
+  {
+    "id": "buttons.solid-woo-blocks",
+    "component": "buttons",
+    "scope": "all_woo",
+    "tokens_used": [
+      "--aegis-button-bg",
+      "--aegis-button-fg"
+    ],
+    "selectors": [
+      ".wc-block-components-product-button__button",
+      ".wp-block-button:not(.is-style-outline) .wp-block-button__link",
+      ".wp-block-button:not(.is-style-outline) .wp-element-button"
+    ],
+    "status": "done",
+    "notes": "Solid buttons use button tokens to force high-contrast text.",
+    "last_verified": "2025-01-01"
+  },
+  {
+    "id": "buttons.outline",
+    "component": "buttons",
+    "scope": "all_woo",
+    "tokens_used": [
+      "--aegis-fg"
+    ],
+    "selectors": [
+      ".wp-block-button.is-style-outline .wp-block-button__link"
+    ],
+    "status": "done",
+    "notes": "Outline buttons keep transparent background.",
+    "last_verified": "2025-01-01"
+  },
+  {
+    "id": "buttons.cart-classic",
+    "component": "buttons",
+    "scope": "cart_only",
+    "tokens_used": [
+      "--aegis-button-bg",
+      "--aegis-button-fg"
+    ],
+    "selectors": [
+      "body.woocommerce-cart .woocommerce a.button",
+      "body.woocommerce-cart .woocommerce button.button",
+      "body.woocommerce-cart .woocommerce input.button",
+      "body.woocommerce-cart .woocommerce #respond input#submit"
+    ],
+    "status": "done",
+    "notes": "Classic cart buttons enforce contrast without affecting mini cart.",
+    "last_verified": "2025-01-01"
   }
 ]
