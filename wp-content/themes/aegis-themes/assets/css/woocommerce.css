@@ -309,3 +309,8 @@ body.woocommerce-cart .aegis-cart-summary .cart_totals,
 body.woocommerce-cart .aegis-cart-summary .cart_totals table {
   margin-bottom: 0;
 }
+
+body.woocommerce-cart .aegis-cart-layout .woocommerce-cart-form,
+body.woocommerce-cart .aegis-cart-layout .aegis-cart-summary {
+  border-radius: 0 !important;
+}
