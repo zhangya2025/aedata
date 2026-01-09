@@ -6,7 +6,7 @@ body.woocommerce-checkout .woocommerce-message,
 body.woocommerce-account .woocommerce-message,
 .woocommerce .woocommerce-message {
   background-color: var(--aegis-success-bg);
-  border-color: var(--aegis-success-fg);
+  border-color: var(--aegis-success-border, var(--aegis-success-fg));
   color: var(--aegis-success-fg);
 }
 
@@ -26,7 +26,7 @@ body.woocommerce-checkout .woocommerce-error,
 body.woocommerce-account .woocommerce-error,
 .woocommerce .woocommerce-error {
   background-color: var(--aegis-danger-bg);
-  border-color: var(--aegis-danger-fg);
+  border-color: var(--aegis-danger-border, var(--aegis-danger-fg));
   color: var(--aegis-danger-fg);
 }
 
@@ -46,7 +46,7 @@ body.woocommerce-checkout .woocommerce-info,
 body.woocommerce-account .woocommerce-info,
 .woocommerce .woocommerce-info {
   background-color: var(--aegis-info-bg);
-  border-color: var(--aegis-info-fg);
+  border-color: var(--aegis-info-border, var(--aegis-info-fg));
   color: var(--aegis-info-fg);
 }
 
@@ -68,7 +68,7 @@ body.woocommerce-account .wc-block-components-notice-banner.is-success,
 .woocommerce .wc-block-components-notice-banner.is-success,
 body.woocommerce .woocommerce-store-notices .wc-block-components-notice-banner.is-success {
   background-color: var(--aegis-success-bg);
-  border-color: var(--aegis-success-fg);
+  border-color: var(--aegis-success-border, var(--aegis-success-fg));
   color: var(--aegis-success-fg);
 }
 
@@ -80,7 +80,7 @@ body.woocommerce-account .wc-block-components-notice-banner.is-error,
 .woocommerce .wc-block-components-notice-banner.is-error,
 body.woocommerce .woocommerce-store-notices .wc-block-components-notice-banner.is-error {
   background-color: var(--aegis-danger-bg);
-  border-color: var(--aegis-danger-fg);
+  border-color: var(--aegis-danger-border, var(--aegis-danger-fg));
   color: var(--aegis-danger-fg);
 }
 
@@ -92,7 +92,7 @@ body.woocommerce-account .wc-block-components-notice-banner.is-warning,
 .woocommerce .wc-block-components-notice-banner.is-warning,
 body.woocommerce .woocommerce-store-notices .wc-block-components-notice-banner.is-warning {
   background-color: var(--aegis-warning-bg);
-  border-color: var(--aegis-warning-fg);
+  border-color: var(--aegis-warning-border, var(--aegis-warning-fg));
   color: var(--aegis-warning-fg);
 }
 
@@ -104,7 +104,7 @@ body.woocommerce-account .wc-block-components-notice-banner.is-info,
 .woocommerce .wc-block-components-notice-banner.is-info,
 body.woocommerce .woocommerce-store-notices .wc-block-components-notice-banner.is-info {
   background-color: var(--aegis-info-bg);
-  border-color: var(--aegis-info-fg);
+  border-color: var(--aegis-info-border, var(--aegis-info-fg));
   color: var(--aegis-info-fg);
 }
 

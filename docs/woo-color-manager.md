@@ -35,14 +35,15 @@
 
 - `--aegis-fg`: 主文字色
 - `--aegis-bg`: 主背景色
+- `--aegis-surface`: 卡片/面板底色
 - `--aegis-muted`: 次要文字色
 - `--aegis-border`: 边框/分割线
 - `--aegis-accent`: 强调色（主按钮/链接）
 - `--aegis-link`: 链接色
-- `--aegis-success-bg` / `--aegis-success-fg`
-- `--aegis-danger-bg` / `--aegis-danger-fg`
-- `--aegis-warning-bg` / `--aegis-warning-fg`
-- `--aegis-info-bg` / `--aegis-info-fg`
+- `--aegis-success-bg` / `--aegis-success-fg` / `--aegis-success-border`
+- `--aegis-danger-bg` / `--aegis-danger-fg` / `--aegis-danger-border`
+- `--aegis-warning-bg` / `--aegis-warning-fg` / `--aegis-warning-border`
+- `--aegis-info-bg` / `--aegis-info-fg` / `--aegis-info-border`
 
 ### 2.2 “Woo 映射层”覆盖策略
 **优先策略：重设 Woo 变量**
@@ -154,3 +155,8 @@ wp aegis-woo-color scan --format=csv --output=wp-content/uploads/aegis-woo-color
 2. checkout/product 页面颜色整体仍可用。
 3. wp-admin 不受影响。
 4. mini cart 抽屉仍可正常显示且不依赖 Woo body class。
+
+## 管理后台设置页（新增）
+- 菜单位置：WooCommerce -> Aegis Color Manager（WooCommerce 菜单不可用时落到 Settings）。【F:wp-content/plugins/aegis-woo-color-manager/aegis-woo-color-manager.php†L176-L209】
+- 使用 Settings API + wp-color-picker 管理 tokens，保存到 `aegis_woo_color_tokens` 选项并前台以 inline CSS 输出。 【F:wp-content/plugins/aegis-woo-color-manager/aegis-woo-color-manager.php†L14-L173】
+- 提供 JSON 导入/导出入口，用于快速迁移/审计。 【F:wp-content/plugins/aegis-woo-color-manager/aegis-woo-color-manager.php†L236-L333】

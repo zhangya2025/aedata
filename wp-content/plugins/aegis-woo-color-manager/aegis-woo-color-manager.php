@@ -12,6 +12,108 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Default token values.
+ *
+ * @return array<string, string>
+ */
+function aegis_woo_color_manager_default_tokens() {
+	return array(
+		'aegis_fg'             => '#111111',
+		'aegis_bg'             => '#ffffff',
+		'aegis_surface'        => '#f2f2f2',
+		'aegis_muted'          => '#6b7280',
+		'aegis_border'         => '#d1d5db',
+		'aegis_accent'         => '#111111',
+		'aegis_link'           => '#111111',
+		'aegis_success_bg'     => '#f2f2f2',
+		'aegis_success_fg'     => '#111111',
+		'aegis_success_border' => '#111111',
+		'aegis_danger_bg'      => '#f2f2f2',
+		'aegis_danger_fg'      => '#111111',
+		'aegis_danger_border'  => '#111111',
+		'aegis_warning_bg'     => '#f2f2f2',
+		'aegis_warning_fg'     => '#111111',
+		'aegis_warning_border' => '#111111',
+		'aegis_info_bg'        => '#f2f2f2',
+		'aegis_info_fg'        => '#111111',
+		'aegis_info_border'    => '#111111',
+	);
+}
+
+/**
+ * Get sanitized tokens merged with defaults.
+ *
+ * @return array<string, string>
+ */
+function aegis_woo_color_manager_get_tokens() {
+	$defaults = aegis_woo_color_manager_default_tokens();
+	$saved    = get_option( 'aegis_woo_color_tokens', array() );
+
+	if ( ! is_array( $saved ) ) {
+		$saved = array();
+	}
+
+	foreach ( $defaults as $key => $value ) {
+		if ( isset( $saved[ $key ] ) ) {
+			$sanitized = sanitize_hex_color( $saved[ $key ] );
+			if ( $sanitized ) {
+				$defaults[ $key ] = $sanitized;
+			}
+		}
+	}
+
+	return $defaults;
+}
+
+/**
+ * Render token CSS for frontend.
+ *
+ * @return string
+ */
+function aegis_woo_color_manager_tokens_css() {
+	$tokens   = aegis_woo_color_manager_get_tokens();
+	$selector = implode(
+		",\n",
+		array(
+			'body.woocommerce',
+			'body.woocommerce-page',
+			'body.woocommerce-cart',
+			'body.woocommerce-checkout',
+			'body.woocommerce-account',
+			'body.single-product',
+			'body.post-type-archive-product',
+			'.woocommerce',
+		)
+	);
+
+	$lines = array(
+		"$selector {",
+		"\t--aegis-fg: {$tokens['aegis_fg']};",
+		"\t--aegis-bg: {$tokens['aegis_bg']};",
+		"\t--aegis-surface: {$tokens['aegis_surface']};",
+		"\t--aegis-muted: {$tokens['aegis_muted']};",
+		"\t--aegis-border: {$tokens['aegis_border']};",
+		"\t--aegis-accent: {$tokens['aegis_accent']};",
+		"\t--aegis-link: {$tokens['aegis_link']};",
+		"\t--aegis-success-bg: {$tokens['aegis_success_bg']};",
+		"\t--aegis-success-fg: {$tokens['aegis_success_fg']};",
+		"\t--aegis-success-border: {$tokens['aegis_success_border']};",
+		"\t--aegis-danger-bg: {$tokens['aegis_danger_bg']};",
+		"\t--aegis-danger-fg: {$tokens['aegis_danger_fg']};",
+		"\t--aegis-danger-border: {$tokens['aegis_danger_border']};",
+		"\t--aegis-warning-bg: {$tokens['aegis_warning_bg']};",
+		"\t--aegis-warning-fg: {$tokens['aegis_warning_fg']};",
+		"\t--aegis-warning-border: {$tokens['aegis_warning_border']};",
+		"\t--aegis-info-bg: {$tokens['aegis_info_bg']};",
+		"\t--aegis-info-fg: {$tokens['aegis_info_fg']};",
+		"\t--aegis-info-border: {$tokens['aegis_info_border']};",
+		'}',
+	);
+
+	return implode( "\n", $lines );
+}
+
+/**
  * Enqueue frontend color overrides for WooCommerce pages.
  */
 function aegis_woo_color_manager_enqueue_styles() {
@@ -69,8 +171,269 @@ function aegis_woo_color_manager_enqueue_styles() {
 		wp_enqueue_style( $handle, $url, $handles, $version );
 		$previous_handle = $handle;
 	}
+
+	if ( isset( $styles['aegis-woo-color-manager-tokens'] ) ) {
+		wp_add_inline_style( 'aegis-woo-color-manager-tokens', aegis_woo_color_manager_tokens_css() );
+	}
 }
 add_action( 'wp_enqueue_scripts', 'aegis_woo_color_manager_enqueue_styles', 20 );
+
+/**
+ * Register plugin settings.
+ */
+function aegis_woo_color_manager_register_settings() {
+	register_setting(
+		'aegis_woo_color_manager',
+		'aegis_woo_color_tokens',
+		array(
+			'type'              => 'array',
+			'sanitize_callback' => 'aegis_woo_color_manager_sanitize_tokens',
+			'default'           => aegis_woo_color_manager_default_tokens(),
+		)
+	);
+
+	add_settings_section(
+		'aegis_woo_color_tokens_section',
+		__( 'Color Tokens', 'aegis-woo-color-manager' ),
+		'__return_false',
+		'aegis-woo-color-manager'
+	);
+
+	foreach ( aegis_woo_color_manager_token_fields() as $field ) {
+		add_settings_field(
+			$field['key'],
+			esc_html( $field['label'] ),
+			'aegis_woo_color_manager_render_field',
+			'aegis-woo-color-manager',
+			'aegis_woo_color_tokens_section',
+			$field
+		);
+	}
+}
+add_action( 'admin_init', 'aegis_woo_color_manager_register_settings' );
+
+/**
+ * Define token fields.
+ *
+ * @return array<int, array<string, string>>
+ */
+function aegis_woo_color_manager_token_fields() {
+	return array(
+		array( 'key' => 'aegis_fg', 'label' => '--aegis-fg' ),
+		array( 'key' => 'aegis_bg', 'label' => '--aegis-bg' ),
+		array( 'key' => 'aegis_surface', 'label' => '--aegis-surface' ),
+		array( 'key' => 'aegis_muted', 'label' => '--aegis-muted' ),
+		array( 'key' => 'aegis_border', 'label' => '--aegis-border' ),
+		array( 'key' => 'aegis_accent', 'label' => '--aegis-accent' ),
+		array( 'key' => 'aegis_link', 'label' => '--aegis-link' ),
+		array( 'key' => 'aegis_success_bg', 'label' => '--aegis-success-bg' ),
+		array( 'key' => 'aegis_success_fg', 'label' => '--aegis-success-fg' ),
+		array( 'key' => 'aegis_success_border', 'label' => '--aegis-success-border' ),
+		array( 'key' => 'aegis_danger_bg', 'label' => '--aegis-danger-bg' ),
+		array( 'key' => 'aegis_danger_fg', 'label' => '--aegis-danger-fg' ),
+		array( 'key' => 'aegis_danger_border', 'label' => '--aegis-danger-border' ),
+		array( 'key' => 'aegis_warning_bg', 'label' => '--aegis-warning-bg' ),
+		array( 'key' => 'aegis_warning_fg', 'label' => '--aegis-warning-fg' ),
+		array( 'key' => 'aegis_warning_border', 'label' => '--aegis-warning-border' ),
+		array( 'key' => 'aegis_info_bg', 'label' => '--aegis-info-bg' ),
+		array( 'key' => 'aegis_info_fg', 'label' => '--aegis-info-fg' ),
+		array( 'key' => 'aegis_info_border', 'label' => '--aegis-info-border' ),
+	);
+}
+
+/**
+ * Sanitize tokens.
+ *
+ * @param array<string, string> $input Input tokens.
+ * @return array<string, string>
+ */
+function aegis_woo_color_manager_sanitize_tokens( $input ) {
+	$defaults = aegis_woo_color_manager_default_tokens();
+	$output   = array();
+
+	if ( ! is_array( $input ) ) {
+		return $defaults;
+	}
+
+	foreach ( $defaults as $key => $value ) {
+		$sanitized = isset( $input[ $key ] ) ? sanitize_hex_color( $input[ $key ] ) : '';
+		$output[ $key ] = $sanitized ? $sanitized : $value;
+	}
+
+	return $output;
+}
+
+/**
+ * Render a color field.
+ *
+ * @param array<string, string> $field Field data.
+ */
+function aegis_woo_color_manager_render_field( $field ) {
+	$tokens = aegis_woo_color_manager_get_tokens();
+	$key    = $field['key'];
+	$value  = isset( $tokens[ $key ] ) ? $tokens[ $key ] : '';
+
+	printf(
+		'<input type="text" class="aegis-color-field" name="aegis_woo_color_tokens[%1$s]" value="%2$s" data-default-color="%3$s" />',
+		esc_attr( $key ),
+		esc_attr( $value ),
+		esc_attr( aegis_woo_color_manager_default_tokens()[ $key ] )
+	);
+}
+
+/**
+ * Register admin menu.
+ */
+function aegis_woo_color_manager_admin_menu() {
+	$capability = 'manage_options';
+	$slug       = 'aegis-woo-color-manager';
+
+	if ( class_exists( 'WooCommerce' ) ) {
+		add_submenu_page(
+			'woocommerce',
+			__( 'Aegis Color Manager', 'aegis-woo-color-manager' ),
+			__( 'Aegis Color Manager', 'aegis-woo-color-manager' ),
+			$capability,
+			$slug,
+			'aegis_woo_color_manager_render_settings_page'
+		);
+	} else {
+		add_options_page(
+			__( 'Aegis Color Manager', 'aegis-woo-color-manager' ),
+			__( 'Aegis Color Manager', 'aegis-woo-color-manager' ),
+			$capability,
+			$slug,
+			'aegis_woo_color_manager_render_settings_page'
+		);
+	}
+}
+add_action( 'admin_menu', 'aegis_woo_color_manager_admin_menu' );
+
+/**
+ * Enqueue admin assets.
+ *
+ * @param string $hook Hook suffix.
+ */
+function aegis_woo_color_manager_admin_assets( $hook ) {
+	if ( false === strpos( $hook, 'aegis-woo-color-manager' ) ) {
+		return;
+	}
+
+	wp_enqueue_style( 'wp-color-picker' );
+	wp_enqueue_script(
+		'aegis-woo-color-manager-admin',
+		plugin_dir_url( __FILE__ ) . 'assets/js/admin.js',
+		array( 'wp-color-picker' ),
+		'0.1.0',
+		true
+	);
+}
+add_action( 'admin_enqueue_scripts', 'aegis_woo_color_manager_admin_assets' );
+
+/**
+ * Render settings page.
+ */
+function aegis_woo_color_manager_render_settings_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	$tokens = aegis_woo_color_manager_get_tokens();
+	?>
+	<div class="wrap">
+		<h1><?php esc_html_e( 'Aegis Woo Color Manager', 'aegis-woo-color-manager' ); ?></h1>
+		<form method="post" action="options.php">
+			<?php
+			settings_fields( 'aegis_woo_color_manager' );
+			do_settings_sections( 'aegis-woo-color-manager' );
+			submit_button();
+			?>
+		</form>
+
+		<hr />
+		<h2><?php esc_html_e( 'Export Tokens', 'aegis-woo-color-manager' ); ?></h2>
+		<p><?php esc_html_e( 'Download current token settings as JSON.', 'aegis-woo-color-manager' ); ?></p>
+		<a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=aegis_woo_color_export' ), 'aegis_woo_color_export' ) ); ?>">
+			<?php esc_html_e( 'Download JSON', 'aegis-woo-color-manager' ); ?>
+		</a>
+
+		<h2><?php esc_html_e( 'Import Tokens', 'aegis-woo-color-manager' ); ?></h2>
+		<p><?php esc_html_e( 'Paste token JSON to overwrite current settings.', 'aegis-woo-color-manager' ); ?></p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'aegis_woo_color_import', 'aegis_woo_color_import_nonce' ); ?>
+			<input type="hidden" name="action" value="aegis_woo_color_import" />
+			<textarea name="aegis_woo_color_import_json" rows="8" class="large-text code"></textarea>
+			<?php submit_button( __( 'Import JSON', 'aegis-woo-color-manager' ), 'secondary', 'submit', false ); ?>
+		</form>
+
+		<h2><?php esc_html_e( 'Current Tokens (Read-only)', 'aegis-woo-color-manager' ); ?></h2>
+		<textarea readonly rows="8" class="large-text code"><?php echo esc_textarea( wp_json_encode( $tokens, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ); ?></textarea>
+	</div>
+	<?php
+}
+
+/**
+ * Export tokens as JSON.
+ */
+function aegis_woo_color_manager_export_tokens() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'Unauthorized.', 'aegis-woo-color-manager' ) );
+	}
+
+	check_admin_referer( 'aegis_woo_color_export' );
+
+	$tokens = aegis_woo_color_manager_get_tokens();
+	$json   = wp_json_encode( $tokens, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+
+	header( 'Content-Type: application/json; charset=utf-8' );
+	header( 'Content-Disposition: attachment; filename="aegis-woo-color-tokens.json"' );
+	echo $json;
+	exit;
+}
+add_action( 'admin_post_aegis_woo_color_export', 'aegis_woo_color_manager_export_tokens' );
+
+/**
+ * Import tokens from JSON.
+ */
+function aegis_woo_color_manager_import_tokens() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'Unauthorized.', 'aegis-woo-color-manager' ) );
+	}
+
+	check_admin_referer( 'aegis_woo_color_import', 'aegis_woo_color_import_nonce' );
+
+	$raw = isset( $_POST['aegis_woo_color_import_json'] ) ? wp_unslash( $_POST['aegis_woo_color_import_json'] ) : '';
+	if ( ! $raw ) {
+		wp_safe_redirect( admin_url( 'admin.php?page=aegis-woo-color-manager' ) );
+		exit;
+	}
+
+	$data = json_decode( $raw, true );
+	if ( ! is_array( $data ) ) {
+		wp_safe_redirect( admin_url( 'admin.php?page=aegis-woo-color-manager' ) );
+		exit;
+	}
+
+	$defaults = aegis_woo_color_manager_default_tokens();
+	$tokens   = array();
+
+	foreach ( $defaults as $key => $value ) {
+		if ( isset( $data[ $key ] ) ) {
+			$sanitized = sanitize_hex_color( $data[ $key ] );
+			if ( $sanitized ) {
+				$tokens[ $key ] = $sanitized;
+				continue;
+			}
+		}
+		$tokens[ $key ] = $value;
+	}
+
+	update_option( 'aegis_woo_color_tokens', $tokens );
+
+	wp_safe_redirect( admin_url( 'admin.php?page=aegis-woo-color-manager' ) );
+	exit;
+}
+add_action( 'admin_post_aegis_woo_color_import', 'aegis_woo_color_manager_import_tokens' );
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	/**

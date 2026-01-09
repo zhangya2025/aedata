@@ -10,7 +10,7 @@ body.post-type-archive-product,
   --woocommerce: var(--aegis-accent);
   --wc-primary: var(--aegis-accent);
   --wc-primary-text: #ffffff;
-  --wc-secondary: var(--aegis-success-bg);
+  --wc-secondary: var(--aegis-surface, var(--aegis-success-bg));
   --wc-secondary-text: var(--aegis-success-fg);
   --wc-green: var(--aegis-success-fg);
   --wc-red: var(--aegis-danger-fg);

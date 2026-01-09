@@ -5,7 +5,8 @@
     "scope": "all_woo",
     "tokens_used": [
       "--aegis-success-bg",
-      "--aegis-success-fg"
+      "--aegis-success-fg",
+      "--aegis-success-border"
     ],
     "selectors": [
       ".wc-block-components-notice-banner.is-success",
@@ -21,7 +22,8 @@
     "scope": "all_woo",
     "tokens_used": [
       "--aegis-success-bg",
-      "--aegis-success-fg"
+      "--aegis-success-fg",
+      "--aegis-success-border"
     ],
     "selectors": [
       ".woocommerce-message"
@@ -36,7 +38,8 @@
     "scope": "all_woo",
     "tokens_used": [
       "--aegis-danger-bg",
-      "--aegis-danger-fg"
+      "--aegis-danger-fg",
+      "--aegis-danger-border"
     ],
     "selectors": [
       ".woocommerce-error"
@@ -51,7 +54,8 @@
     "scope": "all_woo",
     "tokens_used": [
       "--aegis-info-bg",
-      "--aegis-info-fg"
+      "--aegis-info-fg",
+      "--aegis-info-border"
     ],
     "selectors": [
       ".woocommerce-info"
@@ -67,10 +71,13 @@
     "tokens_used": [
       "--aegis-danger-bg",
       "--aegis-danger-fg",
+      "--aegis-danger-border",
       "--aegis-warning-bg",
       "--aegis-warning-fg",
+      "--aegis-warning-border",
       "--aegis-info-bg",
-      "--aegis-info-fg"
+      "--aegis-info-fg",
+      "--aegis-info-border"
     ],
     "selectors": [
       ".wc-block-components-notice-banner.is-error",
