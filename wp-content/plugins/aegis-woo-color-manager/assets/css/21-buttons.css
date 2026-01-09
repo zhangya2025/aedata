@@ -1,0 +1,133 @@
+/* all_woo scope: solid buttons */
+.woocommerce .wc-block-components-product-button__button,
+body.woocommerce main .wc-block-components-product-button__button,
+body.woocommerce-page main .wc-block-components-product-button__button,
+body.post-type-archive-product main .wc-block-components-product-button__button,
+body.single-product main .wc-block-components-product-button__button,
+body.woocommerce-cart main .wc-block-components-product-button__button,
+body.woocommerce-checkout main .wc-block-components-product-button__button,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-element-button,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-element-button,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-element-button,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-element-button,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-element-button,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-element-button,
+.aegis-mini-cart__drawer .wc-block-components-product-button__button,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-block-button__link,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-element-button {
+  background-color: var(--aegis-button-bg) !important;
+  border-color: var(--aegis-button-bg) !important;
+  color: var(--aegis-button-fg) !important;
+}
+
+.woocommerce .wc-block-components-product-button__button span,
+body.woocommerce main .wc-block-components-product-button__button span,
+body.woocommerce-page main .wc-block-components-product-button__button span,
+body.post-type-archive-product main .wc-block-components-product-button__button span,
+body.single-product main .wc-block-components-product-button__button span,
+body.woocommerce-cart main .wc-block-components-product-button__button span,
+body.woocommerce-checkout main .wc-block-components-product-button__button span,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-element-button span,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-element-button span,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-element-button span,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-element-button span,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-element-button span,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-element-button span,
+.aegis-mini-cart__drawer .wc-block-components-product-button__button span,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-block-button__link span,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-element-button span {
+  color: inherit !important;
+}
+
+.woocommerce .wc-block-components-product-button__button:hover,
+.woocommerce .wc-block-components-product-button__button:focus,
+body.woocommerce main .wc-block-components-product-button__button:hover,
+body.woocommerce main .wc-block-components-product-button__button:focus,
+body.woocommerce-page main .wc-block-components-product-button__button:hover,
+body.woocommerce-page main .wc-block-components-product-button__button:focus,
+body.post-type-archive-product main .wc-block-components-product-button__button:hover,
+body.post-type-archive-product main .wc-block-components-product-button__button:focus,
+body.single-product main .wc-block-components-product-button__button:hover,
+body.single-product main .wc-block-components-product-button__button:focus,
+body.woocommerce-cart main .wc-block-components-product-button__button:hover,
+body.woocommerce-cart main .wc-block-components-product-button__button:focus,
+body.woocommerce-checkout main .wc-block-components-product-button__button:hover,
+body.woocommerce-checkout main .wc-block-components-product-button__button:focus,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+body.woocommerce main .wp-block-button:not(.is-style-outline) .wp-element-button:focus,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+body.woocommerce-page main .wp-block-button:not(.is-style-outline) .wp-element-button:focus,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+body.post-type-archive-product main .wp-block-button:not(.is-style-outline) .wp-element-button:focus,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+body.single-product main .wp-block-button:not(.is-style-outline) .wp-element-button:focus,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+body.woocommerce-cart main .wp-block-button:not(.is-style-outline) .wp-element-button:focus,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+body.woocommerce-checkout main .wp-block-button:not(.is-style-outline) .wp-element-button:focus,
+.aegis-mini-cart__drawer .wc-block-components-product-button__button:hover,
+.aegis-mini-cart__drawer .wc-block-components-product-button__button:focus,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-block-button__link:hover,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-block-button__link:focus,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-element-button:hover,
+.aegis-mini-cart__drawer .wp-block-button:not(.is-style-outline) .wp-element-button:focus {
+  opacity: 0.9;
+}
+
+/* all_woo scope: outline buttons */
+body.woocommerce main .wp-block-button.is-style-outline .wp-block-button__link,
+body.woocommerce-page main .wp-block-button.is-style-outline .wp-block-button__link,
+body.post-type-archive-product main .wp-block-button.is-style-outline .wp-block-button__link,
+body.single-product main .wp-block-button.is-style-outline .wp-block-button__link,
+body.woocommerce-cart main .wp-block-button.is-style-outline .wp-block-button__link,
+body.woocommerce-checkout main .wp-block-button.is-style-outline .wp-block-button__link,
+.aegis-mini-cart__drawer .wp-block-button.is-style-outline .wp-block-button__link {
+  background: transparent !important;
+  color: var(--aegis-fg) !important;
+  border-color: var(--aegis-fg) !important;
+}
+
+/* cart_only scope: classic buttons */
+body.woocommerce-cart main .woocommerce a.button,
+body.woocommerce-cart main .woocommerce button.button,
+body.woocommerce-cart main .woocommerce input.button,
+body.woocommerce-cart main .woocommerce #respond input#submit {
+  background-color: var(--aegis-button-bg) !important;
+  border-color: var(--aegis-button-bg) !important;
+  color: var(--aegis-button-fg) !important;
+}
+
+body.woocommerce-cart main .woocommerce a.button:hover,
+body.woocommerce-cart main .woocommerce a.button:focus,
+body.woocommerce-cart main .woocommerce button.button:hover,
+body.woocommerce-cart main .woocommerce button.button:focus,
+body.woocommerce-cart main .woocommerce input.button:hover,
+body.woocommerce-cart main .woocommerce input.button:focus,
+body.woocommerce-cart main .woocommerce #respond input#submit:hover,
+body.woocommerce-cart main .woocommerce #respond input#submit:focus {
+  opacity: 0.9;
+}
