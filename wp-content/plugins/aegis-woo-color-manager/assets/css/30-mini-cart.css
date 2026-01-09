@@ -1,0 +1,9 @@
+/* mini_cart_only scope */
+.aegis-mini-cart__drawer {
+  color: var(--aegis-fg);
+  background-color: var(--aegis-bg);
+}
+
+.aegis-mini-cart__drawer a {
+  color: var(--aegis-link);
+}

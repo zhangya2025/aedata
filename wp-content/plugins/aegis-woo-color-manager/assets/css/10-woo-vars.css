@@ -1,0 +1,30 @@
+/* all_woo scope */
+body.woocommerce,
+body.woocommerce-page,
+body.woocommerce-cart,
+body.woocommerce-checkout,
+body.woocommerce-account,
+body.single-product,
+body.post-type-archive-product,
+.woocommerce {
+  --woocommerce: var(--aegis-accent);
+  --wc-primary: var(--aegis-accent);
+  --wc-primary-text: #ffffff;
+  --wc-secondary: var(--aegis-surface, var(--aegis-success-bg));
+  --wc-secondary-text: var(--aegis-success-fg);
+  --wc-green: var(--aegis-success-fg);
+  --wc-red: var(--aegis-danger-fg);
+  --wc-orange: var(--aegis-warning-fg);
+  --wc-blue: var(--aegis-info-fg);
+  --wc-content-bg: var(--aegis-bg);
+  --wc-subtext: var(--aegis-muted);
+}
+
+body.woocommerce a,
+body.woocommerce-page a,
+body.woocommerce-cart a,
+body.woocommerce-checkout a,
+body.woocommerce-account a,
+.woocommerce a {
+  color: var(--aegis-link);
+}

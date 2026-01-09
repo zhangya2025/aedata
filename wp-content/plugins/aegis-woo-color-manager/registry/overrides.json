@@ -1,0 +1,91 @@
+[
+  {
+    "id": "notices.blocks.success",
+    "component": "notices",
+    "scope": "all_woo",
+    "tokens_used": [
+      "--aegis-success-bg",
+      "--aegis-success-fg",
+      "--aegis-success-border"
+    ],
+    "selectors": [
+      ".wc-block-components-notice-banner.is-success",
+      ".woocommerce-store-notices .wc-block-components-notice-banner.is-success"
+    ],
+    "status": "done",
+    "notes": "Overrides blocks success notices using tokens.",
+    "last_verified": "2025-01-01"
+  },
+  {
+    "id": "notices.classic.success",
+    "component": "notices",
+    "scope": "all_woo",
+    "tokens_used": [
+      "--aegis-success-bg",
+      "--aegis-success-fg",
+      "--aegis-success-border"
+    ],
+    "selectors": [
+      ".woocommerce-message"
+    ],
+    "status": "done",
+    "notes": "Classic success notice mapping.",
+    "last_verified": "2025-01-01"
+  },
+  {
+    "id": "notices.classic.error",
+    "component": "notices",
+    "scope": "all_woo",
+    "tokens_used": [
+      "--aegis-danger-bg",
+      "--aegis-danger-fg",
+      "--aegis-danger-border"
+    ],
+    "selectors": [
+      ".woocommerce-error"
+    ],
+    "status": "done",
+    "notes": "Classic error notices mapped to danger tokens.",
+    "last_verified": "2025-01-01"
+  },
+  {
+    "id": "notices.classic.info",
+    "component": "notices",
+    "scope": "all_woo",
+    "tokens_used": [
+      "--aegis-info-bg",
+      "--aegis-info-fg",
+      "--aegis-info-border"
+    ],
+    "selectors": [
+      ".woocommerce-info"
+    ],
+    "status": "done",
+    "notes": "Classic info notices mapped to info tokens.",
+    "last_verified": "2025-01-01"
+  },
+  {
+    "id": "notices.blocks.error-warning-info",
+    "component": "notices",
+    "scope": "all_woo",
+    "tokens_used": [
+      "--aegis-danger-bg",
+      "--aegis-danger-fg",
+      "--aegis-danger-border",
+      "--aegis-warning-bg",
+      "--aegis-warning-fg",
+      "--aegis-warning-border",
+      "--aegis-info-bg",
+      "--aegis-info-fg",
+      "--aegis-info-border"
+    ],
+    "selectors": [
+      ".wc-block-components-notice-banner.is-error",
+      ".wc-block-components-notice-banner.is-warning",
+      ".wc-block-components-notice-banner.is-info"
+    ],
+    "status": "done",
+    "notes": "Blocks error/warning/info banners mapped to tokens.",
+    "last_verified": "2025-01-01"
+  }
+]
