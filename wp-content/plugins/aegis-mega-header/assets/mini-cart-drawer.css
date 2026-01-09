@@ -302,3 +302,30 @@ body.aegis-mini-cart--open .aegis-mini-cart__drawer {
   background: #111827;
   color: #ffffff;
 }
+
+/* Mini cart: Checkout should be inverse by default */
+.aegis-mini-cart__drawer .aegis-mini-cart__actions a.aegis-mini-cart__checkout,
+.aegis-mini-cart__drawer a.aegis-mini-cart__checkout {
+  background: #111827 !important;
+  border-color: #111827 !important;
+  color: #ffffff !important;
+}
+
+/* 防止内部节点继承成深色（如果按钮里有 span 等） */
+.aegis-mini-cart__drawer a.aegis-mini-cart__checkout * {
+  color: inherit !important;
+}
+
+/* hover/focus 仍保持反色（可轻微变化但不能变回不可读） */
+.aegis-mini-cart__drawer a.aegis-mini-cart__checkout:hover,
+.aegis-mini-cart__drawer a.aegis-mini-cart__checkout:focus {
+  background: #111827 !important;
+  color: #ffffff !important;
+  opacity: 0.92;
+}
+
+.aegis-mini-cart__drawer a.aegis-mini-cart__view-cart {
+  background: transparent !important;
+  color: #111827 !important;
+  border-color: #111827 !important;
+}
