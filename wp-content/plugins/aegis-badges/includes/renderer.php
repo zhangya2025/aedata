@@ -27,8 +27,69 @@ function aegis_badges_get_effective_preset_id( $product ) {
 	return $settings['default_preset'];
 }
 
+function aegis_badges_is_opted_in( $product ) {
+	if ( ! $product instanceof WC_Product ) {
+		return false;
+	}
+
+	$behavior = get_post_meta( $product->get_id(), Aegis_Badges_Product_Meta::META_BEHAVIOR, true );
+	$behavior = $behavior !== '' ? $behavior : 'inherit';
+
+	if ( $behavior === 'off' ) {
+		return false;
+	}
+
+	if ( $behavior === 'on' ) {
+		return true;
+	}
+
+	$preset_meta = get_post_meta( $product->get_id(), Aegis_Badges_Product_Meta::META_PRESET, true );
+	$preset_meta = $preset_meta !== '' ? $preset_meta : 'inherit';
+	if ( $preset_meta !== 'inherit' ) {
+		$preset_id = Aegis_Badges::normalize_preset_id( $preset_meta );
+		if ( in_array( $preset_id, array_keys( Aegis_Badges::get_presets() ), true ) ) {
+			return true;
+		}
+	}
+
+	$rule_preset = aegis_badges_get_matching_rule_preset( $product );
+
+	return $rule_preset !== '';
+}
+
+function aegis_badges_should_render_badge( $product ) {
+	if ( ! $product instanceof WC_Product ) {
+		return false;
+	}
+
+	$settings = Aegis_Badges::get_settings();
+	if ( $settings['mode'] !== 'replace' ) {
+		return false;
+	}
+
+	$behavior = get_post_meta( $product->get_id(), Aegis_Badges_Product_Meta::META_BEHAVIOR, true );
+	$behavior = $behavior !== '' ? $behavior : 'inherit';
+	if ( $behavior === 'off' ) {
+		return false;
+	}
+
+	if ( $settings['display_strategy'] === 'opt_in_only' ) {
+		if ( ! aegis_badges_is_opted_in( $product ) ) {
+			return false;
+		}
+
+		return $product->is_on_sale();
+	}
+
+	return $product->is_on_sale();
+}
+
 function aegis_badges_render_badge_html( $product ) {
 	if ( ! $product instanceof WC_Product ) {
+		return '';
+	}
+
+	if ( ! aegis_badges_should_render_badge( $product ) ) {
 		return '';
 	}
 
@@ -45,10 +106,6 @@ function aegis_badges_render_badge_html( $product ) {
 	}
 
 	if ( $behavior !== 'on' && $settings['enable_badges'] !== 'yes' ) {
-		return '';
-	}
-
-	if ( ! $product->is_on_sale() ) {
 		return '';
 	}
 

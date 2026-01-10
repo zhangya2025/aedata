@@ -36,14 +36,15 @@ if ( ! class_exists( 'Aegis_Badges' ) ) {
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		}
 
-		public static function get_default_settings() {
-			return array(
-				'enable_badges'   => 'yes',
-				'mode'            => 'replace',
-				'default_preset'  => 'preset_a',
-				'default_text'    => 'SALE',
-			);
-		}
+			public static function get_default_settings() {
+				return array(
+					'enable_badges'   => 'yes',
+					'mode'            => 'replace',
+					'display_strategy' => 'sale_all',
+					'default_preset'  => 'preset_a',
+					'default_text'    => 'SALE',
+				);
+			}
 
 		public static function get_settings() {
 			$defaults = self::get_default_settings();
@@ -53,10 +54,11 @@ if ( ! class_exists( 'Aegis_Badges' ) ) {
 			}
 
 			$settings = wp_parse_args( $settings, $defaults );
-			$settings['enable_badges']  = $settings['enable_badges'] === 'yes' ? 'yes' : 'no';
-			$settings['mode']           = in_array( $settings['mode'], array( 'replace', 'hide', 'default' ), true ) ? $settings['mode'] : $defaults['mode'];
-			$settings['default_preset'] = self::normalize_preset_id( $settings['default_preset'] );
-			$settings['default_text']   = is_string( $settings['default_text'] ) && $settings['default_text'] !== '' ? $settings['default_text'] : $defaults['default_text'];
+				$settings['enable_badges']  = $settings['enable_badges'] === 'yes' ? 'yes' : 'no';
+				$settings['mode']           = in_array( $settings['mode'], array( 'replace', 'hide', 'default' ), true ) ? $settings['mode'] : $defaults['mode'];
+				$settings['display_strategy'] = in_array( $settings['display_strategy'], array( 'sale_all', 'opt_in_only' ), true ) ? $settings['display_strategy'] : $defaults['display_strategy'];
+				$settings['default_preset'] = self::normalize_preset_id( $settings['default_preset'] );
+				$settings['default_text']   = is_string( $settings['default_text'] ) && $settings['default_text'] !== '' ? $settings['default_text'] : $defaults['default_text'];
 
 			return $settings;
 		}
@@ -239,30 +241,38 @@ if ( ! class_exists( 'Aegis_Badges' ) ) {
 			}
 		}
 
-		public function render_badge() {
-			global $product;
+			public function render_badge() {
+				global $product;
 
-			if ( ! $product instanceof WC_Product ) {
-				return;
-			}
+				if ( ! $product instanceof WC_Product ) {
+					return;
+				}
 
-			$badge_html = aegis_badges_render_badge_html( $product );
-			if ( $badge_html === '' ) {
-				return;
-			}
+				if ( ! aegis_badges_should_render_badge( $product ) ) {
+					return;
+				}
+
+				$badge_html = aegis_badges_render_badge_html( $product );
+				if ( $badge_html === '' ) {
+					return;
+				}
 
 			echo $badge_html;
 		}
 
-		public function filter_sale_flash( $html, $post, $product ) {
-			if ( ! $product instanceof WC_Product ) {
-				return $html;
-			}
+			public function filter_sale_flash( $html, $post, $product ) {
+				if ( ! $product instanceof WC_Product ) {
+					return $html;
+				}
 
-			$badge_html = aegis_badges_render_badge_html( $product );
-			if ( $badge_html === '' ) {
-				return '';
-			}
+				if ( ! aegis_badges_should_render_badge( $product ) ) {
+					return '';
+				}
+
+				$badge_html = aegis_badges_render_badge_html( $product );
+				if ( $badge_html === '' ) {
+					return '';
+				}
 
 			return $badge_html;
 		}
@@ -275,18 +285,22 @@ if ( ! class_exists( 'Aegis_Badges' ) ) {
 
 			$clean_html = aegis_badges_strip_blocks_sale_badge( $html );
 
-			if ( $settings['mode'] === 'hide' ) {
-				return $clean_html;
-			}
+				if ( $settings['mode'] === 'hide' ) {
+					return $clean_html;
+				}
 
-			if ( ! $product instanceof WC_Product ) {
-				return $clean_html;
-			}
+				if ( ! $product instanceof WC_Product ) {
+					return $clean_html;
+				}
 
-			$badge_html = aegis_badges_render_badge_html( $product );
-			if ( $badge_html === '' ) {
-				return $clean_html;
-			}
+				if ( ! aegis_badges_should_render_badge( $product ) ) {
+					return $clean_html;
+				}
+
+				$badge_html = aegis_badges_render_badge_html( $product );
+				if ( $badge_html === '' ) {
+					return $clean_html;
+				}
 
 			return aegis_badges_inject_badge_into_block_item( $clean_html, $badge_html );
 		}

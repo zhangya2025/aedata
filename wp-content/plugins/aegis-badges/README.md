@@ -10,6 +10,13 @@ Configured at **WooCommerce → Settings → Aegis Badges**:
 - **Hide all sale badges**: removes WooCommerce sale flashes, strips Blocks sale badges, and adds a CSS fallback to hide any remaining badge markup.
 - **Use Woo default**: leaves WooCommerce sale flashes and Blocks output untouched.
 
+## Display strategy
+
+Set **Display strategy** in the General tab:
+
+- **Show for all on-sale products** (`sale_all`): current behavior, any on-sale product can show a badge unless explicitly turned off.
+- **Opt-in only: show only when matched** (`opt_in_only`): only products explicitly opted in via per-product settings or rules will show badges, and only when on sale.
+
 ## Presets
 
 Presets are editable in **WooCommerce → Settings → Aegis Badges → Presets**. Each preset stores:
