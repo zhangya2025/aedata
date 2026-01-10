@@ -172,6 +172,10 @@ function aegis_plp_filters_render_toolbar() {
     );
 
     $current_url = esc_url( add_query_arg( array() ) );
+    $current_orderby = '';
+    if ( isset( $_GET['orderby'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $current_orderby = wc_clean( wp_unslash( $_GET['orderby'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    }
     $filter_keys = array();
 
     foreach ( $taxonomy_groups as $group ) {
@@ -192,8 +196,27 @@ function aegis_plp_filters_render_toolbar() {
     $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
     ?>
     <div class="aegis-plp-filters" data-aegis-plp-filters>
+        <div class="aegis-plp-filters__toolbar">
+            <div class="aegis-plp-filters__buttons">
+                <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="color">Color</button>
+                <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="temp">Temperature (°C)</button>
+                <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="price">Price</button>
+                <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="fill">Fill Type</button>
+                <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="use">Best Use</button>
+                <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">
+                    <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--desktop">More Filters</span>
+                    <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--mobile">All Filters</span>
+                </button>
+            </div>
+            <div class="aegis-plp-filters__meta">
+                <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
+                    <?php woocommerce_catalog_ordering(); ?>
+                <?php endif; ?>
+            </div>
+        </div>
         <form class="aegis-plp-filters__form" method="get" action="<?php echo $current_url; ?>">
             <input type="hidden" name="temp_limit" value="<?php echo esc_attr( implode( ',', $request['temp_limit'] ) ); ?>" data-filter-input="temp_limit" />
+            <input type="hidden" name="orderby" value="<?php echo esc_attr( $current_orderby ); ?>" />
             <?php foreach ( $filter_keys as $filter_key ) : ?>
             <?php
             $filter_value = '';
@@ -204,24 +227,6 @@ function aegis_plp_filters_render_toolbar() {
             ?>
             <input type="hidden" name="<?php echo esc_attr( $filter_key ); ?>" value="<?php echo esc_attr( $filter_value ); ?>" data-filter-input="<?php echo esc_attr( $filter_key ); ?>" />
             <?php endforeach; ?>
-            <div class="aegis-plp-filters__toolbar">
-                <div class="aegis-plp-filters__buttons">
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="color">Color</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="temp">Temperature (°C)</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="price">Price</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="fill">Fill Type</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="use">Best Use</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">
-                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--desktop">More Filters</span>
-                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--mobile">All Filters</span>
-                    </button>
-                </div>
-                <div class="aegis-plp-filters__meta">
-                    <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-                        <?php woocommerce_catalog_ordering(); ?>
-                    <?php endif; ?>
-                </div>
-            </div>
 
             <?php if ( ! empty( $request['filters'] ) || ! empty( $request['temp_limit'] ) || '' !== $request['min_price'] || '' !== $request['max_price'] ) : ?>
                 <div class="aegis-plp-filters__chips">
