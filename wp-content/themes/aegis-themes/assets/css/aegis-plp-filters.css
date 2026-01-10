@@ -1,0 +1,245 @@
+.aegis-plp-filters {
+    margin-bottom: 24px;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-filters__form {
+    max-width: 1496px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+body.aegis-plp-sleepingbags .wp-site-blocks > main {
+    max-width: 1496px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.aegis-plp-filters__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-filters__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-start;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-filters__button {
+    background: #111;
+    color: #fff;
+    border: 1px solid #111;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-filters__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.aegis-plp-filters__chips {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+}
+
+.aegis-plp-filters__chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.aegis-plp-filters__chip {
+    background: #f2f2f2;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+.aegis-plp-filters__clear {
+    color: #111;
+    font-size: 13px;
+    text-decoration: underline;
+}
+
+.aegis-plp-filters__drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 360px;
+    max-width: 90%;
+    height: 100%;
+    background: #fff;
+    box-shadow: 2px 0 24px rgba(0, 0, 0, 0.15);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+}
+
+.aegis-plp-filters__drawer.is-open {
+    transform: translateX(0);
+}
+
+.aegis-plp-filters__drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.aegis-plp-filters__drawer-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.aegis-plp-filters__drawer-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.aegis-plp-filters__drawer-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.aegis-plp-filters__group {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+}
+
+.aegis-plp-filters__group-toggle {
+    width: 100%;
+    text-align: left;
+    font-weight: 600;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.aegis-plp-filters__group-content {
+    display: grid;
+    gap: 8px;
+}
+
+.aegis-plp-filters__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.aegis-plp-filters__subgroup {
+    margin-bottom: 12px;
+}
+
+.aegis-plp-filters__subgroup-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.aegis-plp-filters__drawer-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-top: 1px solid #e5e5e5;
+    background: #fff;
+    position: sticky;
+    bottom: 0;
+}
+
+.aegis-plp-filters__submit {
+    background: #111;
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.aegis-plp-filters__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 9998;
+}
+
+.aegis-plp-filters__overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+body.aegis-plp-filters-lock {
+    overflow: hidden;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+body.aegis-plp-sleepingbags .woocommerce-sidebar,
+body.aegis-plp-sleepingbags .widget-area {
+    display: none;
+}
+
+body.aegis-plp-sleepingbags .woocommerce-result-count,
+body.aegis-plp-sleepingbags .woocommerce-ordering {
+    display: none;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-filters__meta .woocommerce-result-count,
+body.aegis-plp-sleepingbags .aegis-plp-filters__meta .woocommerce-ordering {
+    display: block;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-filters__button-label--mobile {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .aegis-plp-filters__toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 719px) {
+    body.aegis-plp-sleepingbags .aegis-plp-filters__buttons .aegis-plp-filters__button:not([data-aegis-plp-mode="all"]) {
+        display: none;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters__button-label--desktop {
+        display: none;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters__button-label--mobile {
+        display: inline;
+    }
+}
