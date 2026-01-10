@@ -7,8 +7,8 @@ Aegis Badges replaces or suppresses WooCommerce sale badges and adds preset styl
 Configured at **WooCommerce → Settings → Aegis Badges**:
 
 - **Replace Woo Sale badge** (default): removes WooCommerce sale flashes and outputs the Aegis badge in the same hook positions.
-- **Hide all sale badges**: removes WooCommerce sale flashes and outputs nothing.
-- **Use Woo default**: leaves WooCommerce sale flashes untouched.
+- **Hide all sale badges**: removes WooCommerce sale flashes, strips Blocks sale badges, and adds a CSS fallback to hide any remaining badge markup.
+- **Use Woo default**: leaves WooCommerce sale flashes and Blocks output untouched.
 
 ## Per-product overrides
 
@@ -40,3 +40,7 @@ Presets live in `assets/badges.css`. To add a preset:
 1. Add a new CSS block with the class `.aegis-badge--preset-x`.
 2. Extend the select options in `includes/admin-settings.php` and `includes/product-meta.php`.
 3. Update the default validation lists in `aegis-badges.php` and `includes/product-meta.php`.
+
+## WooCommerce Blocks support
+
+When using WooCommerce Blocks product grids/collections, the plugin filters `woocommerce_blocks_product_grid_item_html` to remove the default sale badge markup and inject the Aegis badge instead. In hide mode, it removes the badge HTML and adds a CSS fallback to hide any remaining sale badge output.
