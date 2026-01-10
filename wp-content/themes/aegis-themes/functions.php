@@ -15,6 +15,7 @@ require_once get_theme_file_path( 'inc/size-guides.php' );
 require_once get_theme_file_path( 'inc/faq-library.php' );
 require_once get_theme_file_path( 'inc/tech-features.php' );
 require_once get_theme_file_path( 'inc/certificates.php' );
+require_once get_theme_file_path( 'inc/aegis-plp-filters.php' );
 
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
@@ -59,6 +60,14 @@ add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-themes-style', get_theme_file_uri( 'assets/css/main.css' ), array(), AEGIS_THEMES_VERSION );
     wp_enqueue_script( 'aegis-themes-script', get_theme_file_uri( 'assets/js/main.js' ), array(), AEGIS_THEMES_VERSION, true );
 } );
+
+add_action( 'wp_enqueue_scripts', 'aegis_plp_filters_enqueue', 15 );
+
+add_action( 'wp', 'aegis_plp_filters_adjust_shop_loop', 20 );
+
+add_action( 'woocommerce_before_shop_loop', 'aegis_plp_filters_render_toolbar', 15 );
+
+add_action( 'woocommerce_product_query', 'aegis_plp_filters_apply_query' );
 
 /**
  * Enqueue theme assets.
