@@ -1,0 +1,62 @@
+.aegis-badge {
+  position: absolute;
+  top: var(--top, 12px);
+  right: var(--right, 12px);
+  z-index: 5;
+  font-size: var(--fs, 12px);
+  font-weight: var(--fw, 700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg, #ffffff);
+  background: var(--bg, #e02424);
+  padding: var(--py, 6px) var(--px, 14px);
+  border-radius: var(--r, 999px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.aegis-badge--pill {
+  border-radius: var(--r, 999px);
+}
+
+.aegis-badge--ribbon {
+  padding-left: calc(var(--px, 12px) + 10px);
+  border-radius: var(--r, 4px);
+}
+
+.aegis-badge--ribbon::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-top: calc(var(--py, 6px) + 6px) solid transparent;
+  border-bottom: calc(var(--py, 6px) + 6px) solid transparent;
+  border-right: 10px solid var(--bg, #1f8b4c);
+}
+
+.aegis-badge--corner {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 0 0 0 var(--r, 12px);
+  align-items: center;
+  justify-content: center;
+}
+
+.aegis-badge--corner::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  border-top: 12px solid rgba(255, 255, 255, 0.35);
+  border-left: 12px solid transparent;
+}
+
+.wc-block-grid__product,
+.wc-block-components-product-image {
+  position: relative;
+}
