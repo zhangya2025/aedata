@@ -79,6 +79,10 @@ function aegis_plp_filters_is_other_product_cat_context() {
     return ! in_array( (int) $root->term_id, $ancestors, true );
 }
 
+function aegis_plp_filters_is_plp_enabled_context() {
+    return aegis_plp_filters_is_sleepingbags_context() || aegis_plp_filters_is_other_product_cat_context();
+}
+
 function aegis_plp_filters_parse_request() {
     $filters = array();
     $temp_buckets = array();
@@ -188,7 +192,7 @@ function aegis_plp_filters_parse_other_request() {
 }
 
 function aegis_plp_filters_enqueue() {
-    if ( ! aegis_plp_filters_is_sleepingbags_context() && ! aegis_plp_filters_is_other_product_cat_context() ) {
+    if ( ! aegis_plp_filters_is_plp_enabled_context() ) {
         return;
     }
 
@@ -217,11 +221,15 @@ function aegis_plp_filters_body_class( $classes ) {
         $classes[] = 'aegis-plp-catalog';
     }
 
+    if ( aegis_plp_filters_is_plp_enabled_context() ) {
+        $classes[] = 'aegis-plp-enabled';
+    }
+
     return $classes;
 }
 
 function aegis_plp_filters_adjust_shop_loop() {
-    if ( ! aegis_plp_filters_is_sleepingbags_context() && ! aegis_plp_filters_is_other_product_cat_context() ) {
+    if ( ! aegis_plp_filters_is_plp_enabled_context() ) {
         return;
     }
 
@@ -285,8 +293,8 @@ function aegis_plp_filters_render_toolbar() {
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="fill">Fill Type</button>
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="use">Best Use</button>
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">
-                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--desktop">More Filters</span>
-                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--mobile">All Filters</span>
+                        <span class="aegis-plp-filters__label--desktop">More Filters</span>
+                        <span class="aegis-plp-filters__label--mobile">All Filters</span>
                     </button>
                 </div>
                 <div class="aegis-plp-filters__meta">
@@ -510,8 +518,8 @@ function aegis_plp_filters_render_toolbar() {
                 <?php endif; ?>
                 <?php if ( $has_filters ) : ?>
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">
-                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--desktop">All Filters</span>
-                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--mobile">All Filters</span>
+                        <span class="aegis-plp-filters__label--desktop">All Filters</span>
+                        <span class="aegis-plp-filters__label--mobile">All Filters</span>
                     </button>
                 <?php endif; ?>
             </div>
