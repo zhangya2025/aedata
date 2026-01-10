@@ -33,6 +33,9 @@ if ( ! class_exists( 'Aegis_Badges_Product_Meta' ) ) {
 			$behavior = get_post_meta( $post->ID, self::META_BEHAVIOR, true );
 			$preset   = get_post_meta( $post->ID, self::META_PRESET, true );
 			$text     = get_post_meta( $post->ID, self::META_TEXT, true );
+			if ( $preset !== '' && $preset !== 'inherit' ) {
+				$preset = Aegis_Badges::normalize_preset_id( $preset );
+			}
 			?>
 			<div id="aegis_badges_panel" class="panel woocommerce_options_panel">
 				<div class="options_group">
@@ -49,9 +52,9 @@ if ( ! class_exists( 'Aegis_Badges_Product_Meta' ) ) {
 						<label for="aegis_badge_preset"><?php esc_html_e( 'Preset', 'aegis-badges' ); ?></label>
 						<select id="aegis_badge_preset" name="aegis_badge_preset">
 							<option value="inherit" <?php selected( $preset, 'inherit' ); ?>><?php esc_html_e( 'Inherit', 'aegis-badges' ); ?></option>
-							<option value="a" <?php selected( $preset, 'a' ); ?>><?php esc_html_e( 'Preset A', 'aegis-badges' ); ?></option>
-							<option value="b" <?php selected( $preset, 'b' ); ?>><?php esc_html_e( 'Preset B', 'aegis-badges' ); ?></option>
-							<option value="c" <?php selected( $preset, 'c' ); ?>><?php esc_html_e( 'Preset C', 'aegis-badges' ); ?></option>
+							<option value="preset_a" <?php selected( $preset, 'preset_a' ); ?>><?php esc_html_e( 'Preset A', 'aegis-badges' ); ?></option>
+							<option value="preset_b" <?php selected( $preset, 'preset_b' ); ?>><?php esc_html_e( 'Preset B', 'aegis-badges' ); ?></option>
+							<option value="preset_c" <?php selected( $preset, 'preset_c' ); ?>><?php esc_html_e( 'Preset C', 'aegis-badges' ); ?></option>
 						</select>
 					</p>
 					<p class="form-field">
@@ -79,7 +82,10 @@ if ( ! class_exists( 'Aegis_Badges_Product_Meta' ) ) {
 			$product->update_meta_data( self::META_BEHAVIOR, $behavior );
 
 			$preset = isset( $_POST['aegis_badge_preset'] ) ? sanitize_text_field( wp_unslash( $_POST['aegis_badge_preset'] ) ) : 'inherit';
-			if ( ! in_array( $preset, array( 'inherit', 'a', 'b', 'c' ), true ) ) {
+			if ( $preset !== 'inherit' ) {
+				$preset = Aegis_Badges::normalize_preset_id( $preset );
+			}
+			if ( ! in_array( $preset, array( 'inherit', 'preset_a', 'preset_b', 'preset_c' ), true ) ) {
 				$preset = 'inherit';
 			}
 			$product->update_meta_data( self::META_PRESET, $preset );
@@ -102,9 +108,10 @@ if ( ! class_exists( 'Aegis_Badges_Product_Meta' ) ) {
 				$show = $settings['enable_badges'] === 'yes';
 			}
 
-			if ( ! in_array( $preset, array( 'a', 'b', 'c' ), true ) ) {
+			if ( $preset === '' || $preset === 'inherit' ) {
 				$preset = $settings['default_preset'];
 			}
+			$preset = Aegis_Badges::normalize_preset_id( $preset );
 
 			if ( $text === '' ) {
 				$text = $settings['default_text'];

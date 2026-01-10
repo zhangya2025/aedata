@@ -18,9 +18,31 @@ if ( ! class_exists( 'Aegis_Badges_Admin_Settings' ) ) {
 		}
 
 		public function render_settings() {
+			$section  = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : 'general';
 			$settings = Aegis_Badges::get_settings();
 			?>
 			<h2><?php esc_html_e( 'Aegis Badges', 'aegis-badges' ); ?></h2>
+			<?php
+			echo '<nav class="nav-tab-wrapper wc-nav-tab-wrapper">';
+			printf(
+				'<a href="%1$s" class="nav-tab %2$s">%3$s</a>',
+				esc_url( admin_url( 'admin.php?page=wc-settings&tab=aegis_badges&section=general' ) ),
+				$section === 'general' ? 'nav-tab-active' : '',
+				esc_html__( 'General', 'aegis-badges' )
+			);
+			printf(
+				'<a href="%1$s" class="nav-tab %2$s">%3$s</a>',
+				esc_url( admin_url( 'admin.php?page=wc-settings&tab=aegis_badges&section=presets' ) ),
+				$section === 'presets' ? 'nav-tab-active' : '',
+				esc_html__( 'Presets', 'aegis-badges' )
+			);
+			echo '</nav>';
+
+			if ( $section === 'presets' ) {
+				Aegis_Badges_Admin_Presets::render_settings();
+				return;
+			}
+			?>
 			<?php wp_nonce_field( 'aegis_badges_settings_save', 'aegis_badges_settings_nonce' ); ?>
 			<table class="form-table">
 				<tr>
@@ -42,16 +64,16 @@ if ( ! class_exists( 'Aegis_Badges_Admin_Settings' ) ) {
 						</select>
 					</td>
 				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Default preset', 'aegis-badges' ); ?></th>
-					<td>
-						<select name="aegis_badges_settings[default_preset]">
-							<option value="a" <?php selected( $settings['default_preset'], 'a' ); ?>><?php esc_html_e( 'Preset A', 'aegis-badges' ); ?></option>
-							<option value="b" <?php selected( $settings['default_preset'], 'b' ); ?>><?php esc_html_e( 'Preset B', 'aegis-badges' ); ?></option>
-							<option value="c" <?php selected( $settings['default_preset'], 'c' ); ?>><?php esc_html_e( 'Preset C', 'aegis-badges' ); ?></option>
-						</select>
-					</td>
-				</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Default preset', 'aegis-badges' ); ?></th>
+						<td>
+							<select name="aegis_badges_settings[default_preset]">
+								<option value="preset_a" <?php selected( $settings['default_preset'], 'preset_a' ); ?>><?php esc_html_e( 'Preset A', 'aegis-badges' ); ?></option>
+								<option value="preset_b" <?php selected( $settings['default_preset'], 'preset_b' ); ?>><?php esc_html_e( 'Preset B', 'aegis-badges' ); ?></option>
+								<option value="preset_c" <?php selected( $settings['default_preset'], 'preset_c' ); ?>><?php esc_html_e( 'Preset C', 'aegis-badges' ); ?></option>
+							</select>
+						</td>
+					</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Default text', 'aegis-badges' ); ?></th>
 					<td>
@@ -63,6 +85,13 @@ if ( ! class_exists( 'Aegis_Badges_Admin_Settings' ) ) {
 		}
 
 		public function save_settings() {
+			$section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : 'general';
+
+			if ( $section === 'presets' ) {
+				Aegis_Badges_Admin_Presets::save_settings();
+				return;
+			}
+
 			if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
 				return;
 			}
@@ -83,8 +112,8 @@ if ( ! class_exists( 'Aegis_Badges_Admin_Settings' ) ) {
 			$mode = isset( $raw_settings['mode'] ) ? sanitize_text_field( $raw_settings['mode'] ) : 'replace';
 			$settings['mode'] = in_array( $mode, array( 'replace', 'hide', 'default' ), true ) ? $mode : 'replace';
 
-			$preset = isset( $raw_settings['default_preset'] ) ? sanitize_text_field( $raw_settings['default_preset'] ) : 'a';
-			$settings['default_preset'] = in_array( $preset, array( 'a', 'b', 'c' ), true ) ? $preset : 'a';
+			$preset = isset( $raw_settings['default_preset'] ) ? sanitize_text_field( $raw_settings['default_preset'] ) : 'preset_a';
+			$settings['default_preset'] = in_array( $preset, array( 'preset_a', 'preset_b', 'preset_c', 'a', 'b', 'c' ), true ) ? Aegis_Badges::normalize_preset_id( $preset ) : 'preset_a';
 
 			$text = isset( $raw_settings['default_text'] ) ? sanitize_text_field( $raw_settings['default_text'] ) : '';
 			$settings['default_text'] = $text !== '' ? $text : 'SALE';
