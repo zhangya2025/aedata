@@ -63,6 +63,8 @@ add_action( 'wp_enqueue_scripts', function () {
 
 add_action( 'wp_enqueue_scripts', 'aegis_plp_filters_enqueue', 15 );
 
+add_filter( 'body_class', 'aegis_plp_filters_body_class' );
+
 add_action( 'wp', 'aegis_plp_filters_adjust_shop_loop', 20 );
 
 add_action( 'woocommerce_before_shop_loop', 'aegis_plp_filters_render_toolbar', 15 );

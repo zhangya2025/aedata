@@ -191,6 +191,25 @@ body.aegis-plp-filters-lock {
     overflow: hidden;
 }
 
+[hidden] {
+    display: none !important;
+}
+
+body.aegis-plp-sleepingbags .woocommerce-sidebar,
+body.aegis-plp-sleepingbags .widget-area {
+    display: none;
+}
+
+body.aegis-plp-sleepingbags .woocommerce-result-count,
+body.aegis-plp-sleepingbags .woocommerce-ordering {
+    display: none;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-filters__meta .woocommerce-result-count,
+body.aegis-plp-sleepingbags .aegis-plp-filters__meta .woocommerce-ordering {
+    display: block;
+}
+
 @media (max-width: 768px) {
     .aegis-plp-filters__toolbar {
         flex-direction: column;

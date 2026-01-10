@@ -12,10 +12,22 @@
     const lockBody = () => document.body.classList.add('aegis-plp-filters-lock');
     const unlockBody = () => document.body.classList.remove('aegis-plp-filters-lock');
 
-    const openDrawer = () => {
+    const toggleSections = (mode) => {
+        const sections = container.querySelectorAll('[data-aegis-plp-section]');
+        sections.forEach((section) => {
+            if (mode === 'all') {
+                section.hidden = false;
+                return;
+            }
+            section.hidden = section.getAttribute('data-aegis-plp-section') !== mode;
+        });
+    };
+
+    const openDrawer = (mode) => {
         if (!drawer || !overlay) {
             return;
         }
+        toggleSections(mode);
         drawer.classList.add('is-open');
         overlay.classList.add('is-open');
         lockBody();
@@ -31,7 +43,10 @@
     };
 
     openButtons.forEach((button) => {
-        button.addEventListener('click', openDrawer);
+        button.addEventListener('click', () => {
+            const mode = button.getAttribute('data-aegis-plp-mode') || 'all';
+            openDrawer(mode);
+        });
     });
 
     if (closeButton) {

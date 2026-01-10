@@ -128,6 +128,14 @@ function aegis_plp_filters_enqueue() {
     );
 }
 
+function aegis_plp_filters_body_class( $classes ) {
+    if ( aegis_plp_filters_is_sleepingbags_context() ) {
+        $classes[] = 'aegis-plp-sleepingbags';
+    }
+
+    return $classes;
+}
+
 function aegis_plp_filters_adjust_shop_loop() {
     if ( ! aegis_plp_filters_is_sleepingbags_context() ) {
         return;
@@ -135,6 +143,7 @@ function aegis_plp_filters_adjust_shop_loop() {
 
     remove_action( 'woocommerce_before_shop_loop', 'woocommerce_result_count', 20 );
     remove_action( 'woocommerce_before_shop_loop', 'woocommerce_catalog_ordering', 30 );
+    remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
 }
 
 function aegis_plp_filters_render_toolbar() {
@@ -197,12 +206,12 @@ function aegis_plp_filters_render_toolbar() {
             <?php endforeach; ?>
             <div class="aegis-plp-filters__toolbar">
                 <div class="aegis-plp-filters__buttons">
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open>Color</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open>Temperature (°C)</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open>Price</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open>Fill Type</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open>Best Use</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open>More Filters</button>
+                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="color">Color</button>
+                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="temp">Temperature (°C)</button>
+                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="price">Price</button>
+                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="fill">Fill Type</button>
+                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="use">Best Use</button>
+                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">More Filters</button>
                 </div>
                 <div class="aegis-plp-filters__meta">
                     <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
@@ -250,7 +259,7 @@ function aegis_plp_filters_render_toolbar() {
                     <?php if ( taxonomy_exists( 'pa_sleepingbag-color' ) ) : ?>
                         <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag-color', 'hide_empty' => false ) ); ?>
                         <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
-                            <div class="aegis-plp-filters__group">
+                            <div class="aegis-plp-filters__group" data-aegis-plp-section="color">
                                 <button type="button" class="aegis-plp-filters__group-toggle">Color</button>
                                 <div class="aegis-plp-filters__group-content">
                                     <?php foreach ( $terms as $term ) : ?>
@@ -264,7 +273,7 @@ function aegis_plp_filters_render_toolbar() {
                         <?php endif; ?>
                     <?php endif; ?>
 
-                    <div class="aegis-plp-filters__group">
+                    <div class="aegis-plp-filters__group" data-aegis-plp-section="temp">
                         <button type="button" class="aegis-plp-filters__group-toggle">Temperature (°C)</button>
                         <div class="aegis-plp-filters__group-content">
                             <?php foreach ( $temp_buckets as $bucket_key => $bucket ) : ?>
@@ -276,7 +285,7 @@ function aegis_plp_filters_render_toolbar() {
                         </div>
                     </div>
 
-                    <div class="aegis-plp-filters__group">
+                    <div class="aegis-plp-filters__group" data-aegis-plp-section="price">
                         <button type="button" class="aegis-plp-filters__group-toggle">Price</button>
                         <div class="aegis-plp-filters__group-content">
                             <label class="aegis-plp-filters__option">
@@ -293,7 +302,7 @@ function aegis_plp_filters_render_toolbar() {
                     <?php if ( taxonomy_exists( 'pa_sleepingbag_fill_type' ) ) : ?>
                         <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag_fill_type', 'hide_empty' => false ) ); ?>
                         <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
-                            <div class="aegis-plp-filters__group">
+                            <div class="aegis-plp-filters__group" data-aegis-plp-section="fill">
                                 <button type="button" class="aegis-plp-filters__group-toggle">Fill Type</button>
                                 <div class="aegis-plp-filters__group-content">
                                     <?php foreach ( $terms as $term ) : ?>
@@ -310,7 +319,7 @@ function aegis_plp_filters_render_toolbar() {
                     <?php if ( taxonomy_exists( 'pa_sleepingbag_activity' ) ) : ?>
                         <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag_activity', 'hide_empty' => false ) ); ?>
                         <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
-                            <div class="aegis-plp-filters__group">
+                            <div class="aegis-plp-filters__group" data-aegis-plp-section="use">
                                 <button type="button" class="aegis-plp-filters__group-toggle">Best Use</button>
                                 <div class="aegis-plp-filters__group-content">
                                     <?php foreach ( $terms as $term ) : ?>
@@ -338,7 +347,7 @@ function aegis_plp_filters_render_toolbar() {
                     }
                     ?>
                     <?php if ( $has_more ) : ?>
-                        <div class="aegis-plp-filters__group">
+                        <div class="aegis-plp-filters__group" data-aegis-plp-section="more">
                             <button type="button" class="aegis-plp-filters__group-toggle">More Filters</button>
                             <div class="aegis-plp-filters__group-content">
                                 <?php foreach ( $more_taxonomies as $taxonomy ) : ?>
