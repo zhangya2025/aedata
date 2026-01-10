@@ -283,19 +283,19 @@ if ( ! class_exists( 'Aegis_Badges' ) ) {
 				return $html;
 			}
 
+			if ( $settings['mode'] === 'hide' ) {
+				return aegis_badges_strip_blocks_sale_badge( $html );
+			}
+
+			if ( ! $product instanceof WC_Product ) {
+				return aegis_badges_strip_blocks_sale_badge( $html );
+			}
+
 			$clean_html = aegis_badges_strip_blocks_sale_badge( $html );
 
-				if ( $settings['mode'] === 'hide' ) {
-					return $clean_html;
-				}
-
-				if ( ! $product instanceof WC_Product ) {
-					return $clean_html;
-				}
-
-				if ( ! aegis_badges_should_render_badge( $product ) ) {
-					return $clean_html;
-				}
+			if ( ! aegis_badges_should_render_badge( $product ) ) {
+				return $clean_html;
+			}
 
 				$badge_html = aegis_badges_render_badge_html( $product );
 				if ( $badge_html === '' ) {
