@@ -1,0 +1,62 @@
+.aegis-badges-presets-toolbar {
+  margin: 16px 0;
+}
+
+.aegis-badges-presets-toolbar select {
+  margin-left: 8px;
+}
+
+.aegis-badges-presets-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.aegis-badges-presets-form {
+  flex: 1 1 60%;
+}
+
+.aegis-badges-presets-preview {
+  flex: 1 1 40%;
+}
+
+.aegis-badges-preview-card {
+  position: relative;
+  border: 1px solid #dcdcde;
+  border-radius: 6px;
+  background: #fff;
+  padding: 20px;
+  min-height: 200px;
+}
+
+.aegis-badges-preview-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.aegis-badges-preview-content {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.aegis-badges-preview-thumb {
+  width: 90px;
+  height: 90px;
+  background: #f0f0f1;
+  border-radius: 8px;
+}
+
+.aegis-badges-preview-lines span {
+  display: block;
+  height: 10px;
+  background: #f0f0f1;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  width: 140px;
+}
+
+.aegis-badges-preview-lines span:last-child {
+  width: 100px;
+}
