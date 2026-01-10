@@ -1,33 +1,36 @@
 jQuery(function ($) {
   function updatePreview() {
-    const $badge = $('.aegis-badges-preview-badge .aegis-badge');
+    const $badge = $('#aegis-badge-preview');
     if (!$badge.length) {
       return;
     }
 
     const template = $('#aegis_badges_template').val();
+    const text = $('#aegis_badges_text').val();
+    const bg = $('#aegis_badges_bg').val();
+    const fg = $('#aegis_badges_fg').val();
+    const px = $('#aegis_badges_px').val();
+    const py = $('#aegis_badges_py').val();
+    const radius = $('#aegis_badges_radius').val();
+    const fontSize = $('#aegis_badges_font_size').val();
+    const fontWeight = $('#aegis_badges_font_weight').val();
+    const top = $('#aegis_badges_top').val();
+    const right = $('#aegis_badges_right').val();
+
     $badge.removeClass('aegis-badge--pill aegis-badge--ribbon aegis-badge--corner');
     $badge.addClass('aegis-badge--' + template);
 
-    const text = $('#aegis_badges_text').val();
-    const fallbackText = $badge.data('default-text') || '';
-    $badge.text(text || fallbackText);
+    $badge.text(text);
 
-    const vars = {
-      '--bg': $('#aegis_badges_bg').val(),
-      '--fg': $('#aegis_badges_fg').val(),
-      '--px': $('#aegis_badges_px').val() + 'px',
-      '--py': $('#aegis_badges_py').val() + 'px',
-      '--r': $('#aegis_badges_radius').val() + 'px',
-      '--fs': $('#aegis_badges_font_size').val() + 'px',
-      '--fw': $('#aegis_badges_font_weight').val(),
-      '--top': $('#aegis_badges_top').val() + 'px',
-      '--right': $('#aegis_badges_right').val() + 'px'
-    };
-
-    Object.keys(vars).forEach(function (key) {
-      $badge.css(key, vars[key]);
-    });
+    $badge[0].style.setProperty('--bg', bg);
+    $badge[0].style.setProperty('--fg', fg);
+    $badge[0].style.setProperty('--px', px + 'px');
+    $badge[0].style.setProperty('--py', py + 'px');
+    $badge[0].style.setProperty('--r', radius + 'px');
+    $badge[0].style.setProperty('--fs', fontSize + 'px');
+    $badge[0].style.setProperty('--fw', fontWeight);
+    $badge[0].style.setProperty('--top', top + 'px');
+    $badge[0].style.setProperty('--right', right + 'px');
   }
 
   function filterAttributeTerms() {
@@ -55,7 +58,7 @@ jQuery(function ($) {
     clear: updatePreview
   });
 
-  $('#aegis_badges_template, #aegis_badges_text, #aegis_badges_px, #aegis_badges_py, #aegis_badges_radius, #aegis_badges_font_size, #aegis_badges_font_weight, #aegis_badges_top, #aegis_badges_right').on('input change', updatePreview);
+  $('#aegis_badges_template, #aegis_badges_text, #aegis_badges_bg, #aegis_badges_fg, #aegis_badges_px, #aegis_badges_py, #aegis_badges_radius, #aegis_badges_font_size, #aegis_badges_font_weight, #aegis_badges_top, #aegis_badges_right').on('input change', updatePreview);
 
   $('#aegis_badges_preset_selector').on('change', function () {
     const preset = $(this).val();

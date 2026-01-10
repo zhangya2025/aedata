@@ -216,6 +216,12 @@ if ( ! class_exists( 'Aegis_Badges' ) ) {
 				wp_enqueue_script( 'wc-enhanced-select' );
 			}
 			wp_enqueue_style(
+				'aegis-badges-frontend',
+				plugins_url( 'assets/badges.css', __FILE__ ),
+				array(),
+				'1.0.0'
+			);
+			wp_enqueue_style(
 				'aegis-badges-admin',
 				plugins_url( 'assets/admin-presets.css', __FILE__ ),
 				array(),

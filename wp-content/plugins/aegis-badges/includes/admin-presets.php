@@ -97,7 +97,7 @@ if ( ! class_exists( 'Aegis_Badges_Admin_Presets' ) ) {
 						<h3><?php esc_html_e( 'Live preview', 'aegis-badges' ); ?></h3>
 						<div class="aegis-badges-preview-card">
 							<div class="aegis-badges-preview-badge">
-								<span class="aegis-badge aegis-badge--<?php echo esc_attr( $preset['template'] ); ?>" style="<?php echo esc_attr( $style ); ?>" data-preset="<?php echo esc_attr( $preset_id ); ?>" data-default-text="<?php echo esc_attr( $settings['default_text'] ); ?>">
+								<span id="aegis-badge-preview" class="aegis-badge aegis-badge--<?php echo esc_attr( $preset['template'] ); ?>" style="<?php echo esc_attr( $style ); ?>" data-preset="<?php echo esc_attr( $preset_id ); ?>" data-default-text="<?php echo esc_attr( $settings['default_text'] ); ?>">
 									<?php echo esc_html( $text ); ?>
 								</span>
 							</div>
