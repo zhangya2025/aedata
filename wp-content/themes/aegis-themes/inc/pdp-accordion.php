@@ -49,7 +49,7 @@ function aegis_pdp_details_shortcode() {
     ?>
     <div class="aegis-wc-pdp-accordion">
         <?php if ( $has_description ) : ?>
-            <details class="aegis-pdp-acc">
+            <details class="aegis-pdp-acc" open>
                 <summary><?php esc_html_e( 'Description', 'aegis-themes' ); ?></summary>
                 <div class="aegis-pdp-acc__body">
                     <?php echo $description; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
