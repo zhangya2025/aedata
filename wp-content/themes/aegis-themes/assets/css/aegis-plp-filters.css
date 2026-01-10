@@ -2,8 +2,14 @@
     margin-bottom: 24px;
 }
 
-.aegis-plp-filters__form {
-    max-width: var(--aegis-mega-max, 1280px);
+body.aegis-plp-sleepingbags .aegis-plp-filters__form {
+    max-width: 1496px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+body.aegis-plp-sleepingbags .wp-site-blocks > main {
+    max-width: 1496px;
     margin: 0 auto;
     padding: 0 16px;
 }
@@ -17,13 +23,15 @@
     padding: 12px 0;
 }
 
-.aegis-plp-filters__buttons {
+body.aegis-plp-sleepingbags .aegis-plp-filters__buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    flex: 1;
+    justify-content: flex-start;
 }
 
-.aegis-plp-filters__button {
+body.aegis-plp-sleepingbags .aegis-plp-filters__button {
     background: #111;
     color: #fff;
     border: 1px solid #111;
@@ -33,10 +41,11 @@
     cursor: pointer;
 }
 
-.aegis-plp-filters__meta {
+body.aegis-plp-sleepingbags .aegis-plp-filters__meta {
     display: flex;
     align-items: center;
     gap: 12px;
+    margin-left: auto;
 }
 
 .aegis-plp-filters__chips {
@@ -210,9 +219,27 @@ body.aegis-plp-sleepingbags .aegis-plp-filters__meta .woocommerce-ordering {
     display: block;
 }
 
+body.aegis-plp-sleepingbags .aegis-plp-filters__button-label--mobile {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .aegis-plp-filters__toolbar {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+
+@media (max-width: 719px) {
+    body.aegis-plp-sleepingbags .aegis-plp-filters__buttons .aegis-plp-filters__button:not([data-aegis-plp-mode="all"]) {
+        display: none;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters__button-label--desktop {
+        display: none;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters__button-label--mobile {
+        display: inline;
     }
 }

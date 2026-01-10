@@ -211,12 +211,12 @@ function aegis_plp_filters_render_toolbar() {
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="price">Price</button>
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="fill">Fill Type</button>
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="use">Best Use</button>
-                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">More Filters</button>
+                    <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">
+                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--desktop">More Filters</span>
+                        <span class="aegis-plp-filters__button-label aegis-plp-filters__button-label--mobile">All Filters</span>
+                    </button>
                 </div>
                 <div class="aegis-plp-filters__meta">
-                    <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
-                        <?php woocommerce_result_count(); ?>
-                    <?php endif; ?>
                     <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
                         <?php woocommerce_catalog_ordering(); ?>
                     <?php endif; ?>
