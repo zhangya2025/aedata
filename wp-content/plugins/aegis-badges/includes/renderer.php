@@ -163,3 +163,30 @@ function aegis_badges_build_inline_style( $vars ) {
 
 	return implode( ';', $style );
 }
+
+function aegis_badges_filter_wc_product_sale_badge_block( $block_content, $block, $instance ) {
+	$settings = Aegis_Badges::get_settings();
+	if ( $settings['enable_badges'] !== 'yes' ) {
+		return $block_content;
+	}
+
+	if ( $settings['mode'] === 'default' ) {
+		return $block_content;
+	}
+
+	if ( $settings['mode'] === 'hide' ) {
+		return '';
+	}
+
+	$product_id = isset( $instance->context['postId'] ) ? (int) $instance->context['postId'] : 0;
+	$product    = $product_id ? wc_get_product( $product_id ) : null;
+	if ( ! $product instanceof WC_Product ) {
+		return '';
+	}
+
+	if ( ! aegis_badges_should_render_badge( $product ) ) {
+		return '';
+	}
+
+	return aegis_badges_render_badge_html( $product );
+}

@@ -149,19 +149,23 @@ if ( ! class_exists( 'Aegis_Badges' ) ) {
 			return $rules;
 		}
 
-		public function register_hooks() {
-			$settings = self::get_settings();
+			public function register_hooks() {
+				$settings = self::get_settings();
 
-			if ( $settings['enable_badges'] !== 'yes' ) {
-				return;
-			}
+				if ( $settings['enable_badges'] !== 'yes' ) {
+					return;
+				}
 
-			if ( $settings['mode'] === 'default' ) {
-				return;
-			}
+				if ( $settings['mode'] === 'default' ) {
+					return;
+				}
 
-			remove_action( 'woocommerce_before_shop_loop_item_title', 'woocommerce_show_product_loop_sale_flash', 10 );
-			remove_action( 'woocommerce_before_single_product_summary', 'woocommerce_show_product_sale_flash', 10 );
+				if ( ! is_admin() ) {
+					add_filter( 'render_block_woocommerce/product-sale-badge', 'aegis_badges_filter_wc_product_sale_badge_block', 9999, 3 );
+				}
+
+				remove_action( 'woocommerce_before_shop_loop_item_title', 'woocommerce_show_product_loop_sale_flash', 10 );
+				remove_action( 'woocommerce_before_single_product_summary', 'woocommerce_show_product_sale_flash', 10 );
 
 			add_filter( 'woocommerce_blocks_product_grid_item_html', array( $this, 'filter_blocks_grid_item' ), 9999, 3 );
 
