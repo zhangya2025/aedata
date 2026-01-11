@@ -73,10 +73,6 @@ function aegis_cap_trace_map_meta_cap($caps, $cap, $user_id, $args)
         return $caps;
     }
 
-    if (!empty($GLOBALS['aegis_cap_trace']['map_meta_cap'])) {
-        return $caps;
-    }
-
     $backtrace = wp_debug_backtrace_summary(null, 0, false);
     $backtrace = is_array($backtrace) ? array_slice(array_reverse($backtrace), 0, 10) : [$backtrace];
 
@@ -115,10 +111,6 @@ function aegis_cap_trace_user_has_cap($allcaps, $caps, $args, $user)
         return $allcaps;
     }
 
-    if (!empty($GLOBALS['aegis_cap_trace']['user_has_cap'])) {
-        return $allcaps;
-    }
-
     $backtrace = wp_debug_backtrace_summary(null, 0, false);
     $backtrace = is_array($backtrace) ? array_slice(array_reverse($backtrace), 0, 10) : [$backtrace];
 
@@ -141,9 +133,38 @@ function aegis_cap_trace_record_cap_check($entry)
     }
 
     $GLOBALS['aegis_cap_trace']['cap_checks'][] = $entry;
-    if (count($GLOBALS['aegis_cap_trace']['cap_checks']) > 20) {
-        $GLOBALS['aegis_cap_trace']['cap_checks'] = array_slice($GLOBALS['aegis_cap_trace']['cap_checks'], -20);
+    if (count($GLOBALS['aegis_cap_trace']['cap_checks']) > 30) {
+        $GLOBALS['aegis_cap_trace']['cap_checks'] = array_slice($GLOBALS['aegis_cap_trace']['cap_checks'], -30);
     }
+}
+
+function aegis_cap_trace_format_backtrace($limit = 30)
+{
+    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+    $lines = [];
+    $base_paths = [
+        wp_normalize_path(WP_CONTENT_DIR),
+        wp_normalize_path(ABSPATH),
+    ];
+
+    foreach ($trace as $index => $frame) {
+        if ($index === 0) {
+            continue;
+        }
+        $file = isset($frame['file']) ? wp_normalize_path($frame['file']) : '';
+        $line = isset($frame['line']) ? $frame['line'] : '';
+        $function = $frame['function'] ?? '';
+        $class = $frame['class'] ?? '';
+        $type = $frame['type'] ?? '';
+        $location = $file !== '' ? str_replace($base_paths, '', $file) : '[internal]';
+        $entry = sprintf('%s:%s %s%s%s', $location, $line, $class, $type, $function);
+        $lines[] = trim($entry);
+        if (count($lines) >= $limit) {
+            break;
+        }
+    }
+
+    return $lines;
 }
 
 function aegis_cap_trace_access_denied()
@@ -152,20 +173,13 @@ function aegis_cap_trace_access_denied()
         return;
     }
 
-    if (!empty($GLOBALS['aegis_cap_trace']['access_denied'])) {
-        return;
-    }
-
-    $backtrace = wp_debug_backtrace_summary(null, 0, false);
-    $backtrace = is_array($backtrace) ? array_slice(array_reverse($backtrace), 0, 30) : [$backtrace];
-
     $GLOBALS['aegis_cap_trace']['access_denied'] = [
         'pagenow' => isset($GLOBALS['pagenow']) ? $GLOBALS['pagenow'] : '',
         'uri' => isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '',
         'can_manage_options' => current_user_can('manage_options') ? 'yes' : 'no',
         'can_activate_plugins' => current_user_can('activate_plugins') ? 'yes' : 'no',
         'last_cap' => $GLOBALS['aegis_cap_trace']['last_cap'],
-        'backtrace' => $backtrace,
+        'backtrace' => aegis_cap_trace_format_backtrace(30),
     ];
 }
 
@@ -191,7 +205,7 @@ function aegis_cap_trace_render($extra = [])
     $lines[] = '  uri: ' . ($data['request']['uri'] ?? '');
     $lines[] = '';
 
-    $lines[] = 'Recent cap checks (last 20):';
+    $lines[] = 'Recent cap checks (last 30):';
     if (!empty($data['cap_checks'])) {
         foreach ($data['cap_checks'] as $check) {
             $cap_label = $check['cap'] ?? '';
@@ -282,11 +296,8 @@ function aegis_cap_trace_wp_die_handler($handler)
 
 function aegis_cap_trace_handle_wp_die($message, $title = '', $args = [])
 {
-    $backtrace = wp_debug_backtrace_summary(null, 0, false);
-    $backtrace = is_array($backtrace) ? array_slice(array_reverse($backtrace), 0, 30) : [$backtrace];
-
     echo aegis_cap_trace_render([
-        'wp_die' => $backtrace,
+        'wp_die' => aegis_cap_trace_format_backtrace(30),
     ]);
 
     if (function_exists('_default_wp_die_handler')) {
