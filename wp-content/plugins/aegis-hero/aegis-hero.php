@@ -12,17 +12,19 @@ if (!defined('ABSPATH')) {
 
 define('AEGIS_HERO_PATH', plugin_dir_path(__FILE__));
 define('AEGIS_HERO_URL', plugin_dir_url(__FILE__));
+define('AEGIS_HERO_VERSION', '1.0.0');
 add_action('plugins_loaded', 'aegis_hero_require_admin');
 add_action('init', 'aegis_hero_register_block');
+add_action('init', 'aegis_hero_register_embed_block');
+add_action('init', 'aegis_hero_register_post_type');
+add_filter('allowed_block_types_all', 'aegis_hero_limit_builder_blocks', 10, 2);
 
 /**
  * Load admin-only requirements.
  */
 function aegis_hero_require_admin()
 {
-    if (is_admin()) {
-        require_once AEGIS_HERO_PATH . 'admin/settings.php';
-    }
+    require_once AEGIS_HERO_PATH . 'admin/settings.php';
 }
 
 /**
@@ -42,18 +44,18 @@ function aegis_hero_register_block()
     );
 
     wp_register_script(
-        'aegis-hero-view',
+        'aegis-hero-frontend',
         $view_script,
         [],
-        filemtime(AEGIS_HERO_PATH . 'blocks/hero/view.js'),
+        AEGIS_HERO_VERSION,
         true
     );
 
     wp_register_style(
-        'aegis-hero-style',
+        'aegis-hero-frontend',
         $style,
         [],
-        filemtime(AEGIS_HERO_PATH . 'blocks/hero/style.css')
+        AEGIS_HERO_VERSION
     );
 
     register_block_type(
@@ -62,6 +64,134 @@ function aegis_hero_register_block()
             'render_callback' => 'aegis_hero_render_block',
         ]
     );
+}
+
+/**
+ * Register the hero embed block.
+ */
+function aegis_hero_register_embed_block()
+{
+    wp_register_script(
+        'aegis-hero-embed-editor',
+        AEGIS_HERO_URL . 'blocks/hero-embed/editor.js',
+        ['wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'wp-i18n', 'wp-data', 'wp-server-side-render'],
+        filemtime(AEGIS_HERO_PATH . 'blocks/hero-embed/editor.js')
+    );
+
+    register_block_type(
+        AEGIS_HERO_PATH . 'blocks/hero-embed',
+        [
+            'render_callback' => 'aegis_hero_render_embed_block',
+        ]
+    );
+}
+
+/**
+ * Register hero presets CPT.
+ */
+function aegis_hero_register_post_type()
+{
+    $labels = [
+        'name' => __('Heroes', 'aegis-hero'),
+        'singular_name' => __('Hero', 'aegis-hero'),
+        'add_new' => __('Add Hero', 'aegis-hero'),
+        'add_new_item' => __('Add Hero', 'aegis-hero'),
+        'edit_item' => __('Edit Hero', 'aegis-hero'),
+        'new_item' => __('New Hero', 'aegis-hero'),
+        'view_item' => __('View Hero', 'aegis-hero'),
+        'search_items' => __('Search Heroes', 'aegis-hero'),
+        'not_found' => __('No heroes found', 'aegis-hero'),
+        'not_found_in_trash' => __('No heroes found in Trash', 'aegis-hero'),
+        'all_items' => __('Heroes', 'aegis-hero'),
+        'menu_name' => __('Heroes', 'aegis-hero'),
+    ];
+
+    register_post_type(
+        'aegis_hero',
+        [
+            'labels' => $labels,
+            'public' => false,
+            'show_ui' => true,
+            'show_in_rest' => true,
+            'publicly_queryable' => false,
+            'exclude_from_search' => true,
+            'supports' => ['title', 'editor', 'revisions'],
+            'show_in_menu' => 'aegis-hero',
+            'menu_icon' => 'dashicons-format-gallery',
+            'capabilities' => [
+                'edit_post' => 'manage_options',
+                'read_post' => 'manage_options',
+                'delete_post' => 'manage_options',
+                'edit_posts' => 'manage_options',
+                'edit_others_posts' => 'manage_options',
+                'publish_posts' => 'manage_options',
+                'read_private_posts' => 'manage_options',
+                'delete_posts' => 'manage_options',
+                'delete_private_posts' => 'manage_options',
+                'delete_published_posts' => 'manage_options',
+                'delete_others_posts' => 'manage_options',
+                'edit_private_posts' => 'manage_options',
+                'edit_published_posts' => 'manage_options',
+            ],
+            'map_meta_cap' => true,
+            'has_archive' => false,
+            'rewrite' => false,
+            'template' => [
+                ['aegis/hero', []],
+            ],
+            'template_lock' => 'all',
+        ]
+    );
+}
+
+/**
+ * Limit hero preset editor to builder block.
+ */
+function aegis_hero_limit_builder_blocks($allowed_block_types, $editor_context)
+{
+    if (!empty($editor_context->post) && $editor_context->post->post_type === 'aegis_hero') {
+        return ['aegis/hero'];
+    }
+
+    return $allowed_block_types;
+}
+
+/**
+ * Render callback for the hero embed block.
+ */
+function aegis_hero_render_embed_block($attributes, $content = '', $block = null)
+{
+    $hero_id = isset($attributes['heroId']) ? absint($attributes['heroId']) : 0;
+    if (!$hero_id) {
+        return '<div class="aegis-hero-embed aegis-hero-embed--empty"></div>';
+    }
+
+    $hero_post = get_post($hero_id);
+    if (!$hero_post || $hero_post->post_type !== 'aegis_hero') {
+        return '<div class="aegis-hero-embed aegis-hero-embed--missing"></div>';
+    }
+
+    if ($hero_post->post_status !== 'publish' && !current_user_can('read_post', $hero_id)) {
+        return '';
+    }
+
+    $blocks = parse_blocks($hero_post->post_content);
+    $builder_block = null;
+    foreach ($blocks as $block_item) {
+        if (isset($block_item['blockName']) && $block_item['blockName'] === 'aegis/hero') {
+            $builder_block = $block_item;
+            break;
+        }
+    }
+
+    if (!$builder_block) {
+        return '<div class="aegis-hero-embed aegis-hero-embed--missing"></div>';
+    }
+
+    wp_enqueue_style('aegis-hero-frontend');
+    wp_enqueue_script('aegis-hero-frontend');
+
+    return render_block($builder_block);
 }
 
 /**
