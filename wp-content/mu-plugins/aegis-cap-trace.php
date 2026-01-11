@@ -26,6 +26,7 @@ function aegis_cap_trace_boot()
         'request' => null,
         'map_meta_cap' => null,
         'user_has_cap' => null,
+        'manage_options_traces' => [],
         'cap_checks' => [],
         'last_cap' => null,
         'access_denied' => null,
@@ -73,14 +74,11 @@ function aegis_cap_trace_map_meta_cap($caps, $cap, $user_id, $args)
         return $caps;
     }
 
-    $backtrace = wp_debug_backtrace_summary(null, 0, false);
-    $backtrace = is_array($backtrace) ? array_slice(array_reverse($backtrace), 0, 10) : [$backtrace];
-
-    $GLOBALS['aegis_cap_trace']['map_meta_cap'] = [
+    aegis_cap_trace_record_manage_options_map([
         'caps' => $caps,
         'has_do_not_allow' => in_array('do_not_allow', $caps, true) ? 'yes' : 'no',
-        'backtrace' => $backtrace,
-    ];
+        'backtrace' => aegis_cap_trace_format_backtrace(20),
+    ]);
 
     return $caps;
 }
@@ -135,6 +133,25 @@ function aegis_cap_trace_record_cap_check($entry)
     $GLOBALS['aegis_cap_trace']['cap_checks'][] = $entry;
     if (count($GLOBALS['aegis_cap_trace']['cap_checks']) > 30) {
         $GLOBALS['aegis_cap_trace']['cap_checks'] = array_slice($GLOBALS['aegis_cap_trace']['cap_checks'], -30);
+    }
+}
+
+function aegis_cap_trace_record_manage_options_map($entry)
+{
+    if (!aegis_cap_trace_enabled()) {
+        return;
+    }
+
+    if (empty($GLOBALS['aegis_cap_trace']['manage_options_traces'])) {
+        $GLOBALS['aegis_cap_trace']['manage_options_traces'] = [];
+    }
+
+    $GLOBALS['aegis_cap_trace']['manage_options_traces'][] = $entry;
+    if (count($GLOBALS['aegis_cap_trace']['manage_options_traces']) > 30) {
+        $GLOBALS['aegis_cap_trace']['manage_options_traces'] = array_slice(
+            $GLOBALS['aegis_cap_trace']['manage_options_traces'],
+            -30
+        );
     }
 }
 
@@ -223,13 +240,15 @@ function aegis_cap_trace_render($extra = [])
     }
 
     $lines[] = '';
-    $lines[] = 'map_meta_cap manage_options:';
-    if (!empty($data['map_meta_cap'])) {
-        $lines[] = '  caps: ' . implode(', ', (array) $data['map_meta_cap']['caps']);
-        $lines[] = '  has do_not_allow: ' . ($data['map_meta_cap']['has_do_not_allow'] ?? '');
-        $lines[] = '  backtrace:';
-        foreach ((array) ($data['map_meta_cap']['backtrace'] ?? []) as $trace_line) {
-            $lines[] = '    - ' . $trace_line;
+    $lines[] = 'map_meta_cap manage_options traces (last 30):';
+    if (!empty($data['manage_options_traces'])) {
+        foreach ((array) $data['manage_options_traces'] as $trace) {
+            $lines[] = '  caps: ' . implode(', ', (array) ($trace['caps'] ?? []));
+            $lines[] = '  has do_not_allow: ' . ($trace['has_do_not_allow'] ?? '');
+            $lines[] = '  backtrace:';
+            foreach ((array) ($trace['backtrace'] ?? []) as $trace_line) {
+                $lines[] = '    - ' . $trace_line;
+            }
         }
     } else {
         $lines[] = '  (no manage_options map_meta_cap trace captured)';
