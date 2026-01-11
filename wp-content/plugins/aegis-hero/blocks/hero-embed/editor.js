@@ -11,18 +11,22 @@
             const { attributes, setAttributes } = props;
             const { heroId } = attributes;
 
+            const query = {
+                per_page: 100,
+                status: 'publish',
+                orderby: 'title',
+                order: 'asc',
+            };
+
             const { heroes, isLoading } = useSelect(
                 (select) => {
                     const core = select('core');
                     return {
-                        heroes: core.getEntityRecords('postType', 'aegis_hero', {
-                            status: 'publish',
-                            per_page: -1,
-                        }),
+                        heroes: core.getEntityRecords('postType', 'aegis_hero', query),
                         isLoading: core.isResolving('getEntityRecords', [
                             'postType',
                             'aegis_hero',
-                            { status: 'publish', per_page: -1 },
+                            query,
                         ]),
                     };
                 },
@@ -70,10 +74,16 @@
                                   })
                         )
                     ),
-                    wp.element.createElement(ServerSideRender, {
-                        block: 'aegis/hero-embed',
-                        attributes: attributes,
-                    })
+                    heroId
+                        ? wp.element.createElement(ServerSideRender, {
+                              block: 'aegis/hero-embed',
+                              attributes: attributes,
+                          })
+                        : wp.element.createElement(
+                              'p',
+                              null,
+                              __('Select a Hero preset to preview.', 'aegis-hero')
+                          )
                 )
             );
         },
