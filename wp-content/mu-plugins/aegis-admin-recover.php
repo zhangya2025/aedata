@@ -22,20 +22,6 @@ function aegis_admin_recover_is_admin_user($user_id)
     return in_array('administrator', (array) $user->roles, true);
 }
 
-function aegis_admin_recover_ensure_admin_cap()
-{
-    if (!is_admin()) {
-        return;
-    }
-
-    $role = get_role('administrator');
-    if ($role && !$role->has_cap('manage_options')) {
-        $role->add_cap('manage_options');
-    }
-}
-
-add_action('init', 'aegis_admin_recover_ensure_admin_cap');
-
 add_filter('map_meta_cap', function ($caps, $cap, $user_id, $args) {
     if (!is_admin() || $cap !== 'manage_options') {
         return $caps;
@@ -45,7 +31,10 @@ add_filter('map_meta_cap', function ($caps, $cap, $user_id, $args) {
         return $caps;
     }
 
-    return ['manage_options'];
+    $caps = array_diff($caps, ['do_not_allow']);
+    $caps[] = 'manage_options';
+
+    return array_values(array_unique($caps));
 }, PHP_INT_MAX, 4);
 
 add_filter('user_has_cap', function ($allcaps, $caps, $args, $user) {
@@ -65,25 +54,3 @@ add_filter('user_has_cap', function ($allcaps, $caps, $args, $user) {
 
     return $allcaps;
 }, PHP_INT_MAX, 4);
-
-add_action('admin_notices', function () {
-    if (!is_admin()) {
-        return;
-    }
-
-    if (!isset($_GET['aegis_recover_check']) || $_GET['aegis_recover_check'] !== '1') {
-        return;
-    }
-
-    $user = wp_get_current_user();
-    $user_id = $user instanceof WP_User ? (int) $user->ID : 0;
-    $roles = $user instanceof WP_User ? implode(',', (array) $user->roles) : '';
-    $can_manage = current_user_can('manage_options') ? 'yes' : 'no';
-
-    printf(
-        '<div class="notice notice-info"><p>Aegis admin recover check: uid=%d roles=%s manage_options=%s</p></div>',
-        $user_id,
-        esc_html($roles),
-        esc_html($can_manage)
-    );
-});
