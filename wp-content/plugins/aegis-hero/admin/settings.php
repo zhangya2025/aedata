@@ -31,14 +31,6 @@ function aegis_hero_register_settings_page()
     );
 
     add_submenu_page(
-        'aegis-hero',
-        __('Heroes', 'aegis-hero'),
-        __('Heroes', 'aegis-hero'),
-        'manage_options',
-        'edit.php?post_type=aegis_hero'
-    );
-
-    add_submenu_page(
         'options-general.php',
         __('Aegis Hero', 'aegis-hero'),
         __('Aegis Hero', 'aegis-hero'),
