@@ -26,9 +26,6 @@ function aegis_cap_trace_boot()
         'request' => null,
         'map_meta_cap' => null,
         'user_has_cap' => null,
-        'cap_checks' => [],
-        'last_cap' => null,
-        'access_denied' => null,
     ];
 
     $user = wp_get_current_user();
@@ -50,7 +47,6 @@ function aegis_cap_trace_boot()
     add_filter('map_meta_cap', 'aegis_cap_trace_map_meta_cap', PHP_INT_MAX, 4);
     add_filter('user_has_cap', 'aegis_cap_trace_user_has_cap', PHP_INT_MAX, 4);
     add_filter('wp_die_handler', 'aegis_cap_trace_wp_die_handler');
-    add_action('admin_page_access_denied', 'aegis_cap_trace_access_denied', PHP_INT_MAX);
     add_action('admin_notices', 'aegis_cap_trace_admin_notice');
 }
 
@@ -61,13 +57,6 @@ function aegis_cap_trace_map_meta_cap($caps, $cap, $user_id, $args)
     if (!aegis_cap_trace_enabled()) {
         return $caps;
     }
-
-    $GLOBALS['aegis_cap_trace']['last_cap'] = $cap;
-    aegis_cap_trace_record_cap_check([
-        'hook' => 'map_meta_cap',
-        'cap' => $cap,
-        'mapped_caps' => $caps,
-    ]);
 
     if ($cap !== 'manage_options') {
         return $caps;
@@ -95,22 +84,6 @@ function aegis_cap_trace_user_has_cap($allcaps, $caps, $args, $user)
         return $allcaps;
     }
 
-    $cap_name = '';
-    if (is_array($args) && !empty($args[0])) {
-        $cap_name = (string) $args[0];
-    } elseif (is_array($caps) && !empty($caps[0])) {
-        $cap_name = (string) $caps[0];
-    }
-
-    if ($cap_name !== '') {
-        $GLOBALS['aegis_cap_trace']['last_cap'] = $cap_name;
-        aegis_cap_trace_record_cap_check([
-            'hook' => 'user_has_cap',
-            'cap' => $cap_name,
-            'result' => !empty($allcaps[$cap_name]) ? 'true' : 'false',
-        ]);
-    }
-
     if (!is_array($caps) || !in_array('manage_options', $caps, true)) {
         return $allcaps;
     }
@@ -130,46 +103,7 @@ function aegis_cap_trace_user_has_cap($allcaps, $caps, $args, $user)
     return $allcaps;
 }
 
-function aegis_cap_trace_record_cap_check($entry)
-{
-    if (!aegis_cap_trace_enabled()) {
-        return;
-    }
-
-    if (empty($GLOBALS['aegis_cap_trace']['cap_checks'])) {
-        $GLOBALS['aegis_cap_trace']['cap_checks'] = [];
-    }
-
-    $GLOBALS['aegis_cap_trace']['cap_checks'][] = $entry;
-    if (count($GLOBALS['aegis_cap_trace']['cap_checks']) > 20) {
-        $GLOBALS['aegis_cap_trace']['cap_checks'] = array_slice($GLOBALS['aegis_cap_trace']['cap_checks'], -20);
-    }
-}
-
-function aegis_cap_trace_access_denied()
-{
-    if (!aegis_cap_trace_enabled()) {
-        return;
-    }
-
-    if (!empty($GLOBALS['aegis_cap_trace']['access_denied'])) {
-        return;
-    }
-
-    $backtrace = wp_debug_backtrace_summary(null, 0, false);
-    $backtrace = is_array($backtrace) ? array_slice(array_reverse($backtrace), 0, 30) : [$backtrace];
-
-    $GLOBALS['aegis_cap_trace']['access_denied'] = [
-        'pagenow' => isset($GLOBALS['pagenow']) ? $GLOBALS['pagenow'] : '',
-        'uri' => isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '',
-        'can_manage_options' => current_user_can('manage_options') ? 'yes' : 'no',
-        'can_activate_plugins' => current_user_can('activate_plugins') ? 'yes' : 'no',
-        'last_cap' => $GLOBALS['aegis_cap_trace']['last_cap'],
-        'backtrace' => $backtrace,
-    ];
-}
-
-function aegis_cap_trace_render($extra = [])
+function aegis_cap_trace_render()
 {
     if (empty($GLOBALS['aegis_cap_trace'])) {
         return '';
@@ -191,24 +125,6 @@ function aegis_cap_trace_render($extra = [])
     $lines[] = '  uri: ' . ($data['request']['uri'] ?? '');
     $lines[] = '';
 
-    $lines[] = 'Recent cap checks (last 20):';
-    if (!empty($data['cap_checks'])) {
-        foreach ($data['cap_checks'] as $check) {
-            $cap_label = $check['cap'] ?? '';
-            $hook = $check['hook'] ?? '';
-            if (isset($check['mapped_caps'])) {
-                $mapped = implode(', ', (array) $check['mapped_caps']);
-                $lines[] = sprintf('  - %s %s => [%s]', $hook, $cap_label, $mapped);
-                continue;
-            }
-            $result = $check['result'] ?? '';
-            $lines[] = sprintf('  - %s %s => %s', $hook, $cap_label, $result);
-        }
-    } else {
-        $lines[] = '  (no cap checks captured)';
-    }
-
-    $lines[] = '';
     $lines[] = 'map_meta_cap manage_options:';
     if (!empty($data['map_meta_cap'])) {
         $lines[] = '  caps: ' . implode(', ', (array) $data['map_meta_cap']['caps']);
@@ -231,30 +147,6 @@ function aegis_cap_trace_render($extra = [])
         }
     } else {
         $lines[] = '  (no manage_options user_has_cap trace captured)';
-    }
-
-    $lines[] = '';
-    $lines[] = 'admin_page_access_denied:';
-    if (!empty($data['access_denied'])) {
-        $lines[] = '  pagenow: ' . ($data['access_denied']['pagenow'] ?? '');
-        $lines[] = '  uri: ' . ($data['access_denied']['uri'] ?? '');
-        $lines[] = '  current_user_can(manage_options): ' . ($data['access_denied']['can_manage_options'] ?? '');
-        $lines[] = '  current_user_can(activate_plugins): ' . ($data['access_denied']['can_activate_plugins'] ?? '');
-        $lines[] = '  last cap checked: ' . ($data['access_denied']['last_cap'] ?? '');
-        $lines[] = '  backtrace:';
-        foreach ((array) ($data['access_denied']['backtrace'] ?? []) as $trace_line) {
-            $lines[] = '    - ' . $trace_line;
-        }
-    } else {
-        $lines[] = '  (admin_page_access_denied not triggered)';
-    }
-
-    if (!empty($extra['wp_die'])) {
-        $lines[] = '';
-        $lines[] = 'wp_die backtrace:';
-        foreach ((array) $extra['wp_die'] as $trace_line) {
-            $lines[] = '    - ' . $trace_line;
-        }
     }
 
     $output = implode("\n", $lines);
@@ -282,12 +174,7 @@ function aegis_cap_trace_wp_die_handler($handler)
 
 function aegis_cap_trace_handle_wp_die($message, $title = '', $args = [])
 {
-    $backtrace = wp_debug_backtrace_summary(null, 0, false);
-    $backtrace = is_array($backtrace) ? array_slice(array_reverse($backtrace), 0, 30) : [$backtrace];
-
-    echo aegis_cap_trace_render([
-        'wp_die' => $backtrace,
-    ]);
+    echo aegis_cap_trace_render();
 
     if (function_exists('_default_wp_die_handler')) {
         _default_wp_die_handler($message, $title, $args);
