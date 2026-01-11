@@ -16,8 +16,7 @@
   "supports": {
     "anchor": true,
     "align": ["wide", "full"],
-    "html": false,
-    "inserter": false
+    "html": false
   },
   "attributes": {
     "slides": {

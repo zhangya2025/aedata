@@ -12,11 +12,8 @@ if (!defined('ABSPATH')) {
 
 define('AEGIS_HERO_PATH', plugin_dir_path(__FILE__));
 define('AEGIS_HERO_URL', plugin_dir_url(__FILE__));
-define('AEGIS_HERO_VERSION', '1.0.0');
 add_action('plugins_loaded', 'aegis_hero_require_admin');
 add_action('init', 'aegis_hero_register_block');
-add_action('init', 'aegis_hero_register_presets');
-add_filter('allowed_block_types_all', 'aegis_hero_filter_allowed_blocks', 10, 2);
 
 /**
  * Load admin-only requirements.
@@ -36,22 +33,6 @@ function aegis_hero_register_block()
     $editor_script = AEGIS_HERO_URL . 'blocks/hero/editor.js';
     $view_script = AEGIS_HERO_URL . 'blocks/hero/view.js';
     $style = AEGIS_HERO_URL . 'blocks/hero/style.css';
-    $embed_editor_script = AEGIS_HERO_URL . 'blocks/hero-embed/editor.js';
-
-    wp_register_style(
-        'aegis-hero-frontend',
-        $style,
-        [],
-        filemtime(AEGIS_HERO_PATH . 'blocks/hero/style.css')
-    );
-
-    wp_register_script(
-        'aegis-hero-frontend',
-        $view_script,
-        [],
-        filemtime(AEGIS_HERO_PATH . 'blocks/hero/view.js'),
-        true
-    );
 
     wp_register_script(
         'aegis-hero-editor',
@@ -75,116 +56,12 @@ function aegis_hero_register_block()
         filemtime(AEGIS_HERO_PATH . 'blocks/hero/style.css')
     );
 
-    wp_register_script(
-        'aegis-hero-embed-editor',
-        $embed_editor_script,
-        ['wp-blocks', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n', 'wp-server-side-render', 'wp-block-editor'],
-        filemtime(AEGIS_HERO_PATH . 'blocks/hero-embed/editor.js')
-    );
-
     register_block_type(
         AEGIS_HERO_PATH . 'blocks/hero',
         [
             'render_callback' => 'aegis_hero_render_block',
         ]
     );
-
-    register_block_type(
-        AEGIS_HERO_PATH . 'blocks/hero-embed',
-        [
-            'render_callback' => 'aegis_hero_render_embed_block',
-        ]
-    );
-}
-
-/**
- * Register the hero presets custom post type.
- */
-function aegis_hero_register_presets()
-{
-    $labels = [
-        'name' => __('Heroes', 'aegis-hero'),
-        'singular_name' => __('Hero', 'aegis-hero'),
-        'add_new' => __('Add Hero', 'aegis-hero'),
-        'add_new_item' => __('Add Hero', 'aegis-hero'),
-        'edit_item' => __('Edit Hero', 'aegis-hero'),
-        'new_item' => __('New Hero', 'aegis-hero'),
-        'view_item' => __('View Hero', 'aegis-hero'),
-        'search_items' => __('Search Heroes', 'aegis-hero'),
-        'not_found' => __('No heroes found.', 'aegis-hero'),
-        'not_found_in_trash' => __('No heroes found in Trash.', 'aegis-hero'),
-        'all_items' => __('Heroes', 'aegis-hero'),
-        'menu_name' => __('Heroes', 'aegis-hero'),
-    ];
-
-    register_post_type(
-        'aegis_hero',
-        [
-            'labels' => $labels,
-            'public' => false,
-            'show_ui' => true,
-            'show_in_rest' => true,
-            'publicly_queryable' => false,
-            'exclude_from_search' => true,
-            'supports' => ['title', 'editor', 'revisions'],
-            'show_in_menu' => false,
-            'template' => [['aegis/hero', []]],
-            'template_lock' => 'all',
-            'map_meta_cap' => true,
-            'capabilities' => [
-                'edit_post' => 'manage_options',
-                'read_post' => 'manage_options',
-                'delete_post' => 'manage_options',
-                'edit_posts' => 'manage_options',
-                'edit_others_posts' => 'manage_options',
-                'publish_posts' => 'manage_options',
-                'read_private_posts' => 'manage_options',
-                'delete_posts' => 'manage_options',
-                'delete_private_posts' => 'manage_options',
-                'delete_published_posts' => 'manage_options',
-                'delete_others_posts' => 'manage_options',
-                'edit_private_posts' => 'manage_options',
-                'edit_published_posts' => 'manage_options',
-            ],
-        ]
-    );
-}
-
-/**
- * Restrict block types for the hero preset editor.
- */
-function aegis_hero_filter_allowed_blocks($allowed_block_types, $editor_context)
-{
-    if (!isset($editor_context->post) || $editor_context->post->post_type !== 'aegis_hero') {
-        return $allowed_block_types;
-    }
-
-    return ['aegis/hero'];
-}
-
-/**
- * Render callback for the hero embed block.
- */
-function aegis_hero_render_embed_block($attributes)
-{
-    $hero_id = isset($attributes['heroId']) ? (int) $attributes['heroId'] : 0;
-    if (!$hero_id) {
-        return '';
-    }
-
-    $hero_post = get_post($hero_id);
-    if (!$hero_post || $hero_post->post_type !== 'aegis_hero') {
-        return '';
-    }
-
-    $blocks = parse_blocks($hero_post->post_content);
-    foreach ($blocks as $block) {
-        if (!empty($block['blockName']) && $block['blockName'] === 'aegis/hero') {
-            return render_block($block);
-        }
-    }
-
-    return '';
 }
 
 /**
