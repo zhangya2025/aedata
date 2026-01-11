@@ -11,7 +11,27 @@ add_action('admin_init', 'aegis_hero_register_settings');
  */
 function aegis_hero_register_settings_page()
 {
-    add_options_page(
+    add_menu_page(
+        __('Aegis Hero', 'aegis-hero'),
+        __('Aegis Hero', 'aegis-hero'),
+        'manage_options',
+        'aegis-hero',
+        'aegis_hero_render_settings_page',
+        'dashicons-format-gallery',
+        56
+    );
+
+    add_submenu_page(
+        'aegis-hero',
+        __('Settings', 'aegis-hero'),
+        __('Settings', 'aegis-hero'),
+        'manage_options',
+        'aegis-hero',
+        'aegis_hero_render_settings_page'
+    );
+
+    add_submenu_page(
+        'options-general.php',
         __('Aegis Hero', 'aegis-hero'),
         __('Aegis Hero', 'aegis-hero'),
         'manage_options',
