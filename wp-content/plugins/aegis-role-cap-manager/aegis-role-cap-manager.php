@@ -34,17 +34,3 @@ function aegis_rcm_enqueue_assets( $hook_suffix ) {
 	Aegis_RCM_Admin::enqueue_assets( $hook_suffix );
 }
 add_action( 'admin_enqueue_scripts', 'aegis_rcm_enqueue_assets' );
-
-function aegis_rcm_preserve_admin_manage_options( $allcaps, $caps, $args, $user ) {
-	if ( ! ( $user instanceof WP_User ) ) {
-		return $allcaps;
-	}
-
-	$roles = (array) $user->roles;
-	if ( in_array( 'administrator', $roles, true ) || ( is_multisite() && is_super_admin( $user->ID ) ) ) {
-		$allcaps['manage_options'] = true;
-	}
-
-	return $allcaps;
-}
-add_filter( 'user_has_cap', 'aegis_rcm_preserve_admin_manage_options', 10, 4 );
