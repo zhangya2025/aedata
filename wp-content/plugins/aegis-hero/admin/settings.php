@@ -30,14 +30,6 @@ function aegis_hero_register_settings_page()
         'aegis_hero_render_settings_page'
     );
 
-    add_submenu_page(
-        'options-general.php',
-        __('Aegis Hero', 'aegis-hero'),
-        __('Aegis Hero', 'aegis-hero'),
-        'manage_options',
-        'aegis-hero',
-        'aegis_hero_render_settings_page'
-    );
 }
 
 /**
