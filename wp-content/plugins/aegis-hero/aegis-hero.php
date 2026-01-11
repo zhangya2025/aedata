@@ -17,6 +17,7 @@ add_action('plugins_loaded', 'aegis_hero_require_admin');
 add_action('init', 'aegis_hero_register_block');
 add_action('init', 'aegis_hero_register_presets');
 add_filter('allowed_block_types_all', 'aegis_hero_filter_allowed_blocks', 10, 2);
+add_filter('user_has_cap', 'aegis_hero_ensure_manage_options_for_admins', 9999, 4);
 
 /**
  * Load admin-only requirements.
@@ -161,6 +162,22 @@ function aegis_hero_filter_allowed_blocks($allowed_block_types, $editor_context)
     }
 
     return ['aegis/hero'];
+}
+
+/**
+ * Ensure administrators retain manage_options capability.
+ */
+function aegis_hero_ensure_manage_options_for_admins($allcaps, $caps, $args, $user)
+{
+    if (!$user instanceof WP_User) {
+        return $allcaps;
+    }
+
+    if (is_super_admin($user->ID) || in_array('administrator', (array) $user->roles, true)) {
+        $allcaps['manage_options'] = true;
+    }
+
+    return $allcaps;
 }
 
 /**
