@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 2,
+  "name": "aegis/hero-embed",
+  "title": "AEGIS Hero Embed",
+  "category": "media",
+  "icon": "slides",
+  "description": "Embed a saved AEGIS Hero preset.",
+  "editorScript": "aegis-hero-embed-editor",
+  "attributes": {
+    "heroId": {
+      "type": "number",
+      "default": 0
+    }
+  }
+}
