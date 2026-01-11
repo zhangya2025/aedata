@@ -14,6 +14,8 @@ define('AEGIS_HERO_PATH', plugin_dir_path(__FILE__));
 define('AEGIS_HERO_URL', plugin_dir_url(__FILE__));
 add_action('plugins_loaded', 'aegis_hero_require_admin');
 add_action('init', 'aegis_hero_register_block');
+add_action('init', 'aegis_hero_register_presets_cpt');
+add_filter('allowed_block_types_all', 'aegis_hero_limit_blocks_for_presets', 10, 2);
 
 /**
  * Load admin-only requirements.
@@ -62,6 +64,45 @@ function aegis_hero_register_block()
             'render_callback' => 'aegis_hero_render_block',
         ]
     );
+}
+
+/**
+ * Register the Hero presets custom post type.
+ */
+function aegis_hero_register_presets_cpt()
+{
+    register_post_type(
+        'aegis_hero',
+        [
+            'labels' => [
+                'name' => __('Hero Presets', 'aegis-hero'),
+                'singular_name' => __('Hero Preset', 'aegis-hero'),
+            ],
+            'public' => false,
+            'show_ui' => true,
+            'show_in_rest' => true,
+            'publicly_queryable' => false,
+            'exclude_from_search' => true,
+            'supports' => ['title', 'editor', 'revisions'],
+            'show_in_menu' => false,
+            'template' => [
+                ['aegis/hero', []],
+            ],
+            'template_lock' => 'all',
+        ]
+    );
+}
+
+/**
+ * Limit available blocks for the Hero presets editor.
+ */
+function aegis_hero_limit_blocks_for_presets($allowed_block_types, $block_editor_context)
+{
+    if (isset($block_editor_context->post) && $block_editor_context->post->post_type === 'aegis_hero') {
+        return ['aegis/hero'];
+    }
+
+    return $allowed_block_types;
 }
 
 /**
