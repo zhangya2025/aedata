@@ -17,8 +17,6 @@ add_action('plugins_loaded', 'aegis_hero_require_admin');
 add_action('init', 'aegis_hero_register_block');
 add_action('init', 'aegis_hero_register_presets');
 add_filter('allowed_block_types_all', 'aegis_hero_filter_allowed_blocks', 10, 2);
-add_filter('user_has_cap', 'aegis_hero_preserve_admin_manage_options', PHP_INT_MAX, 4);
-add_action('admin_head', 'aegis_hero_admin_diag_capture', PHP_INT_MAX);
 
 /**
  * Load admin-only requirements.
@@ -28,73 +26,6 @@ function aegis_hero_require_admin()
     if (is_admin()) {
         require_once AEGIS_HERO_PATH . 'admin/settings.php';
     }
-}
-
-function aegis_hero_admin_diag_enabled()
-{
-    if (is_multisite() && is_super_admin()) {
-        $is_admin_user = true;
-    } else {
-        $user = wp_get_current_user();
-        $roles = $user instanceof WP_User ? (array) $user->roles : [];
-        $is_admin_user = in_array('administrator', $roles, true);
-    }
-
-    if (!$is_admin_user) {
-        return false;
-    }
-
-    return (defined('AEGIS_ADMIN_DIAG') && AEGIS_ADMIN_DIAG)
-        || (isset($_GET['aegis_diag']) && $_GET['aegis_diag'] === '1');
-}
-
-function aegis_hero_admin_diag_capture()
-{
-    static $did_log = false;
-    if (!is_admin() || !aegis_hero_admin_diag_enabled()) {
-        return;
-    }
-    if ($did_log) {
-        return;
-    }
-
-    $user = wp_get_current_user();
-    $roles = $user instanceof WP_User ? $user->roles : [];
-    $can_manage_options = current_user_can('manage_options') ? 'yes' : 'no';
-    $user_id = $user instanceof WP_User ? (int) $user->ID : 0;
-
-    global $menu;
-    $menu_slugs = is_array($menu) ? array_column($menu, 2) : [];
-    $has_settings = in_array('options-general.php', $menu_slugs, true) ? 'yes' : 'no';
-    $has_aegis_hero = in_array('aegis-hero', $menu_slugs, true) ? 'yes' : 'no';
-
-    error_log(sprintf(
-        '[AEGIS Hero Admin Diag] hook=%s user_id=%d roles=%s manage_options=%s menu_settings=%s menu_aegis_hero=%s',
-        current_filter(),
-        $user_id,
-        implode(',', $roles),
-        $can_manage_options,
-        $has_settings,
-        $has_aegis_hero
-    ));
-    $did_log = true;
-}
-
-function aegis_hero_preserve_admin_manage_options($allcaps, $caps, $args, $user)
-{
-    if (!is_admin()) {
-        return $allcaps;
-    }
-    if (!($user instanceof WP_User)) {
-        return $allcaps;
-    }
-
-    $roles = (array) $user->roles;
-    if (in_array('administrator', $roles, true) || (is_multisite() && is_super_admin($user->ID))) {
-        $allcaps['manage_options'] = true;
-    }
-
-    return $allcaps;
 }
 
 /**
