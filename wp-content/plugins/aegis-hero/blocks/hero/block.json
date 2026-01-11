@@ -7,16 +7,15 @@
   "icon": "slides",
   "description": "Hero carousel supporting images, local videos, and lazy external videos.",
   "editorScript": "aegis-hero-editor",
-  "style": "aegis-hero-frontend",
+  "style": "aegis-hero-style",
   "editorStyle": [
-    "aegis-hero-frontend",
+    "aegis-hero-style",
     "file:./editor.css"
   ],
-  "viewScript": "aegis-hero-frontend",
+  "viewScript": "aegis-hero-view",
   "supports": {
     "anchor": true,
     "align": ["wide", "full"],
-    "inserter": false,
     "html": false
   },
   "attributes": {
