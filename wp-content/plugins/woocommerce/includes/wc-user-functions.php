@@ -710,6 +710,18 @@ function wc_modify_map_meta_cap( $caps, $cap, $user_id, $args ) {
 	if ( is_multisite() && is_super_admin() ) {
 		return $caps;
 	}
+
+	$user = get_userdata( $user_id );
+	if ( $user instanceof WP_User ) {
+		$allcaps = $user->allcaps;
+		$is_site_admin = ! empty( $allcaps['manage_options'] ) || ( is_multisite() && ! empty( $allcaps['manage_sites'] ) );
+		if ( $cap === 'manage_options' && $is_site_admin ) {
+			return array_values( array_diff( $caps, array( 'do_not_allow' ) ) );
+		}
+		if ( $is_site_admin ) {
+			return $caps;
+		}
+	}
 	switch ( $cap ) {
 		case 'edit_user':
 		case 'remove_user':
