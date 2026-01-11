@@ -24,9 +24,7 @@ add_filter('allowed_block_types_all', 'aegis_hero_limit_builder_blocks', 10, 2);
  */
 function aegis_hero_require_admin()
 {
-    if (is_admin()) {
-        require_once AEGIS_HERO_PATH . 'admin/settings.php';
-    }
+    require_once AEGIS_HERO_PATH . 'admin/settings.php';
 }
 
 /**
