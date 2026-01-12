@@ -11,6 +11,7 @@ class Aegis_Forms_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'register_view_page' ) );
 		add_action( 'admin_post_aegis_forms_update', array( __CLASS__, 'handle_update_submission' ) );
+		add_action( 'admin_post_aegis_forms_export_csv', array( __CLASS__, 'handle_export_csv' ) );
 	}
 
 	public static function register_menu() {
@@ -42,7 +43,7 @@ class Aegis_Forms_Admin {
 		}
 
 		$checks = self::run_checks();
-		$filters = self::parse_filters();
+		$filters = self::parse_filters_from_request( $_GET );
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Aegis Forms' ); ?></h1>
@@ -146,6 +147,13 @@ class Aegis_Forms_Admin {
 			</select>
 			<button class="button"><?php echo esc_html__( 'Filter' ); ?></button>
 		</form>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:10px;">
+			<?php wp_nonce_field( 'aegis_forms_export_csv' ); ?>
+			<input type="hidden" name="action" value="aegis_forms_export_csv" />
+			<input type="hidden" name="type" value="<?php echo esc_attr( $filters['type'] ); ?>" />
+			<input type="hidden" name="status" value="<?php echo esc_attr( $filters['status'] ); ?>" />
+			<button class="button"><?php echo esc_html__( 'Export CSV' ); ?></button>
+		</form>
 		<?php
 
 		if ( ! Aegis_Forms_Schema::table_exists() ) {
@@ -231,10 +239,10 @@ class Aegis_Forms_Admin {
 		}
 	}
 
-	private static function parse_filters() {
-		$type = isset( $_GET['type'] ) ? sanitize_text_field( wp_unslash( $_GET['type'] ) ) : '';
-		$status = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
-		$paged = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1;
+	private static function parse_filters_from_request( $request ) {
+		$type = isset( $request['type'] ) ? sanitize_text_field( wp_unslash( $request['type'] ) ) : '';
+		$status = isset( $request['status'] ) ? sanitize_text_field( wp_unslash( $request['status'] ) ) : '';
+		$paged = isset( $request['paged'] ) ? absint( $request['paged'] ) : 1;
 
 		$allowed_types = array( 'repair', 'dealer' );
 		$allowed_statuses = array( 'new', 'in_review', 'need_more_info', 'approved', 'rejected', 'closed' );
@@ -258,10 +266,7 @@ class Aegis_Forms_Admin {
 		);
 	}
 
-	private static function query_submissions( $filters ) {
-		global $wpdb;
-
-		$table_name = Aegis_Forms_Schema::table_name();
+	private static function build_where_sql( $filters ) {
 		$where_clauses = array();
 		$where_values = array();
 
@@ -279,6 +284,15 @@ class Aegis_Forms_Admin {
 		if ( $where_clauses ) {
 			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 		}
+
+		return array( $where_sql, $where_values );
+	}
+
+	private static function query_submissions( $filters ) {
+		global $wpdb;
+
+		$table_name = Aegis_Forms_Schema::table_name();
+		list( $where_sql, $where_values ) = self::build_where_sql( $filters );
 
 		$count_sql = "SELECT COUNT(*) FROM {$table_name} {$where_sql}";
 		$count_query = $where_values ? $wpdb->prepare( $count_sql, $where_values ) : $count_sql;
@@ -312,6 +326,75 @@ class Aegis_Forms_Admin {
 			'per_page' => $per_page,
 			'page' => $page,
 		);
+	}
+
+	public static function handle_export_csv() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ), 403 );
+		}
+
+		check_admin_referer( 'aegis_forms_export_csv' );
+
+		if ( ! Aegis_Forms_Schema::table_exists() ) {
+			wp_die( esc_html__( 'DB table not ready.' ), 500 );
+		}
+
+		$filters = self::parse_filters_from_request( $_POST );
+		list( $where_sql, $where_values ) = self::build_where_sql( $filters );
+
+		$type_label = $filters['type'] ? $filters['type'] : 'all';
+		$status_label = $filters['status'] ? $filters['status'] : 'all';
+		$timestamp = wp_date( 'Ymd-Hi', current_time( 'timestamp' ) );
+		$filename = sprintf( 'aegis-forms-%s-%s-%s.csv', $type_label, $status_label, $timestamp );
+
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		echo "\xEF\xBB\xBF";
+
+		$fh = fopen( 'php://output', 'w' );
+		$headers = array(
+			'ticket_no',
+			'type',
+			'status',
+			'name',
+			'email',
+			'phone',
+			'country',
+			'subject',
+			'message',
+			'meta',
+			'attachments',
+			'admin_notes',
+			'created_at',
+			'updated_at',
+		);
+		fputcsv( $fh, $headers );
+
+		global $wpdb;
+		$table_name = Aegis_Forms_Schema::table_name();
+		$limit = 500;
+		$offset = 0;
+
+		do {
+			$query = "SELECT " . implode( ',', $headers ) . " FROM {$table_name} {$where_sql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d";
+			$args = array_merge( $where_values, array( $limit, $offset ) );
+			$sql = $wpdb->prepare( $query, $args );
+			$rows = $wpdb->get_results( $sql, ARRAY_A );
+
+			foreach ( $rows as $row ) {
+				$line = array();
+				foreach ( $headers as $key ) {
+					$value = isset( $row[ $key ] ) ? $row[ $key ] : '';
+					$line[] = is_null( $value ) ? '' : (string) $value;
+				}
+				fputcsv( $fh, $line );
+			}
+
+			$offset += $limit;
+		} while ( count( $rows ) === $limit );
+
+		fclose( $fh );
+		exit;
 	}
 
 	public static function render_view_page() {
