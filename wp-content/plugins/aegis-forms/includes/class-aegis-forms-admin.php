@@ -49,8 +49,9 @@ class Aegis_Forms_Admin {
             );
         }
 
+        $view_parent = $parent_slug ?: ( is_network_admin() ? 'settings.php' : 'tools.php' );
         add_submenu_page(
-            null,
+            $view_parent,
             __( 'View Submission', 'aegis-forms' ),
             __( 'View Submission', 'aegis-forms' ),
             $capability,
@@ -83,35 +84,10 @@ class Aegis_Forms_Admin {
         $paged = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
         $offset = ( $paged - 1 ) * $per_page;
 
-        Aegis_Forms::maybe_install_schema();
-        $table_ready = Aegis_Forms::table_exists();
-
-        if ( ! $table_ready ) {
-            $error_details = get_option( Aegis_Forms::OPTION_INSTALL_ERROR );
-            ?>
-            <div class="wrap">
-                <h1><?php esc_html_e( 'Aegis Forms Submissions', 'aegis-forms' ); ?></h1>
-                <div class="notice notice-error">
-                    <p><?php esc_html_e( 'The submissions table is not ready. Please re-activate the plugin or check installation errors.', 'aegis-forms' ); ?></p>
-                    <?php if ( $error_details ) : ?>
-                        <p><?php echo esc_html( $error_details ); ?></p>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php
-            return;
-        }
-
         $total = Aegis_Forms::count_submissions( $filters );
         $submissions = Aegis_Forms::get_submissions( $filters, $per_page, $offset );
 
-        if ( self::find_aegis_parent() ) {
-            $base_url = Aegis_Forms::admin_url( 'admin.php?page=aegis-forms' );
-        } elseif ( is_network_admin() ) {
-            $base_url = Aegis_Forms::admin_url( 'settings.php?page=aegis-forms' );
-        } else {
-            $base_url = Aegis_Forms::admin_url( 'tools.php?page=aegis-forms' );
-        }
+        $base_url = Aegis_Forms::admin_url( 'admin.php?page=aegis-forms' );
         $export_url = Aegis_Forms::admin_url( 'admin-post.php' );
         ?>
         <div class="wrap">
