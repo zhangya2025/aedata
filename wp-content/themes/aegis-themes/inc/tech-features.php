@@ -239,10 +239,12 @@ function aegis_pdp_tech_features_shortcode() {
     $items_markup = str_replace( '<br />', '', $items_markup );
     $items_markup = str_replace( '<br>', '', $items_markup );
 
-    return sprintf(
+    $output = sprintf(
         '<div class="aegis-wc-module aegis-wc-module--tech-features"><h3>%1$s</h3><div class="aegis-tech-features-grid">%2$s</div></div>',
         esc_html__( 'Technical features', 'aegis' ),
         $items_markup
     );
+
+    return preg_replace( '/<p>(?:\\s|&nbsp;)*<\\/p>/', '', $output );
 }
 add_shortcode( 'aegis_pdp_tech_features', 'aegis_pdp_tech_features_shortcode' );

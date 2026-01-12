@@ -883,6 +883,10 @@ body.single-product .woocommerce-notices-wrapper .woocommerce-message a.wc-forwa
     display: none;
 }
 
+.aegis-tech-features-grid > p:empty {
+    display: none;
+}
+
 .aegis-tech-feature-card {
     display: flex;
     flex-direction: column;
