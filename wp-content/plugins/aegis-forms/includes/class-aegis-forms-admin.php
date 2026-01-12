@@ -9,6 +9,8 @@ class Aegis_Forms_Admin {
 
 	public static function register() {
 		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'register_view_page' ) );
+		add_action( 'admin_post_aegis_forms_update', array( __CLASS__, 'handle_update_submission' ) );
 	}
 
 	public static function register_menu() {
@@ -20,6 +22,17 @@ class Aegis_Forms_Admin {
 			array( __CLASS__, 'render_page' ),
 			'dashicons-feedback',
 			58
+		);
+	}
+
+	public static function register_view_page() {
+		add_submenu_page(
+			null,
+			'Aegis Forms - View',
+			'Aegis Forms - View',
+			'manage_options',
+			'aegis-forms-view',
+			array( __CLASS__, 'render_view_page' )
 		);
 	}
 
@@ -151,12 +164,13 @@ class Aegis_Forms_Admin {
 					<th scope="col"><?php echo esc_html__( 'Name' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'Email' ); ?></th>
 					<th scope="col"><?php echo esc_html__( 'Created At' ); ?></th>
+					<th scope="col"><?php echo esc_html__( 'Actions' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 				<?php if ( empty( $result['items'] ) ) : ?>
 					<tr>
-						<td colspan="6"><?php echo esc_html__( 'No submissions found.' ); ?></td>
+						<td colspan="7"><?php echo esc_html__( 'No submissions found.' ); ?></td>
 					</tr>
 				<?php else : ?>
 					<?php foreach ( $result['items'] as $item ) : ?>
@@ -167,6 +181,22 @@ class Aegis_Forms_Admin {
 							<td><?php echo esc_html( $item['name'] ); ?></td>
 							<td><?php echo esc_html( $item['email'] ); ?></td>
 							<td><?php echo esc_html( $item['created_at_formatted'] ); ?></td>
+							<td>
+								<?php if ( $item['ticket_no'] ) : ?>
+									<?php
+									$view_url = add_query_arg(
+										array(
+											'page' => 'aegis-forms-view',
+											'ticket' => rawurlencode( $item['ticket_no'] ),
+										),
+										admin_url( 'admin.php' )
+									);
+									?>
+									<a href="<?php echo esc_url( $view_url ); ?>"><?php echo esc_html__( 'View' ); ?></a>
+								<?php else : ?>
+									<span style="color:#999;"><?php echo esc_html__( 'View' ); ?></span>
+								<?php endif; ?>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				<?php endif; ?>
@@ -282,6 +312,187 @@ class Aegis_Forms_Admin {
 			'per_page' => $per_page,
 			'page' => $page,
 		);
+	}
+
+	public static function render_view_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
+		}
+
+		$ticket = isset( $_GET['ticket'] ) ? sanitize_text_field( wp_unslash( $_GET['ticket'] ) ) : '';
+		$ticket = substr( $ticket, 0, 64 );
+		$return_url = add_query_arg( 'page', self::MENU_SLUG, admin_url( 'admin.php' ) );
+
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html__( 'Aegis Forms - View' ); ?></h1>
+			<?php
+			if ( isset( $_GET['updated'] ) && '1' === $_GET['updated'] ) {
+				echo '<div class="notice notice-success"><p>' . esc_html__( 'Saved.' ) . '</p></div>';
+			}
+
+			if ( ! Aegis_Forms_Schema::table_exists() ) {
+				echo '<div class="notice notice-error"><p>' . esc_html__( 'DB table not ready.' ) . '</p></div>';
+				echo '<p><a href="' . esc_url( $return_url ) . '">' . esc_html__( 'Back to list' ) . '</a></p>';
+				echo '</div>';
+				return;
+			}
+
+			if ( '' === $ticket ) {
+				echo '<div class="notice notice-error"><p>' . esc_html__( 'Ticket not provided.' ) . '</p></div>';
+				echo '<p><a href="' . esc_url( $return_url ) . '">' . esc_html__( 'Back to list' ) . '</a></p>';
+				echo '</div>';
+				return;
+			}
+
+			global $wpdb;
+			$table_name = Aegis_Forms_Schema::table_name();
+			$row = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$table_name} WHERE ticket_no = %s LIMIT 1",
+					$ticket
+				),
+				ARRAY_A
+			);
+
+			if ( ! $row ) {
+				echo '<div class="notice notice-warning"><p>' . esc_html__( 'Submission not found.' ) . '</p></div>';
+				echo '<p><a href="' . esc_url( $return_url ) . '">' . esc_html__( 'Back to list' ) . '</a></p>';
+				echo '</div>';
+				return;
+			}
+
+			$allowed_statuses = array( 'new', 'in_review', 'need_more_info', 'approved', 'rejected', 'closed' );
+			$meta_value = isset( $row['meta'] ) ? $row['meta'] : '';
+			$attachments_value = isset( $row['attachments'] ) ? $row['attachments'] : '';
+			$admin_notes_value = isset( $row['admin_notes'] ) ? $row['admin_notes'] : '';
+			$created_at = isset( $row['created_at'] ) ? $row['created_at'] : '';
+			$updated_at = isset( $row['updated_at'] ) ? $row['updated_at'] : '';
+			?>
+			<table class="widefat striped">
+				<tbody>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Ticket' ); ?></th>
+						<td><?php echo esc_html( $row['ticket_no'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Type' ); ?></th>
+						<td><?php echo esc_html( $row['type'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Status' ); ?></th>
+						<td><?php echo esc_html( $row['status'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Name' ); ?></th>
+						<td><?php echo esc_html( $row['name'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Email' ); ?></th>
+						<td><?php echo esc_html( $row['email'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Created At' ); ?></th>
+						<td><?php echo esc_html( $created_at ? wp_date( 'Y-m-d H:i', strtotime( $created_at ) ) : '' ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Updated At' ); ?></th>
+						<td><?php echo esc_html( $updated_at ? wp_date( 'Y-m-d H:i', strtotime( $updated_at ) ) : '' ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Message' ); ?></th>
+						<td><?php echo esc_html( $row['message'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Meta' ); ?></th>
+						<td><pre><?php echo esc_html( $meta_value ); ?></pre></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Attachments' ); ?></th>
+						<td><pre><?php echo esc_html( $attachments_value ); ?></pre></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Admin Notes' ); ?></th>
+						<td><?php echo esc_html( $admin_notes_value ); ?></td>
+					</tr>
+				</tbody>
+			</table>
+
+			<h2><?php echo esc_html__( 'Update Submission' ); ?></h2>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<?php wp_nonce_field( 'aegis_forms_update_' . $row['ticket_no'] ); ?>
+				<input type="hidden" name="action" value="aegis_forms_update" />
+				<input type="hidden" name="ticket" value="<?php echo esc_attr( $row['ticket_no'] ); ?>" />
+				<table class="form-table">
+					<tr>
+						<th scope="row"><label for="aegis-forms-status"><?php echo esc_html__( 'Status' ); ?></label></th>
+						<td>
+							<select id="aegis-forms-status" name="status">
+								<?php foreach ( $allowed_statuses as $status ) : ?>
+									<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $row['status'], $status ); ?>>
+										<?php echo esc_html( $status ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="aegis-forms-admin-notes"><?php echo esc_html__( 'Admin Notes' ); ?></label></th>
+						<td>
+							<textarea id="aegis-forms-admin-notes" name="admin_notes" rows="6" class="large-text"><?php echo esc_textarea( $admin_notes_value ); ?></textarea>
+						</td>
+					</tr>
+				</table>
+				<?php submit_button( __( 'Save' ) ); ?>
+			</form>
+			<p><a href="<?php echo esc_url( $return_url ); ?>"><?php echo esc_html__( 'Back to list' ); ?></a></p>
+		</div>
+		<?php
+	}
+
+	public static function handle_update_submission() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
+		}
+
+		$ticket = isset( $_POST['ticket'] ) ? sanitize_text_field( wp_unslash( $_POST['ticket'] ) ) : '';
+		$ticket = substr( $ticket, 0, 64 );
+		check_admin_referer( 'aegis_forms_update_' . $ticket );
+
+		$allowed_statuses = array( 'new', 'in_review', 'need_more_info', 'approved', 'rejected', 'closed' );
+		$status = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : '';
+		$admin_notes = isset( $_POST['admin_notes'] ) ? wp_unslash( $_POST['admin_notes'] ) : '';
+
+		if ( ! in_array( $status, $allowed_statuses, true ) ) {
+			wp_die( esc_html__( 'Invalid status.' ) );
+		}
+
+		global $wpdb;
+		$table_name = Aegis_Forms_Schema::table_name();
+
+		$wpdb->update(
+			$table_name,
+			array(
+				'status' => $status,
+				'admin_notes' => $admin_notes,
+				'updated_at' => current_time( 'mysql' ),
+			),
+			array( 'ticket_no' => $ticket ),
+			array( '%s', '%s', '%s' ),
+			array( '%s' )
+		);
+
+		$redirect_url = add_query_arg(
+			array(
+				'page' => 'aegis-forms-view',
+				'ticket' => rawurlencode( $ticket ),
+				'updated' => '1',
+			),
+			admin_url( 'admin.php' )
+		);
+
+		wp_safe_redirect( $redirect_url );
+		exit;
 	}
 
 	private static function run_checks() {
