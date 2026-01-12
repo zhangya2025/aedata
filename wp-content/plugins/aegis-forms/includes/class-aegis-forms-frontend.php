@@ -103,10 +103,10 @@ class Aegis_Forms_Frontend {
 				<button type="submit"><?php echo esc_html__( 'Submit' ); ?></button>
 			</p>
 			<p>
-				<label for="aegis-forms-attachments"><?php echo esc_html__( 'Attachments (optional)' ); ?></label><br />
-				<input id="aegis-forms-attachments" type="file" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.pdf" />
+				<label for="aegis-forms-attachment"><?php echo esc_html__( 'Attachment (optional)' ); ?></label><br />
+				<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" />
 				<br />
-				<small><?php echo esc_html__( 'Up to 3 files. Max 10MB each. JPG, PNG, or PDF only.' ); ?></small>
+				<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.' ); ?></small>
 			</p>
 		</form>
 		<?php
@@ -136,7 +136,7 @@ class Aegis_Forms_Frontend {
 				'invalid_nonce' => esc_html__( 'Security check failed. Please try again.' ),
 				'invalid_input' => esc_html__( 'Please check the required fields and try again.' ),
 				'rate_limited' => esc_html__( 'Too many submissions. Please try again later.' ),
-				'too_many_files' => esc_html__( 'You can upload up to 3 files.' ),
+				'too_many_files' => esc_html__( 'You can upload up to 1 file.' ),
 				'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.' ),
 				'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.' ),
 				'upload_failed' => esc_html__( 'File upload failed. Please try again.' ),
@@ -324,16 +324,12 @@ class Aegis_Forms_Frontend {
 	}
 
 	private static function handle_attachments( $ticket_no, $insert_id ) {
-		if ( empty( $_FILES['attachments'] ) || ! is_array( $_FILES['attachments'] ) ) {
-			return array();
-		}
-
-		$files = self::normalize_files( $_FILES['attachments'] );
+		$files = self::gather_uploaded_files();
 		if ( empty( $files ) ) {
 			return array();
 		}
 
-		if ( count( $files ) > 3 ) {
+		if ( count( $files ) > 1 ) {
 			self::delete_submission( $insert_id );
 			self::redirect_with_error( 'too_many_files' );
 		}
@@ -428,6 +424,37 @@ class Aegis_Forms_Frontend {
 		}
 
 		return $normalized;
+	}
+
+	private static function gather_uploaded_files() {
+		$files = array();
+
+		if ( isset( $_FILES['attachment'] ) && is_array( $_FILES['attachment'] ) ) {
+			$single = self::normalize_single_file( $_FILES['attachment'] );
+			if ( $single ) {
+				$files[] = $single;
+			}
+		}
+
+		if ( isset( $_FILES['attachments'] ) && is_array( $_FILES['attachments'] ) ) {
+			$files = array_merge( $files, self::normalize_files( $_FILES['attachments'] ) );
+		}
+
+		return $files;
+	}
+
+	private static function normalize_single_file( $file ) {
+		if ( empty( $file['name'] ) && 0 === (int) $file['size'] ) {
+			return null;
+		}
+
+		return array(
+			'name' => $file['name'],
+			'type' => $file['type'],
+			'tmp_name' => $file['tmp_name'],
+			'error' => $file['error'],
+			'size' => (int) $file['size'],
+		);
 	}
 
 	private static function rollback_uploads( $files, $dir ) {
