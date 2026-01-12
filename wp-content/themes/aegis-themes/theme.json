@@ -87,6 +87,13 @@
       "text": "#111827"
     }
   },
+  "customTemplates": [
+    {
+      "name": "aegis-page",
+      "title": "AEGIS PAGE",
+      "postTypes": ["page"]
+    }
+  ],
   "templateParts": [
     {
       "name": "header",
