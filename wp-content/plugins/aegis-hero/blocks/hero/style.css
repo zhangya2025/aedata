@@ -175,6 +175,27 @@
     margin: 0 0 14px;
 }
 
+.aegis-hero__promo a:not(.wp-block-button__link):link,
+.aegis-hero__promo a:not(.wp-block-button__link):visited {
+    color: inherit;
+    text-decoration: none;
+}
+
+.aegis-hero__promo a:not(.wp-block-button__link):hover,
+.aegis-hero__promo a:not(.wp-block-button__link):active {
+    color: inherit;
+    text-decoration: none;
+    opacity: 0.85;
+}
+
+.aegis-hero__promo a:not(.wp-block-button__link):focus-visible {
+    color: inherit;
+    text-decoration: none;
+    opacity: 0.85;
+    outline: 1px solid currentColor;
+    outline-offset: 2px;
+}
+
 .aegis-hero__promo .wp-block-button__link {
     color: var(--aegis-promo-btn-color, #fff);
     background: var(--aegis-promo-btn-bg, rgba(0, 0, 0, 0.45));
