@@ -6,6 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Aegis_Forms_Frontend {
 	const ACTION_SUBMIT = 'aegis_forms_submit';
+	private static $current_lock_key = '';
+	private static $current_token_key = '';
 
 	public static function register() {
 		add_shortcode( 'aegis_repair_form', array( __CLASS__, 'render_repair_form' ) );
@@ -28,13 +30,17 @@ class Aegis_Forms_Frontend {
 		$nonce_action = 'aegis_forms_submit_' . $type;
 		$action_url = admin_url( 'admin-post.php' );
 		$honeypot_name = 'website';
+		$token = wp_generate_uuid4();
+		$token_key = 'aegis_forms_token:' . $token;
+		set_transient( $token_key, 'new', 10 * MINUTE_IN_SECONDS );
 
 		ob_start();
 		?>
 		<?php echo $notice; ?>
-		<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data">
+		<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data" data-aegis-forms="true">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SUBMIT ); ?>" />
 			<input type="hidden" name="form_type" value="<?php echo esc_attr( $type ); ?>" />
+			<input type="hidden" name="request_token" value="<?php echo esc_attr( $token ); ?>" />
 			<?php wp_nonce_field( $nonce_action ); ?>
 			<div style="position:absolute;left:-9999px;" aria-hidden="true">
 				<label><?php echo esc_html__( 'Website' ); ?></label>
@@ -100,7 +106,7 @@ class Aegis_Forms_Frontend {
 				</p>
 			<?php endif; ?>
 			<p>
-				<button type="submit"><?php echo esc_html__( 'Submit' ); ?></button>
+				<button type="submit" class="aegis-forms-submit"><?php echo esc_html__( 'Submit' ); ?></button>
 			</p>
 			<p>
 				<label for="aegis-forms-attachment"><?php echo esc_html__( 'Attachment (optional)' ); ?></label><br />
@@ -108,6 +114,25 @@ class Aegis_Forms_Frontend {
 				<br />
 				<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.' ); ?></small>
 			</p>
+			<script>
+				(function() {
+					var forms = document.querySelectorAll('form[data-aegis-forms]');
+					forms.forEach(function(form) {
+						form.addEventListener('submit', function(event) {
+							if (form.dataset.submitted === 'true') {
+								event.preventDefault();
+								return;
+							}
+							form.dataset.submitted = 'true';
+							var button = form.querySelector('.aegis-forms-submit');
+							if (button) {
+								button.disabled = true;
+								button.textContent = 'Submitting...';
+							}
+						});
+					});
+				})();
+			</script>
 		</form>
 		<?php
 		return ob_get_clean();
@@ -140,6 +165,9 @@ class Aegis_Forms_Frontend {
 				'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.' ),
 				'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.' ),
 				'upload_failed' => esc_html__( 'File upload failed. Please try again.' ),
+				'invalid_token' => esc_html__( 'Submission token missing. Please refresh and try again.' ),
+				'expired_token' => esc_html__( 'Submission token expired. Please refresh and try again.' ),
+				'busy' => esc_html__( 'Submission already in progress. Please try again.' ),
 				'server_error' => esc_html__( 'Submission failed. Please try again later.' ),
 			);
 			$text = isset( $messages[ $reason ] ) ? $messages[ $reason ] : $messages['server_error'];
@@ -150,6 +178,39 @@ class Aegis_Forms_Frontend {
 	}
 
 	public static function handle_submit() {
+		$token = isset( $_POST['request_token'] ) ? sanitize_text_field( wp_unslash( $_POST['request_token'] ) ) : '';
+		if ( '' === $token || strlen( $token ) < 16 ) {
+			self::redirect_with_error( 'invalid_token' );
+		}
+
+		$token_key = 'aegis_forms_token:' . $token;
+		$token_state = get_transient( $token_key );
+		if ( ! $token_state ) {
+			self::redirect_with_error( 'expired_token' );
+		}
+
+		if ( is_string( $token_state ) && 0 === strpos( $token_state, 'done:' ) ) {
+			$ticket_no = substr( $token_state, 5 );
+			self::redirect_with_success( $ticket_no );
+		}
+
+		$lock_key = 'aegis_forms_lock_' . md5( $token );
+		if ( ! add_option( $lock_key, time(), '', 'no' ) ) {
+			for ( $i = 0; $i < 5; $i++ ) {
+				usleep( 150000 );
+				$token_state = get_transient( $token_key );
+				if ( is_string( $token_state ) && 0 === strpos( $token_state, 'done:' ) ) {
+					$ticket_no = substr( $token_state, 5 );
+					self::redirect_with_success( $ticket_no );
+				}
+			}
+
+			self::redirect_with_error( 'busy' );
+		}
+
+		self::$current_lock_key = $lock_key;
+		self::$current_token_key = $token_key;
+
 		$form_type = isset( $_POST['form_type'] ) ? sanitize_text_field( wp_unslash( $_POST['form_type'] ) ) : '';
 		if ( ! in_array( $form_type, array( 'repair', 'dealer' ), true ) ) {
 			self::redirect_with_error( 'invalid_input' );
@@ -320,6 +381,10 @@ class Aegis_Forms_Frontend {
 		}
 
 		self::send_notifications( $form_type, $ticket_no, $name, $email, $phone, $country, $meta, $message );
+		set_transient( $token_key, 'done:' . $ticket_no, 10 * MINUTE_IN_SECONDS );
+		delete_option( $lock_key );
+		self::$current_lock_key = '';
+		self::$current_token_key = '';
 		self::redirect_with_success( $ticket_no );
 	}
 
@@ -545,6 +610,15 @@ class Aegis_Forms_Frontend {
 	}
 
 	private static function redirect_with_error( $reason ) {
+		if ( self::$current_lock_key ) {
+			delete_option( self::$current_lock_key );
+			if ( self::$current_token_key ) {
+				set_transient( self::$current_token_key, 'new', 2 * MINUTE_IN_SECONDS );
+			}
+			self::$current_lock_key = '';
+			self::$current_token_key = '';
+		}
+
 		$redirect = wp_get_referer();
 		if ( ! $redirect ) {
 			$redirect = home_url( '/' );
