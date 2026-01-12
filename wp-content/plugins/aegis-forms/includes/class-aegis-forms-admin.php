@@ -19,15 +19,35 @@ class Aegis_Forms_Admin {
         }
 
         $capability = Aegis_Forms::capability();
-        add_menu_page(
-            __( 'Aegis Forms', 'aegis-forms' ),
-            __( 'Aegis Forms', 'aegis-forms' ),
-            $capability,
-            'aegis-forms',
-            array( __CLASS__, 'render_list_page' ),
-            'dashicons-feedback',
-            56
-        );
+        $parent_slug = self::find_aegis_parent();
+
+        if ( $parent_slug ) {
+            add_submenu_page(
+                $parent_slug,
+                __( 'Aegis Forms', 'aegis-forms' ),
+                __( 'Aegis Forms', 'aegis-forms' ),
+                $capability,
+                'aegis-forms',
+                array( __CLASS__, 'render_list_page' )
+            );
+        } elseif ( is_network_admin() ) {
+            add_submenu_page(
+                'settings.php',
+                __( 'Aegis Forms', 'aegis-forms' ),
+                __( 'Aegis Forms', 'aegis-forms' ),
+                $capability,
+                'aegis-forms',
+                array( __CLASS__, 'render_list_page' )
+            );
+        } else {
+            add_management_page(
+                __( 'Aegis Forms', 'aegis-forms' ),
+                __( 'Aegis Forms', 'aegis-forms' ),
+                $capability,
+                'aegis-forms',
+                array( __CLASS__, 'render_list_page' )
+            );
+        }
 
         add_submenu_page(
             null,
@@ -37,6 +57,22 @@ class Aegis_Forms_Admin {
             'aegis-forms-view',
             array( __CLASS__, 'render_view_page' )
         );
+    }
+
+    private static function find_aegis_parent() {
+        global $menu;
+        $candidates = array( 'aegis-system', 'aegis-hero' );
+
+        foreach ( $menu as $menu_item ) {
+            if ( ! isset( $menu_item[2] ) ) {
+                continue;
+            }
+            if ( in_array( $menu_item[2], $candidates, true ) ) {
+                return $menu_item[2];
+            }
+        }
+
+        return '';
     }
 
     public static function render_list_page() {
@@ -69,7 +105,13 @@ class Aegis_Forms_Admin {
         $total = Aegis_Forms::count_submissions( $filters );
         $submissions = Aegis_Forms::get_submissions( $filters, $per_page, $offset );
 
-        $base_url = Aegis_Forms::admin_url( 'admin.php?page=aegis-forms' );
+        if ( self::find_aegis_parent() ) {
+            $base_url = Aegis_Forms::admin_url( 'admin.php?page=aegis-forms' );
+        } elseif ( is_network_admin() ) {
+            $base_url = Aegis_Forms::admin_url( 'settings.php?page=aegis-forms' );
+        } else {
+            $base_url = Aegis_Forms::admin_url( 'tools.php?page=aegis-forms' );
+        }
         $export_url = Aegis_Forms::admin_url( 'admin-post.php' );
         ?>
         <div class="wrap">
