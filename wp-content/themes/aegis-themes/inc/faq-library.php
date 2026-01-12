@@ -21,16 +21,20 @@ function aegis_register_faq_library_cpt() {
 
     $args = array(
         'labels'             => $labels,
-        'public'             => false,
+        'public'             => true,
         'show_ui'            => true,
         'show_in_menu'       => true,
         'menu_position'      => 22,
         'menu_icon'          => 'dashicons-editor-help',
         'supports'           => array( 'title', 'editor' ),
         'show_in_rest'       => true,
+        'publicly_queryable' => true,
         'exclude_from_search'=> true,
-        'has_archive'        => false,
-        'rewrite'            => false,
+        'has_archive'        => true,
+        'rewrite'            => array(
+            'slug'       => 'faq-library',
+            'with_front' => false,
+        ),
     );
 
     register_post_type( 'aegis_faq', $args );
