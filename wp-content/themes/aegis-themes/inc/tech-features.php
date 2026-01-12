@@ -21,16 +21,20 @@ function aegis_register_tech_features_cpt() {
 
     $args = array(
         'labels'             => $labels,
-        'public'             => false,
+        'public'             => true,
         'show_ui'            => true,
         'show_in_menu'       => true,
         'menu_position'      => 23,
         'menu_icon'          => 'dashicons-admin-tools',
         'supports'           => array( 'title', 'editor', 'thumbnail' ),
         'show_in_rest'       => true,
+        'publicly_queryable' => true,
         'exclude_from_search'=> true,
-        'has_archive'        => false,
-        'rewrite'            => false,
+        'has_archive'        => true,
+        'rewrite'            => array(
+            'slug'       => 'tech-features',
+            'with_front' => false,
+        ),
     );
 
     register_post_type( 'aegis_tech_feature', $args );
@@ -223,8 +227,9 @@ function aegis_pdp_tech_features_shortcode() {
             : '<div class="aegis-tech-feature-card__placeholder"></div>';
 
         $items_markup .= sprintf(
-            '<button type="button" class="aegis-tech-feature-card" data-tech-id="%1$d"><div class="aegis-tech-feature-card__media">%2$s</div><div class="aegis-tech-feature-card__title">%3$s</div></button>',
+            '<a class="aegis-tech-feature-card" data-tech-id="%1$d" href="%2$s"><div class="aegis-tech-feature-card__media">%3$s</div><div class="aegis-tech-feature-card__title">%4$s</div></a>',
             absint( $feature->ID ),
+            esc_url( get_permalink( $feature ) ),
             $media,
             esc_html( $title )
         );
