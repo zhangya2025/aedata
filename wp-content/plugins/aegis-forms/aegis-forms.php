@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'AEGIS_FORMS_VERSION', '1.0.0' );
+define( 'AEGIS_FORMS_DB_VERSION', '1.0.0' );
 define( 'AEGIS_FORMS_PLUGIN_FILE', __FILE__ );
 define( 'AEGIS_FORMS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AEGIS_FORMS_MAX_FILE_SIZE', 10 * 1024 * 1024 );
