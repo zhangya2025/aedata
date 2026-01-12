@@ -883,7 +883,7 @@ body.single-product .woocommerce-notices-wrapper .woocommerce-message a.wc-forwa
     display: none;
 }
 
-.aegis-tech-features-grid > p:empty {
+.aegis-tech-features-grid > p {
     display: none;
 }
 

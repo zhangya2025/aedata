@@ -245,6 +245,6 @@ function aegis_pdp_tech_features_shortcode() {
         $items_markup
     );
 
-    return preg_replace( '/<p>(?:\\s|&nbsp;)*<\\/p>/', '', $output );
+    return preg_replace( '/<p>(?:\\s|&nbsp;|\\xc2\\xa0|<!--.*?-->)*<\\/p>/i', '', $output );
 }
 add_shortcode( 'aegis_pdp_tech_features', 'aegis_pdp_tech_features_shortcode' );
