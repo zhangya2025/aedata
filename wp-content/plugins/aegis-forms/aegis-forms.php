@@ -18,9 +18,11 @@ define( 'AEGIS_FORMS_INSTALL_ERROR_OPTION', 'aegis_forms_install_error' );
 
 require_once AEGIS_FORMS_PLUGIN_PATH . 'includes/class-aegis-forms-schema.php';
 require_once AEGIS_FORMS_PLUGIN_PATH . 'includes/class-aegis-forms-admin.php';
+require_once AEGIS_FORMS_PLUGIN_PATH . 'includes/class-aegis-forms-frontend.php';
 
 function aegis_forms_bootstrap() {
 	Aegis_Forms_Admin::register();
+	Aegis_Forms_Frontend::register();
 }
 
 add_action( 'plugins_loaded', 'aegis_forms_bootstrap' );
