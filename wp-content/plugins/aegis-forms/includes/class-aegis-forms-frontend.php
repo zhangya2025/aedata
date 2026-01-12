@@ -32,7 +32,7 @@ class Aegis_Forms_Frontend {
 		ob_start();
 		?>
 		<?php echo $notice; ?>
-		<form method="post" action="<?php echo esc_url( $action_url ); ?>">
+		<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SUBMIT ); ?>" />
 			<input type="hidden" name="form_type" value="<?php echo esc_attr( $type ); ?>" />
 			<?php wp_nonce_field( $nonce_action ); ?>
@@ -102,6 +102,12 @@ class Aegis_Forms_Frontend {
 			<p>
 				<button type="submit"><?php echo esc_html__( 'Submit' ); ?></button>
 			</p>
+			<p>
+				<label for="aegis-forms-attachments"><?php echo esc_html__( 'Attachments (optional)' ); ?></label><br />
+				<input id="aegis-forms-attachments" type="file" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.pdf" />
+				<br />
+				<small><?php echo esc_html__( 'Up to 3 files. Max 10MB each. JPG, PNG, or PDF only.' ); ?></small>
+			</p>
 		</form>
 		<?php
 		return ob_get_clean();
@@ -130,6 +136,10 @@ class Aegis_Forms_Frontend {
 				'invalid_nonce' => esc_html__( 'Security check failed. Please try again.' ),
 				'invalid_input' => esc_html__( 'Please check the required fields and try again.' ),
 				'rate_limited' => esc_html__( 'Too many submissions. Please try again later.' ),
+				'too_many_files' => esc_html__( 'You can upload up to 3 files.' ),
+				'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.' ),
+				'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.' ),
+				'upload_failed' => esc_html__( 'File upload failed. Please try again.' ),
 				'server_error' => esc_html__( 'Submission failed. Please try again later.' ),
 			);
 			$text = isset( $messages[ $reason ] ) ? $messages[ $reason ] : $messages['server_error'];
@@ -298,8 +308,151 @@ class Aegis_Forms_Frontend {
 			);
 		}
 
+		$attachments = self::handle_attachments( $ticket_no, $insert_id );
+		if ( $attachments ) {
+			$wpdb->update(
+				$table_name,
+				array( 'attachments' => wp_json_encode( $attachments ) ),
+				array( 'id' => $insert_id ),
+				array( '%s' ),
+				array( '%d' )
+			);
+		}
+
 		self::send_notifications( $form_type, $ticket_no, $name, $email, $phone, $country, $meta, $message );
 		self::redirect_with_success( $ticket_no );
+	}
+
+	private static function handle_attachments( $ticket_no, $insert_id ) {
+		if ( empty( $_FILES['attachments'] ) || ! is_array( $_FILES['attachments'] ) ) {
+			return array();
+		}
+
+		$files = self::normalize_files( $_FILES['attachments'] );
+		if ( empty( $files ) ) {
+			return array();
+		}
+
+		if ( count( $files ) > 3 ) {
+			self::delete_submission( $insert_id );
+			self::redirect_with_error( 'too_many_files' );
+		}
+
+		$allowed_mimes = array(
+			'jpg' => 'image/jpeg',
+			'jpeg' => 'image/jpeg',
+			'png' => 'image/png',
+			'pdf' => 'application/pdf',
+		);
+
+		$uploads = wp_upload_dir();
+		$subdir = '/aegis-forms/' . $ticket_no;
+		$filter = function( $dirs ) use ( $uploads, $subdir ) {
+			$dirs['subdir'] = $subdir;
+			$dirs['path'] = $uploads['basedir'] . $subdir;
+			$dirs['url'] = $uploads['baseurl'] . $subdir;
+			return $dirs;
+		};
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		$stored = array();
+		$uploaded_files = array();
+
+		add_filter( 'upload_dir', $filter, 999 );
+		foreach ( $files as $file ) {
+			if ( UPLOAD_ERR_OK !== $file['error'] ) {
+				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
+				remove_filter( 'upload_dir', $filter, 999 );
+				self::delete_submission( $insert_id );
+				self::redirect_with_error( 'upload_failed' );
+			}
+
+			if ( $file['size'] > 10 * 1024 * 1024 ) {
+				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
+				remove_filter( 'upload_dir', $filter, 999 );
+				self::delete_submission( $insert_id );
+				self::redirect_with_error( 'file_too_large' );
+			}
+
+			$check = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], $allowed_mimes );
+			if ( empty( $check['ext'] ) || empty( $check['type'] ) ) {
+				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
+				remove_filter( 'upload_dir', $filter, 999 );
+				self::delete_submission( $insert_id );
+				self::redirect_with_error( 'invalid_file' );
+			}
+
+			$result = wp_handle_upload(
+				$file,
+				array(
+					'test_form' => false,
+					'mimes' => $allowed_mimes,
+				)
+			);
+
+			if ( ! empty( $result['error'] ) || empty( $result['file'] ) ) {
+				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
+				remove_filter( 'upload_dir', $filter, 999 );
+				self::delete_submission( $insert_id );
+				self::redirect_with_error( 'upload_failed' );
+			}
+
+			$stored[] = $result['file'];
+			$relative = ltrim( str_replace( $uploads['basedir'], '', $result['file'] ), '/' );
+			$uploaded_files[] = $relative;
+		}
+		remove_filter( 'upload_dir', $filter, 999 );
+
+		return $uploaded_files;
+	}
+
+	private static function normalize_files( $files ) {
+		$normalized = array();
+		if ( empty( $files['name'] ) || ! is_array( $files['name'] ) ) {
+			return $normalized;
+		}
+
+		$count = count( $files['name'] );
+		for ( $i = 0; $i < $count; $i++ ) {
+			if ( empty( $files['name'][ $i ] ) && 0 === (int) $files['size'][ $i ] ) {
+				continue;
+			}
+			$normalized[] = array(
+				'name' => $files['name'][ $i ],
+				'type' => $files['type'][ $i ],
+				'tmp_name' => $files['tmp_name'][ $i ],
+				'error' => $files['error'][ $i ],
+				'size' => (int) $files['size'][ $i ],
+			);
+		}
+
+		return $normalized;
+	}
+
+	private static function rollback_uploads( $files, $dir ) {
+		foreach ( $files as $path ) {
+			if ( file_exists( $path ) ) {
+				unlink( $path );
+			}
+		}
+
+		if ( is_dir( $dir ) ) {
+			$remaining = glob( trailingslashit( $dir ) . '*' );
+			if ( empty( $remaining ) ) {
+				rmdir( $dir );
+			}
+		}
+
+		return array();
+	}
+
+	private static function delete_submission( $insert_id ) {
+		global $wpdb;
+		$table_name = Aegis_Forms_Schema::table_name();
+		$wpdb->query(
+			$wpdb->prepare( "DELETE FROM {$table_name} WHERE id = %d LIMIT 1", $insert_id )
+		);
 	}
 
 	private static function send_notifications( $form_type, $ticket_no, $name, $email, $phone, $country, $meta, $message ) {

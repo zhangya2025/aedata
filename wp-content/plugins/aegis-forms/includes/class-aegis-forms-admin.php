@@ -368,6 +368,14 @@ class Aegis_Forms_Admin {
 			$admin_notes_value = isset( $row['admin_notes'] ) ? $row['admin_notes'] : '';
 			$created_at = isset( $row['created_at'] ) ? $row['created_at'] : '';
 			$updated_at = isset( $row['updated_at'] ) ? $row['updated_at'] : '';
+			$attachments_list = array();
+			if ( $attachments_value ) {
+				$decoded = json_decode( $attachments_value, true );
+				if ( is_array( $decoded ) ) {
+					$attachments_list = $decoded;
+				}
+			}
+			$uploads = wp_upload_dir();
 			?>
 			<table class="widefat striped">
 				<tbody>
@@ -409,7 +417,24 @@ class Aegis_Forms_Admin {
 					</tr>
 					<tr>
 						<th scope="row"><?php echo esc_html__( 'Attachments' ); ?></th>
-						<td><pre><?php echo esc_html( $attachments_value ); ?></pre></td>
+						<td>
+							<?php if ( empty( $attachments_list ) ) : ?>
+								<?php echo esc_html__( 'No attachments.' ); ?>
+							<?php else : ?>
+								<ul>
+									<?php foreach ( $attachments_list as $attachment ) : ?>
+										<?php
+										$url = $uploads['baseurl'] . '/' . ltrim( $attachment, '/' );
+										?>
+										<li>
+											<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener noreferrer">
+												<?php echo esc_html( basename( $attachment ) ); ?>
+											</a>
+										</li>
+									<?php endforeach; ?>
+								</ul>
+							<?php endif; ?>
+						</td>
 					</tr>
 					<tr>
 						<th scope="row"><?php echo esc_html__( 'Admin Notes' ); ?></th>
