@@ -7,8 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Aegis_Forms {
     const TABLE = 'aegis_forms_submissions';
     const OPTION_VERSION = 'aegis_forms_version';
-    const OPTION_DB_VERSION = 'aegis_forms_db_version';
-    const OPTION_INSTALL_ERROR = 'aegis_forms_install_error';
     const RATE_LIMIT_MAX = 5;
     const RATE_LIMIT_TTL = 3600;
     private static $upload_ticket_no = '';
@@ -18,19 +16,14 @@ class Aegis_Forms {
         add_action( 'admin_post_aegis_forms_submit', array( __CLASS__, 'handle_submission' ) );
         add_action( 'admin_post_aegis_forms_export', array( __CLASS__, 'handle_export' ) );
         add_action( 'admin_post_aegis_forms_update', array( __CLASS__, 'handle_update' ) );
-        add_action( 'admin_init', array( __CLASS__, 'maybe_install_schema' ) );
     }
 
     public static function activate() {
-        self::install_schema();
+        self::create_table();
         update_option( self::OPTION_VERSION, AEGIS_FORMS_VERSION );
     }
 
     public static function create_table() {
-        self::install_schema();
-    }
-
-    public static function install_schema() {
         global $wpdb;
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -63,52 +56,12 @@ class Aegis_Forms {
             KEY created_at (created_at)
         ) {$charset_collate};";
 
-        $delta = dbDelta( $sql );
-
-        if ( self::table_exists() ) {
-            update_option( self::OPTION_DB_VERSION, AEGIS_FORMS_DB_VERSION );
-            delete_option( self::OPTION_INSTALL_ERROR );
-            return true;
-        }
-
-        $details = array();
-        if ( ! empty( $wpdb->last_error ) ) {
-            $details[] = $wpdb->last_error;
-        }
-        if ( ! empty( $delta ) ) {
-            $details[] = implode( '; ', (array) $delta );
-        }
-        if ( empty( $details ) ) {
-            $details[] = 'Unknown error creating table.';
-        }
-        update_option( self::OPTION_INSTALL_ERROR, implode( ' | ', $details ) );
-
-        return false;
+        dbDelta( $sql );
     }
 
     public static function table_name() {
         global $wpdb;
         return $wpdb->prefix . self::TABLE;
-    }
-
-    public static function table_exists() {
-        global $wpdb;
-        $table_name = self::table_name();
-        $result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
-        return $result === $table_name;
-    }
-
-    public static function maybe_install_schema() {
-        if ( ! is_admin() || ! current_user_can( self::capability() ) ) {
-            return self::table_exists();
-        }
-
-        $installed_version = get_option( self::OPTION_DB_VERSION );
-        if ( ! self::table_exists() || $installed_version !== AEGIS_FORMS_DB_VERSION ) {
-            self::install_schema();
-        }
-
-        return self::table_exists();
     }
 
     public static function allowed_types() {
@@ -133,10 +86,6 @@ class Aegis_Forms {
     }
 
     public static function handle_submission() {
-        if ( ! self::maybe_install_schema() ) {
-            self::redirect_with_message( 'error', 'server' );
-        }
-
         $nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
         if ( ! wp_verify_nonce( $nonce, 'aegis_forms_submit' ) ) {
             self::redirect_with_message( 'error', 'nonce' );
@@ -294,10 +243,6 @@ class Aegis_Forms {
             wp_die( esc_html__( 'Invalid request.', 'aegis-forms' ) );
         }
 
-        if ( ! self::maybe_install_schema() ) {
-            wp_die( esc_html__( 'Forms table is not ready. Please try again later.', 'aegis-forms' ) );
-        }
-
         $filters = self::sanitize_filters_from_request( $_POST );
         $submissions = self::get_submissions( $filters, 0, 0 );
 
@@ -355,10 +300,6 @@ class Aegis_Forms {
     }
 
     public static function get_submissions( array $filters, $limit = 50, $offset = 0 ) {
-        if ( ! self::table_exists() ) {
-            return array();
-        }
-
         global $wpdb;
         $table_name = self::table_name();
 
@@ -399,10 +340,6 @@ class Aegis_Forms {
     }
 
     public static function count_submissions( array $filters ) {
-        if ( ! self::table_exists() ) {
-            return 0;
-        }
-
         global $wpdb;
         $table_name = self::table_name();
 
