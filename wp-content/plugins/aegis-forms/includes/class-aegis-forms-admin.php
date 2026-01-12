@@ -32,6 +32,11 @@ class Aegis_Forms_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Aegis Forms' ); ?></h1>
+			<?php if ( '' !== $checks['db_install_error'] ) : ?>
+				<div class="notice notice-error">
+					<p><?php echo esc_html( $checks['db_install_error'] ); ?></p>
+				</div>
+			<?php endif; ?>
 			<table class="widefat striped">
 				<tbody>
 					<tr>
@@ -80,6 +85,22 @@ class Aegis_Forms_Admin {
 						<th scope="row">wp_mail available</th>
 						<td><?php echo esc_html( $checks['has_wp_mail'] ? 'true' : 'false' ); ?></td>
 					</tr>
+					<tr>
+						<th scope="row">DB table name</th>
+						<td><?php echo esc_html( $checks['db_table_name'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row">DB table exists</th>
+						<td><?php echo esc_html( $checks['db_table_exists'] ? 'true' : 'false' ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row">DB version installed</th>
+						<td><?php echo esc_html( $checks['db_version_installed'] ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row">DB version expected</th>
+						<td><?php echo esc_html( $checks['db_version_expected'] ); ?></td>
+					</tr>
 				</tbody>
 			</table>
 		</div>
@@ -99,6 +120,11 @@ class Aegis_Forms_Admin {
 		$aegis_upload_dir_writable = $aegis_upload_dir && is_writable( $aegis_upload_dir );
 		$aegis_upload_dir_created = 'n/a';
 		$aegis_upload_dir_error = '';
+		$db_table_name = Aegis_Forms_Schema::table_name();
+		$db_table_exists = Aegis_Forms_Schema::table_exists();
+		$db_version_installed = Aegis_Forms_Schema::get_installed_version();
+		$db_version_expected = AEGIS_FORMS_DB_VERSION;
+		$db_install_error = get_option( AEGIS_FORMS_INSTALL_ERROR_OPTION, '' );
 
 		if ( $aegis_upload_dir && ! $aegis_upload_dir_exists ) {
 			if ( wp_mkdir_p( $aegis_upload_dir ) ) {
@@ -128,6 +154,11 @@ class Aegis_Forms_Admin {
 			'aegis_upload_dir_created' => $aegis_upload_dir_created,
 			'aegis_upload_dir_error' => $aegis_upload_dir_error,
 			'has_wp_mail' => function_exists( 'wp_mail' ),
+			'db_table_name' => $db_table_name,
+			'db_table_exists' => $db_table_exists,
+			'db_version_installed' => $db_version_installed,
+			'db_version_expected' => $db_version_expected,
+			'db_install_error' => $db_install_error,
 		);
 	}
 }
