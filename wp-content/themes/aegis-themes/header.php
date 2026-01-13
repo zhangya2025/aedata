@@ -14,3 +14,5 @@
 <?php wp_body_open(); ?>
 <?php
 echo do_blocks( '<!-- wp:template-part {"slug":"header","tagName":"header"} /-->' );
+?>
+<div class="aegis-site-shell">
