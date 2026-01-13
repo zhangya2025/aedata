@@ -58,6 +58,15 @@
   min-width: 0;
 }
 
+.aegis-info-layout .aegis-info-title {
+  margin: 0 0 16px;
+  font-size: clamp(1.8rem, 1.6rem + 1vw, 2.4rem);
+}
+
+.aegis-info-layout .aegis-info-body {
+  max-width: 760px;
+}
+
 .aegis-info-layout .aegis-info-content > *:first-child {
   margin-top: 0;
 }

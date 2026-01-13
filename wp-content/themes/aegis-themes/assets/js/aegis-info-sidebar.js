@@ -10,16 +10,34 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  const setExpanded = (expanded) => {
+  const mediaQuery = window.matchMedia('(max-width: 720px)');
+
+  const setExpanded = (expanded, isMobile) => {
     toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (isMobile) {
+      list.hidden = !expanded;
+    } else {
+      list.hidden = false;
+    }
   };
 
-  if (!toggle.hasAttribute('aria-expanded')) {
-    setExpanded(false);
-  }
+  const syncForViewport = () => {
+    if (mediaQuery.matches) {
+      setExpanded(false, true);
+    } else {
+      setExpanded(true, false);
+    }
+  };
+
+  syncForViewport();
 
   toggle.addEventListener('click', () => {
+    if (!mediaQuery.matches) {
+      return;
+    }
     const expanded = toggle.getAttribute('aria-expanded') === 'true';
-    setExpanded(!expanded);
+    setExpanded(!expanded, true);
   });
+
+  mediaQuery.addEventListener('change', syncForViewport);
 });
