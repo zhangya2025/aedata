@@ -31,17 +31,5 @@
 - 点击「目录」按钮可展开/收起。
 - 按钮会自动更新 `aria-expanded`，并通过 `aria-controls` 关联到目录列表。
 
-## 一次性批量创建页面（Seeder 工具页）
-入口：后台 **Tools → AEGIS Info Pages Seed**（仅超级管理员可见）。
-
-使用方式：
-1. 进入工具页后点击 **Create Info Pages** 按钮。
-2. 系统会自动创建 About / Legal / Resources / Support 四个父页及全部子页，并套用模板。
-3. 页面会写入“待完善/Content pending”占位内容，Support 相关页面会额外包含“表单区域占位”说明。
-
-幂等说明：
-- 若页面已存在，会复用并更新模板/层级/排序与占位内容，不会重复创建同名页面。
-- 执行完成后会写入 `aegis_info_pages_seeded` 标记，工具页显示“已完成”并隐藏按钮，避免误触。
-
-关闭/不再使用：
-- 无需手工删除文件；工具页在已 seeded 状态下会自动禁用。
+## Seeder 工具页（已弃用）
+一键创建页面的 Seeder 工具页已移除（生产/测试环境已执行完成）。如需新增页面，请使用上方的手工流程设置 Parent 与 Order，并选择 **AEGIS Info Sidebar** 模板。
