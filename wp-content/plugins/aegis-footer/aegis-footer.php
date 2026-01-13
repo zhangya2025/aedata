@@ -10,31 +10,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function aegis_footer_default_columns() {
-    $year = (int) wp_date( 'Y' );
     return array(
         array(
-            'id'          => 'col_' . wp_generate_uuid4(),
-            'title'       => 'Marmot',
-            'links_text'  => "About Us|#\nCareers|#\nPress|#\nBlog|#",
-            'content_text'=> '',
+            'id'           => 'col_' . wp_generate_uuid4(),
+            'title'        => 'AEGISMAX',
+            'links_text'   => '',
+            'content_text' => '',
         ),
         array(
-            'id'          => 'col_' . wp_generate_uuid4(),
-            'title'       => 'Resources',
-            'links_text'  => "Support|#\nSizing Guide|#\nWarranty|#\nOrder Status|#",
-            'content_text'=> '',
+            'id'           => 'col_' . wp_generate_uuid4(),
+            'title'        => 'Resources',
+            'links_text'   => '',
+            'content_text' => '',
         ),
         array(
-            'id'          => 'col_' . wp_generate_uuid4(),
-            'title'       => 'Legal',
-            'links_text'  => "Privacy Policy|#\nTerms of Use|#\nAccessibility|#\nCookie Policy|#",
-            'content_text'=> '',
+            'id'           => 'col_' . wp_generate_uuid4(),
+            'title'        => 'Legal',
+            'links_text'   => '',
+            'content_text' => '',
         ),
         array(
-            'id'          => 'col_' . wp_generate_uuid4(),
-            'title'       => 'Customer Service',
-            'links_text'  => "Contact Us|#\nReturns|#\nShipping|#",
-            'content_text'=> "Need help?\nCall us at 1-800-000-0000\nMon-Fri 9am-5pm",
+            'id'           => 'col_' . wp_generate_uuid4(),
+            'title'        => 'Customer Service',
+            'links_text'   => '',
+            'content_text' => '',
         ),
     );
 }
@@ -114,6 +113,114 @@ function aegis_footer_parse_links_text( $text ) {
     return $links;
 }
 
+function aegis_footer_get_section_pages( $parent_slug ) {
+    static $cache = array();
+
+    if ( isset( $cache[ $parent_slug ] ) ) {
+        return $cache[ $parent_slug ];
+    }
+
+    $empty = array(
+        'parent'   => array(),
+        'children' => array(),
+    );
+
+    if ( '' === (string) $parent_slug ) {
+        $cache[ $parent_slug ] = $empty;
+        return $empty;
+    }
+
+    $parent = get_page_by_path( $parent_slug, OBJECT, 'page' );
+    if ( ! $parent instanceof WP_Post || 'publish' !== $parent->post_status ) {
+        $cache[ $parent_slug ] = $empty;
+        return $empty;
+    }
+
+    $children = get_pages(
+        array(
+            'parent'      => $parent->ID,
+            'sort_column' => 'menu_order,post_title',
+            'sort_order'  => 'ASC',
+            'post_status' => 'publish',
+        )
+    );
+
+    $items = array();
+    foreach ( $children as $child ) {
+        $items[] = array(
+            'title' => $child->post_title,
+            'url'   => get_permalink( $child->ID ),
+        );
+    }
+
+    $cache[ $parent_slug ] = array(
+        'parent'   => array(
+            'title' => $parent->post_title,
+            'url'   => get_permalink( $parent->ID ),
+        ),
+        'children' => $items,
+    );
+
+    return $cache[ $parent_slug ];
+}
+
+function aegis_footer_dynamic_sections_map() {
+    return array(
+        'aegismax' => array(
+            'label'       => 'AEGISMAX',
+            'parent_slug' => 'about',
+        ),
+        'resources' => array(
+            'label'       => 'Resources',
+            'parent_slug' => 'resources',
+        ),
+        'legal' => array(
+            'label'       => 'Legal',
+            'parent_slug' => 'legal',
+        ),
+        'customer_service' => array(
+            'label'       => 'Customer Service',
+            'parent_slug' => 'support',
+        ),
+    );
+}
+
+function aegis_footer_apply_dynamic_links( $columns ) {
+    if ( empty( $columns ) || ! is_array( $columns ) ) {
+        return $columns;
+    }
+
+    $map = aegis_footer_dynamic_sections_map();
+
+    foreach ( $columns as $index => $column ) {
+        $title = isset( $column['title'] ) ? trim( $column['title'] ) : '';
+        if ( '' === $title ) {
+            continue;
+        }
+
+        foreach ( $map as $section ) {
+            if ( 0 !== strcasecmp( $title, $section['label'] ) ) {
+                continue;
+            }
+
+            $links_text = isset( $column['links_text'] ) ? trim( (string) $column['links_text'] ) : '';
+            if ( '' !== $links_text ) {
+                break;
+            }
+
+            $pages = aegis_footer_get_section_pages( $section['parent_slug'] );
+            if ( empty( $pages['children'] ) ) {
+                break;
+            }
+
+            $columns[ $index ]['links'] = $pages['children'];
+            break;
+        }
+    }
+
+    return $columns;
+}
+
 function aegis_footer_render_links_list( $links ) {
     if ( empty( $links ) ) {
         return '';
@@ -122,6 +229,9 @@ function aegis_footer_render_links_list( $links ) {
     foreach ( $links as $link ) {
         $url   = isset( $link['url'] ) ? $link['url'] : '';
         $label = isset( $link['label'] ) ? $link['label'] : '';
+        if ( '' === $label && isset( $link['title'] ) ) {
+            $label = $link['title'];
+        }
         if ( '' === $label ) {
             continue;
         }
@@ -152,7 +262,9 @@ function aegis_footer_render_content( $text ) {
 
 function aegis_footer_render_column( $column ) {
     $title   = isset( $column['title'] ) ? $column['title'] : '';
-    $links   = aegis_footer_parse_links_text( isset( $column['links_text'] ) ? $column['links_text'] : '' );
+    $links   = isset( $column['links'] ) && is_array( $column['links'] )
+        ? $column['links']
+        : aegis_footer_parse_links_text( isset( $column['links_text'] ) ? $column['links_text'] : '' );
     $content = aegis_footer_render_content( isset( $column['content_text'] ) ? $column['content_text'] : '' );
 
     $html  = '<section class="aegis-footer__col">';
@@ -168,7 +280,9 @@ function aegis_footer_render_column( $column ) {
 
 function aegis_footer_render_accordion_column( $column ) {
     $title   = isset( $column['title'] ) ? $column['title'] : '';
-    $links   = aegis_footer_parse_links_text( isset( $column['links_text'] ) ? $column['links_text'] : '' );
+    $links   = isset( $column['links'] ) && is_array( $column['links'] )
+        ? $column['links']
+        : aegis_footer_parse_links_text( isset( $column['links_text'] ) ? $column['links_text'] : '' );
     $content = aegis_footer_render_content( isset( $column['content_text'] ) ? $column['content_text'] : '' );
     $body    = aegis_footer_render_links_list( $links ) . $content;
 
@@ -190,6 +304,7 @@ function aegis_footer_render_block( $attributes ) {
     }
 
     $columns = isset( $settings['columns'] ) && is_array( $settings['columns'] ) ? $settings['columns'] : array();
+    $columns = aegis_footer_apply_dynamic_links( $columns );
     $bottom  = isset( $settings['bottom'] ) ? $settings['bottom'] : array();
 
     $grid_html = '';
