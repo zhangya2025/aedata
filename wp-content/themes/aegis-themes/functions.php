@@ -16,10 +16,45 @@ require_once get_theme_file_path( 'inc/faq-library.php' );
 require_once get_theme_file_path( 'inc/tech-features.php' );
 require_once get_theme_file_path( 'inc/certificates.php' );
 require_once get_theme_file_path( 'inc/aegis-plp-filters.php' );
-
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
 } );
+
+function aegis_info_sidebar_get_nav_items( $current_id ) {
+    if ( ! $current_id ) {
+        return array();
+    }
+
+    $root_id   = $current_id;
+    $ancestors = get_post_ancestors( $current_id );
+    if ( ! empty( $ancestors ) ) {
+        $root_id = (int) end( $ancestors );
+    }
+
+    $root_page = get_post( $root_id );
+    if ( ! $root_page || 'publish' !== $root_page->post_status ) {
+        return array();
+    }
+
+    $children = get_pages(
+        array(
+            'parent'      => $root_id,
+            'sort_column' => 'menu_order,post_title',
+            'sort_order'  => 'ASC',
+            'post_status' => 'publish',
+        )
+    );
+
+    $items = array( $root_page );
+    foreach ( $children as $child ) {
+        if ( (int) $child->ID === (int) $root_id ) {
+            continue;
+        }
+        $items[] = $child;
+    }
+
+    return $items;
+}
 
 add_action( 'after_setup_theme', function () {
     add_theme_support( 'title-tag' );
@@ -60,6 +95,27 @@ add_action( 'wp_enqueue_scripts', function () {
     wp_enqueue_style( 'aegis-themes-style', get_theme_file_uri( 'assets/css/main.css' ), array(), AEGIS_THEMES_VERSION );
     wp_enqueue_script( 'aegis-themes-script', get_theme_file_uri( 'assets/js/main.js' ), array(), AEGIS_THEMES_VERSION, true );
 } );
+
+add_action( 'wp_enqueue_scripts', function () {
+    if ( ! is_page_template( 'page-templates/template-info-sidebar.php' ) ) {
+        return;
+    }
+
+    wp_enqueue_style(
+        'aegis-info-sidebar',
+        get_theme_file_uri( 'assets/css/aegis-info-sidebar.css' ),
+        array( 'aegis-themes-style' ),
+        AEGIS_THEMES_VERSION
+    );
+
+    wp_enqueue_script(
+        'aegis-info-sidebar',
+        get_theme_file_uri( 'assets/js/aegis-info-sidebar.js' ),
+        array(),
+        AEGIS_THEMES_VERSION,
+        true
+    );
+}, 12 );
 
 add_action( 'wp_enqueue_scripts', 'aegis_plp_filters_enqueue', 15 );
 
