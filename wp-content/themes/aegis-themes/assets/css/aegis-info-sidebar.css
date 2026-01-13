@@ -1,0 +1,101 @@
+.aegis-info-layout {
+  display: flex;
+  gap: 32px;
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 40px 24px;
+  box-sizing: border-box;
+}
+
+.aegis-info-layout .aegis-info-nav {
+  flex: 0 0 280px;
+  border-right: 1px solid rgba(17, 24, 39, 0.12);
+  padding-right: 24px;
+}
+
+.aegis-info-layout .aegis-info-nav-toggle {
+  display: none;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid rgba(17, 24, 39, 0.2);
+  background: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.aegis-info-layout .aegis-info-nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aegis-info-layout .aegis-info-nav-item {
+  margin: 0;
+}
+
+.aegis-info-layout .aegis-info-nav-link {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+}
+
+.aegis-info-layout .aegis-info-nav-link.is-current {
+  font-weight: 600;
+  border-color: currentColor;
+}
+
+.aegis-info-layout .aegis-info-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.aegis-info-layout .aegis-info-title {
+  margin: 0 0 16px;
+  font-size: clamp(1.8rem, 1.6rem + 1vw, 2.4rem);
+}
+
+.aegis-info-layout .aegis-info-body {
+  max-width: 760px;
+}
+
+.aegis-info-layout .aegis-info-content > *:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .aegis-info-layout {
+    flex-direction: column;
+    gap: 24px;
+    padding: 28px 20px;
+  }
+
+  .aegis-info-layout .aegis-info-nav {
+    flex: 1 1 auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.12);
+    padding-right: 0;
+    padding-bottom: 16px;
+  }
+
+  .aegis-info-layout .aegis-info-nav-toggle {
+    display: flex;
+  }
+
+  .aegis-info-layout .aegis-info-nav-list {
+    display: none;
+    margin-top: 12px;
+  }
+
+  .aegis-info-layout .aegis-info-nav-toggle[aria-expanded="true"] + .aegis-info-nav-list {
+    display: flex;
+  }
+}
