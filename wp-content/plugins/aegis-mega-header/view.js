@@ -80,7 +80,6 @@
       const next = {
         isHomeClass: false,
         isHeaderHidden: false,
-        isTopHidden: false,
         modeOverlay: false,
         modeSolid: false,
       };
@@ -94,7 +93,6 @@
 
       if ( megaOpen ) {
         next.modeSolid = true;
-        next.isTopHidden = ! atTop;
         return next;
       }
 
@@ -109,17 +107,8 @@
         return next;
       }
 
-      const wasTopHidden = header.classList.contains('is-top-hidden');
-      const revealMain = ! atTop && ( direction === 'up' || ( direction === 'none' && wasTopHidden ) );
-      next.isTopHidden = revealMain;
-
-      if ( atTop ) {
-        next.isTopHidden = false;
-      }
-
       const allowOverlay =
         atTop &&
-        ! next.isTopHidden &&
         ! mainHover &&
         ! mainFocus;
 
@@ -137,7 +126,6 @@
       header.classList.remove(
         'is-home',
         'is-header-hidden',
-        'is-top-hidden',
         'mode-overlay',
         'mode-solid'
       );
@@ -147,9 +135,6 @@
       }
       if ( next.isHeaderHidden ) {
         header.classList.add('is-header-hidden');
-      }
-      if ( next.isTopHidden ) {
-        header.classList.add('is-top-hidden');
       }
       if ( next.modeOverlay ) {
         header.classList.add('mode-overlay');

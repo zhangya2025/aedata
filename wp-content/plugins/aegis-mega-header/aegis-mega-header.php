@@ -1259,7 +1259,6 @@ $brand        = aegis_mega_header_render_brand( $settings );
 $logo_sizes   = aegis_mega_header_logo_dimensions( $settings );
 $promo_slots  = aegis_mega_header_promo_slots( $settings );
 $nav_defaults = aegis_mega_header_default_nav();
-$top_settings = isset( $settings['top'] ) ? $settings['top'] : $nav_defaults['top'];
 $nav_items    = isset( $settings['nav']['items'] ) ? $settings['nav']['items'] : ( isset( $settings['nav'] ) ? $settings['nav'] : [] );
 $default_map  = aegis_mega_header_default_item_map();
 $cart_count   = 0;
@@ -1380,22 +1379,6 @@ $header_style = sprintf(
 );
 ?>
 <header class="aegis-mega-header" data-placeholder="<?php echo $placeholder ? 'true' : 'false'; ?>" style="<?php echo esc_attr( $header_style ); ?>">
-<?php if ( ! empty( $attributes['showUtilityBar'] ) && ! empty( $top_settings['enabled'] ) ) :
-    $top_links = isset( $top_settings['links'] ) ? $top_settings['links'] : [];
-    ?>
-<div class="aegis-header__top">
-<div class="aegis-header__top-inner">
-                <div class="aegis-header__top-links" aria-label="Utility">
-<?php foreach ( $top_links as $link ) :
-    $label = isset( $link['label'] ) ? $link['label'] : '';
-    $url   = isset( $link['url'] ) ? $link['url'] : '#';
-    ?>
-                    <a class="aegis-header__top-link" href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a>
-<?php endforeach; ?>
-</div>
-</div>
-</div>
-<?php endif; ?>
 
 <div class="aegis-mobile-topbar" aria-label="Mobile menu bar">
     <button class="aegis-mobile-btn" data-mobile-open aria-label="Open menu">
@@ -1895,9 +1878,7 @@ function aegis_mega_header_render_settings_page() {
     $ad_slots          = isset( $settings['ad_slots'] ) ? $settings['ad_slots'] : [];
     $nav_defaults      = aegis_mega_header_default_nav();
     $promo_default     = aegis_mega_header_default_promo_config();
-    $top_defaults      = isset( $nav_defaults['top'] ) ? $nav_defaults['top'] : [];
     $main_default      = isset( $nav_defaults['main']['items'] ) ? $nav_defaults['main']['items'] : [];
-    $top_settings      = isset( $settings['top'] ) ? $settings['top'] : $top_defaults;
     $nav_items         = isset( $settings['nav']['items'] ) ? $settings['nav']['items'] : ( isset( $settings['nav'] ) ? $settings['nav'] : $main_default );
 
     if ( aegis_mega_header_array_is_assoc( $nav_items ) ) {
@@ -1910,42 +1891,6 @@ function aegis_mega_header_render_settings_page() {
         <h1>Aegis Mega Header</h1>
         <form method="post" action="options.php">
             <?php settings_fields( 'aegis_mega_header_settings_group' ); ?>
-
-            <h2>Top Bar</h2>
-            <table class="form-table" role="presentation">
-                <tbody>
-                    <tr>
-                        <th scope="row">Enable TOP</th>
-                        <td>
-                            <label>
-                                <input type="checkbox" name="aegis_mega_header_settings[top][enabled]" value="1" <?php checked( ! empty( $top_settings['enabled'] ) ); ?> />
-                                Show top utility bar
-                            </label>
-                        </td>
-                    </tr>
-                    <?php
-                    $top_links = isset( $top_settings['links'] ) ? $top_settings['links'] : $top_defaults['links'];
-                    foreach ( $top_links as $index => $link ) {
-                        $label = isset( $link['label'] ) ? $link['label'] : $top_defaults['links'][ $index ]['label'];
-                        $url   = isset( $link['url'] ) ? $link['url'] : $top_defaults['links'][ $index ]['url'];
-                        ?>
-                        <tr>
-                            <th scope="row">Link <?php echo esc_html( $index + 1 ); ?></th>
-                            <td>
-                                <label>Label<br />
-                                    <input type="text" class="regular-text" name="aegis_mega_header_settings[top][links][<?php echo esc_attr( $index ); ?>][label]" value="<?php echo esc_attr( $label ); ?>" />
-                                </label>
-                                <br />
-                                <label>URL<br />
-                                    <input type="url" class="regular-text" name="aegis_mega_header_settings[top][links][<?php echo esc_attr( $index ); ?>][url]" value="<?php echo esc_attr( $url ); ?>" />
-                                </label>
-                            </td>
-                        </tr>
-                        <?php
-                    }
-                    ?>
-                </tbody>
-            </table>
 
             <h2>Main Navigation</h2>
             <p>Manage the top-level menu items. Mega items open panels on hover/focus; link items behave as links only.</p>
