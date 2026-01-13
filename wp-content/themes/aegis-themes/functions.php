@@ -19,6 +19,7 @@ require_once get_theme_file_path( 'inc/aegis-plp-filters.php' );
 
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
+    add_shortcode( 'aegis_info_sidebar_nav', 'aegis_info_sidebar_nav_shortcode' );
 } );
 
 function aegis_info_sidebar_get_nav_items( $current_id ) {
