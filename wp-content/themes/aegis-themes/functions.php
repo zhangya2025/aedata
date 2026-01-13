@@ -19,6 +19,7 @@ require_once get_theme_file_path( 'inc/aegis-plp-filters.php' );
 
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
+    add_shortcode( 'aegis_info_sidebar_nav', 'aegis_info_sidebar_nav_shortcode' );
 } );
 
 function aegis_info_sidebar_get_nav_items( $current_id ) {
@@ -249,3 +250,198 @@ add_filter( 'the_title', function ( $title, $post_id ) {
 
     return sprintf( '%s (%d)', esc_html__( 'Shopping Cart', 'aegis-themes' ), (int) $count );
 }, 20, 2 );
+
+function aegis_info_pages_seed_data() {
+    return array(
+        'parents'  => array(
+            'about'     => 'About Us',
+            'legal'     => 'Legal & Compliance',
+            'resources' => 'Resources',
+            'support'   => 'Customer Service',
+        ),
+        'children' => array(
+            'about'     => array(
+                array( 'slug' => 'brand-story', 'title' => '品牌故事', 'menu_order' => 10 ),
+                array( 'slug' => 'mission-vision', 'title' => '使命愿景', 'menu_order' => 20 ),
+                array( 'slug' => 'team', 'title' => '团队', 'menu_order' => 30 ),
+            ),
+            'legal'     => array(
+                array( 'slug' => 'privacy-policy', 'title' => '隐私政策', 'menu_order' => 10 ),
+                array( 'slug' => 'terms', 'title' => '条款与条件', 'menu_order' => 20 ),
+                array( 'slug' => 'returns-refunds', 'title' => '退换货政策', 'menu_order' => 30 ),
+                array( 'slug' => 'shipping', 'title' => '运输政策', 'menu_order' => 40 ),
+            ),
+            'resources' => array(
+                array( 'slug' => 'faqs', 'title' => 'FAQs', 'menu_order' => 10 ),
+                array( 'slug' => 'size-fit', 'title' => 'Size & Fit Guides', 'menu_order' => 20 ),
+                array( 'slug' => 'laundering', 'title' => 'Laundering Instructions', 'menu_order' => 30 ),
+                array( 'slug' => 'technical', 'title' => '技术说明', 'menu_order' => 40 ),
+            ),
+            'support'   => array(
+                array( 'slug' => 'contact', 'title' => '联系我们', 'menu_order' => 10 ),
+                array( 'slug' => 'repair', 'title' => '维修申请', 'menu_order' => 20 ),
+                array( 'slug' => 'dealer', 'title' => '加盟经销', 'menu_order' => 30 ),
+                array( 'slug' => 'customization', 'title' => '定制服务', 'menu_order' => 40 ),
+                array( 'slug' => 'sponsorship', 'title' => '赞助服务', 'menu_order' => 50 ),
+            ),
+        ),
+    );
+}
+
+function aegis_info_pages_seed_placeholder( $title, $include_support_note ) {
+    $content = sprintf( '<p>待完善/Content pending：%s 页面内容待补充。</p>', esc_html( $title ) );
+    if ( $include_support_note ) {
+        $content .= '<p>表单区域占位：后续替换为表单区块/短代码。</p>';
+    }
+    return $content;
+}
+
+function aegis_info_pages_seed_run() {
+    $data          = aegis_info_pages_seed_data();
+    $template      = 'page-templates/template-info-sidebar.php';
+    $results       = array();
+    $parent_ids    = array();
+    $parent_titles = array();
+
+    foreach ( $data['parents'] as $slug => $title ) {
+        $existing = get_page_by_path( $slug, OBJECT, 'page' );
+        $content  = aegis_info_pages_seed_placeholder( $title, false );
+
+        if ( $existing ) {
+            $page_id = $existing->ID;
+            wp_update_post(
+                array(
+                    'ID'           => $page_id,
+                    'post_title'   => $title,
+                    'post_status'  => 'publish',
+                    'post_parent'  => 0,
+                    'menu_order'   => 0,
+                    'post_content' => $content,
+                )
+            );
+            $results[] = sprintf( '%s (%s) - updated', $title, $slug );
+        } else {
+            $page_id = wp_insert_post(
+                array(
+                    'post_title'   => $title,
+                    'post_name'    => $slug,
+                    'post_type'    => 'page',
+                    'post_status'  => 'publish',
+                    'post_content' => $content,
+                )
+            );
+            $results[] = sprintf( '%s (%s) - created', $title, $slug );
+        }
+
+        if ( $page_id ) {
+            update_post_meta( $page_id, '_wp_page_template', $template );
+            $parent_ids[ $slug ]    = $page_id;
+            $parent_titles[ $slug ] = $title;
+        }
+    }
+
+    foreach ( $data['children'] as $parent_slug => $items ) {
+        if ( empty( $parent_ids[ $parent_slug ] ) ) {
+            continue;
+        }
+
+        foreach ( $items as $item ) {
+            $path           = $parent_slug . '/' . $item['slug'];
+            $existing       = get_page_by_path( $path, OBJECT, 'page' );
+            $is_support     = 'support' === $parent_slug;
+            $content        = aegis_info_pages_seed_placeholder( $item['title'], $is_support );
+            $parent_id      = $parent_ids[ $parent_slug ];
+            $parent_title   = $parent_titles[ $parent_slug ];
+            $display_parent = $parent_title ? sprintf( '%s/%s', $parent_title, $item['title'] ) : $item['title'];
+
+            if ( $existing ) {
+                $page_id = $existing->ID;
+                wp_update_post(
+                    array(
+                        'ID'           => $page_id,
+                        'post_title'   => $item['title'],
+                        'post_status'  => 'publish',
+                        'post_parent'  => $parent_id,
+                        'menu_order'   => $item['menu_order'],
+                        'post_content' => $content,
+                    )
+                );
+                $results[] = sprintf( '%s (%s) - updated', $display_parent, $path );
+            } else {
+                $page_id = wp_insert_post(
+                    array(
+                        'post_title'   => $item['title'],
+                        'post_name'    => $item['slug'],
+                        'post_type'    => 'page',
+                        'post_status'  => 'publish',
+                        'post_parent'  => $parent_id,
+                        'menu_order'   => $item['menu_order'],
+                        'post_content' => $content,
+                    )
+                );
+                $results[] = sprintf( '%s (%s) - created', $display_parent, $path );
+            }
+
+            if ( $page_id ) {
+                update_post_meta( $page_id, '_wp_page_template', $template );
+            }
+        }
+    }
+
+    update_option( 'aegis_info_pages_seeded', 1 );
+
+    return $results;
+}
+
+function aegis_info_pages_seed_admin_menu() {
+    if ( ! current_user_can( 'manage_options' ) || ! is_super_admin() ) {
+        return;
+    }
+
+    add_management_page(
+        esc_html__( 'AEGIS Info Pages Seed', 'aegis-themes' ),
+        esc_html__( 'AEGIS Info Pages Seed', 'aegis-themes' ),
+        'manage_options',
+        'aegis-info-pages-seed',
+        'aegis_info_pages_seed_render_page'
+    );
+}
+add_action( 'admin_menu', 'aegis_info_pages_seed_admin_menu' );
+
+function aegis_info_pages_seed_render_page() {
+    if ( ! current_user_can( 'manage_options' ) || ! is_super_admin() ) {
+        wp_die( esc_html__( 'You do not have permission to access this page.', 'aegis-themes' ) );
+    }
+
+    $seeded  = (bool) get_option( 'aegis_info_pages_seeded', false );
+    $results = array();
+
+    if ( ! $seeded && isset( $_POST['aegis_info_pages_seed_nonce'] ) ) {
+        check_admin_referer( 'aegis_info_pages_seed_action', 'aegis_info_pages_seed_nonce' );
+        $results = aegis_info_pages_seed_run();
+        $seeded  = true;
+    }
+    ?>
+    <div class="wrap">
+        <h1><?php esc_html_e( 'AEGIS Info Pages Seed', 'aegis-themes' ); ?></h1>
+        <?php if ( $seeded ) : ?>
+            <p><?php esc_html_e( '已完成：信息页框架已创建。再次进入无需重复操作。', 'aegis-themes' ); ?></p>
+        <?php else : ?>
+            <p><?php esc_html_e( '点击按钮创建 About/Legal/Resources/Support 页面框架（含子页）。', 'aegis-themes' ); ?></p>
+            <form method="post">
+                <?php wp_nonce_field( 'aegis_info_pages_seed_action', 'aegis_info_pages_seed_nonce' ); ?>
+                <?php submit_button( esc_html__( 'Create Info Pages', 'aegis-themes' ) ); ?>
+            </form>
+        <?php endif; ?>
+
+        <?php if ( ! empty( $results ) ) : ?>
+            <h2><?php esc_html_e( '执行结果', 'aegis-themes' ); ?></h2>
+            <ul>
+                <?php foreach ( $results as $result ) : ?>
+                    <li><?php echo esc_html( $result ); ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
+    <?php
+}
