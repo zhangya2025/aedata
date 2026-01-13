@@ -33,11 +33,6 @@
   transform: translateY(-110%);
 }
 
-.aegis-mega-header.is-home.is-top-hidden .aegis-header__top {
-  display: none;
-}
-
-
 .aegis-icon {
   width: 22px;
   height: 22px;
@@ -50,36 +45,6 @@
 .aegis-icon svg {
   width: 100%;
   height: 100%;
-}
-
-/* ===== TOP: utility bar ===== */
-.aegis-header__top {
-  background: #f4f4f5;
-}
-
-.aegis-header__top-inner {
-  padding: 6px 24px;
-  font-size: 12px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.aegis-header__top-links {
-  display: inline-flex;
-  gap: 18px;
-  align-items: center;
-  justify-content: flex-end;
-  width: 100%;
-}
-
-.aegis-header__top-link {
-  color: #334155;
-  text-decoration: none;
-}
-
-.aegis-header__top-link:hover,
-.aegis-header__top-link:focus {
-  text-decoration: underline;
 }
 
 /* ===== MAIN: logo + nav + tools ===== */
