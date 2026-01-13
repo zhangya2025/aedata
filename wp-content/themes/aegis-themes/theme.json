@@ -92,6 +92,11 @@
       "name": "aegis-page",
       "title": "AEGIS PAGE",
       "postTypes": ["page"]
+    },
+    {
+      "name": "aegis-info-sidebar",
+      "title": "AEGIS Info Sidebar",
+      "postTypes": ["page"]
     }
   ],
   "templateParts": [
