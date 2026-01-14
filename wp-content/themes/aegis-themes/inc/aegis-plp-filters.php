@@ -221,6 +221,27 @@ function aegis_plp_filters_upsert_tax_query_clause( array $tax_query, array $cla
     return $next;
 }
 
+function aegis_plp_filters_remove_taxonomy_clauses( array $tax_query, $taxonomy ) {
+    $relation = $tax_query['relation'] ?? null;
+    $next = array();
+
+    foreach ( $tax_query as $key => $existing ) {
+        if ( 'relation' === $key ) {
+            continue;
+        }
+        if ( is_array( $existing ) && isset( $existing['taxonomy'] ) && $existing['taxonomy'] === $taxonomy ) {
+            continue;
+        }
+        $next[] = $existing;
+    }
+
+    if ( null !== $relation ) {
+        $next['relation'] = $relation;
+    }
+
+    return $next;
+}
+
 function aegis_plp_filters_should_log_diag( $query = null ) {
     if ( ! AEGIS_PLP_DEBUG || ! isset( $_GET['filter_sleepingbag_fill_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         return false;
@@ -1090,13 +1111,28 @@ function aegis_plp_filters_apply_query( $query ) {
         }
 
         if ( ! empty( $term_ids_by_tax['pa_sleepingbag_fill_type'] ) ) {
-            $fill_clause = array(
-                'taxonomy' => 'pa_sleepingbag_fill_type',
-                'field' => 'term_id',
-                'terms' => array_values( array_unique( $term_ids_by_tax['pa_sleepingbag_fill_type'] ) ),
-                'operator' => 'IN',
-            );
-            $tax_query = aegis_plp_filters_upsert_tax_query_clause( $tax_query, $fill_clause );
+            $fill_term_ids = array_values( array_unique( $term_ids_by_tax['pa_sleepingbag_fill_type'] ) );
+            if ( count( $fill_term_ids ) > 1 ) {
+                $or_group = array( 'relation' => 'OR' );
+                foreach ( $fill_term_ids as $term_id ) {
+                    $or_group[] = array(
+                        'taxonomy' => 'pa_sleepingbag_fill_type',
+                        'field' => 'term_id',
+                        'terms' => array( $term_id ),
+                        'operator' => 'IN',
+                    );
+                }
+                $tax_query = aegis_plp_filters_remove_taxonomy_clauses( $tax_query, 'pa_sleepingbag_fill_type' );
+                $tax_query[] = $or_group;
+            } else {
+                $fill_clause = array(
+                    'taxonomy' => 'pa_sleepingbag_fill_type',
+                    'field' => 'term_id',
+                    'terms' => $fill_term_ids,
+                    'operator' => 'IN',
+                );
+                $tax_query = aegis_plp_filters_upsert_tax_query_clause( $tax_query, $fill_clause );
+            }
         }
 
         if ( ! empty( $tax_query ) ) {
