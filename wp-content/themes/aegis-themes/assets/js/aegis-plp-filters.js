@@ -28,6 +28,8 @@
             return;
         }
         toggleSections(mode);
+        hydrateFromHiddenInputs();
+        renderSelected();
         drawer.classList.add('is-open');
         overlay.classList.add('is-open');
         lockBody();
@@ -83,6 +85,44 @@
             .split(',')
             .map((part) => part.trim())
             .filter((part) => part !== '' && !/^,+$/.test(part));
+    };
+
+    const hydrateFromHiddenInputs = () => {
+        inputs.forEach((input) => {
+            const name = input.getAttribute('data-filter-input') || input.name;
+            if (!name) {
+                return;
+            }
+            const values = parseCsv(input.value);
+            if (!values.length) {
+                delete state[name];
+                return;
+            }
+            const set = ensureSet(name);
+            set.clear();
+            values.forEach((value) => set.add(value));
+        });
+
+        inputs.forEach((input) => {
+            const name = input.getAttribute('data-filter-input') || input.name;
+            if (!name) {
+                return;
+            }
+            const label = input.getAttribute('data-filter-label');
+            if (!label) {
+                return;
+            }
+            const values = parseCsv(input.value);
+            values.forEach((value) => {
+                labelMap.set(`${name}::${value}`, `${label}: ${value}`);
+            });
+        });
+
+        checkboxes.forEach((checkbox) => {
+            const name = checkbox.getAttribute('data-filter-key');
+            const value = checkbox.value;
+            checkbox.checked = Boolean(state[name] && state[name].has(value));
+        });
     };
 
     const ensureSet = (name) => {
@@ -164,9 +204,6 @@
             checkbox.getAttribute('data-filter-label') ||
             (checkbox.closest('label') ? checkbox.closest('label').innerText.trim() : value);
         labelMap.set(`${name}::${value}`, label.replace(/\s+$/u, '').replace(/\s+×$/u, ''));
-        if (checkbox.checked) {
-            ensureSet(name).add(value);
-        }
         checkbox.addEventListener('change', () => {
             const set = ensureSet(name);
             if (checkbox.checked) {
@@ -184,17 +221,7 @@
 
     inputs.forEach((input) => {
         const name = input.getAttribute('data-filter-input');
-        const values = parseCsv(input.value);
-        if (values.length) {
-            const set = ensureSet(name);
-            values.forEach((value) => set.add(value));
-        }
         const label = input.getAttribute('data-filter-label');
-        if (label) {
-            values.forEach((value) => {
-                labelMap.set(`${name}::${value}`, `${label}: ${value}`);
-            });
-        }
         input.addEventListener('input', () => {
             const nextValues = parseCsv(input.value);
             if (!nextValues.length) {
@@ -271,6 +298,6 @@
         });
     }
 
-    Object.keys(state).forEach((name) => syncInputFromState(name));
+    hydrateFromHiddenInputs();
     renderSelected();
 })();
