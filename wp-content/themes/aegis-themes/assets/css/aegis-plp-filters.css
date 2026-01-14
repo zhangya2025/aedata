@@ -222,6 +222,30 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
     gap: 12px;
 }
 
+.aegis-plp-filters__selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.aegis-plp-filters__selected-chip {
+    background: #f2f2f2;
+    border: 1px solid #e5e5e5;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.aegis-plp-filters__footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
 .aegis-plp-filters__submit {
     background: #111;
     color: #fff;
