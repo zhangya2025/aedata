@@ -37,13 +37,21 @@ if ( ! defined( 'AEGIS_PLP_DEBUG' ) ) {
     define( 'AEGIS_PLP_DEBUG', false );
 }
 
-function aegis_plp_filters_debug_log( $label, $data ) {
-    if ( ! AEGIS_PLP_DEBUG ) {
+function aegis_plp_debug_enabled() {
+    return defined( 'AEGIS_PLP_DEBUG' ) && AEGIS_PLP_DEBUG;
+}
+
+function aegis_plp_log( $tag, $payload ) {
+    if ( ! aegis_plp_debug_enabled() ) {
         return;
     }
 
-    $payload = wp_json_encode( $data );
-    error_log( sprintf( '[aegis-plp] %s: %s', $label, $payload ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+    $message = wp_json_encode( $payload );
+    error_log( sprintf( '[%s] %s', $tag, $message ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+}
+
+function aegis_plp_filters_debug_log( $label, $data ) {
+    aegis_plp_log( 'aegis-plp', array( $label => $data ) );
 }
 
 function aegis_plp_filters_clean_query_args( $raw ) {
@@ -248,7 +256,7 @@ function aegis_plp_filters_remove_taxonomy_clauses( array $tax_query, $taxonomy 
 }
 
 function aegis_plp_filters_should_log_diag( $query = null ) {
-    if ( ! AEGIS_PLP_DEBUG || ! isset( $_GET['af_sleepingbag_fill_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( ! aegis_plp_debug_enabled() || ! isset( $_GET['af_sleepingbag_fill_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         return false;
     }
 
@@ -287,7 +295,7 @@ function aegis_plp_filters_log_query_vars( $label, $query ) {
         'order' => $query->get( 'order' ),
     );
 
-    error_log( sprintf( '[aegis-plp-diag] %s: %s', $label, wp_json_encode( $query_vars ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+    aegis_plp_log( 'aegis-plp-diag', array( $label => $query_vars ) );
 }
 
 function aegis_plp_filters_resolve_taxonomy_from_filter_key( $filter_key ) {
@@ -1094,15 +1102,13 @@ function aegis_plp_filters_apply_query( $query ) {
                 }
             }
 
-            if ( AEGIS_PLP_DEBUG ) {
-                aegis_plp_filters_debug_log( 'filter-existing-terms', array(
-                    'taxonomy' => $taxonomy,
-                    'raw_slugs' => $terms,
-                    'valid_slugs' => $valid_terms,
-                    'invalid_slugs' => $invalid_terms,
-                    'term_ids' => $term_ids,
-                ) );
-            }
+            aegis_plp_filters_debug_log( 'filter-existing-terms', array(
+                'taxonomy' => $taxonomy,
+                'raw_slugs' => $terms,
+                'valid_slugs' => $valid_terms,
+                'invalid_slugs' => $invalid_terms,
+                'term_ids' => $term_ids,
+            ) );
 
             if ( ! empty( $term_ids ) ) {
                 $term_ids_by_tax[ $taxonomy ] = array_values( array_unique( array_map( 'intval', $term_ids ) ) );
@@ -1325,7 +1331,7 @@ function aegis_plp_filters_log_final_query_vars( $query ) {
         'queried' => $queried,
     );
 
-    error_log( sprintf( '[aegis-plp-diag] final-vars: %s', wp_json_encode( $payload ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+    aegis_plp_log( 'aegis-plp-diag', array( 'final-vars' => $payload ) );
 }
 
 function aegis_plp_filters_log_final_sql( $clauses, $query ) {
@@ -1343,7 +1349,7 @@ function aegis_plp_filters_log_final_sql( $clauses, $query ) {
         'groupby' => $clauses['groupby'] ?? '',
     );
 
-    error_log( sprintf( '[aegis-plp-diag] final-clauses: %s', wp_json_encode( $payload ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+    aegis_plp_log( 'aegis-plp-diag', array( 'final-clauses' => $payload ) );
 
     return $clauses;
 }
