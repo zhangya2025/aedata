@@ -148,6 +148,41 @@ function aegis_plp_filters_filter_valid_terms( $taxonomy, $terms ) {
     return array_values( array_unique( $valid ) );
 }
 
+function aegis_plp_filter_existing_term_slugs( $taxonomy, array $slugs ) {
+    if ( ! taxonomy_exists( $taxonomy ) || empty( $slugs ) ) {
+        return array();
+    }
+
+    $terms = get_terms(
+        array(
+            'taxonomy' => $taxonomy,
+            'slug' => $slugs,
+            'hide_empty' => false,
+        )
+    );
+
+    if ( empty( $terms ) || is_wp_error( $terms ) ) {
+        return array();
+    }
+
+    $found_slugs = array();
+    foreach ( $terms as $term ) {
+        if ( empty( $term->slug ) ) {
+            continue;
+        }
+        $found_slugs[ $term->slug ] = true;
+    }
+
+    $valid = array();
+    foreach ( $slugs as $slug ) {
+        if ( isset( $found_slugs[ $slug ] ) ) {
+            $valid[] = $slug;
+        }
+    }
+
+    return array_values( array_unique( $valid ) );
+}
+
 function aegis_plp_filters_filter_key_from_taxonomy( $taxonomy ) {
     $slug = str_replace( 'pa_', '', (string) $taxonomy );
     return 'filter_' . str_replace( '-', '_', $slug );
@@ -925,46 +960,49 @@ function aegis_plp_filters_apply_query( $query ) {
             $tax_query = array();
         }
 
-        $existing_tax_query = $tax_query;
-        $tax_query = array();
-        $merged_terms_by_tax = $selected_by_tax;
-
-        foreach ( $existing_tax_query as $key => $clause ) {
-            if ( 'relation' === $key ) {
-                continue;
-            }
-
-            if ( ! is_array( $clause ) ) {
-                $tax_query[] = $clause;
-                continue;
-            }
-
-            $taxonomy = $clause['taxonomy'] ?? '';
-            if ( '' === $taxonomy ) {
-                $tax_query[] = $clause;
-                continue;
-            }
-
-            if ( isset( $merged_terms_by_tax[ $taxonomy ] ) ) {
-                $existing_terms = $clause['terms'] ?? array();
-                if ( ! is_array( $existing_terms ) ) {
-                    $existing_terms = array( $existing_terms );
-                }
-                $merged_terms_by_tax[ $taxonomy ] = array_values(
-                    array_unique( array_merge( $merged_terms_by_tax[ $taxonomy ], $existing_terms ) )
-                );
-                continue;
-            }
-
-            $tax_query[] = $clause;
-        }
-
-        foreach ( $merged_terms_by_tax as $taxonomy => $terms ) {
+        $filtered_by_tax = array();
+        foreach ( $selected_by_tax as $taxonomy => $terms ) {
             if ( empty( $terms ) ) {
                 continue;
             }
 
-            $tax_query[] = array(
+            $valid_terms = aegis_plp_filter_existing_term_slugs( $taxonomy, $terms );
+            $invalid_terms = array_values( array_diff( $terms, $valid_terms ) );
+
+            if ( AEGIS_PLP_DEBUG ) {
+                $term_ids = array();
+                if ( ! empty( $valid_terms ) ) {
+                    $term_objects = get_terms(
+                        array(
+                            'taxonomy' => $taxonomy,
+                            'slug' => $valid_terms,
+                            'hide_empty' => false,
+                        )
+                    );
+                    if ( ! empty( $term_objects ) && ! is_wp_error( $term_objects ) ) {
+                        $term_ids = wp_list_pluck( $term_objects, 'term_id' );
+                    }
+                }
+
+                aegis_plp_filters_debug_log( 'filter-existing-terms', array(
+                    'taxonomy' => $taxonomy,
+                    'raw_slugs' => $terms,
+                    'valid_slugs' => $valid_terms,
+                    'invalid_slugs' => $invalid_terms,
+                    'term_ids' => $term_ids,
+                ) );
+            }
+
+            if ( empty( $valid_terms ) ) {
+                continue;
+            }
+
+            $filtered_by_tax[ $taxonomy ] = $valid_terms;
+        }
+
+        $new_tax_query = array();
+        foreach ( $filtered_by_tax as $taxonomy => $terms ) {
+            $new_tax_query[] = array(
                 'taxonomy' => $taxonomy,
                 'field' => 'slug',
                 'terms' => $terms,
