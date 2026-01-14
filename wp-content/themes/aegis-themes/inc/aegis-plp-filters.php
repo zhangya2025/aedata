@@ -796,6 +796,21 @@ function aegis_plp_filters_apply_query( $query ) {
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
         $raw_args = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $clean = aegis_plp_filters_clean_query_args( $raw_args );
+        $fill_key = 'filter_sleepingbag_fill_type';
+        $should_debug_fill_type = AEGIS_PLP_DEBUG && isset( $raw_args[ $fill_key ] );
+        $tax_query_before = null;
+        $meta_query_before = null;
+        $fill_type_parsed = array();
+        $fill_taxonomy = '';
+        $fill_taxonomy_exists = false;
+
+        if ( $should_debug_fill_type ) {
+            $tax_query_before = $query->get( 'tax_query' );
+            $meta_query_before = $query->get( 'meta_query' );
+            $fill_type_parsed = aegis_plp_filters_parse_csv_values( $raw_args[ $fill_key ], 'sanitize_title' );
+            $fill_taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( $fill_key );
+            $fill_taxonomy_exists = '' !== $fill_taxonomy && taxonomy_exists( $fill_taxonomy );
+        }
 
         if ( ! is_admin()
             && ( ! function_exists( 'wp_doing_ajax' ) || ! wp_doing_ajax() )
@@ -894,12 +909,13 @@ function aegis_plp_filters_apply_query( $query ) {
             );
         }
 
-        $fill_key = 'filter_sleepingbag_fill_type';
-        if ( $has_filter_params && isset( $clean[ $fill_key ] ) ) {
-            $fill_terms = aegis_plp_filters_parse_csv_values( $clean[ $fill_key ], 'sanitize_title' );
-            aegis_plp_filters_debug_log( 'fill-type-debug', array(
-                'raw_fill_type' => $raw_args[ $fill_key ] ?? null,
-                'parsed_fill_type_terms' => $fill_terms,
+        if ( $has_filter_params ) {
+            $fill_terms = array();
+            if ( isset( $clean[ $fill_key ] ) ) {
+                $fill_terms = aegis_plp_filters_parse_csv_values( $clean[ $fill_key ], 'sanitize_title' );
+            }
+            aegis_plp_filters_debug_log( 'filters-parsed', array(
+                'fill_type_terms' => $fill_terms,
                 'selected_by_tax' => $selected_by_tax,
             ) );
         }
@@ -1025,6 +1041,22 @@ function aegis_plp_filters_apply_query( $query ) {
 
         if ( ! empty( $meta_query ) ) {
             $query->set( 'meta_query', $meta_query );
+        }
+
+        if ( $should_debug_fill_type ) {
+            aegis_plp_filters_debug_log( 'sleepingbags-fill-type', array(
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
+                'raw_fill_type' => $raw_args[ $fill_key ],
+                'parsed_fill_type' => $fill_type_parsed,
+                'resolved_taxonomy' => $fill_taxonomy,
+                'taxonomy_exists' => $fill_taxonomy_exists,
+                'is_main_query' => $query->is_main_query(),
+                'post_type' => $query->get( 'post_type' ),
+                'tax_query_before' => $tax_query_before,
+                'tax_query_after' => $query->get( 'tax_query' ),
+                'meta_query_before' => $meta_query_before,
+                'meta_query_after' => $query->get( 'meta_query' ),
+            ) );
         }
 
         if ( $has_filter_params ) {
