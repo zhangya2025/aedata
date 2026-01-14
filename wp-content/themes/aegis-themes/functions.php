@@ -128,6 +128,18 @@ add_action( 'wp', 'aegis_plp_filters_adjust_shop_loop', 20 );
 add_action( 'woocommerce_before_shop_loop', 'aegis_plp_filters_render_toolbar', 15 );
 
 add_action( 'woocommerce_product_query', 'aegis_plp_filters_apply_query' );
+if ( function_exists( 'aegis_plp_debug_enabled' ) && aegis_plp_debug_enabled() ) {
+    add_action( 'pre_get_posts', 'aegis_plp_filters_log_final_query_vars', 9999 );
+    add_filter( 'posts_clauses', 'aegis_plp_filters_log_final_sql', 9999, 2 );
+}
+
+add_filter( 'loop_shop_per_page', function ( $per_page ) {
+    if ( is_admin() ) {
+        return $per_page;
+    }
+
+    return 12;
+}, 20 );
 
 /**
  * Enqueue theme assets.
