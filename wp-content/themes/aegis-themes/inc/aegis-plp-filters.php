@@ -872,6 +872,18 @@ function aegis_plp_filters_apply_query( $query ) {
             );
         }
 
+        if ( $has_filter_params ) {
+            $fill_key = 'filter_sleepingbag_fill_type';
+            $fill_terms = array();
+            if ( isset( $clean[ $fill_key ] ) ) {
+                $fill_terms = aegis_plp_filters_parse_csv_values( $clean[ $fill_key ], 'sanitize_title' );
+            }
+            aegis_plp_filters_debug_log( 'filters-parsed', array(
+                'fill_type_terms' => $fill_terms,
+                'selected_by_tax' => $selected_by_tax,
+            ) );
+        }
+
         $tax_query = $query->get( 'tax_query', array() );
         if ( ! is_array( $tax_query ) ) {
             $tax_query = array();
