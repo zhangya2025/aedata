@@ -514,7 +514,7 @@ function aegis_plp_filters_render_toolbar() {
                                     <div class="aegis-plp-filters__group-content">
                                         <?php foreach ( $terms as $term ) : ?>
                                             <label class="aegis-plp-filters__option">
-                                                <input type="checkbox" data-filter-key="<?php echo esc_attr( $color_filter_key ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag-color'] ?? array(), true ) ); ?> />
+                                                <input type="checkbox" data-filter-key="<?php echo esc_attr( $color_filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag-color'] ?? array(), true ) ); ?> />
                                                 <span><?php echo esc_html( $term->name ); ?></span>
                                             </label>
                                         <?php endforeach; ?>
@@ -528,7 +528,7 @@ function aegis_plp_filters_render_toolbar() {
                             <div class="aegis-plp-filters__group-content">
                                 <?php foreach ( $temp_buckets as $bucket_key => $bucket ) : ?>
                                     <label class="aegis-plp-filters__option">
-                                        <input type="checkbox" data-filter-key="temp_limit" value="<?php echo esc_attr( $bucket_key ); ?>" <?php checked( in_array( $bucket_key, $request['temp_limit'], true ) ); ?> />
+                                        <input type="checkbox" data-filter-key="temp_limit" data-filter-label="<?php echo esc_attr( $bucket['label'] ); ?>" value="<?php echo esc_attr( $bucket_key ); ?>" <?php checked( in_array( $bucket_key, $request['temp_limit'], true ) ); ?> />
                                         <span><?php echo esc_html( $bucket['label'] ); ?></span>
                                     </label>
                                 <?php endforeach; ?>
@@ -540,11 +540,11 @@ function aegis_plp_filters_render_toolbar() {
                             <div class="aegis-plp-filters__group-content">
                                 <label class="aegis-plp-filters__option">
                                     <span>Min</span>
-                                    <input type="number" name="min_price" min="0" step="1" value="<?php echo esc_attr( $request['min_price'] ); ?>" />
+                                    <input type="number" name="min_price" min="0" step="1" value="<?php echo esc_attr( $request['min_price'] ); ?>" data-filter-input="min_price" data-filter-label="Min Price" />
                                 </label>
                                 <label class="aegis-plp-filters__option">
                                     <span>Max</span>
-                                    <input type="number" name="max_price" min="0" step="1" value="<?php echo esc_attr( $request['max_price'] ); ?>" />
+                                    <input type="number" name="max_price" min="0" step="1" value="<?php echo esc_attr( $request['max_price'] ); ?>" data-filter-input="max_price" data-filter-label="Max Price" />
                                 </label>
                             </div>
                         </div>
@@ -558,7 +558,7 @@ function aegis_plp_filters_render_toolbar() {
                                     <div class="aegis-plp-filters__group-content">
                                         <?php foreach ( $terms as $term ) : ?>
                                             <label class="aegis-plp-filters__option">
-                                                <input type="checkbox" data-filter-key="<?php echo esc_attr( $fill_filter_key ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag_fill_type'] ?? array(), true ) ); ?> />
+                                                <input type="checkbox" data-filter-key="<?php echo esc_attr( $fill_filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag_fill_type'] ?? array(), true ) ); ?> />
                                                 <span><?php echo esc_html( $term->name ); ?></span>
                                             </label>
                                         <?php endforeach; ?>
@@ -576,7 +576,7 @@ function aegis_plp_filters_render_toolbar() {
                                     <div class="aegis-plp-filters__group-content">
                                         <?php foreach ( $terms as $term ) : ?>
                                             <label class="aegis-plp-filters__option">
-                                                <input type="checkbox" data-filter-key="<?php echo esc_attr( $activity_filter_key ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag_activity'] ?? array(), true ) ); ?> />
+                                                <input type="checkbox" data-filter-key="<?php echo esc_attr( $activity_filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag_activity'] ?? array(), true ) ); ?> />
                                                 <span><?php echo esc_html( $term->name ); ?></span>
                                             </label>
                                         <?php endforeach; ?>
@@ -611,7 +611,7 @@ function aegis_plp_filters_render_toolbar() {
                                                     <?php foreach ( $terms as $term ) : ?>
                                                         <?php $filter_key = aegis_plp_filters_filter_key_from_taxonomy( $taxonomy ); ?>
                                                         <label class="aegis-plp-filters__option">
-                                                            <input type="checkbox" data-filter-key="<?php echo esc_attr( $filter_key ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters'][ $taxonomy ] ?? array(), true ) ); ?> />
+                                                            <input type="checkbox" data-filter-key="<?php echo esc_attr( $filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters'][ $taxonomy ] ?? array(), true ) ); ?> />
                                                             <span><?php echo esc_html( $term->name ); ?></span>
                                                         </label>
                                                     <?php endforeach; ?>
@@ -624,8 +624,11 @@ function aegis_plp_filters_render_toolbar() {
                         <?php endif; ?>
                     </div>
                     <div class="aegis-plp-filters__drawer-footer">
-                        <a class="aegis-plp-filters__clear" href="<?php echo $clear_url; ?>">Clear</a>
-                        <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                        <div class="aegis-plp-filters__selected" data-aegis-selected></div>
+                        <div class="aegis-plp-filters__footer-actions">
+                            <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
+                            <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                        </div>
                     </div>
                 </div>
                 <div class="aegis-plp-filters__overlay" data-drawer-overlay></div>
@@ -733,7 +736,7 @@ function aegis_plp_filters_render_toolbar() {
                             <div class="aegis-plp-filters__group-content">
                                 <?php foreach ( $category_children as $child_term ) : ?>
                                     <label class="aegis-plp-filters__option">
-                                        <input type="checkbox" data-filter-key="filter_cat" value="<?php echo esc_attr( $child_term->slug ); ?>" <?php checked( in_array( $child_term->slug, $request['filter_cat'], true ) ); ?> />
+                                        <input type="checkbox" data-filter-key="filter_cat" data-filter-label="<?php echo esc_attr( $child_term->name ); ?>" value="<?php echo esc_attr( $child_term->slug ); ?>" <?php checked( in_array( $child_term->slug, $request['filter_cat'], true ) ); ?> />
                                         <span><?php echo esc_html( $child_term->name ); ?></span>
                                     </label>
                                 <?php endforeach; ?>
@@ -747,7 +750,7 @@ function aegis_plp_filters_render_toolbar() {
                             <div class="aegis-plp-filters__group-content">
                                 <?php foreach ( $color_terms as $term ) : ?>
                                     <label class="aegis-plp-filters__option">
-                                        <input type="checkbox" data-filter-key="filter_color" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filter_color'], true ) ); ?> />
+                                        <input type="checkbox" data-filter-key="filter_color" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filter_color'], true ) ); ?> />
                                         <span><?php echo esc_html( $term->name ); ?></span>
                                     </label>
                                 <?php endforeach; ?>
@@ -761,7 +764,7 @@ function aegis_plp_filters_render_toolbar() {
                             <div class="aegis-plp-filters__group-content">
                                 <?php foreach ( $size_terms as $term ) : ?>
                                     <label class="aegis-plp-filters__option">
-                                        <input type="checkbox" data-filter-key="filter_size" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filter_size'], true ) ); ?> />
+                                        <input type="checkbox" data-filter-key="filter_size" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filter_size'], true ) ); ?> />
                                         <span><?php echo esc_html( $term->name ); ?></span>
                                     </label>
                                 <?php endforeach; ?>
@@ -770,8 +773,11 @@ function aegis_plp_filters_render_toolbar() {
                     <?php endif; ?>
                 </div>
                 <div class="aegis-plp-filters__drawer-footer">
-                    <a class="aegis-plp-filters__clear" href="<?php echo $clear_url; ?>">Clear</a>
-                    <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                    <div class="aegis-plp-filters__selected" data-aegis-selected></div>
+                    <div class="aegis-plp-filters__footer-actions">
+                        <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
+                        <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                    </div>
                 </div>
             </div>
             <div class="aegis-plp-filters__overlay" data-drawer-overlay></div>
