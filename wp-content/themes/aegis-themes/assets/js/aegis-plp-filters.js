@@ -303,12 +303,16 @@
                 if (!element || !element.name) {
                     return;
                 }
-                if (seenNames.has(element.name) && element.type === 'hidden' && element.name.startsWith('filter_')) {
+                if (
+                    seenNames.has(element.name) &&
+                    element.type === 'hidden' &&
+                    (element.name.startsWith('filter_') || element.name.startsWith('af_'))
+                ) {
                     element.disabled = true;
                     return;
                 }
                 seenNames.add(element.name);
-                if (element.name === 'filter_sleepingbag_fill_type' && hasMeaningfulValue(element.value)) {
+                if (element.name === 'af_sleepingbag_fill_type' && hasMeaningfulValue(element.value)) {
                     element.disabled = false;
                     return;
                 }
