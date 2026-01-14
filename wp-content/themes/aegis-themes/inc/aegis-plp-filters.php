@@ -114,13 +114,19 @@ function aegis_plp_filters_resolve_taxonomy_from_filter_key( $filter_key ) {
     }
 
     $alt_slug = str_replace( '_', '-', $attr_slug );
-    if ( $alt_slug === $attr_slug ) {
-        return '';
+    if ( $alt_slug !== $attr_slug ) {
+        $alt_taxonomy = 'pa_' . $alt_slug;
+        if ( taxonomy_exists( $alt_taxonomy ) ) {
+            return $alt_taxonomy;
+        }
     }
 
-    $alt_taxonomy = 'pa_' . $alt_slug;
-    if ( taxonomy_exists( $alt_taxonomy ) ) {
-        return $alt_taxonomy;
+    $alt_slug = str_replace( '-', '_', $attr_slug );
+    if ( $alt_slug !== $attr_slug ) {
+        $alt_taxonomy = 'pa_' . $alt_slug;
+        if ( taxonomy_exists( $alt_taxonomy ) ) {
+            return $alt_taxonomy;
+        }
     }
 
     return '';
