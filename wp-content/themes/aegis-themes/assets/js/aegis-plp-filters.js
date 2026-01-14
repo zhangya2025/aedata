@@ -274,6 +274,17 @@
         });
     }
 
+    const hasMeaningfulValue = (value) => {
+        if (value === null || value === undefined) {
+            return false;
+        }
+        const trimmed = String(value).trim();
+        if (trimmed === '') {
+            return false;
+        }
+        return /[^,]/.test(trimmed);
+    };
+
     const isEmptyValue = (value) => {
         if (value === null || value === undefined) {
             return true;
@@ -287,8 +298,18 @@
 
     if (form) {
         form.addEventListener('submit', () => {
+            const seenNames = new Set();
             Array.from(form.elements).forEach((element) => {
                 if (!element || !element.name) {
+                    return;
+                }
+                if (seenNames.has(element.name) && element.type === 'hidden' && element.name.startsWith('filter_')) {
+                    element.disabled = true;
+                    return;
+                }
+                seenNames.add(element.name);
+                if (element.name === 'filter_sleepingbag_fill_type' && hasMeaningfulValue(element.value)) {
+                    element.disabled = false;
                     return;
                 }
                 if (isEmptyValue(element.value)) {
