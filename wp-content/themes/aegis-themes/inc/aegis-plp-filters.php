@@ -846,14 +846,40 @@ function aegis_plp_filters_apply_query( $query ) {
             ) );
         }
 
+        $selected_by_tax = array();
+        foreach ( $clean as $key => $value ) {
+            if ( 0 !== strpos( $key, 'filter_' ) ) {
+                continue;
+            }
+
+            $taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( $key );
+            if ( '' === $taxonomy ) {
+                continue;
+            }
+
+            $terms = aegis_plp_filters_parse_csv_values( $value, 'sanitize_title' );
+            $terms = aegis_plp_filters_filter_valid_terms( $taxonomy, $terms );
+            if ( empty( $terms ) ) {
+                continue;
+            }
+
+            if ( ! isset( $selected_by_tax[ $taxonomy ] ) ) {
+                $selected_by_tax[ $taxonomy ] = array();
+            }
+
+            $selected_by_tax[ $taxonomy ] = array_values(
+                array_unique( array_merge( $selected_by_tax[ $taxonomy ], $terms ) )
+            );
+        }
+
         $tax_query = $query->get( 'tax_query', array() );
         if ( ! is_array( $tax_query ) ) {
             $tax_query = array();
         }
 
         $new_tax_query = array();
-        foreach ( $request['filters'] as $taxonomy => $terms ) {
-            if ( ! taxonomy_exists( $taxonomy ) || empty( $terms ) ) {
+        foreach ( $selected_by_tax as $taxonomy => $terms ) {
+            if ( empty( $terms ) ) {
                 continue;
             }
 
@@ -867,7 +893,7 @@ function aegis_plp_filters_apply_query( $query ) {
 
         if ( ! empty( $new_tax_query ) ) {
             $tax_query = array_merge( $tax_query, $new_tax_query );
-            if ( ! isset( $tax_query['relation'] ) ) {
+            if ( count( $tax_query ) > 1 && ! isset( $tax_query['relation'] ) ) {
                 $tax_query['relation'] = 'AND';
             }
             $query->set( 'tax_query', $tax_query );
@@ -934,6 +960,7 @@ function aegis_plp_filters_apply_query( $query ) {
         if ( $has_filter_params ) {
             aegis_plp_filters_debug_log( 'query-applied', array(
                 'parsed_request' => $request,
+                'selected_by_tax' => $selected_by_tax,
                 'tax_query' => $query->get( 'tax_query' ),
                 'meta_query' => $query->get( 'meta_query' ),
                 'applied_price' => $applied_price,
