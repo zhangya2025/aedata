@@ -961,6 +961,7 @@ function aegis_plp_filters_apply_query( $query ) {
         }
 
         $filtered_by_tax = array();
+        $term_ids_by_tax = array();
         foreach ( $selected_by_tax as $taxonomy => $terms ) {
             if ( empty( $terms ) ) {
                 continue;
@@ -968,22 +969,22 @@ function aegis_plp_filters_apply_query( $query ) {
 
             $valid_terms = aegis_plp_filter_existing_term_slugs( $taxonomy, $terms );
             $invalid_terms = array_values( array_diff( $terms, $valid_terms ) );
+            $term_ids = array();
+
+            if ( ! empty( $valid_terms ) ) {
+                $term_objects = get_terms(
+                    array(
+                        'taxonomy' => $taxonomy,
+                        'slug' => $valid_terms,
+                        'hide_empty' => false,
+                    )
+                );
+                if ( ! empty( $term_objects ) && ! is_wp_error( $term_objects ) ) {
+                    $term_ids = wp_list_pluck( $term_objects, 'term_id' );
+                }
+            }
 
             if ( AEGIS_PLP_DEBUG ) {
-                $term_ids = array();
-                if ( ! empty( $valid_terms ) ) {
-                    $term_objects = get_terms(
-                        array(
-                            'taxonomy' => $taxonomy,
-                            'slug' => $valid_terms,
-                            'hide_empty' => false,
-                        )
-                    );
-                    if ( ! empty( $term_objects ) && ! is_wp_error( $term_objects ) ) {
-                        $term_ids = wp_list_pluck( $term_objects, 'term_id' );
-                    }
-                }
-
                 aegis_plp_filters_debug_log( 'filter-existing-terms', array(
                     'taxonomy' => $taxonomy,
                     'raw_slugs' => $terms,
@@ -991,6 +992,10 @@ function aegis_plp_filters_apply_query( $query ) {
                     'invalid_slugs' => $invalid_terms,
                     'term_ids' => $term_ids,
                 ) );
+            }
+
+            if ( ! empty( $term_ids ) ) {
+                $term_ids_by_tax[ $taxonomy ] = array_values( array_unique( array_map( 'intval', $term_ids ) ) );
             }
 
             if ( empty( $valid_terms ) ) {
@@ -1002,6 +1007,16 @@ function aegis_plp_filters_apply_query( $query ) {
 
         $new_tax_query = array();
         foreach ( $filtered_by_tax as $taxonomy => $terms ) {
+            if ( 'pa_sleepingbag_fill_type' === $taxonomy && ! empty( $term_ids_by_tax[ $taxonomy ] ) ) {
+                $new_tax_query[] = array(
+                    'taxonomy' => $taxonomy,
+                    'field' => 'term_id',
+                    'terms' => $term_ids_by_tax[ $taxonomy ],
+                    'operator' => 'IN',
+                );
+                continue;
+            }
+
             $new_tax_query[] = array(
                 'taxonomy' => $taxonomy,
                 'field' => 'slug',
