@@ -351,8 +351,39 @@ function aegis_plp_filters_is_sleepingbags_context() {
     return in_array( (int) $root->term_id, $ancestors, true );
 }
 
+function aegis_plp_filters_is_clothes_context() {
+    if ( function_exists( 'aegis_is_term_or_descendant' ) ) {
+        return aegis_is_term_or_descendant( 'product_cat', 'clothes' );
+    }
+
+    if ( ! function_exists( 'is_product_category' ) || ! is_product_category() ) {
+        return false;
+    }
+
+    $term = get_queried_object();
+    if ( ! $term || empty( $term->term_id ) ) {
+        return false;
+    }
+
+    $root = get_term_by( 'slug', 'clothes', 'product_cat' );
+    if ( ! $root || is_wp_error( $root ) ) {
+        return false;
+    }
+
+    if ( (int) $term->term_id === (int) $root->term_id ) {
+        return true;
+    }
+
+    $ancestors = get_ancestors( (int) $term->term_id, 'product_cat' );
+    return in_array( (int) $root->term_id, $ancestors, true );
+}
+
 function aegis_plp_filters_is_other_product_cat_context() {
     if ( ! function_exists( 'is_tax' ) || ! is_tax( 'product_cat' ) ) {
+        return false;
+    }
+
+    if ( aegis_plp_filters_is_clothes_context() ) {
         return false;
     }
 
@@ -375,7 +406,9 @@ function aegis_plp_filters_is_other_product_cat_context() {
 }
 
 function aegis_plp_filters_is_plp_enabled_context() {
-    return aegis_plp_filters_is_sleepingbags_context() || aegis_plp_filters_is_other_product_cat_context();
+    return aegis_plp_filters_is_sleepingbags_context()
+        || aegis_plp_filters_is_clothes_context()
+        || aegis_plp_filters_is_other_product_cat_context();
 }
 
 function aegis_plp_filters_parse_request( $raw_args = null ) {
@@ -491,6 +524,63 @@ function aegis_plp_filters_parse_other_request() {
     );
 }
 
+function aegis_plp_filters_parse_clothes_request() {
+    $selected_categories = array();
+    $selected_colors = array();
+    $selected_sizes = array();
+
+    $term = get_queried_object();
+    if ( ! $term || empty( $term->term_id ) ) {
+        return array(
+            'af_cat' => $selected_categories,
+            'af_color' => $selected_colors,
+            'af_size' => $selected_sizes,
+            'category_children' => array(),
+        );
+    }
+
+    $category_children = array();
+    $child_terms = get_terms(
+        array(
+            'taxonomy' => 'product_cat',
+            'parent' => (int) $term->term_id,
+            'hide_empty' => false,
+        )
+    );
+
+    if ( ! empty( $child_terms ) && ! is_wp_error( $child_terms ) ) {
+        $category_children = $child_terms;
+    }
+
+    if ( isset( $_GET['af_cat'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $raw_value = is_array( $_GET['af_cat'] ) ? implode( ',', $_GET['af_cat'] ) : (string) $_GET['af_cat']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $selected_categories = array_filter( array_map( 'sanitize_title', explode( ',', $raw_value ) ) );
+        if ( ! empty( $category_children ) ) {
+            $child_slugs = wp_list_pluck( $category_children, 'slug' );
+            $selected_categories = array_values( array_intersect( $selected_categories, $child_slugs ) );
+        } else {
+            $selected_categories = array();
+        }
+    }
+
+    if ( taxonomy_exists( 'pa_color' ) && isset( $_GET['af_color'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $raw_color = is_array( $_GET['af_color'] ) ? implode( ',', $_GET['af_color'] ) : (string) $_GET['af_color']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $selected_colors = array_filter( array_map( 'sanitize_title', explode( ',', $raw_color ) ) );
+    }
+
+    if ( taxonomy_exists( 'pa_size' ) && isset( $_GET['af_size'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $raw_size = is_array( $_GET['af_size'] ) ? implode( ',', $_GET['af_size'] ) : (string) $_GET['af_size']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $selected_sizes = array_filter( array_map( 'sanitize_title', explode( ',', $raw_size ) ) );
+    }
+
+    return array(
+        'af_cat' => $selected_categories,
+        'af_color' => $selected_colors,
+        'af_size' => $selected_sizes,
+        'category_children' => $category_children,
+    );
+}
+
 function aegis_plp_filters_enqueue() {
     if ( ! aegis_plp_filters_is_plp_enabled_context() ) {
         return;
@@ -515,6 +605,10 @@ function aegis_plp_filters_enqueue() {
 function aegis_plp_filters_body_class( $classes ) {
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
         $classes[] = 'aegis-plp-sleepingbags';
+    }
+
+    if ( aegis_plp_filters_is_clothes_context() ) {
+        $classes[] = 'aegis-plp-clothes';
     }
 
     if ( aegis_plp_filters_is_other_product_cat_context() ) {
@@ -769,6 +863,155 @@ function aegis_plp_filters_render_toolbar() {
                                                 </div>
                                             <?php endif; ?>
                                         <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="aegis-plp-filters__drawer-footer">
+                        <div class="aegis-plp-filters__selected-title">Selected</div>
+                        <div class="aegis-plp-filters__selected" data-aegis-selected>
+                            <span class="aegis-plp-filters__selected-empty">No filters selected</span>
+                        </div>
+                        <div class="aegis-plp-filters__footer-actions">
+                            <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
+                            <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="aegis-plp-filters__overlay" data-drawer-overlay></div>
+            </form>
+        </div>
+        <?php
+        return;
+    }
+
+    if ( aegis_plp_filters_is_clothes_context() ) {
+        $request = aegis_plp_filters_parse_clothes_request();
+        $category_children = $request['category_children'];
+        $current_url = esc_url( add_query_arg( array() ) );
+        $current_orderby = '';
+        if ( isset( $_GET['orderby'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $current_orderby = wc_clean( wp_unslash( $_GET['orderby'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+        $filter_keys = array( 'af_cat', 'af_color', 'af_size' );
+        $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
+        $has_categories = ! empty( $category_children );
+        $has_colors = taxonomy_exists( 'pa_color' );
+        $has_sizes = taxonomy_exists( 'pa_size' );
+        $color_terms = array();
+        $size_terms = array();
+        if ( $has_colors ) {
+            $color_terms = get_terms( array( 'taxonomy' => 'pa_color', 'hide_empty' => true ) );
+            $has_colors = ! empty( $color_terms ) && ! is_wp_error( $color_terms );
+        }
+        if ( $has_sizes ) {
+            $size_terms = get_terms( array( 'taxonomy' => 'pa_size', 'hide_empty' => true ) );
+            $has_sizes = ! empty( $size_terms ) && ! is_wp_error( $size_terms );
+        }
+        $has_filters = $has_categories || $has_colors || $has_sizes;
+        ?>
+        <div class="aegis-plp-filters" data-aegis-plp-filters>
+            <div class="aegis-plp-filters__toolbar">
+                <div class="aegis-plp-filters__buttons">
+                    <?php if ( $has_categories ) : ?>
+                        <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="cat">Category</button>
+                    <?php endif; ?>
+                    <?php if ( $has_colors ) : ?>
+                        <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="color">Color</button>
+                    <?php endif; ?>
+                    <?php if ( $has_sizes ) : ?>
+                        <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="size">Size</button>
+                    <?php endif; ?>
+                    <?php if ( $has_filters ) : ?>
+                        <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="all">
+                            <span class="aegis-plp-filters__label--desktop">All Filters</span>
+                            <span class="aegis-plp-filters__label--mobile">All Filters</span>
+                        </button>
+                    <?php endif; ?>
+                </div>
+                <div class="aegis-plp-filters__meta">
+                    <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
+                        <?php woocommerce_catalog_ordering(); ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <form class="aegis-plp-filters__form" method="get" action="<?php echo $current_url; ?>">
+                <input type="hidden" name="orderby" value="<?php echo esc_attr( $current_orderby ); ?>" />
+                <input type="hidden" name="af_cat" value="<?php echo esc_attr( implode( ',', $request['af_cat'] ) ); ?>" data-filter-input="af_cat" data-aegis-hidden="af_cat" />
+                <input type="hidden" name="af_color" value="<?php echo esc_attr( implode( ',', $request['af_color'] ) ); ?>" data-filter-input="af_color" data-aegis-hidden="af_color" />
+                <input type="hidden" name="af_size" value="<?php echo esc_attr( implode( ',', $request['af_size'] ) ); ?>" data-filter-input="af_size" data-aegis-hidden="af_size" />
+
+                <?php if ( ! empty( $request['af_cat'] ) || ! empty( $request['af_color'] ) || ! empty( $request['af_size'] ) ) : ?>
+                    <div class="aegis-plp-filters__chips">
+                        <span class="aegis-plp-filters__chips-label">Active Filters:</span>
+                        <div class="aegis-plp-filters__chip-group">
+                            <?php foreach ( $request['af_cat'] as $term_slug ) : ?>
+                                <?php $term_obj = get_term_by( 'slug', $term_slug, 'product_cat' ); ?>
+                                <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                    <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php foreach ( $request['af_color'] as $term_slug ) : ?>
+                                <?php $term_obj = get_term_by( 'slug', $term_slug, 'pa_color' ); ?>
+                                <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                    <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php foreach ( $request['af_size'] as $term_slug ) : ?>
+                                <?php $term_obj = get_term_by( 'slug', $term_slug, 'pa_size' ); ?>
+                                <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                    <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                        <a class="aegis-plp-filters__clear" href="<?php echo $clear_url; ?>">Clear all</a>
+                    </div>
+                <?php endif; ?>
+
+                <div class="aegis-plp-filters__drawer" data-aegis-plp-drawer>
+                    <div class="aegis-plp-filters__drawer-header">
+                        <span class="aegis-plp-filters__drawer-title">Filter By</span>
+                        <button type="button" class="aegis-plp-filters__drawer-close" data-drawer-close aria-label="Close filters">×</button>
+                    </div>
+                    <div class="aegis-plp-filters__drawer-body">
+                        <?php if ( $has_categories ) : ?>
+                            <div class="aegis-plp-filters__group" data-aegis-plp-section="cat">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Category</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $category_children as $child_term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="af_cat" data-filter-label="<?php echo esc_attr( $child_term->name ); ?>" value="<?php echo esc_attr( $child_term->slug ); ?>" <?php checked( in_array( $child_term->slug, $request['af_cat'], true ) ); ?> />
+                                            <span><?php echo esc_html( $child_term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ( $has_colors ) : ?>
+                            <div class="aegis-plp-filters__group" data-aegis-plp-section="color">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Color</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $color_terms as $term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="af_color" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['af_color'], true ) ); ?> />
+                                            <span><?php echo esc_html( $term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ( $has_sizes ) : ?>
+                            <div class="aegis-plp-filters__group" data-aegis-plp-section="size">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Size</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $size_terms as $term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="af_size" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['af_size'], true ) ); ?> />
+                                            <span><?php echo esc_html( $term->name ); ?></span>
+                                        </label>
                                     <?php endforeach; ?>
                                 </div>
                             </div>
@@ -1261,6 +1504,50 @@ function aegis_plp_filters_apply_query( $query ) {
                 'meta_query' => $query->get( 'meta_query' ),
                 'applied_price' => $applied_price,
             ) );
+        }
+        return;
+    }
+
+    if ( aegis_plp_filters_is_clothes_context() ) {
+        $request = aegis_plp_filters_parse_clothes_request();
+        $tax_query = $query->get( 'tax_query', array() );
+        if ( ! is_array( $tax_query ) ) {
+            $tax_query = array();
+        }
+
+        if ( ! empty( $request['af_cat'] ) ) {
+            $tax_query[] = array(
+                'taxonomy' => 'product_cat',
+                'field' => 'slug',
+                'terms' => $request['af_cat'],
+                'operator' => 'IN',
+            );
+        }
+
+        if ( ! empty( $request['af_color'] ) ) {
+            $tax_query[] = array(
+                'taxonomy' => 'pa_color',
+                'field' => 'slug',
+                'terms' => $request['af_color'],
+                'operator' => 'IN',
+            );
+        }
+
+        if ( ! empty( $request['af_size'] ) ) {
+            $tax_query[] = array(
+                'taxonomy' => 'pa_size',
+                'field' => 'slug',
+                'terms' => $request['af_size'],
+                'operator' => 'IN',
+            );
+        }
+
+        if ( count( $tax_query ) > 1 && ! isset( $tax_query['relation'] ) ) {
+            $tax_query['relation'] = 'AND';
+        }
+
+        if ( ! empty( $tax_query ) ) {
+            $query->set( 'tax_query', $tax_query );
         }
         return;
     }

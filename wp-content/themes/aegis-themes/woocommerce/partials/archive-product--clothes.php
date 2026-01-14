@@ -1,36 +1,12 @@
 <?php
 /**
- * The Template for displaying product archives, including the main shop page which is a post type archive
+ * Clothes product archive template.
  *
- * This template can be overridden by copying it to yourtheme/woocommerce/archive-product.php.
- *
- * HOWEVER, on occasion WooCommerce will need to update template files and you
- * (the theme developer) will need to copy the new files to your theme to
- * maintain compatibility. We try to do this as little as possible, but it does
- * happen. When this occurs the version of the template file will be bumped and
- * the readme will list any important changes.
- *
- * @see https://woocommerce.com/document/template-structure/
  * @package WooCommerce\Templates
  * @version 8.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
-
-if ( function_exists( 'aegis_is_sleepingbags_or_descendant' ) && aegis_is_sleepingbags_or_descendant() ) {
-    include locate_template( 'woocommerce/partials/archive-product--sleepingbags.php' );
-    return;
-}
-
-if ( function_exists( 'aegis_is_term_or_descendant' ) && aegis_is_term_or_descendant( 'product_cat', 'clothes' ) ) {
-    include locate_template( 'woocommerce/partials/archive-product--clothes.php' );
-    return;
-}
-
-if ( function_exists( 'is_shop' ) && is_shop() ) {
-    include locate_template( 'woocommerce/partials/archive-product--shop.php' );
-    return;
-}
 
 get_header( 'shop' );
 
