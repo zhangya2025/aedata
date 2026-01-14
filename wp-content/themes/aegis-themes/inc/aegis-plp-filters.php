@@ -46,6 +46,57 @@ function aegis_plp_filters_debug_log( $label, $data ) {
     error_log( sprintf( '[aegis-plp] %s: %s', $label, $payload ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 }
 
+function aegis_plp_filters_clean_query_args( $raw ) {
+    if ( ! is_array( $raw ) ) {
+        return array();
+    }
+
+    $clean = array();
+    foreach ( $raw as $key => $value ) {
+        if ( is_array( $value ) ) {
+            $filtered = array_filter( array_map( 'trim', $value ), function ( $item ) {
+                return '' !== $item && ! preg_match( '/^,+$/', $item );
+            } );
+            if ( empty( $filtered ) ) {
+                continue;
+            }
+            $clean[ $key ] = array_values( $filtered );
+            continue;
+        }
+
+        $string_value = trim( (string) $value );
+        if ( '' === $string_value || preg_match( '/^,+$/', $string_value ) ) {
+            continue;
+        }
+
+        if ( 'orderby' === $key ) {
+            $clean[ $key ] = $string_value;
+            continue;
+        }
+
+        if ( in_array( $key, array( 'min_price', 'max_price' ), true ) ) {
+            if ( is_numeric( $string_value ) ) {
+                $clean[ $key ] = $string_value;
+            }
+            continue;
+        }
+
+        if ( 'temp_limit' === $key ) {
+            $clean[ $key ] = $string_value;
+            continue;
+        }
+
+        if ( 0 === strpos( $key, 'filter_' ) ) {
+            $clean[ $key ] = $string_value;
+            continue;
+        }
+
+        $clean[ $key ] = $string_value;
+    }
+
+    return $clean;
+}
+
 function aegis_plp_filters_parse_csv_values( $value, $sanitize_callback ) {
     if ( null === $value ) {
         return array();
@@ -182,13 +233,14 @@ function aegis_plp_filters_is_plp_enabled_context() {
     return aegis_plp_filters_is_sleepingbags_context() || aegis_plp_filters_is_other_product_cat_context();
 }
 
-function aegis_plp_filters_parse_request() {
+function aegis_plp_filters_parse_request( $raw_args = null ) {
+    $raw_args = is_array( $raw_args ) ? $raw_args : $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
     $filters = array();
     $temp_buckets = array();
     $min_price = '';
     $max_price = '';
 
-    foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    foreach ( $raw_args as $key => $value ) {
         if ( 0 !== strpos( $key, 'filter_' ) ) {
             continue;
         }
@@ -211,19 +263,19 @@ function aegis_plp_filters_parse_request() {
         $filters[ $taxonomy ] = $parts;
     }
 
-    if ( isset( $_GET['temp_limit'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $temp_buckets = aegis_plp_filters_parse_csv_values( $_GET['temp_limit'], 'sanitize_key' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( isset( $raw_args['temp_limit'] ) ) {
+        $temp_buckets = aegis_plp_filters_parse_csv_values( $raw_args['temp_limit'], 'sanitize_key' );
     }
 
-    if ( isset( $_GET['min_price'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $raw_min = trim( (string) wp_unslash( $_GET['min_price'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( isset( $raw_args['min_price'] ) ) {
+        $raw_min = trim( (string) wp_unslash( $raw_args['min_price'] ) );
         if ( '' !== $raw_min && is_numeric( $raw_min ) ) {
             $min_price = wc_format_decimal( $raw_min );
         }
     }
 
-    if ( isset( $_GET['max_price'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $raw_max = trim( (string) wp_unslash( $_GET['max_price'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( isset( $raw_args['max_price'] ) ) {
+        $raw_max = trim( (string) wp_unslash( $raw_args['max_price'] ) );
         if ( '' !== $raw_max && is_numeric( $raw_max ) ) {
             $max_price = wc_format_decimal( $raw_max );
         }
@@ -730,45 +782,39 @@ function aegis_plp_filters_render_toolbar() {
 
 function aegis_plp_filters_apply_query( $query ) {
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
-        $has_filter_params = false;
-        foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            if ( 0 === strpos( $key, 'filter_' ) ) {
-                $has_filter_params = true;
-                break;
+        $raw_args = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $clean = aegis_plp_filters_clean_query_args( $raw_args );
+
+        if ( ! is_admin()
+            && ( ! function_exists( 'wp_doing_ajax' ) || ! wp_doing_ajax() )
+            && ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST )
+            && isset( $_SERVER['REQUEST_METHOD'] )
+            && 'GET' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) )
+            && $clean != $raw_args
+        ) {
+            $term = get_queried_object();
+            $base_url = $term ? get_term_link( $term ) : '';
+            if ( $base_url && ! is_wp_error( $base_url ) ) {
+                wp_safe_redirect( add_query_arg( $clean, $base_url ), 302 );
+                exit;
             }
         }
 
-        if ( ! $has_filter_params ) {
-            $has_filter_params = isset( $_GET['temp_limit'] ) || isset( $_GET['min_price'] ) || isset( $_GET['max_price'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        }
-
-        if ( $has_filter_params ) {
-            aegis_plp_filters_debug_log( 'query-start', array(
-                'is_main_query' => $query->is_main_query(),
-                'post_type' => $query->get( 'post_type' ),
-                'product_cat' => $query->get( 'product_cat' ),
-                'tax_query' => $query->get( 'tax_query' ),
-                'meta_query' => $query->get( 'meta_query' ),
-                'raw_get' => $_GET, // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            ) );
-        }
-
-        $request = aegis_plp_filters_parse_request();
+        $request = aegis_plp_filters_parse_request( $clean );
         $has_filter_params = false;
-        foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        foreach ( $clean as $key => $value ) {
             if ( 0 !== strpos( $key, 'filter_' ) ) {
                 continue;
             }
 
-            $terms = aegis_plp_filters_parse_csv_values( $value, 'sanitize_title' );
-            if ( ! empty( $terms ) ) {
+            if ( '' !== $value ) {
                 $has_filter_params = true;
                 break;
             }
         }
 
-        if ( ! $has_filter_params && isset( $_GET['temp_limit'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            $temp_terms = aegis_plp_filters_parse_csv_values( $_GET['temp_limit'], 'sanitize_key' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( ! $has_filter_params && isset( $clean['temp_limit'] ) ) {
+            $temp_terms = aegis_plp_filters_parse_csv_values( $clean['temp_limit'], 'sanitize_key' );
             $has_filter_params = ! empty( $temp_terms );
         }
 
@@ -783,7 +829,8 @@ function aegis_plp_filters_apply_query( $query ) {
                 'product_cat' => $query->get( 'product_cat' ),
                 'tax_query' => $query->get( 'tax_query' ),
                 'meta_query' => $query->get( 'meta_query' ),
-                'raw_get' => $_GET, // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                'raw_get' => $raw_args,
+                'clean_get' => $clean,
             ) );
         }
 
@@ -852,6 +899,7 @@ function aegis_plp_filters_apply_query( $query ) {
             }
         }
 
+        $applied_price = false;
         if ( '' !== $request['min_price'] || '' !== $request['max_price'] ) {
             $price_clause = array(
                 'key' => '_price',
@@ -864,6 +912,7 @@ function aegis_plp_filters_apply_query( $query ) {
             $price_clause['value'] = array( $min, $max );
 
             $meta_query[] = $price_clause;
+            $applied_price = true;
         }
 
         if ( ! empty( $meta_query ) ) {
@@ -875,6 +924,7 @@ function aegis_plp_filters_apply_query( $query ) {
                 'parsed_request' => $request,
                 'tax_query' => $query->get( 'tax_query' ),
                 'meta_query' => $query->get( 'meta_query' ),
+                'applied_price' => $applied_price,
             ) );
         }
         return;
