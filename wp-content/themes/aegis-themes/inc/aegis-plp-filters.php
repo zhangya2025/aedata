@@ -624,7 +624,10 @@ function aegis_plp_filters_render_toolbar() {
                         <?php endif; ?>
                     </div>
                     <div class="aegis-plp-filters__drawer-footer">
-                        <div class="aegis-plp-filters__selected" data-aegis-selected></div>
+                        <div class="aegis-plp-filters__selected-title">Selected</div>
+                        <div class="aegis-plp-filters__selected" data-aegis-selected>
+                            <span class="aegis-plp-filters__selected-empty">No filters selected</span>
+                        </div>
                         <div class="aegis-plp-filters__footer-actions">
                             <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
                             <button type="submit" class="aegis-plp-filters__submit">View Results</button>
@@ -773,7 +776,10 @@ function aegis_plp_filters_render_toolbar() {
                     <?php endif; ?>
                 </div>
                 <div class="aegis-plp-filters__drawer-footer">
-                    <div class="aegis-plp-filters__selected" data-aegis-selected></div>
+                    <div class="aegis-plp-filters__selected-title">Selected</div>
+                    <div class="aegis-plp-filters__selected" data-aegis-selected>
+                        <span class="aegis-plp-filters__selected-empty">No filters selected</span>
+                    </div>
                     <div class="aegis-plp-filters__footer-actions">
                         <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
                         <button type="submit" class="aegis-plp-filters__submit">View Results</button>

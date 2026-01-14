@@ -112,8 +112,10 @@
         }
         selectedContainer.innerHTML = '';
         const fragment = document.createDocumentFragment();
+        let hasSelections = false;
         Object.keys(state).forEach((name) => {
             state[name].forEach((value) => {
+                hasSelections = true;
                 const key = `${name}::${value}`;
                 const label = labelMap.get(key) || value;
                 const button = document.createElement('button');
@@ -125,6 +127,12 @@
                 fragment.appendChild(button);
             });
         });
+        if (!hasSelections) {
+            const empty = document.createElement('span');
+            empty.className = 'aegis-plp-filters__selected-empty';
+            empty.textContent = 'No filters selected';
+            fragment.appendChild(empty);
+        }
         selectedContainer.appendChild(fragment);
     };
 
