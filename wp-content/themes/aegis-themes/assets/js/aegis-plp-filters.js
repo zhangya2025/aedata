@@ -89,5 +89,30 @@
         checkbox.addEventListener('change', syncFilters);
     });
 
+    const form = container.querySelector('form');
+    const isEmptyValue = (value) => {
+        if (value === null || value === undefined) {
+            return true;
+        }
+        const trimmed = String(value).trim();
+        if (trimmed === '') {
+            return true;
+        }
+        return /^,+$/.test(trimmed);
+    };
+
+    if (form) {
+        form.addEventListener('submit', () => {
+            Array.from(form.elements).forEach((element) => {
+                if (!element || !element.name) {
+                    return;
+                }
+                if (isEmptyValue(element.value)) {
+                    element.disabled = true;
+                }
+            });
+        });
+    }
+
     syncFilters();
 })();
