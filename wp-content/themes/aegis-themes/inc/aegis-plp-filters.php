@@ -730,6 +730,29 @@ function aegis_plp_filters_render_toolbar() {
 
 function aegis_plp_filters_apply_query( $query ) {
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
+        $has_filter_params = false;
+        foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            if ( 0 === strpos( $key, 'filter_' ) ) {
+                $has_filter_params = true;
+                break;
+            }
+        }
+
+        if ( ! $has_filter_params ) {
+            $has_filter_params = isset( $_GET['temp_limit'] ) || isset( $_GET['min_price'] ) || isset( $_GET['max_price'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+
+        if ( $has_filter_params ) {
+            aegis_plp_filters_debug_log( 'query-start', array(
+                'is_main_query' => $query->is_main_query(),
+                'post_type' => $query->get( 'post_type' ),
+                'product_cat' => $query->get( 'product_cat' ),
+                'tax_query' => $query->get( 'tax_query' ),
+                'meta_query' => $query->get( 'meta_query' ),
+                'raw_get' => $_GET, // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            ) );
+        }
+
         $request = aegis_plp_filters_parse_request();
         $has_filter_params = false;
         foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
