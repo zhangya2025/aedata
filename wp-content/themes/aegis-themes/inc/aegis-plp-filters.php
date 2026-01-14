@@ -867,9 +867,31 @@ function aegis_plp_filters_apply_query( $query ) {
                 continue;
             }
 
-            $taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( $key );
-            if ( '' === $taxonomy ) {
+            $attr_slug = substr( $key, 7 );
+            if ( '' === $attr_slug ) {
                 continue;
+            }
+
+            if ( function_exists( 'wc_attribute_taxonomy_name' ) ) {
+                $taxonomy = wc_attribute_taxonomy_name( $attr_slug );
+            } else {
+                $taxonomy = 'pa_' . $attr_slug;
+            }
+
+            if ( ! taxonomy_exists( $taxonomy ) ) {
+                $alt_slug = str_replace( '_', '-', $attr_slug );
+                $alt_taxonomy = 'pa_' . $alt_slug;
+                if ( taxonomy_exists( $alt_taxonomy ) ) {
+                    $taxonomy = $alt_taxonomy;
+                } else {
+                    $alt_slug = str_replace( '-', '_', $attr_slug );
+                    $alt_taxonomy = 'pa_' . $alt_slug;
+                    if ( taxonomy_exists( $alt_taxonomy ) ) {
+                        $taxonomy = $alt_taxonomy;
+                    } else {
+                        continue;
+                    }
+                }
             }
 
             $terms = aegis_plp_filters_parse_csv_values( $value, 'sanitize_title' );
@@ -903,13 +925,46 @@ function aegis_plp_filters_apply_query( $query ) {
             $tax_query = array();
         }
 
-        $new_tax_query = array();
-        foreach ( $selected_by_tax as $taxonomy => $terms ) {
+        $existing_tax_query = $tax_query;
+        $tax_query = array();
+        $merged_terms_by_tax = $selected_by_tax;
+
+        foreach ( $existing_tax_query as $key => $clause ) {
+            if ( 'relation' === $key ) {
+                continue;
+            }
+
+            if ( ! is_array( $clause ) ) {
+                $tax_query[] = $clause;
+                continue;
+            }
+
+            $taxonomy = $clause['taxonomy'] ?? '';
+            if ( '' === $taxonomy ) {
+                $tax_query[] = $clause;
+                continue;
+            }
+
+            if ( isset( $merged_terms_by_tax[ $taxonomy ] ) ) {
+                $existing_terms = $clause['terms'] ?? array();
+                if ( ! is_array( $existing_terms ) ) {
+                    $existing_terms = array( $existing_terms );
+                }
+                $merged_terms_by_tax[ $taxonomy ] = array_values(
+                    array_unique( array_merge( $merged_terms_by_tax[ $taxonomy ], $existing_terms ) )
+                );
+                continue;
+            }
+
+            $tax_query[] = $clause;
+        }
+
+        foreach ( $merged_terms_by_tax as $taxonomy => $terms ) {
             if ( empty( $terms ) ) {
                 continue;
             }
 
-            $new_tax_query[] = array(
+            $tax_query[] = array(
                 'taxonomy' => $taxonomy,
                 'field' => 'slug',
                 'terms' => $terms,
@@ -917,12 +972,17 @@ function aegis_plp_filters_apply_query( $query ) {
             );
         }
 
-        if ( ! empty( $new_tax_query ) ) {
-            $tax_query = array_merge( $tax_query, $new_tax_query );
+        if ( ! empty( $tax_query ) ) {
             if ( count( $tax_query ) > 1 && ! isset( $tax_query['relation'] ) ) {
                 $tax_query['relation'] = 'AND';
             }
             $query->set( 'tax_query', $tax_query );
+        }
+
+        if ( $has_filter_params && isset( $clean[ $fill_key ] ) ) {
+            aegis_plp_filters_debug_log( 'fill-type-tax-query', array(
+                'tax_query' => $query->get( 'tax_query' ),
+            ) );
         }
 
         $meta_query = $query->get( 'meta_query', array() );
