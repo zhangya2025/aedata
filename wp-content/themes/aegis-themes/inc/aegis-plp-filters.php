@@ -1171,6 +1171,12 @@ function aegis_plp_filters_apply_query( $query ) {
             $query->set( 'tax_query', $tax_query );
         }
 
+        if ( $has_filter_params && isset( $clean[ $fill_key ] ) ) {
+            aegis_plp_filters_debug_log( 'fill-type-tax-query', array(
+                'tax_query' => $query->get( 'tax_query' ),
+            ) );
+        }
+
         $meta_query = $query->get( 'meta_query', array() );
         if ( ! is_array( $meta_query ) ) {
             $meta_query = array();
