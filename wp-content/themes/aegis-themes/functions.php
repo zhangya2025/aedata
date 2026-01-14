@@ -15,6 +15,7 @@ require_once get_theme_file_path( 'inc/size-guides.php' );
 require_once get_theme_file_path( 'inc/faq-library.php' );
 require_once get_theme_file_path( 'inc/tech-features.php' );
 require_once get_theme_file_path( 'inc/certificates.php' );
+require_once get_theme_file_path( 'inc/aegis-woo-context.php' );
 require_once get_theme_file_path( 'inc/aegis-plp-filters.php' );
 add_action( 'init', function () {
     add_shortcode( 'aegis_pdp_details', 'aegis_pdp_details_shortcode' );
