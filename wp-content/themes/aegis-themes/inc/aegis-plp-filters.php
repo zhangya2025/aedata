@@ -188,6 +188,39 @@ function aegis_plp_filters_filter_key_from_taxonomy( $taxonomy ) {
     return 'filter_' . str_replace( '-', '_', $slug );
 }
 
+function aegis_plp_filters_upsert_tax_query_clause( array $tax_query, array $clause ) {
+    $taxonomy = $clause['taxonomy'] ?? '';
+    if ( '' === $taxonomy ) {
+        return $tax_query;
+    }
+
+    $relation = $tax_query['relation'] ?? null;
+    $updated = false;
+    $next = array();
+
+    foreach ( $tax_query as $key => $existing ) {
+        if ( 'relation' === $key ) {
+            continue;
+        }
+        if ( is_array( $existing ) && isset( $existing['taxonomy'] ) && $existing['taxonomy'] === $taxonomy ) {
+            $next[] = $clause;
+            $updated = true;
+            continue;
+        }
+        $next[] = $existing;
+    }
+
+    if ( ! $updated ) {
+        $next[] = $clause;
+    }
+
+    if ( null !== $relation ) {
+        $next['relation'] = $relation;
+    }
+
+    return $next;
+}
+
 function aegis_plp_filters_resolve_taxonomy_from_filter_key( $filter_key ) {
     $attr_slug = sanitize_key( substr( $filter_key, 7 ) );
     if ( '' === $attr_slug ) {
@@ -1008,12 +1041,6 @@ function aegis_plp_filters_apply_query( $query ) {
         $new_tax_query = array();
         foreach ( $filtered_by_tax as $taxonomy => $terms ) {
             if ( 'pa_sleepingbag_fill_type' === $taxonomy && ! empty( $term_ids_by_tax[ $taxonomy ] ) ) {
-                $new_tax_query[] = array(
-                    'taxonomy' => $taxonomy,
-                    'field' => 'term_id',
-                    'terms' => $term_ids_by_tax[ $taxonomy ],
-                    'operator' => 'IN',
-                );
                 continue;
             }
 
@@ -1023,6 +1050,20 @@ function aegis_plp_filters_apply_query( $query ) {
                 'terms' => $terms,
                 'operator' => 'IN',
             );
+        }
+
+        if ( ! empty( $new_tax_query ) ) {
+            $tax_query = array_merge( $tax_query, $new_tax_query );
+        }
+
+        if ( ! empty( $term_ids_by_tax['pa_sleepingbag_fill_type'] ) ) {
+            $fill_clause = array(
+                'taxonomy' => 'pa_sleepingbag_fill_type',
+                'field' => 'term_id',
+                'terms' => array_values( array_unique( $term_ids_by_tax['pa_sleepingbag_fill_type'] ) ),
+                'operator' => 'IN',
+            );
+            $tax_query = aegis_plp_filters_upsert_tax_query_clause( $tax_query, $fill_clause );
         }
 
         if ( ! empty( $tax_query ) ) {
