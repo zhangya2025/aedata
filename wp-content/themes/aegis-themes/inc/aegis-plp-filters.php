@@ -46,6 +46,57 @@ function aegis_plp_filters_debug_log( $label, $data ) {
     error_log( sprintf( '[aegis-plp] %s: %s', $label, $payload ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 }
 
+function aegis_plp_filters_parse_csv_values( $value, $sanitize_callback ) {
+    if ( null === $value ) {
+        return array();
+    }
+
+    $raw = is_array( $value ) ? implode( ',', $value ) : (string) $value;
+    $raw = trim( $raw );
+
+    if ( '' === $raw ) {
+        return array();
+    }
+
+    $raw = trim( $raw, "," );
+    if ( '' === $raw ) {
+        return array();
+    }
+
+    $parts = array_map( 'trim', explode( ',', $raw ) );
+    $parts = array_filter( $parts, function ( $part ) {
+        return '' !== $part;
+    } );
+
+    if ( empty( $parts ) ) {
+        return array();
+    }
+
+    if ( is_callable( $sanitize_callback ) ) {
+        $parts = array_map( $sanitize_callback, $parts );
+        $parts = array_filter( $parts, function ( $part ) {
+            return '' !== $part && null !== $part;
+        } );
+    }
+
+    return array_values( array_unique( $parts ) );
+}
+
+function aegis_plp_filters_filter_valid_terms( $taxonomy, $terms ) {
+    if ( ! taxonomy_exists( $taxonomy ) || empty( $terms ) ) {
+        return array();
+    }
+
+    $valid = array();
+    foreach ( $terms as $term ) {
+        if ( term_exists( $term, $taxonomy ) ) {
+            $valid[] = $term;
+        }
+    }
+
+    return array_values( array_unique( $valid ) );
+}
+
 function aegis_plp_filters_filter_key_from_taxonomy( $taxonomy ) {
     $slug = str_replace( 'pa_', '', (string) $taxonomy );
     return 'filter_' . str_replace( '-', '_', $slug );
@@ -141,26 +192,35 @@ function aegis_plp_filters_parse_request() {
             continue;
         }
 
-        $raw_value = is_array( $value ) ? implode( ',', $value ) : (string) $value;
-        $parts = array_filter( array_map( 'sanitize_title', explode( ',', $raw_value ) ) );
+        $parts = aegis_plp_filters_parse_csv_values( $value, 'sanitize_title' );
         if ( empty( $parts ) ) {
             continue;
         }
 
-        $filters[ $taxonomy ] = array_values( array_unique( $parts ) );
+        $parts = aegis_plp_filters_filter_valid_terms( $taxonomy, $parts );
+        if ( empty( $parts ) ) {
+            continue;
+        }
+
+        $filters[ $taxonomy ] = $parts;
     }
 
     if ( isset( $_GET['temp_limit'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $raw_temp = is_array( $_GET['temp_limit'] ) ? implode( ',', $_GET['temp_limit'] ) : (string) $_GET['temp_limit']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $temp_buckets = array_filter( array_map( 'sanitize_key', explode( ',', $raw_temp ) ) );
+        $temp_buckets = aegis_plp_filters_parse_csv_values( $_GET['temp_limit'], 'sanitize_key' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
     }
 
     if ( isset( $_GET['min_price'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $min_price = wc_format_decimal( wp_unslash( $_GET['min_price'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $raw_min = trim( (string) wp_unslash( $_GET['min_price'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( '' !== $raw_min && is_numeric( $raw_min ) ) {
+            $min_price = wc_format_decimal( $raw_min );
+        }
     }
 
     if ( isset( $_GET['max_price'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $max_price = wc_format_decimal( wp_unslash( $_GET['max_price'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $raw_max = trim( (string) wp_unslash( $_GET['max_price'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( '' !== $raw_max && is_numeric( $raw_max ) ) {
+            $max_price = wc_format_decimal( $raw_max );
+        }
     }
 
     return array(
@@ -688,14 +748,51 @@ function aegis_plp_filters_apply_query( $query ) {
         }
 
         $request = aegis_plp_filters_parse_request();
+        $has_filter_params = false;
+        foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            if ( 0 !== strpos( $key, 'filter_' ) ) {
+                continue;
+            }
+
+            $terms = aegis_plp_filters_parse_csv_values( $value, 'sanitize_title' );
+            if ( ! empty( $terms ) ) {
+                $has_filter_params = true;
+                break;
+            }
+        }
+
+        if ( ! $has_filter_params && isset( $_GET['temp_limit'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $temp_terms = aegis_plp_filters_parse_csv_values( $_GET['temp_limit'], 'sanitize_key' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $has_filter_params = ! empty( $temp_terms );
+        }
+
+        if ( ! $has_filter_params ) {
+            $has_filter_params = ( '' !== $request['min_price'] || '' !== $request['max_price'] );
+        }
+
+        if ( $has_filter_params ) {
+            aegis_plp_filters_debug_log( 'query-start', array(
+                'is_main_query' => $query->is_main_query(),
+                'post_type' => $query->get( 'post_type' ),
+                'product_cat' => $query->get( 'product_cat' ),
+                'tax_query' => $query->get( 'tax_query' ),
+                'meta_query' => $query->get( 'meta_query' ),
+                'raw_get' => $_GET, // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            ) );
+        }
 
         $tax_query = $query->get( 'tax_query', array() );
         if ( ! is_array( $tax_query ) ) {
             $tax_query = array();
         }
 
+        $new_tax_query = array();
         foreach ( $request['filters'] as $taxonomy => $terms ) {
-            $tax_query[] = array(
+            if ( ! taxonomy_exists( $taxonomy ) || empty( $terms ) ) {
+                continue;
+            }
+
+            $new_tax_query[] = array(
                 'taxonomy' => $taxonomy,
                 'field' => 'slug',
                 'terms' => $terms,
@@ -703,7 +800,11 @@ function aegis_plp_filters_apply_query( $query ) {
             );
         }
 
-        if ( ! empty( $tax_query ) ) {
+        if ( ! empty( $new_tax_query ) ) {
+            $tax_query = array_merge( $tax_query, $new_tax_query );
+            if ( ! isset( $tax_query['relation'] ) ) {
+                $tax_query['relation'] = 'AND';
+            }
             $query->set( 'tax_query', $tax_query );
         }
 
