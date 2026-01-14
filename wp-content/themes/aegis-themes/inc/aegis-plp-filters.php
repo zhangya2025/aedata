@@ -1011,25 +1011,26 @@ function aegis_plp_filters_apply_query( $query ) {
                 continue;
             }
 
-            $taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( 'filter_' . substr( $key, 3 ) );
-            if ( '' === $taxonomy ) {
+            $attr_slug = substr( $key, 3 );
+            if ( '' === $attr_slug ) {
                 continue;
             }
 
-            if ( function_exists( 'wc_attribute_taxonomy_name' ) ) {
-                $taxonomy = wc_attribute_taxonomy_name( $attr_slug );
-            } else {
-                $taxonomy = 'pa_' . $attr_slug;
-            }
-
+            $taxonomy = function_exists( 'wc_attribute_taxonomy_name' )
+                ? wc_attribute_taxonomy_name( $attr_slug )
+                : 'pa_' . $attr_slug;
             if ( ! taxonomy_exists( $taxonomy ) ) {
                 $alt_slug = str_replace( '_', '-', $attr_slug );
-                $alt_taxonomy = 'pa_' . $alt_slug;
+                $alt_taxonomy = function_exists( 'wc_attribute_taxonomy_name' )
+                    ? wc_attribute_taxonomy_name( $alt_slug )
+                    : 'pa_' . $alt_slug;
                 if ( taxonomy_exists( $alt_taxonomy ) ) {
                     $taxonomy = $alt_taxonomy;
                 } else {
                     $alt_slug = str_replace( '-', '_', $attr_slug );
-                    $alt_taxonomy = 'pa_' . $alt_slug;
+                    $alt_taxonomy = function_exists( 'wc_attribute_taxonomy_name' )
+                        ? wc_attribute_taxonomy_name( $alt_slug )
+                        : 'pa_' . $alt_slug;
                     if ( taxonomy_exists( $alt_taxonomy ) ) {
                         $taxonomy = $alt_taxonomy;
                     } else {
