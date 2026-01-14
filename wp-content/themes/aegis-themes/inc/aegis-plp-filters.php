@@ -979,6 +979,10 @@ function aegis_plp_filters_apply_query( $query ) {
         );
     }
 
+    if ( count( $tax_query ) > 1 && ! isset( $tax_query['relation'] ) ) {
+        $tax_query['relation'] = 'AND';
+    }
+
     if ( ! empty( $tax_query ) ) {
         $query->set( 'tax_query', $tax_query );
     }
