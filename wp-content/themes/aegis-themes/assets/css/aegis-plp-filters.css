@@ -125,6 +125,7 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
     padding: 16px;
     overflow-y: auto;
     flex: 1;
+    padding-bottom: 120px;
 }
 
 .aegis-plp-filters__group {
@@ -168,13 +169,38 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
 
 .aegis-plp-filters__drawer-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
     padding: 16px;
     border-top: 1px solid #e5e5e5;
     background: #fff;
     position: sticky;
     bottom: 0;
+}
+
+.aegis-plp-filters__selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.aegis-plp-filters__selected-chip {
+    background: #f2f2f2;
+    border: 1px solid #e5e5e5;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.aegis-plp-filters__footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
 }
 
 .aegis-plp-filters__submit {
