@@ -221,6 +221,39 @@ function aegis_plp_filters_upsert_tax_query_clause( array $tax_query, array $cla
     return $next;
 }
 
+function aegis_plp_filters_should_log_diag( $query = null ) {
+    if ( ! AEGIS_PLP_DEBUG || ! isset( $_GET['filter_sleepingbag_fill_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        return false;
+    }
+
+    if ( ! aegis_plp_filters_is_sleepingbags_context() ) {
+        return false;
+    }
+
+    if ( $query instanceof WP_Query ) {
+        return $query->is_main_query();
+    }
+
+    return is_main_query();
+}
+
+function aegis_plp_filters_log_query_vars( $label, $query ) {
+    if ( ! aegis_plp_filters_should_log_diag( $query ) ) {
+        return;
+    }
+
+    $query_vars = array(
+        'tax_query' => $query->get( 'tax_query' ),
+        'meta_query' => $query->get( 'meta_query' ),
+        'post_type' => $query->get( 'post_type' ),
+        'posts_per_page' => $query->get( 'posts_per_page' ),
+        'orderby' => $query->get( 'orderby' ),
+        'order' => $query->get( 'order' ),
+    );
+
+    error_log( sprintf( '[aegis-plp-diag] %s: %s', $label, wp_json_encode( $query_vars ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+}
+
 function aegis_plp_filters_resolve_taxonomy_from_filter_key( $filter_key ) {
     $attr_slug = sanitize_key( substr( $filter_key, 7 ) );
     if ( '' === $attr_slug ) {
@@ -1153,6 +1186,8 @@ function aegis_plp_filters_apply_query( $query ) {
             ) );
         }
 
+        aegis_plp_filters_log_query_vars( 'after-apply', $query );
+
         if ( $has_filter_params ) {
             aegis_plp_filters_debug_log( 'query-applied', array(
                 'parsed_request' => $request,
@@ -1209,4 +1244,47 @@ function aegis_plp_filters_apply_query( $query ) {
     if ( ! empty( $tax_query ) ) {
         $query->set( 'tax_query', $tax_query );
     }
+}
+
+function aegis_plp_filters_log_final_query_vars( $query ) {
+    if ( ! ( $query instanceof WP_Query ) ) {
+        return;
+    }
+
+    if ( ! aegis_plp_filters_should_log_diag( $query ) ) {
+        return;
+    }
+
+    $term = get_queried_object();
+    $queried = $term && isset( $term->slug ) ? $term->slug : '';
+    $payload = array(
+        'tax_query' => $query->get( 'tax_query' ),
+        'meta_query' => $query->get( 'meta_query' ),
+        'post_type' => $query->get( 'post_type' ),
+        'posts_per_page' => $query->get( 'posts_per_page' ),
+        'is_tax' => is_tax( 'product_cat' ),
+        'queried' => $queried,
+    );
+
+    error_log( sprintf( '[aegis-plp-diag] final-vars: %s', wp_json_encode( $payload ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+}
+
+function aegis_plp_filters_log_final_sql( $clauses, $query ) {
+    if ( ! ( $query instanceof WP_Query ) ) {
+        return $clauses;
+    }
+
+    if ( ! aegis_plp_filters_should_log_diag( $query ) ) {
+        return $clauses;
+    }
+
+    $payload = array(
+        'join' => $clauses['join'] ?? '',
+        'where' => $clauses['where'] ?? '',
+        'groupby' => $clauses['groupby'] ?? '',
+    );
+
+    error_log( sprintf( '[aegis-plp-diag] final-clauses: %s', wp_json_encode( $payload ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+
+    return $clauses;
 }
