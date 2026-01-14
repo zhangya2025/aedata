@@ -469,7 +469,7 @@ function aegis_plp_filters_render_toolbar() {
                     $filter_value = is_array( $raw_value ) ? implode( ',', $raw_value ) : (string) $raw_value;
                 }
                 ?>
-                <input type="hidden" name="<?php echo esc_attr( $filter_key ); ?>" value="<?php echo esc_attr( $filter_value ); ?>" data-filter-input="<?php echo esc_attr( $filter_key ); ?>" />
+                <input type="hidden" name="<?php echo esc_attr( $filter_key ); ?>" value="<?php echo esc_attr( $filter_value ); ?>" data-filter-input="<?php echo esc_attr( $filter_key ); ?>" data-aegis-hidden="<?php echo esc_attr( $filter_key ); ?>" />
                 <?php endforeach; ?>
 
                 <?php if ( ! empty( $request['filters'] ) || ! empty( $request['temp_limit'] ) || '' !== $request['min_price'] || '' !== $request['max_price'] ) : ?>
@@ -696,9 +696,9 @@ function aegis_plp_filters_render_toolbar() {
         </div>
         <form class="aegis-plp-filters__form" method="get" action="<?php echo $current_url; ?>">
             <input type="hidden" name="orderby" value="<?php echo esc_attr( $current_orderby ); ?>" />
-            <input type="hidden" name="filter_cat" value="<?php echo esc_attr( implode( ',', $request['filter_cat'] ) ); ?>" data-filter-input="filter_cat" />
-            <input type="hidden" name="filter_color" value="<?php echo esc_attr( implode( ',', $request['filter_color'] ) ); ?>" data-filter-input="filter_color" />
-            <input type="hidden" name="filter_size" value="<?php echo esc_attr( implode( ',', $request['filter_size'] ) ); ?>" data-filter-input="filter_size" />
+            <input type="hidden" name="filter_cat" value="<?php echo esc_attr( implode( ',', $request['filter_cat'] ) ); ?>" data-filter-input="filter_cat" data-aegis-hidden="filter_cat" />
+            <input type="hidden" name="filter_color" value="<?php echo esc_attr( implode( ',', $request['filter_color'] ) ); ?>" data-filter-input="filter_color" data-aegis-hidden="filter_color" />
+            <input type="hidden" name="filter_size" value="<?php echo esc_attr( implode( ',', $request['filter_size'] ) ); ?>" data-filter-input="filter_size" data-aegis-hidden="filter_size" />
 
             <?php if ( ! empty( $request['filter_cat'] ) || ! empty( $request['filter_color'] ) || ! empty( $request['filter_size'] ) ) : ?>
                 <div class="aegis-plp-filters__chips">
@@ -796,6 +796,21 @@ function aegis_plp_filters_apply_query( $query ) {
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
         $raw_args = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $clean = aegis_plp_filters_clean_query_args( $raw_args );
+        $fill_key = 'filter_sleepingbag_fill_type';
+        $should_debug_fill_type = AEGIS_PLP_DEBUG && isset( $raw_args[ $fill_key ] );
+        $tax_query_before = null;
+        $meta_query_before = null;
+        $fill_type_parsed = array();
+        $fill_taxonomy = '';
+        $fill_taxonomy_exists = false;
+
+        if ( $should_debug_fill_type ) {
+            $tax_query_before = $query->get( 'tax_query' );
+            $meta_query_before = $query->get( 'meta_query' );
+            $fill_type_parsed = aegis_plp_filters_parse_csv_values( $raw_args[ $fill_key ], 'sanitize_title' );
+            $fill_taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( $fill_key );
+            $fill_taxonomy_exists = '' !== $fill_taxonomy && taxonomy_exists( $fill_taxonomy );
+        }
 
         if ( ! is_admin()
             && ( ! function_exists( 'wp_doing_ajax' ) || ! wp_doing_ajax() )
@@ -873,7 +888,6 @@ function aegis_plp_filters_apply_query( $query ) {
         }
 
         if ( $has_filter_params ) {
-            $fill_key = 'filter_sleepingbag_fill_type';
             $fill_terms = array();
             if ( isset( $clean[ $fill_key ] ) ) {
                 $fill_terms = aegis_plp_filters_parse_csv_values( $clean[ $fill_key ], 'sanitize_title' );
@@ -967,6 +981,22 @@ function aegis_plp_filters_apply_query( $query ) {
 
         if ( ! empty( $meta_query ) ) {
             $query->set( 'meta_query', $meta_query );
+        }
+
+        if ( $should_debug_fill_type ) {
+            aegis_plp_filters_debug_log( 'sleepingbags-fill-type', array(
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
+                'raw_fill_type' => $raw_args[ $fill_key ],
+                'parsed_fill_type' => $fill_type_parsed,
+                'resolved_taxonomy' => $fill_taxonomy,
+                'taxonomy_exists' => $fill_taxonomy_exists,
+                'is_main_query' => $query->is_main_query(),
+                'post_type' => $query->get( 'post_type' ),
+                'tax_query_before' => $tax_query_before,
+                'tax_query_after' => $query->get( 'tax_query' ),
+                'meta_query_before' => $meta_query_before,
+                'meta_query_after' => $query->get( 'meta_query' ),
+            ) );
         }
 
         if ( $has_filter_params ) {
