@@ -86,7 +86,7 @@ function aegis_plp_filters_clean_query_args( $raw ) {
             continue;
         }
 
-        if ( 0 === strpos( $key, 'filter_' ) ) {
+        if ( 0 === strpos( $key, 'af_' ) || 0 === strpos( $key, 'filter_' ) ) {
             $clean[ $key ] = $string_value;
             continue;
         }
@@ -148,9 +148,146 @@ function aegis_plp_filters_filter_valid_terms( $taxonomy, $terms ) {
     return array_values( array_unique( $valid ) );
 }
 
+function aegis_plp_filter_existing_term_slugs( $taxonomy, array $slugs ) {
+    if ( ! taxonomy_exists( $taxonomy ) || empty( $slugs ) ) {
+        return array();
+    }
+
+    $terms = get_terms(
+        array(
+            'taxonomy' => $taxonomy,
+            'slug' => $slugs,
+            'hide_empty' => false,
+        )
+    );
+
+    if ( empty( $terms ) || is_wp_error( $terms ) ) {
+        return array();
+    }
+
+    $found_slugs = array();
+    foreach ( $terms as $term ) {
+        if ( empty( $term->slug ) ) {
+            continue;
+        }
+        $found_slugs[ $term->slug ] = true;
+    }
+
+    $valid = array();
+    foreach ( $slugs as $slug ) {
+        if ( isset( $found_slugs[ $slug ] ) ) {
+            $valid[] = $slug;
+        }
+    }
+
+    return array_values( array_unique( $valid ) );
+}
+
 function aegis_plp_filters_filter_key_from_taxonomy( $taxonomy ) {
     $slug = str_replace( 'pa_', '', (string) $taxonomy );
     return 'filter_' . str_replace( '-', '_', $slug );
+}
+
+function aegis_plp_filters_filter_key_with_prefix( $taxonomy, $prefix ) {
+    $slug = str_replace( 'pa_', '', (string) $taxonomy );
+    return $prefix . str_replace( '-', '_', $slug );
+}
+
+function aegis_plp_filters_upsert_tax_query_clause( array $tax_query, array $clause ) {
+    $taxonomy = $clause['taxonomy'] ?? '';
+    if ( '' === $taxonomy ) {
+        return $tax_query;
+    }
+
+    $relation = $tax_query['relation'] ?? null;
+    $updated = false;
+    $next = array();
+
+    foreach ( $tax_query as $key => $existing ) {
+        if ( 'relation' === $key ) {
+            continue;
+        }
+        if ( is_array( $existing ) && isset( $existing['taxonomy'] ) && $existing['taxonomy'] === $taxonomy ) {
+            $next[] = $clause;
+            $updated = true;
+            continue;
+        }
+        $next[] = $existing;
+    }
+
+    if ( ! $updated ) {
+        $next[] = $clause;
+    }
+
+    if ( null !== $relation ) {
+        $next['relation'] = $relation;
+    }
+
+    return $next;
+}
+
+function aegis_plp_filters_remove_taxonomy_clauses( array $tax_query, $taxonomy ) {
+    $relation = $tax_query['relation'] ?? null;
+    $next = array();
+
+    foreach ( $tax_query as $key => $existing ) {
+        if ( 'relation' === $key ) {
+            continue;
+        }
+        if ( is_array( $existing ) && isset( $existing['taxonomy'] ) && $existing['taxonomy'] === $taxonomy ) {
+            continue;
+        }
+        $next[] = $existing;
+    }
+
+    if ( null !== $relation ) {
+        $next['relation'] = $relation;
+    }
+
+    return $next;
+}
+
+function aegis_plp_filters_should_log_diag( $query = null ) {
+    if ( ! AEGIS_PLP_DEBUG || ! isset( $_GET['af_sleepingbag_fill_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        return false;
+    }
+
+    if ( ! aegis_plp_filters_is_sleepingbags_context() ) {
+        return false;
+    }
+
+    if ( $query instanceof WP_Query ) {
+        return $query->is_main_query();
+    }
+
+    return is_main_query();
+}
+
+function aegis_plp_filters_strip_legacy_filter_params( array $args ) {
+    foreach ( array_keys( $args ) as $key ) {
+        if ( 0 === strpos( $key, 'filter_' ) ) {
+            unset( $args[ $key ] );
+        }
+    }
+
+    return $args;
+}
+
+function aegis_plp_filters_log_query_vars( $label, $query ) {
+    if ( ! aegis_plp_filters_should_log_diag( $query ) ) {
+        return;
+    }
+
+    $query_vars = array(
+        'tax_query' => $query->get( 'tax_query' ),
+        'meta_query' => $query->get( 'meta_query' ),
+        'post_type' => $query->get( 'post_type' ),
+        'posts_per_page' => $query->get( 'posts_per_page' ),
+        'orderby' => $query->get( 'orderby' ),
+        'order' => $query->get( 'order' ),
+    );
+
+    error_log( sprintf( '[aegis-plp-diag] %s: %s', $label, wp_json_encode( $query_vars ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 }
 
 function aegis_plp_filters_resolve_taxonomy_from_filter_key( $filter_key ) {
@@ -241,11 +378,11 @@ function aegis_plp_filters_parse_request( $raw_args = null ) {
     $max_price = '';
 
     foreach ( $raw_args as $key => $value ) {
-        if ( 0 !== strpos( $key, 'filter_' ) ) {
+        if ( 0 !== strpos( $key, 'af_' ) ) {
             continue;
         }
 
-        $taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( $key );
+        $taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( 'filter_' . substr( $key, 3 ) );
         if ( '' === $taxonomy ) {
             continue;
         }
@@ -426,18 +563,24 @@ function aegis_plp_filters_render_toolbar() {
             if ( is_array( $group ) ) {
                 foreach ( $group as $taxonomy ) {
                     if ( taxonomy_exists( $taxonomy ) ) {
-                        $filter_keys[] = aegis_plp_filters_filter_key_from_taxonomy( $taxonomy );
+                        $filter_keys[] = aegis_plp_filters_filter_key_with_prefix( $taxonomy, 'af_' );
                     }
                 }
                 continue;
             }
 
             if ( taxonomy_exists( $group ) ) {
-                $filter_keys[] = aegis_plp_filters_filter_key_from_taxonomy( $group );
+                $filter_keys[] = aegis_plp_filters_filter_key_with_prefix( $group, 'af_' );
             }
         }
 
-        $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
+        $legacy_filter_keys = array_map(
+            function ( $key ) {
+                return 'filter_' . substr( $key, 3 );
+            },
+            $filter_keys
+        );
+        $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, $legacy_filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
         ?>
         <div class="aegis-plp-filters" data-aegis-plp-filters>
             <div class="aegis-plp-filters__toolbar">
@@ -469,7 +612,7 @@ function aegis_plp_filters_render_toolbar() {
                     $filter_value = is_array( $raw_value ) ? implode( ',', $raw_value ) : (string) $raw_value;
                 }
                 ?>
-                <input type="hidden" name="<?php echo esc_attr( $filter_key ); ?>" value="<?php echo esc_attr( $filter_value ); ?>" data-filter-input="<?php echo esc_attr( $filter_key ); ?>" />
+                <input type="hidden" name="<?php echo esc_attr( $filter_key ); ?>" value="<?php echo esc_attr( $filter_value ); ?>" data-filter-input="<?php echo esc_attr( $filter_key ); ?>" data-aegis-hidden="<?php echo esc_attr( $filter_key ); ?>" />
                 <?php endforeach; ?>
 
                 <?php if ( ! empty( $request['filters'] ) || ! empty( $request['temp_limit'] ) || '' !== $request['min_price'] || '' !== $request['max_price'] ) : ?>
@@ -508,7 +651,7 @@ function aegis_plp_filters_render_toolbar() {
                         <?php if ( taxonomy_exists( 'pa_sleepingbag-color' ) ) : ?>
                             <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag-color', 'hide_empty' => false ) ); ?>
                             <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
-                                <?php $color_filter_key = aegis_plp_filters_filter_key_from_taxonomy( 'pa_sleepingbag-color' ); ?>
+                                <?php $color_filter_key = aegis_plp_filters_filter_key_with_prefix( 'pa_sleepingbag-color', 'af_' ); ?>
                                 <div class="aegis-plp-filters__group" data-aegis-plp-section="color">
                                     <button type="button" class="aegis-plp-filters__group-toggle">Color</button>
                                     <div class="aegis-plp-filters__group-content">
@@ -552,7 +695,7 @@ function aegis_plp_filters_render_toolbar() {
                         <?php if ( taxonomy_exists( 'pa_sleepingbag_fill_type' ) ) : ?>
                             <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag_fill_type', 'hide_empty' => false ) ); ?>
                             <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
-                                <?php $fill_filter_key = aegis_plp_filters_filter_key_from_taxonomy( 'pa_sleepingbag_fill_type' ); ?>
+                                <?php $fill_filter_key = aegis_plp_filters_filter_key_with_prefix( 'pa_sleepingbag_fill_type', 'af_' ); ?>
                                 <div class="aegis-plp-filters__group" data-aegis-plp-section="fill">
                                     <button type="button" class="aegis-plp-filters__group-toggle">Fill Type</button>
                                     <div class="aegis-plp-filters__group-content">
@@ -570,7 +713,7 @@ function aegis_plp_filters_render_toolbar() {
                         <?php if ( taxonomy_exists( 'pa_sleepingbag_activity' ) ) : ?>
                             <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag_activity', 'hide_empty' => false ) ); ?>
                             <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
-                                <?php $activity_filter_key = aegis_plp_filters_filter_key_from_taxonomy( 'pa_sleepingbag_activity' ); ?>
+                                <?php $activity_filter_key = aegis_plp_filters_filter_key_with_prefix( 'pa_sleepingbag_activity', 'af_' ); ?>
                                 <div class="aegis-plp-filters__group" data-aegis-plp-section="use">
                                     <button type="button" class="aegis-plp-filters__group-toggle">Best Use</button>
                                     <div class="aegis-plp-filters__group-content">
@@ -609,7 +752,7 @@ function aegis_plp_filters_render_toolbar() {
                                                 <div class="aegis-plp-filters__subgroup">
                                                     <h4 class="aegis-plp-filters__subgroup-title"><?php echo esc_html( wc_attribute_label( $taxonomy ) ); ?></h4>
                                                     <?php foreach ( $terms as $term ) : ?>
-                                                        <?php $filter_key = aegis_plp_filters_filter_key_from_taxonomy( $taxonomy ); ?>
+                                                        <?php $filter_key = aegis_plp_filters_filter_key_with_prefix( $taxonomy, 'af_' ); ?>
                                                         <label class="aegis-plp-filters__option">
                                                             <input type="checkbox" data-filter-key="<?php echo esc_attr( $filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters'][ $taxonomy ] ?? array(), true ) ); ?> />
                                                             <span><?php echo esc_html( $term->name ); ?></span>
@@ -696,9 +839,9 @@ function aegis_plp_filters_render_toolbar() {
         </div>
         <form class="aegis-plp-filters__form" method="get" action="<?php echo $current_url; ?>">
             <input type="hidden" name="orderby" value="<?php echo esc_attr( $current_orderby ); ?>" />
-            <input type="hidden" name="filter_cat" value="<?php echo esc_attr( implode( ',', $request['filter_cat'] ) ); ?>" data-filter-input="filter_cat" />
-            <input type="hidden" name="filter_color" value="<?php echo esc_attr( implode( ',', $request['filter_color'] ) ); ?>" data-filter-input="filter_color" />
-            <input type="hidden" name="filter_size" value="<?php echo esc_attr( implode( ',', $request['filter_size'] ) ); ?>" data-filter-input="filter_size" />
+            <input type="hidden" name="filter_cat" value="<?php echo esc_attr( implode( ',', $request['filter_cat'] ) ); ?>" data-filter-input="filter_cat" data-aegis-hidden="filter_cat" />
+            <input type="hidden" name="filter_color" value="<?php echo esc_attr( implode( ',', $request['filter_color'] ) ); ?>" data-filter-input="filter_color" data-aegis-hidden="filter_color" />
+            <input type="hidden" name="filter_size" value="<?php echo esc_attr( implode( ',', $request['filter_size'] ) ); ?>" data-filter-input="filter_size" data-aegis-hidden="filter_size" />
 
             <?php if ( ! empty( $request['filter_cat'] ) || ! empty( $request['filter_color'] ) || ! empty( $request['filter_size'] ) ) : ?>
                 <div class="aegis-plp-filters__chips">
@@ -796,6 +939,22 @@ function aegis_plp_filters_apply_query( $query ) {
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
         $raw_args = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $clean = aegis_plp_filters_clean_query_args( $raw_args );
+        $clean = aegis_plp_filters_strip_legacy_filter_params( $clean );
+        $fill_key = 'af_sleepingbag_fill_type';
+        $should_debug_fill_type = AEGIS_PLP_DEBUG && isset( $raw_args[ $fill_key ] );
+        $tax_query_before = null;
+        $meta_query_before = null;
+        $fill_type_parsed = array();
+        $fill_taxonomy = '';
+        $fill_taxonomy_exists = false;
+
+        if ( $should_debug_fill_type ) {
+            $tax_query_before = $query->get( 'tax_query' );
+            $meta_query_before = $query->get( 'meta_query' );
+            $fill_type_parsed = aegis_plp_filters_parse_csv_values( $raw_args[ $fill_key ], 'sanitize_title' );
+            $fill_taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( 'filter_' . substr( $fill_key, 3 ) );
+            $fill_taxonomy_exists = '' !== $fill_taxonomy && taxonomy_exists( $fill_taxonomy );
+        }
 
         if ( ! is_admin()
             && ( ! function_exists( 'wp_doing_ajax' ) || ! wp_doing_ajax() )
@@ -815,7 +974,7 @@ function aegis_plp_filters_apply_query( $query ) {
         $request = aegis_plp_filters_parse_request( $clean );
         $has_filter_params = false;
         foreach ( $clean as $key => $value ) {
-            if ( 0 !== strpos( $key, 'filter_' ) ) {
+            if ( 0 !== strpos( $key, 'af_' ) ) {
                 continue;
             }
 
@@ -848,13 +1007,36 @@ function aegis_plp_filters_apply_query( $query ) {
 
         $selected_by_tax = array();
         foreach ( $clean as $key => $value ) {
-            if ( 0 !== strpos( $key, 'filter_' ) ) {
+            if ( 0 !== strpos( $key, 'af_' ) ) {
                 continue;
             }
 
-            $taxonomy = aegis_plp_filters_resolve_taxonomy_from_filter_key( $key );
-            if ( '' === $taxonomy ) {
+            $attr_slug = substr( $key, 3 );
+            if ( '' === $attr_slug ) {
                 continue;
+            }
+
+            $taxonomy = function_exists( 'wc_attribute_taxonomy_name' )
+                ? wc_attribute_taxonomy_name( $attr_slug )
+                : 'pa_' . $attr_slug;
+            if ( ! taxonomy_exists( $taxonomy ) ) {
+                $alt_slug = str_replace( '_', '-', $attr_slug );
+                $alt_taxonomy = function_exists( 'wc_attribute_taxonomy_name' )
+                    ? wc_attribute_taxonomy_name( $alt_slug )
+                    : 'pa_' . $alt_slug;
+                if ( taxonomy_exists( $alt_taxonomy ) ) {
+                    $taxonomy = $alt_taxonomy;
+                } else {
+                    $alt_slug = str_replace( '-', '_', $attr_slug );
+                    $alt_taxonomy = function_exists( 'wc_attribute_taxonomy_name' )
+                        ? wc_attribute_taxonomy_name( $alt_slug )
+                        : 'pa_' . $alt_slug;
+                    if ( taxonomy_exists( $alt_taxonomy ) ) {
+                        $taxonomy = $alt_taxonomy;
+                    } else {
+                        continue;
+                    }
+                }
             }
 
             $terms = aegis_plp_filters_parse_csv_values( $value, 'sanitize_title' );
@@ -873,7 +1055,6 @@ function aegis_plp_filters_apply_query( $query ) {
         }
 
         if ( $has_filter_params ) {
-            $fill_key = 'filter_sleepingbag_fill_type';
             $fill_terms = array();
             if ( isset( $clean[ $fill_key ] ) ) {
                 $fill_terms = aegis_plp_filters_parse_csv_values( $clean[ $fill_key ], 'sanitize_title' );
@@ -889,9 +1070,54 @@ function aegis_plp_filters_apply_query( $query ) {
             $tax_query = array();
         }
 
-        $new_tax_query = array();
+        $filtered_by_tax = array();
+        $term_ids_by_tax = array();
         foreach ( $selected_by_tax as $taxonomy => $terms ) {
             if ( empty( $terms ) ) {
+                continue;
+            }
+
+            $valid_terms = aegis_plp_filter_existing_term_slugs( $taxonomy, $terms );
+            $invalid_terms = array_values( array_diff( $terms, $valid_terms ) );
+            $term_ids = array();
+
+            if ( ! empty( $valid_terms ) ) {
+                $term_objects = get_terms(
+                    array(
+                        'taxonomy' => $taxonomy,
+                        'slug' => $valid_terms,
+                        'hide_empty' => false,
+                    )
+                );
+                if ( ! empty( $term_objects ) && ! is_wp_error( $term_objects ) ) {
+                    $term_ids = wp_list_pluck( $term_objects, 'term_id' );
+                }
+            }
+
+            if ( AEGIS_PLP_DEBUG ) {
+                aegis_plp_filters_debug_log( 'filter-existing-terms', array(
+                    'taxonomy' => $taxonomy,
+                    'raw_slugs' => $terms,
+                    'valid_slugs' => $valid_terms,
+                    'invalid_slugs' => $invalid_terms,
+                    'term_ids' => $term_ids,
+                ) );
+            }
+
+            if ( ! empty( $term_ids ) ) {
+                $term_ids_by_tax[ $taxonomy ] = array_values( array_unique( array_map( 'intval', $term_ids ) ) );
+            }
+
+            if ( empty( $valid_terms ) ) {
+                continue;
+            }
+
+            $filtered_by_tax[ $taxonomy ] = $valid_terms;
+        }
+
+        $new_tax_query = array();
+        foreach ( $filtered_by_tax as $taxonomy => $terms ) {
+            if ( 'pa_sleepingbag_fill_type' === $taxonomy && ! empty( $term_ids_by_tax[ $taxonomy ] ) ) {
                 continue;
             }
 
@@ -905,6 +1131,34 @@ function aegis_plp_filters_apply_query( $query ) {
 
         if ( ! empty( $new_tax_query ) ) {
             $tax_query = array_merge( $tax_query, $new_tax_query );
+        }
+
+        if ( ! empty( $term_ids_by_tax['pa_sleepingbag_fill_type'] ) ) {
+            $fill_term_ids = array_values( array_unique( $term_ids_by_tax['pa_sleepingbag_fill_type'] ) );
+            if ( count( $fill_term_ids ) > 1 ) {
+                $or_group = array( 'relation' => 'OR' );
+                foreach ( $fill_term_ids as $term_id ) {
+                    $or_group[] = array(
+                        'taxonomy' => 'pa_sleepingbag_fill_type',
+                        'field' => 'term_id',
+                        'terms' => array( $term_id ),
+                        'operator' => 'IN',
+                    );
+                }
+                $tax_query = aegis_plp_filters_remove_taxonomy_clauses( $tax_query, 'pa_sleepingbag_fill_type' );
+                $tax_query[] = $or_group;
+            } else {
+                $fill_clause = array(
+                    'taxonomy' => 'pa_sleepingbag_fill_type',
+                    'field' => 'term_id',
+                    'terms' => $fill_term_ids,
+                    'operator' => 'IN',
+                );
+                $tax_query = aegis_plp_filters_upsert_tax_query_clause( $tax_query, $fill_clause );
+            }
+        }
+
+        if ( ! empty( $tax_query ) ) {
             if ( count( $tax_query ) > 1 && ! isset( $tax_query['relation'] ) ) {
                 $tax_query['relation'] = 'AND';
             }
@@ -969,6 +1223,24 @@ function aegis_plp_filters_apply_query( $query ) {
             $query->set( 'meta_query', $meta_query );
         }
 
+        if ( $should_debug_fill_type ) {
+            aegis_plp_filters_debug_log( 'sleepingbags-fill-type', array(
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
+                'raw_fill_type' => $raw_args[ $fill_key ],
+                'parsed_fill_type' => $fill_type_parsed,
+                'resolved_taxonomy' => $fill_taxonomy,
+                'taxonomy_exists' => $fill_taxonomy_exists,
+                'is_main_query' => $query->is_main_query(),
+                'post_type' => $query->get( 'post_type' ),
+                'tax_query_before' => $tax_query_before,
+                'tax_query_after' => $query->get( 'tax_query' ),
+                'meta_query_before' => $meta_query_before,
+                'meta_query_after' => $query->get( 'meta_query' ),
+            ) );
+        }
+
+        aegis_plp_filters_log_query_vars( 'after-apply', $query );
+
         if ( $has_filter_params ) {
             aegis_plp_filters_debug_log( 'query-applied', array(
                 'parsed_request' => $request,
@@ -1025,4 +1297,47 @@ function aegis_plp_filters_apply_query( $query ) {
     if ( ! empty( $tax_query ) ) {
         $query->set( 'tax_query', $tax_query );
     }
+}
+
+function aegis_plp_filters_log_final_query_vars( $query ) {
+    if ( ! ( $query instanceof WP_Query ) ) {
+        return;
+    }
+
+    if ( ! aegis_plp_filters_should_log_diag( $query ) ) {
+        return;
+    }
+
+    $term = get_queried_object();
+    $queried = $term && isset( $term->slug ) ? $term->slug : '';
+    $payload = array(
+        'tax_query' => $query->get( 'tax_query' ),
+        'meta_query' => $query->get( 'meta_query' ),
+        'post_type' => $query->get( 'post_type' ),
+        'posts_per_page' => $query->get( 'posts_per_page' ),
+        'is_tax' => is_tax( 'product_cat' ),
+        'queried' => $queried,
+    );
+
+    error_log( sprintf( '[aegis-plp-diag] final-vars: %s', wp_json_encode( $payload ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+}
+
+function aegis_plp_filters_log_final_sql( $clauses, $query ) {
+    if ( ! ( $query instanceof WP_Query ) ) {
+        return $clauses;
+    }
+
+    if ( ! aegis_plp_filters_should_log_diag( $query ) ) {
+        return $clauses;
+    }
+
+    $payload = array(
+        'join' => $clauses['join'] ?? '',
+        'where' => $clauses['where'] ?? '',
+        'groupby' => $clauses['groupby'] ?? '',
+    );
+
+    error_log( sprintf( '[aegis-plp-diag] final-clauses: %s', wp_json_encode( $payload ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+
+    return $clauses;
 }
