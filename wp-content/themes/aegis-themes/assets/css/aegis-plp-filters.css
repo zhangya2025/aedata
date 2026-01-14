@@ -9,6 +9,12 @@ body.aegis-plp-catalog .aegis-plp-filters__form {
     padding: 0 16px;
 }
 
+.aegis-plp-filters__form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 body.aegis-plp-sleepingbags .wp-site-blocks > main,
 body.aegis-plp-catalog .wp-site-blocks > main {
     max-width: 1496px;
@@ -95,6 +101,7 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
     z-index: 9999;
     display: flex;
     flex-direction: column;
+    height: 100vh;
 }
 
 .aegis-plp-filters__drawer.is-open {
@@ -107,6 +114,7 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
     justify-content: space-between;
     padding: 16px;
     border-bottom: 1px solid #e5e5e5;
+    flex: 0 0 auto;
 }
 
 .aegis-plp-filters__drawer-title {
@@ -124,7 +132,8 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
 .aegis-plp-filters__drawer-body {
     padding: 16px;
     overflow-y: auto;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .aegis-plp-filters__group {
@@ -168,13 +177,49 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
 
 .aegis-plp-filters__drawer-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
     padding: 16px;
     border-top: 1px solid #e5e5e5;
     background: #fff;
-    position: sticky;
-    bottom: 0;
+    flex: 0 0 auto;
+}
+
+.aegis-plp-filters__selected-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #666;
+}
+
+.aegis-plp-filters__selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.aegis-plp-filters__selected-empty {
+    font-size: 12px;
+    color: #777;
+}
+
+.aegis-plp-filters__selected-chip {
+    background: #f2f2f2;
+    border: 1px solid #e5e5e5;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.aegis-plp-filters__footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
 }
 
 .aegis-plp-filters__submit {
