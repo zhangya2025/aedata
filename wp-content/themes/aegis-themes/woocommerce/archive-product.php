@@ -21,6 +21,13 @@ if ( defined( 'AEGIS_PLP_DEBUG' ) && AEGIS_PLP_DEBUG ) {
     error_log( '[aegis-shop-hit] archive-product.php loaded; is_shop=' . ( function_exists( 'is_shop' ) && is_shop() ? '1' : '0' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 }
 
+if ( function_exists( 'is_shop' ) && is_shop() ) {
+    do_action( 'woocommerce_before_main_content' );
+    do_action( 'woocommerce_archive_description' );
+    do_action( 'woocommerce_after_main_content' );
+    return;
+}
+
 if ( function_exists( 'aegis_is_sleepingbags_or_descendant' ) && aegis_is_sleepingbags_or_descendant() ) {
     include locate_template( 'woocommerce/partials/archive-product--sleepingbags.php' );
     return; // Stop default archive output.
@@ -28,11 +35,6 @@ if ( function_exists( 'aegis_is_sleepingbags_or_descendant' ) && aegis_is_sleepi
 
 if ( function_exists( 'aegis_is_term_or_descendant' ) && aegis_is_term_or_descendant( 'product_cat', 'clothes' ) ) {
     include locate_template( 'woocommerce/partials/archive-product--clothes.php' );
-    return; // Stop default archive output.
-}
-
-if ( function_exists( 'is_shop' ) && is_shop() ) {
-    include locate_template( 'woocommerce/partials/archive-product--shop.php' );
     return; // Stop default archive output.
 }
 
