@@ -14,6 +14,7 @@ define('AEGIS_HERO_PATH', plugin_dir_path(__FILE__));
 define('AEGIS_HERO_URL', plugin_dir_url(__FILE__));
 add_action('plugins_loaded', 'aegis_hero_require_admin');
 add_action('init', 'aegis_hero_register_block');
+add_action('init', 'aegis_hero_register_shortcodes');
 if (!has_action('init', 'aegis_hero_register_presets_cpt')) {
     add_action('init', 'aegis_hero_register_presets_cpt');
 }
@@ -81,6 +82,60 @@ function aegis_hero_register_block()
             'render_callback' => 'aegis_hero_render_embed_block',
         ]
     );
+}
+
+/**
+ * Register shortcodes for embedding hero presets.
+ */
+function aegis_hero_register_shortcodes()
+{
+    add_shortcode('aegis_hero', 'aegis_hero_shortcode');
+}
+
+/**
+ * Shortcode handler for hero presets.
+ */
+function aegis_hero_shortcode($atts)
+{
+    $atts = shortcode_atts(
+        [
+            'preset' => '',
+            'id' => 0,
+        ],
+        $atts,
+        'aegis_hero'
+    );
+
+    $hero_id = absint($atts['id']);
+    if (!$hero_id && !empty($atts['preset'])) {
+        $preset_slug = sanitize_title($atts['preset']);
+        $hero_post = get_page_by_path($preset_slug, OBJECT, 'aegis_hero');
+        $hero_id = $hero_post ? (int) $hero_post->ID : 0;
+    }
+
+    if (!$hero_id) {
+        return '';
+    }
+
+    if (function_exists('aegis_hero_render_embed_block')) {
+        return aegis_hero_render_embed_block(['heroId' => $hero_id]);
+    }
+
+    if (function_exists('render_block')) {
+        return render_block(
+            [
+                'blockName' => 'aegis/hero-embed',
+                'attrs' => [
+                    'heroId' => $hero_id,
+                ],
+                'innerBlocks' => [],
+                'innerHTML' => '',
+                'innerContent' => [],
+            ]
+        );
+    }
+
+    return '';
 }
 
 /**
