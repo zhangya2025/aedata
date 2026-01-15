@@ -1,7 +1,7 @@
 <?php
 
-function aegis_is_sleepingbags_or_descendant() {
-    if ( ! function_exists( 'is_tax' ) || ! is_tax( 'product_cat' ) ) {
+function aegis_is_term_or_descendant( $taxonomy, $slug ) {
+    if ( ! function_exists( 'is_tax' ) || ! is_tax( $taxonomy ) ) {
         return false;
     }
 
@@ -10,7 +10,7 @@ function aegis_is_sleepingbags_or_descendant() {
         return false;
     }
 
-    $root = get_term_by( 'slug', 'sleepingbags', 'product_cat' );
+    $root = get_term_by( 'slug', $slug, $taxonomy );
     if ( ! $root || is_wp_error( $root ) ) {
         return false;
     }
@@ -19,6 +19,10 @@ function aegis_is_sleepingbags_or_descendant() {
         return true;
     }
 
-    $ancestors = get_ancestors( (int) $term->term_id, 'product_cat' );
+    $ancestors = get_ancestors( (int) $term->term_id, $taxonomy );
     return in_array( (int) $root->term_id, $ancestors, true );
+}
+
+function aegis_is_sleepingbags_or_descendant() {
+    return aegis_is_term_or_descendant( 'product_cat', 'sleepingbags' );
 }
