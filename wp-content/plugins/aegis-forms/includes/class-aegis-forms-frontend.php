@@ -15,6 +15,7 @@ class Aegis_Forms_Frontend {
 		add_shortcode( 'aegis_contact_form', array( __CLASS__, 'render_contact_form' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
 		add_action( 'admin_post_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
+		add_action( 'wp_loaded', array( __CLASS__, 'handle_public_submit' ) );
 	}
 
 	public static function render_repair_form() {
@@ -33,7 +34,6 @@ class Aegis_Forms_Frontend {
 		$type = in_array( $type, array( 'repair', 'dealer', 'contact' ), true ) ? $type : 'repair';
 		$notice = self::render_notice( $type );
 		$nonce_action = 'aegis_forms_submit_' . $type;
-		$action_url = admin_url( 'admin-post.php' );
 		$honeypot_name = 'website';
 		$token = wp_generate_uuid4();
 		$token_key = 'aegis_forms_token:' . $token;
@@ -43,8 +43,9 @@ class Aegis_Forms_Frontend {
 		ob_start();
 		?>
 		<?php echo $notice; ?>
-		<form method="post" action="<?php echo esc_url( $action_url ); ?>"<?php echo $allow_attachments ? ' enctype="multipart/form-data"' : ''; ?> data-aegis-forms="true">
+		<form method="post" action=""<?php echo $allow_attachments ? ' enctype="multipart/form-data"' : ''; ?> data-aegis-forms="true">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SUBMIT ); ?>" />
+			<input type="hidden" name="aegis_forms_public_submit" value="1" />
 			<input type="hidden" name="form_type" value="<?php echo esc_attr( $type ); ?>" />
 			<input type="hidden" name="request_token" value="<?php echo esc_attr( $token ); ?>" />
 			<?php wp_nonce_field( $nonce_action ); ?>
@@ -211,20 +212,36 @@ class Aegis_Forms_Frontend {
 	}
 
 	public static function handle_submit() {
+		self::process_submission();
+	}
+
+	public static function handle_public_submit() {
+		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+			return;
+		}
+
+		if ( empty( $_POST['aegis_forms_public_submit'] ) ) {
+			return;
+		}
+
+		self::process_submission( 303 );
+	}
+
+	private static function process_submission( $redirect_status = 302 ) {
 		$token = isset( $_POST['request_token'] ) ? sanitize_text_field( wp_unslash( $_POST['request_token'] ) ) : '';
 		if ( '' === $token || strlen( $token ) < 16 ) {
-			self::redirect_with_error( 'invalid_token' );
+			self::redirect_with_error( 'invalid_token', $redirect_status );
 		}
 
 		$token_key = 'aegis_forms_token:' . $token;
 		$token_state = get_transient( $token_key );
 		if ( ! $token_state ) {
-			self::redirect_with_error( 'expired_token' );
+			self::redirect_with_error( 'expired_token', $redirect_status );
 		}
 
 		if ( is_string( $token_state ) && 0 === strpos( $token_state, 'done:' ) ) {
 			$ticket_no = substr( $token_state, 5 );
-			self::redirect_with_success( $ticket_no );
+			self::redirect_with_success( $ticket_no, $redirect_status );
 		}
 
 		$lock_key = 'aegis_forms_lock_' . md5( $token );
@@ -234,11 +251,11 @@ class Aegis_Forms_Frontend {
 				$token_state = get_transient( $token_key );
 				if ( is_string( $token_state ) && 0 === strpos( $token_state, 'done:' ) ) {
 					$ticket_no = substr( $token_state, 5 );
-					self::redirect_with_success( $ticket_no );
+					self::redirect_with_success( $ticket_no, $redirect_status );
 				}
 			}
 
-			self::redirect_with_error( 'busy' );
+			self::redirect_with_error( 'busy', $redirect_status );
 		}
 
 		self::$current_lock_key = $lock_key;
@@ -246,29 +263,29 @@ class Aegis_Forms_Frontend {
 
 		$form_type = isset( $_POST['form_type'] ) ? sanitize_text_field( wp_unslash( $_POST['form_type'] ) ) : '';
 		if ( ! in_array( $form_type, array( 'repair', 'dealer', 'contact' ), true ) ) {
-			self::redirect_with_error( 'invalid_input' );
+			self::redirect_with_error( 'invalid_input', $redirect_status );
 		}
 
 		$nonce_action = 'aegis_forms_submit_' . $form_type;
 		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), $nonce_action ) ) {
-			self::redirect_with_error( 'invalid_nonce' );
+			self::redirect_with_error( 'invalid_nonce', $redirect_status );
 		}
 
 		$honeypot = isset( $_POST['website'] ) ? sanitize_text_field( wp_unslash( $_POST['website'] ) ) : '';
 		if ( '' !== $honeypot ) {
-			self::redirect_with_error( 'invalid_input' );
+			self::redirect_with_error( 'invalid_input', $redirect_status );
 		}
 
 		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$rate_key = 'aegis_forms_rate_' . md5( $ip . '|' . $form_type );
 		$count = (int) get_transient( $rate_key );
 		if ( $count >= 5 ) {
-			self::redirect_with_error( 'rate_limited' );
+			self::redirect_with_error( 'rate_limited', $redirect_status );
 		}
 		set_transient( $rate_key, $count + 1, HOUR_IN_SECONDS );
 
 		if ( ! Aegis_Forms_Schema::table_exists() ) {
-			self::redirect_with_error( 'server_error' );
+			self::redirect_with_error( 'server_error', $redirect_status );
 		}
 
 		$now = current_time( 'mysql' );
@@ -297,7 +314,7 @@ class Aegis_Forms_Frontend {
 			}
 
 			if ( '' === $name || '' === $email || '' === $message || ! is_email( $email ) ) {
-				self::redirect_with_error( 'invalid_input' );
+				self::redirect_with_error( 'invalid_input', $redirect_status );
 			}
 		} elseif ( 'dealer' === $form_type ) {
 			$company_name = isset( $_POST['company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['company_name'] ) ) : '';
@@ -316,7 +333,7 @@ class Aegis_Forms_Frontend {
 			}
 
 			if ( '' === $contact_name || '' === $email || ! is_email( $email ) ) {
-				self::redirect_with_error( 'invalid_input' );
+				self::redirect_with_error( 'invalid_input', $redirect_status );
 			}
 
 			$name = $contact_name;
@@ -334,7 +351,7 @@ class Aegis_Forms_Frontend {
 			}
 
 			if ( '' === $name || '' === $email || '' === $message || ! is_email( $email ) ) {
-				self::redirect_with_error( 'invalid_input' );
+				self::redirect_with_error( 'invalid_input', $redirect_status );
 			}
 		}
 
@@ -390,12 +407,12 @@ class Aegis_Forms_Frontend {
 		$table_name = Aegis_Forms_Schema::table_name();
 		$inserted = $wpdb->insert( $table_name, $data, $formats );
 		if ( false === $inserted ) {
-			self::redirect_with_error( 'server_error' );
+			self::redirect_with_error( 'server_error', $redirect_status );
 		}
 
 		$insert_id = (int) $wpdb->insert_id;
 		if ( $insert_id <= 0 ) {
-			self::redirect_with_error( 'server_error' );
+			self::redirect_with_error( 'server_error', $redirect_status );
 		}
 
 		if ( 'repair' === $form_type ) {
@@ -446,7 +463,7 @@ class Aegis_Forms_Frontend {
 		delete_option( $lock_key );
 		self::$current_lock_key = '';
 		self::$current_token_key = '';
-		self::redirect_with_success( $ticket_no );
+		self::redirect_with_success( $ticket_no, $redirect_status );
 	}
 
 	private static function handle_attachments( $ticket_no, $insert_id ) {
@@ -676,7 +693,7 @@ class Aegis_Forms_Frontend {
 		wp_mail( $email, $subject_user, $user_body );
 	}
 
-	private static function redirect_with_success( $ticket_no ) {
+	private static function redirect_with_success( $ticket_no, $redirect_status = 302 ) {
 		$redirect = wp_get_referer();
 		if ( ! $redirect ) {
 			$redirect = home_url( '/' );
@@ -688,11 +705,11 @@ class Aegis_Forms_Frontend {
 			),
 			$redirect
 		);
-		wp_safe_redirect( $redirect );
+		wp_safe_redirect( $redirect, $redirect_status );
 		exit;
 	}
 
-	private static function redirect_with_error( $reason ) {
+	private static function redirect_with_error( $reason, $redirect_status = 302 ) {
 		if ( self::$current_lock_key ) {
 			delete_option( self::$current_lock_key );
 			if ( self::$current_token_key ) {
@@ -713,7 +730,7 @@ class Aegis_Forms_Frontend {
 			),
 			$redirect
 		);
-		wp_safe_redirect( $redirect );
+		wp_safe_redirect( $redirect, $redirect_status );
 		exit;
 	}
 }
