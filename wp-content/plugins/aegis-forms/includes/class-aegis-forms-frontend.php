@@ -12,6 +12,7 @@ class Aegis_Forms_Frontend {
 	public static function register() {
 		add_shortcode( 'aegis_repair_form', array( __CLASS__, 'render_repair_form' ) );
 		add_shortcode( 'aegis_dealer_form', array( __CLASS__, 'render_dealer_form' ) );
+		add_shortcode( 'aegis_contact_form', array( __CLASS__, 'render_contact_form' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
 		add_action( 'admin_post_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
 	}
@@ -24,8 +25,12 @@ class Aegis_Forms_Frontend {
 		return self::render_form( 'dealer' );
 	}
 
+	public static function render_contact_form() {
+		return self::render_form( 'contact' );
+	}
+
 	private static function render_form( $type ) {
-		$type = $type === 'dealer' ? 'dealer' : 'repair';
+		$type = in_array( $type, array( 'repair', 'dealer', 'contact' ), true ) ? $type : 'repair';
 		$notice = self::render_notice( $type );
 		$nonce_action = 'aegis_forms_submit_' . $type;
 		$action_url = admin_url( 'admin-post.php' );
@@ -33,11 +38,12 @@ class Aegis_Forms_Frontend {
 		$token = wp_generate_uuid4();
 		$token_key = 'aegis_forms_token:' . $token;
 		set_transient( $token_key, 'new', 10 * MINUTE_IN_SECONDS );
+		$allow_attachments = 'contact' !== $type;
 
 		ob_start();
 		?>
 		<?php echo $notice; ?>
-		<form method="post" action="<?php echo esc_url( $action_url ); ?>" enctype="multipart/form-data" data-aegis-forms="true">
+		<form method="post" action="<?php echo esc_url( $action_url ); ?>"<?php echo $allow_attachments ? ' enctype="multipart/form-data"' : ''; ?> data-aegis-forms="true">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SUBMIT ); ?>" />
 			<input type="hidden" name="form_type" value="<?php echo esc_attr( $type ); ?>" />
 			<input type="hidden" name="request_token" value="<?php echo esc_attr( $token ); ?>" />
@@ -75,7 +81,7 @@ class Aegis_Forms_Frontend {
 					<label for="aegis-repair-message"><?php echo esc_html__( 'Message' ); ?></label><br />
 					<textarea id="aegis-repair-message" name="message" rows="6" required></textarea>
 				</p>
-			<?php else : ?>
+			<?php elseif ( 'dealer' === $type ) : ?>
 				<p>
 					<label for="aegis-dealer-company-name"><?php echo esc_html__( 'Company Name' ); ?></label><br />
 					<input id="aegis-dealer-company-name" type="text" name="company_name" required />
@@ -104,16 +110,43 @@ class Aegis_Forms_Frontend {
 					<label for="aegis-dealer-message"><?php echo esc_html__( 'Message' ); ?></label><br />
 					<textarea id="aegis-dealer-message" name="message" rows="6"></textarea>
 				</p>
+			<?php else : ?>
+				<p>
+					<label for="aegis-contact-name"><?php echo esc_html__( 'Name' ); ?></label><br />
+					<input id="aegis-contact-name" type="text" name="name" required />
+				</p>
+				<p>
+					<label for="aegis-contact-email"><?php echo esc_html__( 'Email' ); ?></label><br />
+					<input id="aegis-contact-email" type="email" name="email" required />
+				</p>
+				<p>
+					<label for="aegis-contact-phone"><?php echo esc_html__( 'Phone' ); ?></label><br />
+					<input id="aegis-contact-phone" type="text" name="phone" />
+				</p>
+				<p>
+					<label for="aegis-contact-country"><?php echo esc_html__( 'Country' ); ?></label><br />
+					<input id="aegis-contact-country" type="text" name="country" />
+				</p>
+				<p>
+					<label for="aegis-contact-subject"><?php echo esc_html__( 'Subject' ); ?></label><br />
+					<input id="aegis-contact-subject" type="text" name="subject" />
+				</p>
+				<p>
+					<label for="aegis-contact-message"><?php echo esc_html__( 'Message' ); ?></label><br />
+					<textarea id="aegis-contact-message" name="message" rows="6" required></textarea>
+				</p>
 			<?php endif; ?>
 			<p>
 				<button type="submit" class="aegis-forms-submit"><?php echo esc_html__( 'Submit' ); ?></button>
 			</p>
-			<p>
-				<label for="aegis-forms-attachment"><?php echo esc_html__( 'Attachment (optional)' ); ?></label><br />
-				<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" />
-				<br />
-				<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.' ); ?></small>
-			</p>
+			<?php if ( $allow_attachments ) : ?>
+				<p>
+					<label for="aegis-forms-attachment"><?php echo esc_html__( 'Attachment (optional)' ); ?></label><br />
+					<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" />
+					<br />
+					<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.' ); ?></small>
+				</p>
+			<?php endif; ?>
 			<script>
 				(function() {
 					var forms = document.querySelectorAll('form[data-aegis-forms]');
@@ -212,7 +245,7 @@ class Aegis_Forms_Frontend {
 		self::$current_token_key = $token_key;
 
 		$form_type = isset( $_POST['form_type'] ) ? sanitize_text_field( wp_unslash( $_POST['form_type'] ) ) : '';
-		if ( ! in_array( $form_type, array( 'repair', 'dealer' ), true ) ) {
+		if ( ! in_array( $form_type, array( 'repair', 'dealer', 'contact' ), true ) ) {
 			self::redirect_with_error( 'invalid_input' );
 		}
 
@@ -246,6 +279,8 @@ class Aegis_Forms_Frontend {
 		$message = '';
 		$meta = array();
 
+		$subject = '';
+
 		if ( 'repair' === $form_type ) {
 			$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 			$email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
@@ -264,7 +299,7 @@ class Aegis_Forms_Frontend {
 			if ( '' === $name || '' === $email || '' === $message || ! is_email( $email ) ) {
 				self::redirect_with_error( 'invalid_input' );
 			}
-		} else {
+		} elseif ( 'dealer' === $form_type ) {
 			$company_name = isset( $_POST['company_name'] ) ? sanitize_text_field( wp_unslash( $_POST['company_name'] ) ) : '';
 			$contact_name = isset( $_POST['contact_name'] ) ? sanitize_text_field( wp_unslash( $_POST['contact_name'] ) ) : '';
 			$email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
@@ -285,6 +320,22 @@ class Aegis_Forms_Frontend {
 			}
 
 			$name = $contact_name;
+		} else {
+			$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+			$email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+			$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+			$country = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
+			$subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
+			$message = isset( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '';
+
+			$referer = wp_get_referer();
+			if ( $referer ) {
+				$meta['source_url'] = $referer;
+			}
+
+			if ( '' === $name || '' === $email || '' === $message || ! is_email( $email ) ) {
+				self::redirect_with_error( 'invalid_input' );
+			}
 		}
 
 		$ip_value = $ip ? substr( $ip, 0, 64 ) : null;
@@ -295,6 +346,8 @@ class Aegis_Forms_Frontend {
 		$country = $country ? $country : null;
 		$message = $message ? $message : null;
 
+		$subject_value = 'contact' === $form_type ? $subject : null;
+
 		$data = array(
 			'type' => $form_type,
 			'ticket_no' => '',
@@ -303,7 +356,7 @@ class Aegis_Forms_Frontend {
 			'email' => $email,
 			'phone' => $phone,
 			'country' => $country,
-			'subject' => null,
+			'subject' => $subject_value,
 			'message' => $message,
 			'meta' => wp_json_encode( (object) $meta ),
 			'attachments' => '[]',
@@ -345,7 +398,13 @@ class Aegis_Forms_Frontend {
 			self::redirect_with_error( 'server_error' );
 		}
 
-		$prefix = 'repair' === $form_type ? 'RMA' : 'DLR';
+		if ( 'repair' === $form_type ) {
+			$prefix = 'RMA';
+		} elseif ( 'dealer' === $form_type ) {
+			$prefix = 'DLR';
+		} else {
+			$prefix = 'CNT';
+		}
 		$date_part = wp_date( 'Ymd', current_time( 'timestamp' ) );
 		$sequence = str_pad( (string) $insert_id, 6, '0', STR_PAD_LEFT );
 		$ticket_no = $prefix . '-' . $date_part . '-' . $sequence;
@@ -369,18 +428,20 @@ class Aegis_Forms_Frontend {
 			);
 		}
 
-		$attachments = self::handle_attachments( $ticket_no, $insert_id );
-		if ( $attachments ) {
-			$wpdb->update(
-				$table_name,
-				array( 'attachments' => wp_json_encode( $attachments ) ),
-				array( 'id' => $insert_id ),
-				array( '%s' ),
-				array( '%d' )
-			);
+		if ( 'contact' !== $form_type ) {
+			$attachments = self::handle_attachments( $ticket_no, $insert_id );
+			if ( $attachments ) {
+				$wpdb->update(
+					$table_name,
+					array( 'attachments' => wp_json_encode( $attachments ) ),
+					array( 'id' => $insert_id ),
+					array( '%s' ),
+					array( '%d' )
+				);
+			}
 		}
 
-		self::send_notifications( $form_type, $ticket_no, $name, $email, $phone, $country, $meta, $message );
+		self::send_notifications( $form_type, $ticket_no, $name, $email, $phone, $country, $subject, $meta, $message );
 		set_transient( $token_key, 'done:' . $ticket_no, 10 * MINUTE_IN_SECONDS );
 		delete_option( $lock_key );
 		self::$current_lock_key = '';
@@ -547,15 +608,19 @@ class Aegis_Forms_Frontend {
 		);
 	}
 
-	private static function send_notifications( $form_type, $ticket_no, $name, $email, $phone, $country, $meta, $message ) {
+	private static function send_notifications( $form_type, $ticket_no, $name, $email, $phone, $country, $subject, $meta, $message ) {
 		$admin_to = get_option( 'admin_email' );
 		if ( defined( 'AEGIS_FORMS_NOTIFY_TO' ) && AEGIS_FORMS_NOTIFY_TO ) {
 			$admin_to = AEGIS_FORMS_NOTIFY_TO;
 		}
 
-		$subject_admin = 'repair' === $form_type
-			? sprintf( '[AEGIS] New Repair Request: %s', $ticket_no )
-			: sprintf( '[AEGIS] New Dealer Application: %s', $ticket_no );
+		if ( 'repair' === $form_type ) {
+			$subject_admin = sprintf( '[AEGIS] New Repair Request: %s', $ticket_no );
+		} elseif ( 'dealer' === $form_type ) {
+			$subject_admin = sprintf( '[AEGIS] New Dealer Application: %s', $ticket_no );
+		} else {
+			$subject_admin = sprintf( '[AEGIS] New Contact Message: %s', $ticket_no );
+		}
 
 		$admin_body_lines = array(
 			'Ticket: ' . $ticket_no,
@@ -565,6 +630,10 @@ class Aegis_Forms_Frontend {
 			'Phone: ' . ( $phone ? $phone : '-' ),
 			'Country: ' . ( $country ? $country : '-' ),
 		);
+
+		if ( 'contact' === $form_type ) {
+			$admin_body_lines[] = 'Subject: ' . ( $subject ? $subject : '-' );
+		}
 
 		if ( ! empty( $meta ) ) {
 			foreach ( $meta as $key => $value ) {
@@ -579,17 +648,31 @@ class Aegis_Forms_Frontend {
 		$admin_body_lines[] = 'View: ' . admin_url( 'admin.php?page=aegis-forms-view&ticket=' . rawurlencode( $ticket_no ) );
 		wp_mail( $admin_to, $subject_admin, implode( "\n", $admin_body_lines ) );
 
-		$subject_user = sprintf( 'We received your request: %s', $ticket_no );
-		$user_body = implode(
-			"\n",
-			array(
-				'Hello,',
-				'',
-				'Thank you for reaching out. We have received your request.',
-				'Ticket: ' . $ticket_no,
-				'We will contact you if we need more information.',
-			)
-		);
+		if ( 'contact' === $form_type ) {
+			$subject_user = sprintf( 'We received your message: %s', $ticket_no );
+			$user_body = implode(
+				"\n",
+				array(
+					'Hello,',
+					'',
+					'Thank you for your message. We have received it.',
+					'Ticket: ' . $ticket_no,
+					'We will follow up if we need more information.',
+				)
+			);
+		} else {
+			$subject_user = sprintf( 'We received your request: %s', $ticket_no );
+			$user_body = implode(
+				"\n",
+				array(
+					'Hello,',
+					'',
+					'Thank you for reaching out. We have received your request.',
+					'Ticket: ' . $ticket_no,
+					'We will contact you if we need more information.',
+				)
+			);
+		}
 		wp_mail( $email, $subject_user, $user_body );
 	}
 
