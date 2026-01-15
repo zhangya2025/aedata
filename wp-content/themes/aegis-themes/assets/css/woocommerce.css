@@ -337,3 +337,8 @@ body.woocommerce-shop .woocommerce-products-header {
   margin-left: 0;
   margin-right: 0;
 }
+
+/* Shop-only: prevent the hero container background (#000) from showing as a top black strip */
+body.woocommerce-shop .aegis-hero {
+  background: transparent !important;
+}
