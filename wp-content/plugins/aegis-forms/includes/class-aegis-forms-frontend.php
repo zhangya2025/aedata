@@ -13,6 +13,8 @@ class Aegis_Forms_Frontend {
 		add_shortcode( 'aegis_repair_form', array( __CLASS__, 'render_repair_form' ) );
 		add_shortcode( 'aegis_dealer_form', array( __CLASS__, 'render_dealer_form' ) );
 		add_shortcode( 'aegis_contact_form', array( __CLASS__, 'render_contact_form' ) );
+		add_shortcode( 'aegis_sponsorship_form', array( __CLASS__, 'render_sponsorship_form' ) );
+		add_shortcode( 'aegis_customization_form', array( __CLASS__, 'render_customization_form' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
 		add_action( 'admin_post_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
 		add_action( 'wp_loaded', array( __CLASS__, 'handle_public_submit' ) );
@@ -30,8 +32,16 @@ class Aegis_Forms_Frontend {
 		return self::render_form( 'contact' );
 	}
 
+	public static function render_sponsorship_form() {
+		return self::render_form( 'sponsorship' );
+	}
+
+	public static function render_customization_form() {
+		return self::render_form( 'customization' );
+	}
+
 	private static function render_form( $type ) {
-		$type = in_array( $type, array( 'repair', 'dealer', 'contact' ), true ) ? $type : 'repair';
+		$type = in_array( $type, array( 'repair', 'dealer', 'contact', 'sponsorship', 'customization' ), true ) ? $type : 'repair';
 		$notice = self::render_notice( $type );
 		$nonce_action = 'aegis_forms_submit_' . $type;
 		$honeypot_name = 'website';
@@ -39,6 +49,7 @@ class Aegis_Forms_Frontend {
 		$token_key = 'aegis_forms_token:' . $token;
 		set_transient( $token_key, 'new', 10 * MINUTE_IN_SECONDS );
 		$allow_attachments = 'contact' !== $type;
+		$attachment_required = in_array( $type, array( 'sponsorship', 'customization' ), true );
 
 		ob_start();
 		?>
@@ -111,7 +122,7 @@ class Aegis_Forms_Frontend {
 					<label for="aegis-dealer-message"><?php echo esc_html__( 'Message' ); ?></label><br />
 					<textarea id="aegis-dealer-message" name="message" rows="6"></textarea>
 				</p>
-			<?php else : ?>
+			<?php elseif ( 'contact' === $type ) : ?>
 				<p>
 					<label for="aegis-contact-name"><?php echo esc_html__( 'Name' ); ?></label><br />
 					<input id="aegis-contact-name" type="text" name="name" required />
@@ -136,14 +147,37 @@ class Aegis_Forms_Frontend {
 					<label for="aegis-contact-message"><?php echo esc_html__( 'Message' ); ?></label><br />
 					<textarea id="aegis-contact-message" name="message" rows="6" required></textarea>
 				</p>
+			<?php else : ?>
+				<p>
+					<label for="aegis-special-name"><?php echo esc_html__( 'Name' ); ?></label><br />
+					<input id="aegis-special-name" type="text" name="name" required />
+				</p>
+				<p>
+					<label for="aegis-special-email"><?php echo esc_html__( 'Email' ); ?></label><br />
+					<input id="aegis-special-email" type="email" name="email" required />
+				</p>
+				<p>
+					<label for="aegis-special-subject"><?php echo esc_html__( 'Subject' ); ?></label><br />
+					<input id="aegis-special-subject" type="text" name="subject" />
+				</p>
+				<p>
+					<label for="aegis-special-message"><?php echo esc_html__( 'Message' ); ?></label><br />
+					<textarea id="aegis-special-message" name="message" rows="6" required></textarea>
+				</p>
 			<?php endif; ?>
 			<p>
 				<button type="submit" class="aegis-forms-submit"><?php echo esc_html__( 'Submit' ); ?></button>
 			</p>
 			<?php if ( $allow_attachments ) : ?>
 				<p>
-					<label for="aegis-forms-attachment"><?php echo esc_html__( 'Attachment (optional)' ); ?></label><br />
-					<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" />
+					<label for="aegis-forms-attachment">
+						<?php
+						echo esc_html(
+							$attachment_required ? __( 'Attachment required' ) : __( 'Attachment (optional)' )
+						);
+						?>
+					</label><br />
+					<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" <?php echo $attachment_required ? 'required' : ''; ?> />
 					<br />
 					<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.' ); ?></small>
 				</p>
@@ -191,13 +225,14 @@ class Aegis_Forms_Frontend {
 		}
 
 		if ( 'error' === $status ) {
-			$messages = array(
-				'invalid_nonce' => esc_html__( 'Security check failed. Please try again.' ),
-				'invalid_input' => esc_html__( 'Please check the required fields and try again.' ),
-				'rate_limited' => esc_html__( 'Too many submissions. Please try again later.' ),
-				'too_many_files' => esc_html__( 'You can upload up to 1 file.' ),
-				'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.' ),
-				'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.' ),
+				$messages = array(
+					'invalid_nonce' => esc_html__( 'Security check failed. Please try again.' ),
+					'invalid_input' => esc_html__( 'Please check the required fields and try again.' ),
+					'rate_limited' => esc_html__( 'Too many submissions. Please try again later.' ),
+					'attachment_required' => esc_html__( 'Please attach a file before submitting.' ),
+					'too_many_files' => esc_html__( 'You can upload up to 1 file.' ),
+					'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.' ),
+					'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.' ),
 				'upload_failed' => esc_html__( 'File upload failed. Please try again.' ),
 				'invalid_token' => esc_html__( 'Submission token missing. Please refresh and try again.' ),
 				'expired_token' => esc_html__( 'Submission token expired. Please refresh and try again.' ),
@@ -262,7 +297,7 @@ class Aegis_Forms_Frontend {
 		self::$current_token_key = $token_key;
 
 		$form_type = isset( $_POST['form_type'] ) ? sanitize_text_field( wp_unslash( $_POST['form_type'] ) ) : '';
-		if ( ! in_array( $form_type, array( 'repair', 'dealer', 'contact' ), true ) ) {
+		if ( ! in_array( $form_type, array( 'repair', 'dealer', 'contact', 'sponsorship', 'customization' ), true ) ) {
 			self::redirect_with_error( 'invalid_input', $redirect_status );
 		}
 
@@ -340,8 +375,6 @@ class Aegis_Forms_Frontend {
 		} else {
 			$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 			$email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
-			$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
-			$country = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
 			$subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
 			$message = isset( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '';
 
@@ -355,6 +388,18 @@ class Aegis_Forms_Frontend {
 			}
 		}
 
+		$attachment_required = in_array( $form_type, array( 'sponsorship', 'customization' ), true );
+		if ( $attachment_required ) {
+			$files = self::gather_uploaded_files();
+			if ( empty( $files ) ) {
+				self::redirect_with_error( 'attachment_required', $redirect_status );
+			}
+			$first = reset( $files );
+			if ( empty( $first['name'] ) || 0 === (int) $first['size'] ) {
+				self::redirect_with_error( 'attachment_required', $redirect_status );
+			}
+		}
+
 		$ip_value = $ip ? substr( $ip, 0, 64 ) : null;
 		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 		$user_agent = $user_agent ? substr( $user_agent, 0, 255 ) : null;
@@ -363,7 +408,7 @@ class Aegis_Forms_Frontend {
 		$country = $country ? $country : null;
 		$message = $message ? $message : null;
 
-		$subject_value = 'contact' === $form_type ? $subject : null;
+		$subject_value = in_array( $form_type, array( 'contact', 'sponsorship', 'customization' ), true ) ? $subject : null;
 
 		$data = array(
 			'type' => $form_type,
@@ -419,6 +464,10 @@ class Aegis_Forms_Frontend {
 			$prefix = 'RMA';
 		} elseif ( 'dealer' === $form_type ) {
 			$prefix = 'DLR';
+		} elseif ( 'sponsorship' === $form_type ) {
+			$prefix = 'SPN';
+		} elseif ( 'customization' === $form_type ) {
+			$prefix = 'CST';
 		} else {
 			$prefix = 'CNT';
 		}
@@ -446,7 +495,7 @@ class Aegis_Forms_Frontend {
 		}
 
 		if ( 'contact' !== $form_type ) {
-			$attachments = self::handle_attachments( $ticket_no, $insert_id );
+			$attachments = self::handle_attachments( $ticket_no, $insert_id, $redirect_status );
 			if ( $attachments ) {
 				$wpdb->update(
 					$table_name,
@@ -466,7 +515,7 @@ class Aegis_Forms_Frontend {
 		self::redirect_with_success( $ticket_no, $redirect_status );
 	}
 
-	private static function handle_attachments( $ticket_no, $insert_id ) {
+	private static function handle_attachments( $ticket_no, $insert_id, $redirect_status = 302 ) {
 		$files = self::gather_uploaded_files();
 		if ( empty( $files ) ) {
 			return array();
@@ -474,7 +523,7 @@ class Aegis_Forms_Frontend {
 
 		if ( count( $files ) > 1 ) {
 			self::delete_submission( $insert_id );
-			self::redirect_with_error( 'too_many_files' );
+			self::redirect_with_error( 'too_many_files', $redirect_status );
 		}
 
 		$allowed_mimes = array(
@@ -504,14 +553,14 @@ class Aegis_Forms_Frontend {
 				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
 				remove_filter( 'upload_dir', $filter, 999 );
 				self::delete_submission( $insert_id );
-				self::redirect_with_error( 'upload_failed' );
+				self::redirect_with_error( 'upload_failed', $redirect_status );
 			}
 
 			if ( $file['size'] > 10 * 1024 * 1024 ) {
 				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
 				remove_filter( 'upload_dir', $filter, 999 );
 				self::delete_submission( $insert_id );
-				self::redirect_with_error( 'file_too_large' );
+				self::redirect_with_error( 'file_too_large', $redirect_status );
 			}
 
 			$check = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], $allowed_mimes );
@@ -519,7 +568,7 @@ class Aegis_Forms_Frontend {
 				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
 				remove_filter( 'upload_dir', $filter, 999 );
 				self::delete_submission( $insert_id );
-				self::redirect_with_error( 'invalid_file' );
+				self::redirect_with_error( 'invalid_file', $redirect_status );
 			}
 
 			$result = wp_handle_upload(
@@ -534,7 +583,7 @@ class Aegis_Forms_Frontend {
 				$stored = self::rollback_uploads( $stored, $uploads['basedir'] . $subdir );
 				remove_filter( 'upload_dir', $filter, 999 );
 				self::delete_submission( $insert_id );
-				self::redirect_with_error( 'upload_failed' );
+				self::redirect_with_error( 'upload_failed', $redirect_status );
 			}
 
 			$stored[] = $result['file'];
@@ -635,6 +684,10 @@ class Aegis_Forms_Frontend {
 			$subject_admin = sprintf( '[AEGIS] New Repair Request: %s', $ticket_no );
 		} elseif ( 'dealer' === $form_type ) {
 			$subject_admin = sprintf( '[AEGIS] New Dealer Application: %s', $ticket_no );
+		} elseif ( 'sponsorship' === $form_type ) {
+			$subject_admin = sprintf( '[AEGIS] New Sponsorship Request: %s', $ticket_no );
+		} elseif ( 'customization' === $form_type ) {
+			$subject_admin = sprintf( '[AEGIS] New Customization Request: %s', $ticket_no );
 		} else {
 			$subject_admin = sprintf( '[AEGIS] New Contact Message: %s', $ticket_no );
 		}
@@ -648,8 +701,12 @@ class Aegis_Forms_Frontend {
 			'Country: ' . ( $country ? $country : '-' ),
 		);
 
-		if ( 'contact' === $form_type ) {
+		if ( in_array( $form_type, array( 'contact', 'sponsorship', 'customization' ), true ) ) {
 			$admin_body_lines[] = 'Subject: ' . ( $subject ? $subject : '-' );
+		}
+
+		if ( in_array( $form_type, array( 'sponsorship', 'customization' ), true ) ) {
+			$admin_body_lines[] = 'Attachment: received (1 file)';
 		}
 
 		if ( ! empty( $meta ) ) {
@@ -675,6 +732,18 @@ class Aegis_Forms_Frontend {
 					'Thank you for your message. We have received it.',
 					'Ticket: ' . $ticket_no,
 					'We will follow up if we need more information.',
+				)
+			);
+		} elseif ( in_array( $form_type, array( 'sponsorship', 'customization' ), true ) ) {
+			$subject_user = sprintf( 'We received your request: %s', $ticket_no );
+			$user_body = implode(
+				"\n",
+				array(
+					'Hello,',
+					'',
+					'Thank you for your request. We have received it.',
+					'Ticket: ' . $ticket_no,
+					'Attachment received.',
 				)
 			);
 		} else {
