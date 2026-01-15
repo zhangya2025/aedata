@@ -307,39 +307,3 @@ function aegis_info_pages_seed_placeholder( $title, $include_support_note ) {
     }
     return $content;
 }
-
-add_filter( 'pre_get_block_template', 'aegis_shop_override_block_template', 10, 3 );
-
-function aegis_shop_override_block_template( $template, $id, $template_type ) {
-    if ( 'wp_template' !== $template_type ) {
-        return $template;
-    }
-
-    if ( ! function_exists( 'is_shop' ) || ! is_shop() ) {
-        return $template;
-    }
-
-    if ( false === strpos( $id, '//archive-product' ) ) {
-        return $template;
-    }
-
-    $theme = get_stylesheet();
-    $block_template = new WP_Block_Template();
-    $block_template->id = $theme . '//archive-product';
-    $block_template->slug = 'archive-product';
-    $block_template->theme = $theme;
-    $block_template->type = 'wp_template';
-    $block_template->title = 'AEGIS Shop (Hero only)';
-    $block_template->description = 'Shop template overridden to show AEGIS Hero only.';
-    $block_template->source = 'theme';
-    $block_template->content = '<!-- AEGIS SHOP BLOCK TEMPLATE HIT -->'
-        . '<!-- wp:template-part {"slug":"header","tagName":"header"} /-->'
-        . '<!-- wp:group {"tagName":"main","layout":{"type":"constrained"}} -->'
-        . '<div class="wp-block-group">'
-        . '<!-- wp:shortcode -->[aegis_hero preset="shop"]<!-- /wp:shortcode -->'
-        . '</div>'
-        . '<!-- /wp:group -->'
-        . '<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->';
-
-    return $block_template;
-}
