@@ -415,6 +415,18 @@ add_action( 'wp', function () {
     remove_action( 'woocommerce_after_shop_loop', 'woocommerce_product_loop_end', 40 );
 }, 5 );
 
+add_action( 'wp', function () {
+    if ( ! function_exists( 'is_shop' ) || ! is_shop() ) {
+        return;
+    }
+
+    // 1) 移除 breadcrumb（默认挂在 woocommerce_before_main_content）
+    remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
+
+    // 2) 隐藏归档页标题（woocommerce_page_title() 对应的 h1）
+    add_filter( 'woocommerce_show_page_title', '__return_false', 20 );
+}, 6 );
+
 add_action( 'woocommerce_product_query', function ( $q ) {
     if ( ! function_exists( 'is_shop' ) || ! is_shop() ) {
         return;

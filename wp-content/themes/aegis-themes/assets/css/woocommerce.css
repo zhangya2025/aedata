@@ -314,3 +314,26 @@ body.woocommerce-cart .aegis-cart-layout .woocommerce-cart-form,
 body.woocommerce-cart .aegis-cart-layout .aegis-cart-summary {
   border-radius: 0 !important;
 }
+
+/* Shop-only: make the hero/description full width */
+body.woocommerce-shop .wp-site-blocks > .wp-block-group.is-layout-constrained {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body.woocommerce-shop .wp-site-blocks > .wp-block-group.is-layout-constrained > * {
+  max-width: none;
+}
+
+body.woocommerce-shop .woocommerce-products-header,
+body.woocommerce-shop .woocommerce-products-header .page-description,
+body.woocommerce-shop .woocommerce-products-header .page-description > * {
+  max-width: none;
+  width: 100%;
+}
+
+body.woocommerce-shop .woocommerce-products-header {
+  margin-left: 0;
+  margin-right: 0;
+}
