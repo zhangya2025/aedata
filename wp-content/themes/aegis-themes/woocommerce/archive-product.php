@@ -23,17 +23,17 @@ if ( defined( 'AEGIS_PLP_DEBUG' ) && AEGIS_PLP_DEBUG ) {
 
 if ( function_exists( 'aegis_is_sleepingbags_or_descendant' ) && aegis_is_sleepingbags_or_descendant() ) {
     include locate_template( 'woocommerce/partials/archive-product--sleepingbags.php' );
-    return;
+    return; // Stop default archive output.
 }
 
 if ( function_exists( 'aegis_is_term_or_descendant' ) && aegis_is_term_or_descendant( 'product_cat', 'clothes' ) ) {
     include locate_template( 'woocommerce/partials/archive-product--clothes.php' );
-    return;
+    return; // Stop default archive output.
 }
 
 if ( function_exists( 'is_shop' ) && is_shop() ) {
     include locate_template( 'woocommerce/partials/archive-product--shop.php' );
-    return;
+    return; // Stop default archive output.
 }
 
 get_header( 'shop' );
