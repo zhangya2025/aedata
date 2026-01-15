@@ -10,7 +10,9 @@ defined( 'ABSPATH' ) || exit;
 
 get_header( 'shop' );
 
-echo "<!-- AEGIS SHOP BRANCH HIT -->\n";
+remove_all_actions( 'woocommerce_before_shop_loop' );
+remove_all_actions( 'woocommerce_after_shop_loop' );
+remove_all_actions( 'woocommerce_no_products_found' );
 
 /**
  * Hook: woocommerce_before_main_content.
@@ -20,9 +22,9 @@ echo "<!-- AEGIS SHOP BRANCH HIT -->\n";
  * @hooked WC_Structured_Data::generate_website_data() - 30
  */
 do_action( 'woocommerce_before_main_content' );
-?>
-<div class="aegis-shop-empty"></div>
-<?php
+
+do_action( 'woocommerce_archive_description' );
+
 /**
  * Hook: woocommerce_after_main_content.
  *
