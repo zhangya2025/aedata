@@ -390,3 +390,50 @@ function aegis_shop_force_legacy_template( $template, $id, $template_type ) {
 
     return $block_template;
 }
+
+// /shop-only: hide loop UI and prevent product loop output
+add_action( 'wp', function () {
+    if ( ! function_exists( 'is_shop' ) || ! is_shop() ) {
+        return;
+    }
+
+    // 移除结果数与排序（ClassicTemplate 会触发 woocommerce_before_shop_loop）
+    remove_action( 'woocommerce_before_shop_loop', 'woocommerce_result_count', 20 );
+    remove_action( 'woocommerce_before_shop_loop', 'woocommerce_catalog_ordering', 30 );
+
+    // 移除分页（ClassicTemplate 会触发 woocommerce_after_shop_loop）
+    remove_action( 'woocommerce_after_shop_loop', 'woocommerce_pagination', 10 );
+
+    // 避免空结果时出现“未找到产品”提示
+    remove_action( 'woocommerce_no_products_found', 'wc_no_products_found', 10 );
+
+    // 阻止 loop 的 HTML 容器输出（避免出现 <ul class="products">）
+    // woocommerce_product_loop_start/end 默认分别输出 <ul class="products"> 与 </ul>
+    remove_action( 'woocommerce_before_shop_loop', 'woocommerce_output_all_notices', 10 );
+    // 关键：移除 loop start/end（更直接）
+    remove_action( 'woocommerce_before_shop_loop', 'woocommerce_product_loop_start', 40 );
+    remove_action( 'woocommerce_after_shop_loop', 'woocommerce_product_loop_end', 40 );
+}, 5 );
+
+add_action( 'wp', function () {
+    if ( ! function_exists( 'is_shop' ) || ! is_shop() ) {
+        return;
+    }
+
+    // 1) 移除 breadcrumb（默认挂在 woocommerce_before_main_content）
+    remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
+
+    // 2) 隐藏归档页标题（woocommerce_page_title() 对应的 h1）
+    add_filter( 'woocommerce_show_page_title', '__return_false', 20 );
+}, 6 );
+
+add_action( 'woocommerce_product_query', function ( $q ) {
+    if ( ! function_exists( 'is_shop' ) || ! is_shop() ) {
+        return;
+    }
+
+    // 让循环没有任何产品，避免 wc_get_template_part('content','product') 输出
+    $q->set( 'post__in', array( 0 ) ); // 不存在的 ID
+    $q->set( 'posts_per_page', 1 ); // 避免某些环境把 0 当成“不限制”
+    $q->set( 'no_found_rows', true );
+}, 5 );
