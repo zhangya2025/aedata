@@ -10,6 +10,8 @@ defined( 'ABSPATH' ) || exit;
 
 get_header( 'shop' );
 
+echo "<!-- AEGIS SHOP BRANCH HIT -->\n";
+
 /**
  * Hook: woocommerce_before_main_content.
  *
@@ -18,6 +20,10 @@ get_header( 'shop' );
  * @hooked WC_Structured_Data::generate_website_data() - 30
  */
 do_action( 'woocommerce_before_main_content' );
+
+remove_all_actions( 'woocommerce_before_shop_loop' );
+remove_all_actions( 'woocommerce_after_shop_loop' );
+remove_all_actions( 'woocommerce_no_products_found' );
 
 ?>
 <div class="aegis-shop-hero">
