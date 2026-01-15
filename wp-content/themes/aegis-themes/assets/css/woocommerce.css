@@ -342,3 +342,41 @@ body.woocommerce-shop .woocommerce-products-header {
 body.woocommerce-shop .aegis-hero {
   background: transparent !important;
 }
+
+/* PLP: center title/price/button */
+body.post-type-archive-product .products li.product,
+body.tax-product_cat .products li.product {
+  text-align: center;
+}
+
+/* Title */
+body.post-type-archive-product .products li.product .woocommerce-loop-product__title,
+body.tax-product_cat .products li.product .woocommerce-loop-product__title {
+  text-align: center;
+}
+
+/* Price */
+body.post-type-archive-product .products li.product .price,
+body.tax-product_cat .products li.product .price {
+  display: block;
+  text-align: center;
+}
+
+/* Buttons (center + white text) */
+body.post-type-archive-product .products li.product .button,
+body.tax-product_cat .products li.product .button,
+body.post-type-archive-product .products li.product .wp-element-button,
+body.tax-product_cat .products li.product .wp-element-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff !important;
+}
+
+/* Ensure hover/visited stays white */
+body.post-type-archive-product .products li.product .button:hover,
+body.tax-product_cat .products li.product .button:hover,
+body.post-type-archive-product .products li.product .button:visited,
+body.tax-product_cat .products li.product .button:visited {
+  color: #fff !important;
+}
