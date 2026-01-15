@@ -17,6 +17,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+echo "\n<!-- AEGIS THEME ARCHIVE-PRODUCT PHP HIT -->\n";
+
 if ( defined( 'AEGIS_PLP_DEBUG' ) && AEGIS_PLP_DEBUG ) {
     error_log( '[aegis-shop-hit] archive-product.php loaded; is_shop=' . ( function_exists( 'is_shop' ) && is_shop() ? '1' : '0' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 }
