@@ -20,43 +20,9 @@ echo "<!-- AEGIS SHOP BRANCH HIT -->\n";
  * @hooked WC_Structured_Data::generate_website_data() - 30
  */
 do_action( 'woocommerce_before_main_content' );
-
-remove_all_actions( 'woocommerce_before_shop_loop' );
-remove_all_actions( 'woocommerce_after_shop_loop' );
-remove_all_actions( 'woocommerce_no_products_found' );
-
 ?>
-<div class="aegis-shop-hero">
-	<?php
-	$hero_preset = get_page_by_path( 'shop', OBJECT, 'aegis_hero' );
-	$hero_id = $hero_preset ? (int) $hero_preset->ID : 0;
-	$hero_markup = '';
-
-	if ( $hero_id && function_exists( 'aegis_hero_render_embed_block' ) ) {
-		$hero_markup = aegis_hero_render_embed_block( array( 'heroId' => $hero_id ) );
-	} elseif ( $hero_id && function_exists( 'render_block' ) ) {
-		$hero_markup = render_block(
-			array(
-				'blockName' => 'aegis/hero-embed',
-				'attrs' => array(
-					'heroId' => $hero_id,
-				),
-				'innerBlocks' => array(),
-				'innerHTML' => '',
-				'innerContent' => array(),
-			)
-		);
-	}
-
-	if ( '' !== $hero_markup ) {
-		echo $hero_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	} else {
-		echo '<!-- AEGIS Hero preset "shop" not found or unavailable. -->';
-	}
-	?>
-</div>
+<div class="aegis-shop-empty"></div>
 <?php
-
 /**
  * Hook: woocommerce_after_main_content.
  *
