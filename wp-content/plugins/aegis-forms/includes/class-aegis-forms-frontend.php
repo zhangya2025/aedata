@@ -694,9 +694,13 @@ class Aegis_Forms_Frontend {
 	}
 
 	private static function redirect_with_success( $ticket_no, $redirect_status = 302 ) {
-		$redirect = wp_get_referer();
-		if ( ! $redirect ) {
-			$redirect = home_url( '/' );
+		if ( 303 === $redirect_status ) {
+			$redirect = self::get_public_redirect_base();
+		} else {
+			$redirect = wp_get_referer();
+			if ( ! $redirect ) {
+				$redirect = home_url( '/' );
+			}
 		}
 		$redirect = add_query_arg(
 			array(
@@ -719,9 +723,13 @@ class Aegis_Forms_Frontend {
 			self::$current_token_key = '';
 		}
 
-		$redirect = wp_get_referer();
-		if ( ! $redirect ) {
-			$redirect = home_url( '/' );
+		if ( 303 === $redirect_status ) {
+			$redirect = self::get_public_redirect_base();
+		} else {
+			$redirect = wp_get_referer();
+			if ( ! $redirect ) {
+				$redirect = home_url( '/' );
+			}
 		}
 		$redirect = add_query_arg(
 			array(
@@ -732,5 +740,25 @@ class Aegis_Forms_Frontend {
 		);
 		wp_safe_redirect( $redirect, $redirect_status );
 		exit;
+	}
+
+	private static function get_public_redirect_base() {
+		$base = wp_get_raw_referer();
+		if ( ! $base ) {
+			$base = wp_get_referer();
+		}
+
+		if ( ! $base ) {
+			$base = home_url( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+		}
+
+		$base = remove_query_arg( array( 'aegis_forms', 'ticket', 'reason' ), $base );
+		$validated = wp_validate_redirect( $base, '' );
+		if ( ! $validated ) {
+			$validated = home_url( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+			$validated = remove_query_arg( array( 'aegis_forms', 'ticket', 'reason' ), $validated );
+		}
+
+		return $validated;
 	}
 }
