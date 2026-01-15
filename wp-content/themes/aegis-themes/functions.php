@@ -1,4 +1,19 @@
 <?php
+
+if ( ! function_exists( 'aegis_dbg' ) ) {
+    function aegis_dbg( $tag, $data = null ) {
+        if ( ! defined( 'AEGIS_PLP_DEBUG' ) || ! AEGIS_PLP_DEBUG ) {
+            return;
+        }
+        $payload = is_array( $data ) ? wp_json_encode( $data ) : (string) $data;
+        error_log( '[' . $tag . '] ' . $payload ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+    }
+}
+
+aegis_dbg( 'aegis-theme-loaded', array(
+    'uri' => $_SERVER['REQUEST_URI'] ?? '',
+    'host' => $_SERVER['HTTP_HOST'] ?? '',
+) );
 /**
  * Theme setup for Aegis-Themes.
  */
@@ -311,6 +326,14 @@ function aegis_info_pages_seed_placeholder( $title, $include_support_note ) {
 add_filter( 'pre_get_block_template', 'aegis_shop_force_legacy_template', 10, 3 );
 
 function aegis_shop_force_legacy_template( $template, $id, $template_type ) {
+    aegis_dbg( 'aegis-shop-template', array(
+        'uri' => $_SERVER['REQUEST_URI'] ?? '',
+        'template_type' => $template_type,
+        'id' => $id,
+        'is_shop' => ( function_exists( 'is_shop' ) && is_shop() ) ? 1 : 0,
+        'is_tax_product_cat' => ( function_exists( 'is_tax' ) && is_tax( 'product_cat' ) ) ? 1 : 0,
+    ) );
+
     if ( 'wp_template' !== $template_type ) {
         return $template;
     }
