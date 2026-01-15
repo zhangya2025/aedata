@@ -311,6 +311,16 @@ function aegis_info_pages_seed_placeholder( $title, $include_support_note ) {
 add_filter( 'pre_get_block_template', 'aegis_shop_force_legacy_template', 10, 3 );
 
 function aegis_shop_force_legacy_template( $template, $id, $template_type ) {
+    if ( defined( 'AEGIS_PLP_DEBUG' ) && AEGIS_PLP_DEBUG ) {
+        error_log( '[aegis-shop-template] ' . wp_json_encode( array(
+            'uri' => $_SERVER['REQUEST_URI'] ?? '',
+            'template_type' => $template_type,
+            'id' => $id,
+            'is_shop' => ( function_exists( 'is_shop' ) && is_shop() ) ? 1 : 0,
+            'is_tax_product_cat' => ( function_exists( 'is_tax' ) && is_tax( 'product_cat' ) ) ? 1 : 0,
+        ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+    }
+
     if ( 'wp_template' !== $template_type ) {
         return $template;
     }
