@@ -134,6 +134,9 @@ class Aegis_Forms_Admin {
 				<option value=""><?php echo esc_html__( 'All' ); ?></option>
 				<option value="repair" <?php selected( $filters['type'], 'repair' ); ?>><?php echo esc_html__( 'repair' ); ?></option>
 				<option value="dealer" <?php selected( $filters['type'], 'dealer' ); ?>><?php echo esc_html__( 'dealer' ); ?></option>
+				<option value="contact" <?php selected( $filters['type'], 'contact' ); ?>><?php echo esc_html__( 'Contact' ); ?></option>
+				<option value="sponsorship" <?php selected( $filters['type'], 'sponsorship' ); ?>><?php echo esc_html__( 'Sponsorship' ); ?></option>
+				<option value="customization" <?php selected( $filters['type'], 'customization' ); ?>><?php echo esc_html__( 'Customization' ); ?></option>
 			</select>
 			<label for="aegis-forms-filter-status"><?php echo esc_html__( 'Status' ); ?></label>
 			<select id="aegis-forms-filter-status" name="status">
@@ -244,7 +247,7 @@ class Aegis_Forms_Admin {
 		$status = isset( $request['status'] ) ? sanitize_text_field( wp_unslash( $request['status'] ) ) : '';
 		$paged = isset( $request['paged'] ) ? absint( $request['paged'] ) : 1;
 
-		$allowed_types = array( 'repair', 'dealer' );
+		$allowed_types = array( 'repair', 'dealer', 'contact', 'sponsorship', 'customization' );
 		$allowed_statuses = array( 'new', 'in_review', 'need_more_info', 'approved', 'rejected', 'closed' );
 
 		if ( ! in_array( $type, $allowed_types, true ) ) {
@@ -489,6 +492,10 @@ class Aegis_Forms_Admin {
 					<tr>
 						<th scope="row"><?php echo esc_html__( 'Updated At' ); ?></th>
 						<td><?php echo esc_html( $updated_at ? wp_date( 'Y-m-d H:i', strtotime( $updated_at ) ) : '' ); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Subject' ); ?></th>
+						<td><?php echo esc_html( $row['subject'] ); ?></td>
 					</tr>
 					<tr>
 						<th scope="row"><?php echo esc_html__( 'Message' ); ?></th>
