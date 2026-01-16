@@ -85,6 +85,18 @@
   max-width: var(--aegis-logo-max-w, 220px);
 }
 
+.aegis-logo--overlay {
+  display: none;
+}
+
+.aegis-mega-header.is-home.mode-overlay .aegis-logo--default {
+  display: none;
+}
+
+.aegis-mega-header.is-home.mode-overlay .aegis-logo--overlay {
+  display: inline-block;
+}
+
 .aegis-header__brand-link svg {
   display: block;
   height: var(--aegis-logo-h, 36px);
