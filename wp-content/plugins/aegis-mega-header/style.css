@@ -97,6 +97,15 @@
   display: inline-block;
 }
 
+/* Home non-overlay: force overlay logo hidden to prevent double logo */
+.aegis-mega-header.is-home:not(.mode-overlay) .aegis-logo--overlay {
+  display: none !important;
+}
+
+.aegis-mega-header.is-home:not(.mode-overlay) .aegis-logo--default {
+  display: inline-block !important;
+}
+
 .aegis-header__brand-link svg {
   display: block;
   height: var(--aegis-logo-h, 36px);
