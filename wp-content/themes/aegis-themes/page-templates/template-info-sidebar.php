@@ -37,13 +37,14 @@ $nav_id       = 'aegis-info-nav-list';
         </button>
         <?php if ( ! empty( $items ) ) : ?>
             <?php
-            $root_item = $items[0] ?? null;
+            $root_item  = $items[0] ?? null;
+            $child_items = array_slice( $items, 1 );
             ?>
             <?php if ( $root_item ) : ?>
                 <div class="aegis-info-nav-root"><?php echo esc_html( $root_item->post_title ); ?></div>
             <?php endif; ?>
             <ul id="<?php echo esc_attr( $nav_id ); ?>" class="aegis-info-nav-list">
-                <?php foreach ( $items as $page ) : ?>
+                <?php foreach ( $child_items as $page ) : ?>
                     <?php
                     $is_current = (int) $page->ID === (int) $current_id;
                     $classes    = 'aegis-info-nav-link';

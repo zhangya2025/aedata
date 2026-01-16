@@ -187,7 +187,7 @@ body.page-template-template-info-sidebar .aegis-info-layout {
     margin-top: 12px;
   }
 
-  .aegis-info-layout .aegis-info-nav-toggle[aria-expanded="true"] + .aegis-info-nav-list {
+  .aegis-info-layout .aegis-info-nav-toggle[aria-expanded="true"] ~ .aegis-info-nav-list {
     display: block;
   }
 }
