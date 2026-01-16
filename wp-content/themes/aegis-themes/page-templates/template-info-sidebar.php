@@ -16,6 +16,12 @@ $nav_id     = 'aegis-info-nav-list';
             <?php esc_html_e( '目录', 'aegis-themes' ); ?>
         </button>
         <?php if ( ! empty( $items ) ) : ?>
+            <?php
+            $root_item = $items[0] ?? null;
+            ?>
+            <?php if ( $root_item ) : ?>
+                <div class="aegis-info-nav-root"><?php echo esc_html( $root_item->post_title ); ?></div>
+            <?php endif; ?>
             <ul id="<?php echo esc_attr( $nav_id ); ?>" class="aegis-info-nav-list">
                 <?php foreach ( $items as $page ) : ?>
                     <?php
