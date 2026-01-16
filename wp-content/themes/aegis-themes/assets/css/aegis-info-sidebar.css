@@ -134,6 +134,10 @@ body.page-template-template-info-sidebar .aegis-info-layout {
   min-width: 0;
 }
 
+.aegis-info-layout .aegis-info-empty {
+  min-height: 40vh;
+}
+
 .aegis-info-layout .aegis-info-title {
   margin: 0 0 16px;
   font-size: clamp(1.8rem, 1.6rem + 1vw, 2.4rem);
