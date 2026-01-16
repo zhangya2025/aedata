@@ -51,6 +51,13 @@ body.page-template-template-info-sidebar .aegis-info-layout {
   gap: 12px;
 }
 
+.aegis-info-layout .aegis-info-nav-root {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+}
+
 .aegis-info-layout .aegis-info-nav-item {
   margin: 0;
 }
@@ -71,6 +78,10 @@ body.page-template-template-info-sidebar .aegis-info-layout {
 .aegis-info-layout .aegis-info-content {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.aegis-info-layout .aegis-info-empty {
+  min-height: 40vh;
 }
 
 .aegis-info-layout .aegis-info-title {
