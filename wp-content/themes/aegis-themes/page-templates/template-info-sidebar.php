@@ -35,29 +35,30 @@ $nav_id       = 'aegis-info-nav-list';
         <button class="aegis-info-nav-toggle" type="button" aria-expanded="false" aria-controls="<?php echo esc_attr( $nav_id ); ?>">
             <?php esc_html_e( '目录', 'aegis-themes' ); ?>
         </button>
-        <?php if ( $root_page ) : ?>
-            <div class="aegis-info-nav-root">
-                <?php echo esc_html( $root_page->post_title ); ?>
-            </div>
-            <?php if ( $has_children ) : ?>
-                <ul id="<?php echo esc_attr( $nav_id ); ?>" class="aegis-info-nav-list">
-                    <?php foreach ( $children as $page ) : ?>
-                        <?php
-                        $is_current = (int) $page->ID === (int) $current_id;
-                        $classes    = 'aegis-info-nav-link';
-                        $aria       = $is_current ? ' aria-current="page"' : '';
-                        if ( $is_current ) {
-                            $classes .= ' is-current';
-                        }
-                        ?>
-                        <li class="aegis-info-nav-item">
-                            <a class="<?php echo esc_attr( $classes ); ?>" href="<?php echo esc_url( get_permalink( $page ) ); ?>"<?php echo $aria; ?>>
-                                <?php echo esc_html( $page->post_title ); ?>
-                            </a>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+        <?php if ( ! empty( $items ) ) : ?>
+            <?php
+            $root_item = $items[0] ?? null;
+            ?>
+            <?php if ( $root_item ) : ?>
+                <div class="aegis-info-nav-root"><?php echo esc_html( $root_item->post_title ); ?></div>
             <?php endif; ?>
+            <ul id="<?php echo esc_attr( $nav_id ); ?>" class="aegis-info-nav-list">
+                <?php foreach ( $items as $page ) : ?>
+                    <?php
+                    $is_current = (int) $page->ID === (int) $current_id;
+                    $classes    = 'aegis-info-nav-link';
+                    $aria       = $is_current ? ' aria-current="page"' : '';
+                    if ( $is_current ) {
+                        $classes .= ' is-current';
+                    }
+                    ?>
+                    <li class="aegis-info-nav-item">
+                        <a class="<?php echo esc_attr( $classes ); ?>" href="<?php echo esc_url( get_permalink( $page ) ); ?>"<?php echo $aria; ?>>
+                            <?php echo esc_html( $page->post_title ); ?>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
         <?php endif; ?>
     </aside>
     <section class="aegis-info-content">

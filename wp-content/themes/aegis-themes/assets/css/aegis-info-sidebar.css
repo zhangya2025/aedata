@@ -24,8 +24,6 @@ body.page-template-template-info-sidebar .aegis-info-layout {
 
 .aegis-info-layout .aegis-info-nav {
   flex: 0 0 280px;
-  border-right: 1px solid rgba(17, 24, 39, 0.12);
-  padding-right: 24px;
 }
 
 .aegis-info-layout .aegis-info-nav-toggle {
@@ -42,37 +40,93 @@ body.page-template-template-info-sidebar .aegis-info-layout {
   cursor: pointer;
 }
 
+/* =========================
+   AEGIS Info Sidebar - Nav
+   Scope: .aegis-info-layout only
+   ========================= */
+
+.aegis-info-layout .aegis-info-nav {
+  padding: 28px 18px 28px 10px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 721px) {
+  .aegis-info-layout .aegis-info-nav {
+    position: sticky;
+    top: 18px;
+    align-self: start;
+  }
+}
+
+/* Root / Section title */
+.aegis-info-layout .aegis-info-nav-root {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(0, 0, 0, 0.85);
+  padding: 10px 12px 14px 12px;
+  margin: 0 0 10px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* List container */
 .aegis-info-layout .aegis-info-nav-list {
   list-style: none;
+  margin: 12px 0 0 0;
   padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
-.aegis-info-layout .aegis-info-nav-root {
-  font-weight: 700;
-  font-size: 1.05rem;
-  margin-bottom: 12px;
-  padding-bottom: 4px;
+/* Items */
+.aegis-info-layout .aegis-info-nav-list li {
+  margin: 4px 0;
+  padding: 0;
 }
 
-.aegis-info-layout .aegis-info-nav-item {
-  margin: 0;
+/* Link base: no underline in all states */
+.aegis-info-layout .aegis-info-nav a,
+.aegis-info-layout .aegis-info-nav a:link,
+.aegis-info-layout .aegis-info-nav a:visited,
+.aegis-info-layout .aegis-info-nav a:hover,
+.aegis-info-layout .aegis-info-nav a:active {
+  text-decoration: none;
 }
 
 .aegis-info-layout .aegis-info-nav-link {
-  display: inline-block;
-  color: inherit;
-  text-decoration: none;
-  padding: 4px 0;
-  border-bottom: 1px solid transparent;
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.72);
+  position: relative;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+@media (hover: hover) {
+  .aegis-info-layout .aegis-info-nav-link:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.88);
+  }
+}
+
+/* Current page */
 .aegis-info-layout .aegis-info-nav-link.is-current {
+  background: rgba(0, 0, 0, 0.045);
+  color: rgba(0, 0, 0, 0.92);
   font-weight: 600;
-  border-color: currentColor;
+}
+
+.aegis-info-layout .aegis-info-nav-link.is-current::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 2px;
 }
 
 .aegis-info-layout .aegis-info-content {
@@ -105,15 +159,27 @@ body.page-template-template-info-sidebar .aegis-info-layout {
   }
 
   .aegis-info-layout .aegis-info-nav {
-    flex: 1 1 auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(17, 24, 39, 0.12);
-    padding-right: 0;
-    padding-bottom: 16px;
+    padding: 14px 12px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   }
 
   .aegis-info-layout .aegis-info-nav-toggle {
     display: flex;
+  }
+
+  .aegis-info-layout .aegis-info-nav-root {
+    padding: 10px 10px 12px 10px;
+    margin-bottom: 8px;
+  }
+
+  .aegis-info-layout .aegis-info-nav-link {
+    padding: 12px 10px;
+    border-radius: 12px;
+  }
+
+  .aegis-info-layout .aegis-info-nav-link.is-current::before {
+    left: -6px;
   }
 
   .aegis-info-layout .aegis-info-nav-list {
@@ -122,6 +188,6 @@ body.page-template-template-info-sidebar .aegis-info-layout {
   }
 
   .aegis-info-layout .aegis-info-nav-toggle[aria-expanded="true"] + .aegis-info-nav-list {
-    display: flex;
+    display: block;
   }
 }
