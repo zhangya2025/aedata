@@ -566,7 +566,6 @@ function aegis_mega_header_default_settings() {
         'branding' => [
             'logo_source'    => 'wp_site_logo',
             'plugin_logo_id' => 0,
-            'home_overlay_logo_id' => 0,
             'logo_url'       => home_url( '/' ),
             'logo_alt'       => '',
             'logo_height_desktop' => 36,
@@ -676,7 +675,6 @@ function aegis_mega_header_sanitize_settings( $settings ) {
         'branding' => [
             'logo_source'        => $logo_source,
             'plugin_logo_id'     => isset( $branding['plugin_logo_id'] ) ? absint( $branding['plugin_logo_id'] ) : 0,
-            'home_overlay_logo_id' => isset( $branding['home_overlay_logo_id'] ) ? absint( $branding['home_overlay_logo_id'] ) : 0,
             'logo_url'           => ! empty( $branding['logo_url'] ) ? esc_url_raw( $branding['logo_url'] ) : home_url( '/' ),
             'logo_alt'           => isset( $branding['logo_alt'] ) ? sanitize_text_field( $branding['logo_alt'] ) : '',
             'logo_height_desktop' => $logo_height_desktop,
@@ -1189,7 +1187,6 @@ function aegis_mega_header_render_brand( $settings ) {
     $branding = isset( $settings['branding'] ) && is_array( $settings['branding'] ) ? $settings['branding'] : [];
     $logo_url = ! empty( $branding['logo_url'] ) ? $branding['logo_url'] : home_url( '/' );
     $logo_alt = isset( $branding['logo_alt'] ) ? $branding['logo_alt'] : '';
-    $logo_class = 'aegis-header__brand-image aegis-logo aegis-logo--default';
     $html     = '';
 
     $has_builder = function_exists( 'aegis_mega_header_build_logo_image' );
@@ -1199,17 +1196,17 @@ function aegis_mega_header_render_brand( $settings ) {
     if ( $has_builder && 'wp_site_logo' === $use_site_logo ) {
         $custom_logo_id = get_theme_mod( 'custom_logo' );
         if ( $custom_logo_id ) {
-            $html = aegis_mega_header_build_logo_image( $custom_logo_id, $logo_alt, $logo_class );
+            $html = aegis_mega_header_build_logo_image( $custom_logo_id, $logo_alt );
         }
     }
 
     if ( $has_builder && ! $html && ! empty( $branding['plugin_logo_id'] ) ) {
         $plugin_logo_id = absint( $branding['plugin_logo_id'] );
-        $html           = aegis_mega_header_build_logo_image( $plugin_logo_id, $logo_alt, $logo_class );
+        $html           = aegis_mega_header_build_logo_image( $plugin_logo_id, $logo_alt );
     }
 
     if ( ! $html ) {
-        $html = '<span class="aegis-header__brand-text aegis-logo aegis-logo--default">' . esc_html( get_bloginfo( 'name', 'display' ) ?: 'Aegis' ) . '</span>';
+        $html = '<span class="aegis-header__brand-text">' . esc_html( get_bloginfo( 'name', 'display' ) ?: 'Aegis' ) . '</span>';
     }
 
     return [
@@ -1283,18 +1280,6 @@ if ( empty( $nav_items ) && isset( $nav_defaults['main']['items'] ) ) {
 $panel_ids   = [];
 $menu_items  = [];
 $mobile_data = [];
-$branding_settings = isset( $settings['branding'] ) && is_array( $settings['branding'] ) ? $settings['branding'] : [];
-$overlay_logo_id = isset( $branding_settings['home_overlay_logo_id'] ) ? absint( $branding_settings['home_overlay_logo_id'] ) : 0;
-$is_home_page = is_home() || is_front_page() || is_page( 49966 );
-$overlay_logo_html = '';
-
-if ( $overlay_logo_id && $is_home_page && function_exists( 'aegis_mega_header_build_logo_image' ) ) {
-    $overlay_logo_html = aegis_mega_header_build_logo_image(
-        $overlay_logo_id,
-        isset( $branding_settings['logo_alt'] ) ? $branding_settings['logo_alt'] : '',
-        'aegis-header__brand-image aegis-logo aegis-logo--overlay'
-    );
-}
 
 foreach ( $nav_items as $index => $item ) {
     if ( ! is_array( $item ) ) {
@@ -1436,9 +1421,6 @@ $header_style = sprintf(
 <div class="aegis-header__brand" aria-label="Site">
 <a href="<?php echo esc_url( $brand['url'] ); ?>" class="aegis-header__brand-link">
 <?php echo $brand['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-<?php if ( $overlay_logo_html ) : ?>
-    <?php echo $overlay_logo_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-<?php endif; ?>
 </a>
 </div>
 <nav class="aegis-header__nav" aria-label="Primary">
@@ -2181,23 +2163,6 @@ function aegis_mega_header_render_settings_page() {
                             <button type="button" class="button aegis-media-clear" data-clear-target="<?php echo esc_attr( $plugin_input_id ); ?>" data-preview-target="<?php echo esc_attr( $plugin_preview_id ); ?>">Clear</button>
                             <div class="aegis-media-preview">
                                 <img id="<?php echo esc_attr( $plugin_preview_id ); ?>" src="<?php echo esc_url( $plugin_preview ); ?>" style="max-width:200px; height:auto;<?php echo $plugin_preview ? '' : 'display:none;'; ?>" alt="" />
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Home Logo (Overlay)</th>
-                        <td>
-                            <?php
-                            $home_overlay_logo_id  = isset( $branding['home_overlay_logo_id'] ) ? absint( $branding['home_overlay_logo_id'] ) : 0;
-                            $home_overlay_preview  = $home_overlay_logo_id ? wp_get_attachment_image_url( $home_overlay_logo_id, 'medium' ) : '';
-                            $home_overlay_input_id = 'aegis-home-overlay-logo-id';
-                            $home_overlay_preview_id = 'aegis-home-overlay-logo-preview';
-                            ?>
-                            <input type="hidden" id="<?php echo esc_attr( $home_overlay_input_id ); ?>" name="aegis_mega_header_settings[branding][home_overlay_logo_id]" value="<?php echo esc_attr( $home_overlay_logo_id ); ?>" />
-                            <button type="button" class="button aegis-media-select" data-media-target="<?php echo esc_attr( $home_overlay_input_id ); ?>" data-preview-target="<?php echo esc_attr( $home_overlay_preview_id ); ?>">Select image</button>
-                            <button type="button" class="button aegis-media-clear" data-clear-target="<?php echo esc_attr( $home_overlay_input_id ); ?>" data-preview-target="<?php echo esc_attr( $home_overlay_preview_id ); ?>">Clear</button>
-                            <div class="aegis-media-preview">
-                                <img id="<?php echo esc_attr( $home_overlay_preview_id ); ?>" src="<?php echo esc_url( $home_overlay_preview ); ?>" style="max-width:200px; height:auto;<?php echo $home_overlay_preview ? '' : 'display:none;'; ?>" alt="" />
                             </div>
                         </td>
                     </tr>
