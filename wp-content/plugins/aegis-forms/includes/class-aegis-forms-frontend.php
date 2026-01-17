@@ -88,140 +88,144 @@ class Aegis_Forms_Frontend {
 		$nonce_action = 'aegis_forms_submit_' . $type;
 		$honeypot_name = 'website';
 		$token = wp_generate_uuid4();
+		$build_tag = AEGIS_FORMS_VERSION . '-' . filemtime( __FILE__ );
 		$token_key = 'aegis_forms_token:' . $token;
 		set_transient( $token_key, 'new', 10 * MINUTE_IN_SECONDS );
 		$allow_attachments = 'contact' !== $type;
 		$attachment_required = in_array( $type, array( 'sponsorship', 'customization' ), true );
+		$submitting_text = esc_js( __( 'Submitting...', 'aegis-forms' ) );
 
 		ob_start();
 		?>
 		<?php echo $notice; ?>
-		<form method="post" action=""<?php echo $allow_attachments ? ' enctype="multipart/form-data"' : ''; ?> data-aegis-forms="true">
+		<form method="post" action=""<?php echo $allow_attachments ? ' enctype="multipart/form-data"' : ''; ?> data-aegis-forms="true" data-aegis-forms-build="<?php echo esc_attr( $build_tag ); ?>">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SUBMIT ); ?>" />
 			<input type="hidden" name="aegis_forms_public_submit" value="1" />
 			<input type="hidden" name="form_type" value="<?php echo esc_attr( $type ); ?>" />
 			<input type="hidden" name="request_token" value="<?php echo esc_attr( $token ); ?>" />
 			<?php wp_nonce_field( $nonce_action ); ?>
 			<div style="position:absolute;left:-9999px;" aria-hidden="true">
-				<label><?php echo esc_html__( 'Website' ); ?></label>
+				<label><?php echo esc_html__( 'Website', 'aegis-forms' ); ?></label>
 				<input type="text" name="<?php echo esc_attr( $honeypot_name ); ?>" value="" autocomplete="off" />
 			</div>
 			<?php if ( 'repair' === $type ) : ?>
 				<p>
-					<label for="aegis-repair-name"><?php echo esc_html__( 'Name' ); ?></label><br />
+					<label for="aegis-repair-name"><?php echo esc_html__( 'Name', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-repair-name" type="text" name="name" required />
 				</p>
 				<p>
-					<label for="aegis-repair-email"><?php echo esc_html__( 'Email' ); ?></label><br />
+					<label for="aegis-repair-email"><?php echo esc_html__( 'Email', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-repair-email" type="email" name="email" required />
 				</p>
 				<p>
-					<label for="aegis-repair-phone"><?php echo esc_html__( 'Phone' ); ?></label><br />
+					<label for="aegis-repair-phone"><?php echo esc_html__( 'Phone', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-repair-phone" type="text" name="phone" />
 				</p>
 				<p>
-					<label for="aegis-repair-country"><?php echo esc_html__( 'Country' ); ?></label><br />
+					<label for="aegis-repair-country"><?php echo esc_html__( 'Country', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-repair-country" type="text" name="country" />
 				</p>
 				<p>
-					<label for="aegis-repair-order-number"><?php echo esc_html__( 'Order Number' ); ?></label><br />
+					<label for="aegis-repair-order-number"><?php echo esc_html__( 'Order Number', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-repair-order-number" type="text" name="order_number" />
 				</p>
 				<p>
-					<label for="aegis-repair-product-sku"><?php echo esc_html__( 'Product SKU' ); ?></label><br />
+					<label for="aegis-repair-product-sku"><?php echo esc_html__( 'Product SKU', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-repair-product-sku" type="text" name="product_sku" />
 				</p>
 				<p>
-					<label for="aegis-repair-message"><?php echo esc_html__( 'Message' ); ?></label><br />
+					<label for="aegis-repair-message"><?php echo esc_html__( 'Message', 'aegis-forms' ); ?></label><br />
 					<textarea id="aegis-repair-message" name="message" rows="6" required></textarea>
 				</p>
 			<?php elseif ( 'dealer' === $type ) : ?>
 				<p>
-					<label for="aegis-dealer-company-name"><?php echo esc_html__( 'Company Name' ); ?></label><br />
+					<label for="aegis-dealer-company-name"><?php echo esc_html__( 'Company Name', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-dealer-company-name" type="text" name="company_name" required />
 				</p>
 				<p>
-					<label for="aegis-dealer-contact-name"><?php echo esc_html__( 'Contact Name' ); ?></label><br />
+					<label for="aegis-dealer-contact-name"><?php echo esc_html__( 'Contact Name', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-dealer-contact-name" type="text" name="contact_name" required />
 				</p>
 				<p>
-					<label for="aegis-dealer-email"><?php echo esc_html__( 'Email' ); ?></label><br />
+					<label for="aegis-dealer-email"><?php echo esc_html__( 'Email', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-dealer-email" type="email" name="email" required />
 				</p>
 				<p>
-					<label for="aegis-dealer-phone"><?php echo esc_html__( 'Phone' ); ?></label><br />
+					<label for="aegis-dealer-phone"><?php echo esc_html__( 'Phone', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-dealer-phone" type="text" name="phone" />
 				</p>
 				<p>
-					<label for="aegis-dealer-country"><?php echo esc_html__( 'Country' ); ?></label><br />
+					<label for="aegis-dealer-country"><?php echo esc_html__( 'Country', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-dealer-country" type="text" name="country" />
 				</p>
 				<p>
-					<label for="aegis-dealer-website"><?php echo esc_html__( 'Website or Social' ); ?></label><br />
+					<label for="aegis-dealer-website"><?php echo esc_html__( 'Website or Social', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-dealer-website" type="text" name="website" />
 				</p>
 				<p>
-					<label for="aegis-dealer-message"><?php echo esc_html__( 'Message' ); ?></label><br />
+					<label for="aegis-dealer-message"><?php echo esc_html__( 'Message', 'aegis-forms' ); ?></label><br />
 					<textarea id="aegis-dealer-message" name="message" rows="6"></textarea>
 				</p>
 			<?php elseif ( 'contact' === $type ) : ?>
 				<p>
-					<label for="aegis-contact-name"><?php echo esc_html__( 'Name' ); ?></label><br />
+					<label for="aegis-contact-name"><?php echo esc_html__( 'Name', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-contact-name" type="text" name="name" required />
 				</p>
 				<p>
-					<label for="aegis-contact-email"><?php echo esc_html__( 'Email' ); ?></label><br />
+					<label for="aegis-contact-email"><?php echo esc_html__( 'Email', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-contact-email" type="email" name="email" required />
 				</p>
 				<p>
-					<label for="aegis-contact-phone"><?php echo esc_html__( 'Phone' ); ?></label><br />
+					<label for="aegis-contact-phone"><?php echo esc_html__( 'Phone', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-contact-phone" type="text" name="phone" />
 				</p>
 				<p>
-					<label for="aegis-contact-country"><?php echo esc_html__( 'Country' ); ?></label><br />
+					<label for="aegis-contact-country"><?php echo esc_html__( 'Country', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-contact-country" type="text" name="country" />
 				</p>
 				<p>
-					<label for="aegis-contact-subject"><?php echo esc_html__( 'Subject' ); ?></label><br />
+					<label for="aegis-contact-subject"><?php echo esc_html__( 'Subject', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-contact-subject" type="text" name="subject" />
 				</p>
 				<p>
-					<label for="aegis-contact-message"><?php echo esc_html__( 'Message' ); ?></label><br />
+					<label for="aegis-contact-message"><?php echo esc_html__( 'Message', 'aegis-forms' ); ?></label><br />
 					<textarea id="aegis-contact-message" name="message" rows="6" required></textarea>
 				</p>
 			<?php else : ?>
 				<p>
-					<label for="aegis-special-name"><?php echo esc_html__( 'Name' ); ?></label><br />
+					<label for="aegis-special-name"><?php echo esc_html__( 'Name', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-special-name" type="text" name="name" required />
 				</p>
 				<p>
-					<label for="aegis-special-email"><?php echo esc_html__( 'Email' ); ?></label><br />
+					<label for="aegis-special-email"><?php echo esc_html__( 'Email', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-special-email" type="email" name="email" required />
 				</p>
 				<p>
-					<label for="aegis-special-subject"><?php echo esc_html__( 'Subject' ); ?></label><br />
+					<label for="aegis-special-subject"><?php echo esc_html__( 'Subject', 'aegis-forms' ); ?></label><br />
 					<input id="aegis-special-subject" type="text" name="subject" />
 				</p>
 				<p>
-					<label for="aegis-special-message"><?php echo esc_html__( 'Message' ); ?></label><br />
+					<label for="aegis-special-message"><?php echo esc_html__( 'Message', 'aegis-forms' ); ?></label><br />
 					<textarea id="aegis-special-message" name="message" rows="6" required></textarea>
 				</p>
 			<?php endif; ?>
 			<p>
-				<button type="submit" class="aegis-forms-submit"><?php echo esc_html__( 'Submit' ); ?></button>
+				<button type="submit" class="aegis-forms-submit"><?php echo esc_html__( 'Submit', 'aegis-forms' ); ?></button>
 			</p>
 			<?php if ( $allow_attachments ) : ?>
 				<p>
 					<label for="aegis-forms-attachment">
 						<?php
 						echo esc_html(
-							$attachment_required ? __( 'Attachment required' ) : __( 'Attachment (optional)' )
+							$attachment_required
+								? __( 'Attachment required', 'aegis-forms' )
+								: __( 'Attachment (optional)', 'aegis-forms' )
 						);
 						?>
 					</label><br />
 					<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" <?php echo $attachment_required ? 'required' : ''; ?> />
 					<br />
-					<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.' ); ?></small>
+					<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.', 'aegis-forms' ); ?></small>
 				</p>
 			<?php endif; ?>
 			<script>
@@ -237,7 +241,7 @@ class Aegis_Forms_Frontend {
 							var button = form.querySelector('.aegis-forms-submit');
 							if (button) {
 								button.disabled = true;
-								button.textContent = 'Submitting...';
+								button.textContent = <?php echo wp_json_encode( $submitting_text ); ?>;
 							}
 						});
 					});
@@ -260,7 +264,7 @@ class Aegis_Forms_Frontend {
 		if ( 'submitted' === $status && $ticket ) {
 			$message = sprintf(
 				/* translators: %s: ticket number */
-				esc_html__( 'Thank you. Your request has been submitted. Ticket: %s' ),
+				esc_html__( 'Thank you. Your request has been submitted. Ticket: %s', 'aegis-forms' ),
 				esc_html( $ticket )
 			);
 			return '<div class="notice notice-success"><p>' . $message . '</p></div>';
@@ -268,18 +272,18 @@ class Aegis_Forms_Frontend {
 
 		if ( 'error' === $status ) {
 				$messages = array(
-					'invalid_nonce' => esc_html__( 'Security check failed. Please try again.' ),
-					'invalid_input' => esc_html__( 'Please check the required fields and try again.' ),
-					'rate_limited' => esc_html__( 'Too many submissions. Please try again later.' ),
-					'attachment_required' => esc_html__( 'Please attach a file before submitting.' ),
-					'too_many_files' => esc_html__( 'You can upload up to 1 file.' ),
-					'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.' ),
-					'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.' ),
-				'upload_failed' => esc_html__( 'File upload failed. Please try again.' ),
-				'invalid_token' => esc_html__( 'Submission token missing. Please refresh and try again.' ),
-				'expired_token' => esc_html__( 'Submission token expired. Please refresh and try again.' ),
-				'busy' => esc_html__( 'Submission already in progress. Please try again.' ),
-				'server_error' => esc_html__( 'Submission failed. Please try again later.' ),
+					'invalid_nonce' => esc_html__( 'Security check failed. Please try again.', 'aegis-forms' ),
+					'invalid_input' => esc_html__( 'Please check the required fields and try again.', 'aegis-forms' ),
+					'rate_limited' => esc_html__( 'Too many submissions. Please try again later.', 'aegis-forms' ),
+					'attachment_required' => esc_html__( 'Please attach a file before submitting.', 'aegis-forms' ),
+					'too_many_files' => esc_html__( 'You can upload up to 1 file.', 'aegis-forms' ),
+					'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.', 'aegis-forms' ),
+					'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.', 'aegis-forms' ),
+				'upload_failed' => esc_html__( 'File upload failed. Please try again.', 'aegis-forms' ),
+				'invalid_token' => esc_html__( 'Submission token missing. Please refresh and try again.', 'aegis-forms' ),
+				'expired_token' => esc_html__( 'Submission token expired. Please refresh and try again.', 'aegis-forms' ),
+				'busy' => esc_html__( 'Submission already in progress. Please try again.', 'aegis-forms' ),
+				'server_error' => esc_html__( 'Submission failed. Please try again later.', 'aegis-forms' ),
 			);
 			$text = isset( $messages[ $reason ] ) ? $messages[ $reason ] : $messages['server_error'];
 			return '<div class="notice notice-error"><p>' . $text . '</p></div>';

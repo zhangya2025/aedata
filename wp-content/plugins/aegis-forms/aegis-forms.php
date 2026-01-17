@@ -3,6 +3,7 @@
  * Plugin Name: Aegis Forms
  * Description: Admin shell and health check page for Aegis Forms.
  * Version: 0.1.0
+ * Text Domain: aegis-forms
  * Author: Aegis
  */
 
