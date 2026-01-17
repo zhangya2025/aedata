@@ -64,10 +64,14 @@ $children = get_pages(
         </ul>
     </aside>
     <section class="aegis-info-content">
-        <h1 class="aegis-info-title"><?php the_title(); ?></h1>
-        <div class="aegis-info-body">
-            <?php the_content(); ?>
-        </div>
+        <?php if ( $is_root_self && $has_children ) : ?>
+            <div class="aegis-info-empty" aria-hidden="true"></div>
+        <?php else : ?>
+            <h1 class="aegis-info-title"><?php the_title(); ?></h1>
+            <div class="aegis-info-body">
+                <?php the_content(); ?>
+            </div>
+        <?php endif; ?>
     </section>
 </main>
 <?php
