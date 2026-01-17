@@ -147,6 +147,27 @@ body.page-template-template-info-sidebar .aegis-info-layout {
   max-width: 760px;
 }
 
+/* =========================================================
+   Legal & Compliance pages: link styling (scope only)
+   - Remove default blue link color inside legal content
+   - Keep underline for accessibility
+   ========================================================= */
+
+body.page-template-template-info-sidebar .aegis-info-body a,
+body.page-template-template-info-sidebar .aegis-info-body a:link,
+body.page-template-template-info-sidebar .aegis-info-body a:visited {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(0, 0, 0, 0.28);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+body.page-template-template-info-sidebar .aegis-info-body a:hover,
+body.page-template-template-info-sidebar .aegis-info-body a:active {
+  text-decoration-color: rgba(0, 0, 0, 0.75);
+}
+
 .aegis-info-layout .aegis-info-content > *:first-child {
   margin-top: 0;
 }
