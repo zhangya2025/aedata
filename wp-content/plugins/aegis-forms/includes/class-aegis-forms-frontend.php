@@ -245,9 +245,9 @@ class Aegis_Forms_Frontend {
 						);
 						?>
 					</label><br />
-					<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" <?php echo $attachment_required ? 'required' : ''; ?> />
 					<div class="aegis-forms-file">
-						<button type="button" class="aegis-forms-file-btn"><?php echo esc_html__( 'Choose file', 'aegis-forms' ); ?></button>
+						<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" <?php echo $attachment_required ? 'required' : ''; ?> />
+						<label for="aegis-forms-attachment" class="aegis-forms-file-btn"><?php echo esc_html__( 'Choose file', 'aegis-forms' ); ?></label>
 						<span class="aegis-forms-file-name" aria-live="polite"><?php echo esc_html__( 'No file chosen', 'aegis-forms' ); ?></span>
 					</div>
 					<br />

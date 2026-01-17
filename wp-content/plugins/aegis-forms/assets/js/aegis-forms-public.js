@@ -91,14 +91,11 @@
       return;
     }
 
-    var button = wrapper.querySelector('.aegis-forms-file-btn');
     var nameLabel = wrapper.querySelector('.aegis-forms-file-name');
 
-    if (button) {
-      button.textContent = messages.fileButtonText;
-      button.addEventListener('click', function() {
-        input.click();
-      });
+    var label = wrapper.querySelector('.aegis-forms-file-btn');
+    if (label) {
+      label.textContent = messages.fileButtonText;
     }
 
     if (nameLabel) {
