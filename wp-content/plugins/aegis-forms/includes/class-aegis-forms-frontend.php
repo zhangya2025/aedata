@@ -15,9 +15,51 @@ class Aegis_Forms_Frontend {
 		add_shortcode( 'aegis_contact_form', array( __CLASS__, 'render_contact_form' ) );
 		add_shortcode( 'aegis_sponsorship_form', array( __CLASS__, 'render_sponsorship_form' ) );
 		add_shortcode( 'aegis_customization_form', array( __CLASS__, 'render_customization_form' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
 		add_action( 'admin_post_' . self::ACTION_SUBMIT, array( __CLASS__, 'handle_submit' ) );
 		add_action( 'wp_loaded', array( __CLASS__, 'handle_public_submit' ) );
+	}
+
+	public static function enqueue_assets() {
+		if ( is_admin() || ! is_singular( 'page' ) ) {
+			return;
+		}
+
+		$post = get_post();
+		if ( ! $post ) {
+			return;
+		}
+
+		$shortcodes = array(
+			'aegis_repair_form',
+			'aegis_dealer_form',
+			'aegis_contact_form',
+			'aegis_sponsorship_form',
+			'aegis_customization_form',
+		);
+
+		$has_shortcode = false;
+		foreach ( $shortcodes as $shortcode ) {
+			if ( has_shortcode( $post->post_content, $shortcode ) ) {
+				$has_shortcode = true;
+				break;
+			}
+		}
+
+		if ( ! $has_shortcode ) {
+			return;
+		}
+
+		$style_path = AEGIS_FORMS_PLUGIN_PATH . 'assets/css/aegis-forms-public.css';
+		$version = file_exists( $style_path ) ? filemtime( $style_path ) : AEGIS_FORMS_VERSION;
+
+		wp_enqueue_style(
+			'aegis-forms-public',
+			plugins_url( 'assets/css/aegis-forms-public.css', AEGIS_FORMS_PLUGIN_FILE ),
+			array(),
+			$version
+		);
 	}
 
 	public static function render_repair_form() {

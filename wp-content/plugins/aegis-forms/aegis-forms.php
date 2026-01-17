@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'AEGIS_FORMS_VERSION', '0.1.0' );
+define( 'AEGIS_FORMS_PLUGIN_FILE', __FILE__ );
 define( 'AEGIS_FORMS_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AEGIS_FORMS_DB_VERSION', '1' );
 define( 'AEGIS_FORMS_DB_VERSION_OPTION', 'aegis_forms_db_version' );
