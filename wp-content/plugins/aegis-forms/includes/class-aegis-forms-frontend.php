@@ -115,6 +115,7 @@ class Aegis_Forms_Frontend {
 		set_transient( $token_key, 'new', 10 * MINUTE_IN_SECONDS );
 		$allow_attachments = 'contact' !== $type;
 		$attachment_required = in_array( $type, array( 'sponsorship', 'customization' ), true );
+		$submitting_text = esc_js( __( 'Submitting...', 'aegis-forms' ) );
 
 		ob_start();
 		?>
