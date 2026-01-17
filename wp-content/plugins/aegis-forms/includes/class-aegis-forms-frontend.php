@@ -53,12 +53,34 @@ class Aegis_Forms_Frontend {
 
 		$style_path = AEGIS_FORMS_PLUGIN_PATH . 'assets/css/aegis-forms-public.css';
 		$version = file_exists( $style_path ) ? filemtime( $style_path ) : AEGIS_FORMS_VERSION;
+		$script_path = AEGIS_FORMS_PLUGIN_PATH . 'assets/js/aegis-forms-public.js';
+		$script_version = file_exists( $script_path ) ? filemtime( $script_path ) : AEGIS_FORMS_VERSION;
 
 		wp_enqueue_style(
 			'aegis-forms-public',
 			plugins_url( 'assets/css/aegis-forms-public.css', AEGIS_FORMS_PLUGIN_FILE ),
 			array(),
 			$version
+		);
+
+		wp_enqueue_script(
+			'aegis-forms-public',
+			plugins_url( 'assets/js/aegis-forms-public.js', AEGIS_FORMS_PLUGIN_FILE ),
+			array(),
+			$script_version,
+			true
+		);
+
+		wp_localize_script(
+			'aegis-forms-public',
+			'aegisFormsPublic',
+			array(
+				'requiredMessage' => esc_html__( 'This field is required.', 'aegis-forms' ),
+				'invalidEmailMessage' => esc_html__( 'Please enter a valid email address.', 'aegis-forms' ),
+				'fileButtonText' => esc_html__( 'Choose file', 'aegis-forms' ),
+				'fileNoText' => esc_html__( 'No file chosen', 'aegis-forms' ),
+				'submittingText' => esc_html__( 'Submitting...', 'aegis-forms' ),
+			)
 		);
 	}
 
@@ -98,7 +120,7 @@ class Aegis_Forms_Frontend {
 		ob_start();
 		?>
 		<?php echo $notice; ?>
-		<form method="post" action=""<?php echo $allow_attachments ? ' enctype="multipart/form-data"' : ''; ?> data-aegis-forms="true" data-aegis-forms-build="<?php echo esc_attr( $build_tag ); ?>">
+		<form method="post" action=""<?php echo $allow_attachments ? ' enctype="multipart/form-data"' : ''; ?> data-aegis-forms="true" data-aegis-forms-build="<?php echo esc_attr( $build_tag ); ?>" novalidate>
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION_SUBMIT ); ?>" />
 			<input type="hidden" name="aegis_forms_public_submit" value="1" />
 			<input type="hidden" name="form_type" value="<?php echo esc_attr( $type ); ?>" />
@@ -224,29 +246,14 @@ class Aegis_Forms_Frontend {
 						?>
 					</label><br />
 					<input id="aegis-forms-attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" <?php echo $attachment_required ? 'required' : ''; ?> />
+					<div class="aegis-forms-file">
+						<button type="button" class="aegis-forms-file-btn"><?php echo esc_html__( 'Choose file', 'aegis-forms' ); ?></button>
+						<span class="aegis-forms-file-name" aria-live="polite"><?php echo esc_html__( 'No file chosen', 'aegis-forms' ); ?></span>
+					</div>
 					<br />
 					<small><?php echo esc_html__( 'Up to 1 file. Max 10MB. JPG/PNG/PDF only.', 'aegis-forms' ); ?></small>
 				</p>
 			<?php endif; ?>
-			<script>
-				(function() {
-					var forms = document.querySelectorAll('form[data-aegis-forms]');
-					forms.forEach(function(form) {
-						form.addEventListener('submit', function(event) {
-							if (form.dataset.submitted === 'true') {
-								event.preventDefault();
-								return;
-							}
-							form.dataset.submitted = 'true';
-							var button = form.querySelector('.aegis-forms-submit');
-							if (button) {
-								button.disabled = true;
-								button.textContent = <?php echo wp_json_encode( $submitting_text ); ?>;
-							}
-						});
-					});
-				})();
-			</script>
 		</form>
 		<?php
 		return ob_get_clean();
