@@ -6,9 +6,29 @@
 
 get_header();
 
-$current_id = get_the_ID();
-$items      = aegis_info_sidebar_get_nav_items( $current_id );
-$nav_id     = 'aegis-info-nav-list';
+$current_id = get_queried_object_id();
+$root_id    = $current_id;
+$ancestors  = get_post_ancestors( $current_id );
+if ( ! empty( $ancestors ) ) {
+    $root_id = (int) end( $ancestors );
+}
+
+$root_page = get_post( $root_id );
+$children  = array();
+if ( $root_page && 'publish' === $root_page->post_status ) {
+    $children = get_pages(
+        array(
+            'parent'      => $root_id,
+            'sort_column' => 'menu_order,post_title',
+            'sort_order'  => 'ASC',
+            'post_status' => 'publish',
+        )
+    );
+}
+
+$is_root_self = (int) $current_id === (int) $root_id;
+$has_children = ! empty( $children );
+$nav_id       = 'aegis-info-nav-list';
 ?>
 <main class="aegis-info-layout">
     <aside class="aegis-info-nav">
@@ -43,10 +63,14 @@ $nav_id     = 'aegis-info-nav-list';
         <?php endif; ?>
     </aside>
     <section class="aegis-info-content">
-        <h1 class="aegis-info-title"><?php the_title(); ?></h1>
-        <div class="aegis-info-body">
-            <?php the_content(); ?>
-        </div>
+        <?php if ( $is_root_self && $has_children ) : ?>
+            <div class="aegis-info-empty" aria-hidden="true"></div>
+        <?php else : ?>
+            <h1 class="aegis-info-title"><?php the_title(); ?></h1>
+            <div class="aegis-info-body">
+                <?php the_content(); ?>
+            </div>
+        <?php endif; ?>
     </section>
 </main>
 <?php
