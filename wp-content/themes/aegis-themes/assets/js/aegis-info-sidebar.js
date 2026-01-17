@@ -4,40 +4,51 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  const toggle = layout.querySelector('.aegis-info-nav-toggle');
-  const list = layout.querySelector('.aegis-info-nav-list');
-  if (!toggle || !list) {
+  const nav = document.querySelector('.aegis-info-layout .aegis-info-nav');
+  const btn = document.querySelector('.aegis-info-layout .aegis-info-nav-toggle');
+  const list = document.querySelector('.aegis-info-layout .aegis-info-nav-list');
+  if (!nav || !btn || !list) {
     return;
   }
 
-  const mediaQuery = window.matchMedia('(max-width: 720px)');
-
-  const setExpanded = (expanded, isMobile) => {
-    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    if (isMobile) {
-      list.hidden = !expanded;
-    } else {
-      list.hidden = false;
-    }
-  };
-
-  const syncForViewport = () => {
-    if (mediaQuery.matches) {
-      setExpanded(false, true);
-    } else {
-      setExpanded(true, false);
-    }
-  };
-
-  syncForViewport();
-
-  toggle.addEventListener('click', () => {
-    if (!mediaQuery.matches) {
-      return;
-    }
-    const expanded = toggle.getAttribute('aria-expanded') === 'true';
-    setExpanded(!expanded, true);
+  console.log('[AEGIS INFO SIDEBAR] mounted', {
+    hasNav: !!nav,
+    hasBtn: !!btn,
+    hasList: !!list,
   });
 
-  mediaQuery.addEventListener('change', syncForViewport);
+  const mq = window.matchMedia('(max-width: 720px)');
+
+  const applyByViewport = () => {
+    if (mq.matches) {
+      nav.classList.remove('is-open');
+      nav.classList.add('is-collapsed');
+      btn.setAttribute('aria-expanded', 'false');
+    } else {
+      nav.classList.add('is-open');
+      nav.classList.remove('is-collapsed');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  };
+
+  applyByViewport();
+
+  const handleToggle = () => {
+    if (!mq.matches) {
+      return;
+    }
+    const isOpen = nav.classList.contains('is-open');
+    if (isOpen) {
+      nav.classList.remove('is-open');
+      nav.classList.add('is-collapsed');
+      btn.setAttribute('aria-expanded', 'false');
+    } else {
+      nav.classList.add('is-open');
+      nav.classList.remove('is-collapsed');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  };
+
+  btn.addEventListener('click', handleToggle);
+  mq.addEventListener('change', applyByViewport);
 });
