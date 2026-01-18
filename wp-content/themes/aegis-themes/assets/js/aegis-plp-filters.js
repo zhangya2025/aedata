@@ -1,17 +1,4 @@
 (function () {
-    const viewportQuery = window.matchMedia('(max-width: 960px)');
-    const setViewportCookie = () => {
-        const value = viewportQuery.matches ? 'mobile' : 'desktop';
-        document.cookie = `aegis_plp_viewport=${value}; path=/; max-age=300`;
-    };
-
-    setViewportCookie();
-    if (viewportQuery.addEventListener) {
-        viewportQuery.addEventListener('change', setViewportCookie);
-    } else if (viewportQuery.addListener) {
-        viewportQuery.addListener(setViewportCookie);
-    }
-
     const container = document.querySelector('[data-aegis-plp-filters]');
     if (!container) {
         return;

@@ -160,25 +160,6 @@ body.aegis-plp-catalog .aegis-plp-filters__meta {
     min-height: 0;
 }
 
-.aegis-plp-filters__sidebar {
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 16px;
-    position: sticky;
-    top: 90px;
-    background: #fff;
-}
-
-.aegis-plp-filters__sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #e5e5e5;
-    margin-top: 12px;
-}
-
 .aegis-plp-filters__group {
     border-bottom: 1px solid #eee;
     padding-bottom: 12px;
@@ -373,12 +354,6 @@ body.aegis-plp-enabled .aegis-plp-filters__label--mobile {
 
     .aegis-plp-filters__drawer-body {
         padding: 16px;
-    }
-}
-
-@media (max-width: 960px) {
-    .aegis-plp-sidebar {
-        display: none;
     }
 }
 
