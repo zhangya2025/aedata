@@ -2,7 +2,16 @@
 <!-- wp:template-part {"slug":"header","tagName":"header"} /-->
 <!-- wp:group {"tagName":"main","layout":{"type":"constrained"}} -->
 <div class="wp-block-group">
-  <!-- wp:woocommerce/legacy-template {"template":"archive-product"} /-->
+  <!-- AEGIS PLP LAYOUT ACTIVE -->
+  <div class="aegis-plp-layout">
+    <aside class="aegis-plp-sidebar">
+      <!-- wp:shortcode -->[aegis_plp_filters_sidebar]<!-- /wp:shortcode -->
+    </aside>
+    <section class="aegis-plp-main">
+      <!-- wp:shortcode -->[aegis_plp_filters_toolbar]<!-- /wp:shortcode -->
+      <!-- wp:woocommerce/legacy-template {"template":"archive-product"} /-->
+    </section>
+  </div>
 </div>
 <!-- /wp:group -->
 <!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->
