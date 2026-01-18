@@ -31,12 +31,14 @@ if ( function_exists( 'is_shop' ) && is_shop() ) {
     return;
 }
 
-if ( function_exists( 'aegis_is_sleepingbags_or_descendant' ) && aegis_is_sleepingbags_or_descendant() ) {
+$use_block_layout = ! empty( $GLOBALS['aegis_plp_block_layout_rendered'] );
+
+if ( ! $use_block_layout && function_exists( 'aegis_is_sleepingbags_or_descendant' ) && aegis_is_sleepingbags_or_descendant() ) {
     include locate_template( 'woocommerce/partials/archive-product--sleepingbags.php' );
     return; // Stop default archive output.
 }
 
-if ( function_exists( 'aegis_is_term_or_descendant' ) && aegis_is_term_or_descendant( 'product_cat', 'clothes' ) ) {
+if ( ! $use_block_layout && function_exists( 'aegis_is_term_or_descendant' ) && aegis_is_term_or_descendant( 'product_cat', 'clothes' ) ) {
     include locate_template( 'woocommerce/partials/archive-product--clothes.php' );
     return; // Stop default archive output.
 }
@@ -71,17 +73,19 @@ if ( woocommerce_product_loop() ) {
 	 * @hooked woocommerce_catalog_ordering - 30
 	 */
 	?>
-		<!-- AEGIS PLP LAYOUT ACTIVE -->
-		<div class="aegis-plp-layout">
-			<aside class="aegis-plp-sidebar">
-				<?php if ( function_exists( 'aegis_plp_filters_render_sidebar' ) ) : ?>
-					<?php aegis_plp_filters_render_sidebar(); ?>
-				<?php endif; ?>
-			</aside>
-			<section class="aegis-plp-main">
-				<?php if ( function_exists( 'aegis_plp_filters_render_toolbar' ) ) : ?>
-					<?php aegis_plp_filters_render_toolbar(); ?>
-				<?php endif; ?>
+		<?php if ( ! $use_block_layout ) : ?>
+			<!-- AEGIS PLP LAYOUT ACTIVE -->
+			<div class="aegis-plp-layout">
+				<aside class="aegis-plp-sidebar">
+					<?php if ( function_exists( 'aegis_plp_filters_render_sidebar' ) ) : ?>
+						<?php aegis_plp_filters_render_sidebar(); ?>
+					<?php endif; ?>
+				</aside>
+				<section class="aegis-plp-main">
+					<?php if ( function_exists( 'aegis_plp_filters_render_toolbar' ) ) : ?>
+						<?php aegis_plp_filters_render_toolbar(); ?>
+					<?php endif; ?>
+		<?php endif; ?>
 				<?php do_action( 'woocommerce_before_shop_loop' ); ?>
 				<?php
 				woocommerce_product_loop_start();
@@ -107,9 +111,11 @@ if ( woocommerce_product_loop() ) {
 	 *
 	 * @hooked woocommerce_pagination - 10
 	 */
-				<?php do_action( 'woocommerce_after_shop_loop' ); ?>
-			</section>
-		</div>
+		<?php do_action( 'woocommerce_after_shop_loop' ); ?>
+		<?php if ( ! $use_block_layout ) : ?>
+				</section>
+			</div>
+		<?php endif; ?>
 	<?php
 } else {
 	/**
