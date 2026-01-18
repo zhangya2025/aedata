@@ -2,6 +2,10 @@
     margin-bottom: 24px;
 }
 
+.aegis-plp-desktop-toolbar {
+    margin-bottom: 16px;
+}
+
 .aegis-plp-layout {
     display: block;
 }
@@ -329,63 +333,25 @@ body.aegis-plp-enabled .aegis-plp-filters__label--mobile {
 
     .aegis-plp-sidebar {
         display: block;
+        width: 300px;
     }
 
-    .aegis-plp-filters__toolbar {
+    .aegis-plp-mobile-toolbar,
+    .aegis-plp-mobile-drawer {
         display: none;
-    }
-
-    .aegis-plp-main {
-        display: contents;
-    }
-
-    .aegis-plp-filters {
-        display: contents;
-    }
-
-    .aegis-plp-filters__toolbar,
-    .aegis-plp-filters__chips,
-    .aegis-plp-main > * {
-        grid-column: 2;
-    }
-
-    .aegis-plp-filters__form {
-        grid-column: 1;
-        padding: 0;
-        max-width: 100%;
-    }
-
-    .aegis-plp-filters__buttons {
-        display: none;
-    }
-
-    .aegis-plp-filters__drawer {
-        position: sticky;
-        top: 90px;
-        width: 100%;
-        max-width: 100%;
-        height: auto;
-        transform: none;
-        box-shadow: none;
-        z-index: 1;
-        border: 1px solid #e5e5e5;
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    .aegis-plp-filters__drawer-header,
-    .aegis-plp-filters__drawer-footer,
-    .aegis-plp-filters__overlay {
-        display: none;
-    }
-
-    .aegis-plp-filters__drawer-body {
-        padding: 16px;
     }
 }
 
 @media (max-width: 960px) {
     .aegis-plp-sidebar {
+        display: none;
+    }
+
+    .aegis-plp-mobile-toolbar {
+        display: block;
+    }
+
+    .aegis-plp-desktop-toolbar {
         display: none;
     }
 }
