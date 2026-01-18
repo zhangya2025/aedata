@@ -1575,10 +1575,6 @@ function aegis_plp_filters_render_sidebar() {
                             </div>
                         </div>
                     </div>
-                <?php else : ?>
-                    <div class="aegis-plp-filters__sidebar">
-                        <p class="aegis-plp-filters__empty">No filters configured.</p>
-                    </div>
                 <?php endif; ?>
             </form>
         </div>
@@ -1702,10 +1698,6 @@ function aegis_plp_filters_render_sidebar() {
                             <button type="submit" class="aegis-plp-filters__submit">View Results</button>
                         </div>
                     </div>
-                </div>
-            <?php else : ?>
-                <div class="aegis-plp-filters__sidebar">
-                    <p class="aegis-plp-filters__empty">No filters configured.</p>
                 </div>
             <?php endif; ?>
         </form>
