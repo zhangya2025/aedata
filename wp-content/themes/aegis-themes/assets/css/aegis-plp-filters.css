@@ -2,16 +2,22 @@
     margin-bottom: 24px;
 }
 
-.aegis-plp-layout {
+body.aegis-plp-sleepingbags .aegis-plp-layout,
+body.aegis-plp-clothes .aegis-plp-layout,
+body.aegis-plp-catalog .aegis-plp-layout {
     display: block;
 }
 
-.aegis-plp-main {
+body.aegis-plp-sleepingbags .aegis-plp-main,
+body.aegis-plp-clothes .aegis-plp-main,
+body.aegis-plp-catalog .aegis-plp-main {
     width: 100%;
     min-width: 0;
 }
 
-.aegis-plp-sidebar {
+body.aegis-plp-sleepingbags .aegis-plp-sidebar,
+body.aegis-plp-clothes .aegis-plp-sidebar,
+body.aegis-plp-catalog .aegis-plp-sidebar {
     width: 100%;
 }
 
@@ -301,34 +307,50 @@ body.aegis-plp-enabled .aegis-plp-filters__label--mobile {
 }
 
 @media (min-width: 961px) {
-    .aegis-plp-layout {
+    body.aegis-plp-sleepingbags .aegis-plp-layout,
+    body.aegis-plp-clothes .aegis-plp-layout,
+    body.aegis-plp-catalog .aegis-plp-layout {
         display: grid;
         grid-template-columns: 300px minmax(0, 1fr);
         gap: 32px;
         align-items: start;
     }
 
-    .aegis-plp-main {
+    body.aegis-plp-sleepingbags .aegis-plp-sidebar,
+    body.aegis-plp-clothes .aegis-plp-sidebar,
+    body.aegis-plp-catalog .aegis-plp-sidebar {
         display: contents;
     }
 
-    .aegis-plp-filters {
+    body.aegis-plp-sleepingbags .aegis-plp-filters,
+    body.aegis-plp-clothes .aegis-plp-filters,
+    body.aegis-plp-catalog .aegis-plp-filters {
         display: contents;
     }
 
-    .aegis-plp-filters__toolbar,
-    .aegis-plp-filters__chips,
-    .aegis-plp-main > * {
+    body.aegis-plp-sleepingbags .aegis-plp-filters__toolbar,
+    body.aegis-plp-clothes .aegis-plp-filters__toolbar,
+    body.aegis-plp-catalog .aegis-plp-filters__toolbar,
+    body.aegis-plp-sleepingbags .aegis-plp-filters__chips,
+    body.aegis-plp-clothes .aegis-plp-filters__chips,
+    body.aegis-plp-catalog .aegis-plp-filters__chips,
+    body.aegis-plp-sleepingbags .aegis-plp-main,
+    body.aegis-plp-clothes .aegis-plp-main,
+    body.aegis-plp-catalog .aegis-plp-main {
         grid-column: 2;
     }
 
-    .aegis-plp-filters__form {
+    body.aegis-plp-sleepingbags .aegis-plp-filters__form,
+    body.aegis-plp-clothes .aegis-plp-filters__form,
+    body.aegis-plp-catalog .aegis-plp-filters__form {
         grid-column: 1;
         padding: 0;
         max-width: 100%;
     }
 
-    .aegis-plp-filters__buttons {
+    body.aegis-plp-sleepingbags .aegis-plp-filters__buttons,
+    body.aegis-plp-clothes .aegis-plp-filters__buttons,
+    body.aegis-plp-catalog .aegis-plp-filters__buttons {
         display: none;
     }
 
