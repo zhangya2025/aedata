@@ -1245,6 +1245,10 @@ function aegis_plp_filters_render_toolbar() {
 }
 
 function aegis_plp_filters_render_sidebar() {
+    if ( aegis_plp_filters_is_mobile_viewport() ) {
+        return;
+    }
+
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
         $request = aegis_plp_filters_parse_request();
         $temp_buckets = AEGIS_PLP_FILTERS_TEMP_BUCKETS;
