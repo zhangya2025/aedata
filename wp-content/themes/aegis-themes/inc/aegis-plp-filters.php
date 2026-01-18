@@ -632,23 +632,7 @@ function aegis_plp_filters_adjust_shop_loop() {
     remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
 }
 
-function aegis_plp_filters_is_mobile_viewport() {
-    if ( isset( $_COOKIE['aegis_plp_viewport'] ) ) {
-        $viewport = sanitize_key( wp_unslash( $_COOKIE['aegis_plp_viewport'] ) );
-        if ( 'mobile' === $viewport ) {
-            return true;
-        }
-        if ( 'desktop' === $viewport ) {
-            return false;
-        }
-    }
-
-    return wp_is_mobile();
-}
-
 function aegis_plp_filters_render_toolbar() {
-    $is_mobile = aegis_plp_filters_is_mobile_viewport();
-
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
         $request = aegis_plp_filters_parse_request();
         $temp_buckets = AEGIS_PLP_FILTERS_TEMP_BUCKETS;
@@ -699,22 +683,20 @@ function aegis_plp_filters_render_toolbar() {
             $filter_keys
         );
         $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, $legacy_filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
-        if ( ! $is_mobile ) {
-            ?>
-            <div class="aegis-plp-filters">
-                <div class="aegis-plp-filters__toolbar">
-                    <div class="aegis-plp-filters__meta">
-                        <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-                            <?php woocommerce_catalog_ordering(); ?>
-                        <?php endif; ?>
-                    </div>
+        ?>
+        <div class="aegis-plp-desktop-toolbar">
+            <div class="aegis-plp-filters__toolbar">
+                <div class="aegis-plp-filters__meta">
+                    <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
+                        <?php woocommerce_result_count(); ?>
+                    <?php endif; ?>
+                    <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
+                        <?php woocommerce_catalog_ordering(); ?>
+                    <?php endif; ?>
                 </div>
             </div>
-            <?php
-            return;
-        }
-        ?>
-        <div class="aegis-plp-filters" data-aegis-plp-filters>
+        </div>
+        <div class="aegis-plp-filters aegis-plp-mobile-toolbar" data-aegis-plp-filters>
             <div class="aegis-plp-filters__toolbar">
                 <div class="aegis-plp-filters__buttons">
                     <button type="button" class="aegis-plp-filters__button" data-drawer-open data-aegis-plp-mode="color">Color</button>
@@ -728,6 +710,9 @@ function aegis_plp_filters_render_toolbar() {
                     </button>
                 </div>
                 <div class="aegis-plp-filters__meta">
+                    <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
+                        <?php woocommerce_result_count(); ?>
+                    <?php endif; ?>
                     <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
                         <?php woocommerce_catalog_ordering(); ?>
                     <?php endif; ?>
@@ -774,7 +759,7 @@ function aegis_plp_filters_render_toolbar() {
                     </div>
                 <?php endif; ?>
 
-                <div class="aegis-plp-filters__drawer" data-aegis-plp-drawer>
+                <div class="aegis-plp-filters__drawer aegis-plp-mobile-drawer" data-aegis-plp-drawer>
                     <div class="aegis-plp-filters__drawer-header">
                         <span class="aegis-plp-filters__drawer-title">Filter By</span>
                         <button type="button" class="aegis-plp-filters__drawer-close" data-drawer-close aria-label="Close filters">×</button>
@@ -940,22 +925,20 @@ function aegis_plp_filters_render_toolbar() {
             $has_sizes = ! empty( $size_terms ) && ! is_wp_error( $size_terms );
         }
         $has_filters = $has_categories || $has_colors || $has_sizes;
-        if ( ! $is_mobile ) {
-            ?>
-            <div class="aegis-plp-filters">
-                <div class="aegis-plp-filters__toolbar">
-                    <div class="aegis-plp-filters__meta">
-                        <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-                            <?php woocommerce_catalog_ordering(); ?>
-                        <?php endif; ?>
-                    </div>
+        ?>
+        <div class="aegis-plp-desktop-toolbar">
+            <div class="aegis-plp-filters__toolbar">
+                <div class="aegis-plp-filters__meta">
+                    <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
+                        <?php woocommerce_result_count(); ?>
+                    <?php endif; ?>
+                    <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
+                        <?php woocommerce_catalog_ordering(); ?>
+                    <?php endif; ?>
                 </div>
             </div>
-            <?php
-            return;
-        }
-        ?>
-        <div class="aegis-plp-filters" data-aegis-plp-filters>
+        </div>
+        <div class="aegis-plp-filters aegis-plp-mobile-toolbar" data-aegis-plp-filters>
             <div class="aegis-plp-filters__toolbar">
                 <div class="aegis-plp-filters__buttons">
                     <?php if ( $has_categories ) : ?>
@@ -975,6 +958,9 @@ function aegis_plp_filters_render_toolbar() {
                     <?php endif; ?>
                 </div>
                 <div class="aegis-plp-filters__meta">
+                    <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
+                        <?php woocommerce_result_count(); ?>
+                    <?php endif; ?>
                     <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
                         <?php woocommerce_catalog_ordering(); ?>
                     <?php endif; ?>
@@ -1013,7 +999,7 @@ function aegis_plp_filters_render_toolbar() {
                     </div>
                 <?php endif; ?>
 
-                <div class="aegis-plp-filters__drawer" data-aegis-plp-drawer>
+                <div class="aegis-plp-filters__drawer aegis-plp-mobile-drawer" data-aegis-plp-drawer>
                     <div class="aegis-plp-filters__drawer-header">
                         <span class="aegis-plp-filters__drawer-title">Filter By</span>
                         <button type="button" class="aegis-plp-filters__drawer-close" data-drawer-close aria-label="Close filters">×</button>
@@ -1106,22 +1092,20 @@ function aegis_plp_filters_render_toolbar() {
         $has_sizes = ! empty( $size_terms ) && ! is_wp_error( $size_terms );
     }
     $has_filters = $has_categories || $has_colors || $has_sizes;
-    if ( ! $is_mobile ) {
-        ?>
-        <div class="aegis-plp-filters">
-            <div class="aegis-plp-filters__toolbar">
-                <div class="aegis-plp-filters__meta">
-                    <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-                        <?php woocommerce_catalog_ordering(); ?>
-                    <?php endif; ?>
-                </div>
+    ?>
+    <div class="aegis-plp-desktop-toolbar">
+        <div class="aegis-plp-filters__toolbar">
+            <div class="aegis-plp-filters__meta">
+                <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
+                    <?php woocommerce_result_count(); ?>
+                <?php endif; ?>
+                <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
+                    <?php woocommerce_catalog_ordering(); ?>
+                <?php endif; ?>
             </div>
         </div>
-        <?php
-        return;
-    }
-    ?>
-    <div class="aegis-plp-filters" data-aegis-plp-filters>
+    </div>
+    <div class="aegis-plp-filters aegis-plp-mobile-toolbar" data-aegis-plp-filters>
         <div class="aegis-plp-filters__toolbar">
             <div class="aegis-plp-filters__buttons">
                 <?php if ( $has_categories ) : ?>
@@ -1141,6 +1125,9 @@ function aegis_plp_filters_render_toolbar() {
                 <?php endif; ?>
             </div>
             <div class="aegis-plp-filters__meta">
+                <?php if ( function_exists( 'woocommerce_result_count' ) ) : ?>
+                    <?php woocommerce_result_count(); ?>
+                <?php endif; ?>
                 <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
                     <?php woocommerce_catalog_ordering(); ?>
                 <?php endif; ?>
@@ -1179,7 +1166,7 @@ function aegis_plp_filters_render_toolbar() {
                 </div>
             <?php endif; ?>
 
-            <div class="aegis-plp-filters__drawer" data-aegis-plp-drawer>
+            <div class="aegis-plp-filters__drawer aegis-plp-mobile-drawer" data-aegis-plp-drawer>
                 <div class="aegis-plp-filters__drawer-header">
                     <span class="aegis-plp-filters__drawer-title">Filter By</span>
                     <button type="button" class="aegis-plp-filters__drawer-close" data-drawer-close aria-label="Close filters">×</button>
