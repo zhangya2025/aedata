@@ -38,14 +38,13 @@ if ( woocommerce_product_loop() ) {
 	 * @hooked woocommerce_catalog_ordering - 30
 	 */
 	?>
-	<!-- AEGIS PLP LAYOUT ACTIVE -->
 	<div class="aegis-plp-layout">
 		<aside class="aegis-plp-sidebar">
 			<?php if ( function_exists( 'aegis_plp_filters_render_sidebar' ) ) : ?>
 				<?php aegis_plp_filters_render_sidebar(); ?>
 			<?php endif; ?>
 		</aside>
-		<section class="aegis-plp-main">
+		<div class="aegis-plp-main">
 			<?php if ( function_exists( 'aegis_plp_filters_render_toolbar' ) ) : ?>
 				<?php aegis_plp_filters_render_toolbar(); ?>
 			<?php endif; ?>
@@ -75,7 +74,7 @@ if ( woocommerce_product_loop() ) {
 	 * @hooked woocommerce_pagination - 10
 	 */
 			<?php do_action( 'woocommerce_after_shop_loop' ); ?>
-		</section>
+		</div>
 	</div>
 	<?php
 } else {
