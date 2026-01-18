@@ -361,25 +361,6 @@ function aegis_info_pages_seed_placeholder( $title, $include_support_note ) {
 add_filter( 'pre_get_block_template', 'aegis_shop_force_legacy_template', 10, 3 );
 
 add_filter( 'woocommerce_locate_template', function ( $template, $template_name, $template_path ) {
-    if ( 'archive-product.php' !== $template_name ) {
-        return $template;
-    }
-
-    $is_shop = function_exists( 'is_shop' ) && is_shop();
-    $is_product_taxonomy = function_exists( 'is_product_taxonomy' ) && is_product_taxonomy();
-    if ( ! $is_shop && ! $is_product_taxonomy ) {
-        return $template;
-    }
-
-    $override = get_stylesheet_directory() . '/woocommerce/archive-product.php';
-    if ( file_exists( $override ) ) {
-        return $override;
-    }
-
-    return $template;
-}, 40, 3 );
-
-add_filter( 'woocommerce_locate_template', function ( $template, $template_name, $template_path ) {
     if ( function_exists( 'is_shop' ) && is_shop() && 'archive-product.php' === $template_name ) {
         $alt = get_stylesheet_directory() . '/woocommerce/archive-product-shop-only.php';
         if ( file_exists( $alt ) ) {
