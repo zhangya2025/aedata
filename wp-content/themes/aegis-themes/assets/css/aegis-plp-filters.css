@@ -327,14 +327,6 @@ body.aegis-plp-enabled .aegis-plp-filters__label--mobile {
         align-items: start;
     }
 
-    .aegis-plp-sidebar {
-        display: block;
-    }
-
-    .aegis-plp-filters__toolbar {
-        display: none;
-    }
-
     .aegis-plp-main {
         display: contents;
     }
