@@ -22,6 +22,7 @@
     const MOBILE_BREAKPOINT = 960;
     const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     const isMobile = () => window.innerWidth <= MOBILE_BREAKPOINT;
+    const isDesktop = () => ! isMobile();
     let activeKey = null;
     let mainActive = false;
     let mobilePanelsData = {};
@@ -38,7 +39,7 @@
       document.body.classList.contains('home') ||
       document.body.classList.contains('front-page') ||
       document.body.classList.contains('page-id-49966');
-    let scrollBehaviorEnabled = isHome && ! isMobile();
+    let scrollBehaviorEnabled = isHome && isDesktop();
     const debugEnabled = window.location.search.includes('aegisHeaderDebug=1');
 
     if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
@@ -291,8 +292,10 @@
     }
 
     function syncScrollBehaviorEnabled() {
-      scrollBehaviorEnabled = isHome && ! isMobile();
+      scrollBehaviorEnabled = isHome && isDesktop();
       lastScrollY = getY();
+      header.classList.toggle('is-mobile', isMobile());
+      header.classList.toggle('is-desktop', ! isMobile());
       applyHeaderState( 'sync-enabled' );
     }
 
