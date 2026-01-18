@@ -156,6 +156,7 @@ add_filter( 'body_class', 'aegis_plp_filters_body_class' );
 add_action( 'wp', 'aegis_plp_filters_adjust_shop_loop', 20 );
 
 add_action( 'woocommerce_before_shop_loop', 'aegis_plp_filters_render_toolbar', 15 );
+add_action( 'aegis_plp_filters_sidebar', 'aegis_plp_filters_render_sidebar', 10 );
 
 add_action( 'woocommerce_product_query', 'aegis_plp_filters_apply_query' );
 if ( function_exists( 'aegis_plp_debug_enabled' ) && aegis_plp_debug_enabled() ) {

@@ -39,7 +39,9 @@ if ( woocommerce_product_loop() ) {
 	 */
 	?>
 	<div class="aegis-plp-layout">
-		<aside class="aegis-plp-sidebar"></aside>
+		<aside class="aegis-plp-sidebar">
+			<?php do_action( 'aegis_plp_filters_sidebar' ); ?>
+		</aside>
 		<div class="aegis-plp-main">
 			<?php do_action( 'woocommerce_before_shop_loop' ); ?>
 			<?php
