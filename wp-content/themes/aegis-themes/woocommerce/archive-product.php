@@ -70,9 +70,14 @@ if ( woocommerce_product_loop() ) {
 	 * @hooked woocommerce_result_count - 20
 	 * @hooked woocommerce_catalog_ordering - 30
 	 */
-	do_action( 'woocommerce_before_shop_loop' );
-
-	woocommerce_product_loop_start();
+	?>
+	<div class="aegis-plp-layout">
+		<aside class="aegis-plp-sidebar">
+			<?php do_action( 'woocommerce_before_shop_loop' ); ?>
+		</aside>
+		<div class="aegis-plp-main">
+			<?php
+			woocommerce_product_loop_start();
 
 	if ( wc_get_loop_prop( 'total' ) ) {
 		while ( have_posts() ) {
@@ -88,13 +93,17 @@ if ( woocommerce_product_loop() ) {
 	}
 
 	woocommerce_product_loop_end();
+			?>
 
 	/**
 	 * Hook: woocommerce_after_shop_loop.
 	 *
 	 * @hooked woocommerce_pagination - 10
 	 */
-	do_action( 'woocommerce_after_shop_loop' );
+			<?php do_action( 'woocommerce_after_shop_loop' ); ?>
+		</div>
+	</div>
+	<?php
 } else {
 	/**
 	 * Hook: woocommerce_no_products_found.

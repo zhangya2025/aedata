@@ -2,6 +2,25 @@
     margin-bottom: 24px;
 }
 
+body.aegis-plp-sleepingbags .aegis-plp-layout,
+body.aegis-plp-clothes .aegis-plp-layout,
+body.aegis-plp-catalog .aegis-plp-layout {
+    display: block;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-main,
+body.aegis-plp-clothes .aegis-plp-main,
+body.aegis-plp-catalog .aegis-plp-main {
+    width: 100%;
+    min-width: 0;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-sidebar,
+body.aegis-plp-clothes .aegis-plp-sidebar,
+body.aegis-plp-catalog .aegis-plp-sidebar {
+    width: 100%;
+}
+
 body.aegis-plp-sleepingbags .aegis-plp-filters__form,
 body.aegis-plp-clothes .aegis-plp-filters__form,
 body.aegis-plp-catalog .aegis-plp-filters__form {
@@ -14,6 +33,12 @@ body.aegis-plp-catalog .aegis-plp-filters__form {
     display: flex;
     flex-direction: column;
     height: 100%;
+}
+
+body.aegis-plp-sleepingbags .aegis-plp-sidebar .aegis-plp-filters,
+body.aegis-plp-clothes .aegis-plp-sidebar .aegis-plp-filters,
+body.aegis-plp-catalog .aegis-plp-sidebar .aegis-plp-filters {
+    display: block;
 }
 
 body.aegis-plp-sleepingbags .wp-site-blocks > main,
@@ -279,6 +304,79 @@ body.aegis-plp-enabled .aegis-plp-filters__meta .woocommerce-ordering {
 
 body.aegis-plp-enabled .aegis-plp-filters__label--mobile {
     display: none;
+}
+
+@media (min-width: 961px) {
+    body.aegis-plp-sleepingbags .aegis-plp-layout,
+    body.aegis-plp-clothes .aegis-plp-layout,
+    body.aegis-plp-catalog .aegis-plp-layout {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 32px;
+        align-items: start;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-sidebar,
+    body.aegis-plp-clothes .aegis-plp-sidebar,
+    body.aegis-plp-catalog .aegis-plp-sidebar {
+        display: contents;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters,
+    body.aegis-plp-clothes .aegis-plp-filters,
+    body.aegis-plp-catalog .aegis-plp-filters {
+        display: contents;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters__toolbar,
+    body.aegis-plp-clothes .aegis-plp-filters__toolbar,
+    body.aegis-plp-catalog .aegis-plp-filters__toolbar,
+    body.aegis-plp-sleepingbags .aegis-plp-filters__chips,
+    body.aegis-plp-clothes .aegis-plp-filters__chips,
+    body.aegis-plp-catalog .aegis-plp-filters__chips,
+    body.aegis-plp-sleepingbags .aegis-plp-main,
+    body.aegis-plp-clothes .aegis-plp-main,
+    body.aegis-plp-catalog .aegis-plp-main {
+        grid-column: 2;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters__form,
+    body.aegis-plp-clothes .aegis-plp-filters__form,
+    body.aegis-plp-catalog .aegis-plp-filters__form {
+        grid-column: 1;
+        padding: 0;
+        max-width: 100%;
+    }
+
+    body.aegis-plp-sleepingbags .aegis-plp-filters__buttons,
+    body.aegis-plp-clothes .aegis-plp-filters__buttons,
+    body.aegis-plp-catalog .aegis-plp-filters__buttons {
+        display: none;
+    }
+
+    .aegis-plp-filters__drawer {
+        position: sticky;
+        top: 90px;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        transform: none;
+        box-shadow: none;
+        z-index: 1;
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .aegis-plp-filters__drawer-header,
+    .aegis-plp-filters__drawer-footer,
+    .aegis-plp-filters__overlay {
+        display: none;
+    }
+
+    .aegis-plp-filters__drawer-body {
+        padding: 16px;
+    }
 }
 
 @media (max-width: 768px) {
