@@ -1186,6 +1186,480 @@ function aegis_plp_filters_render_toolbar() {
     <?php
 }
 
+function aegis_plp_filters_render_sidebar() {
+    if ( aegis_plp_filters_is_sleepingbags_context() ) {
+        $request = aegis_plp_filters_parse_request();
+        $temp_buckets = AEGIS_PLP_FILTERS_TEMP_BUCKETS;
+
+        $taxonomy_groups = array(
+            'Color' => 'pa_sleepingbag-color',
+            'Fill Type' => 'pa_sleepingbag_fill_type',
+            'Best Use' => 'pa_sleepingbag_activity',
+            'More' => array(
+                'pa_sleepingbag_fp',
+                'pa_sleepingbag_shape',
+                'pa_sleepingbag_fit',
+                'pa_sleepingbag_fabric_denier',
+                'pa_sleepingbag_zip_side',
+                'pa_sleepingbag_zipper_count',
+                'pa_sleepingbag-size',
+                'pa_sleepingbag_model',
+                'pa_sleeping-bag-type',
+            ),
+        );
+
+        $current_url = esc_url( add_query_arg( array() ) );
+        $current_orderby = '';
+        if ( isset( $_GET['orderby'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $current_orderby = wc_clean( wp_unslash( $_GET['orderby'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+        $filter_keys = array();
+
+        foreach ( $taxonomy_groups as $group ) {
+            if ( is_array( $group ) ) {
+                foreach ( $group as $taxonomy ) {
+                    if ( taxonomy_exists( $taxonomy ) ) {
+                        $filter_keys[] = aegis_plp_filters_filter_key_with_prefix( $taxonomy, 'af_' );
+                    }
+                }
+                continue;
+            }
+
+            if ( taxonomy_exists( $group ) ) {
+                $filter_keys[] = aegis_plp_filters_filter_key_with_prefix( $group, 'af_' );
+            }
+        }
+
+        $legacy_filter_keys = array_map(
+            function ( $key ) {
+                return 'filter_' . substr( $key, 3 );
+            },
+            $filter_keys
+        );
+        $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, $legacy_filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
+        ?>
+        <div class="aegis-plp-filters" data-aegis-plp-filters>
+            <form class="aegis-plp-filters__form" method="get" action="<?php echo $current_url; ?>">
+                <input type="hidden" name="temp_limit" value="<?php echo esc_attr( implode( ',', $request['temp_limit'] ) ); ?>" data-filter-input="temp_limit" />
+                <input type="hidden" name="orderby" value="<?php echo esc_attr( $current_orderby ); ?>" />
+                <?php foreach ( $filter_keys as $filter_key ) : ?>
+                <?php
+                $filter_value = '';
+                if ( isset( $_GET[ $filter_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    $raw_value = wp_unslash( $_GET[ $filter_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    $filter_value = is_array( $raw_value ) ? implode( ',', $raw_value ) : (string) $raw_value;
+                }
+                ?>
+                <input type="hidden" name="<?php echo esc_attr( $filter_key ); ?>" value="<?php echo esc_attr( $filter_value ); ?>" data-filter-input="<?php echo esc_attr( $filter_key ); ?>" data-aegis-hidden="<?php echo esc_attr( $filter_key ); ?>" />
+                <?php endforeach; ?>
+
+                <?php if ( ! empty( $request['filters'] ) || ! empty( $request['temp_limit'] ) || '' !== $request['min_price'] || '' !== $request['max_price'] ) : ?>
+                    <div class="aegis-plp-filters__chips">
+                        <span class="aegis-plp-filters__chips-label">Active Filters:</span>
+                        <div class="aegis-plp-filters__chip-group">
+                            <?php foreach ( $request['filters'] as $taxonomy => $terms ) : ?>
+                                <?php foreach ( $terms as $term_slug ) : ?>
+                                    <?php $term_obj = get_term_by( 'slug', $term_slug, $taxonomy ); ?>
+                                    <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                        <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                            <?php foreach ( $request['temp_limit'] as $bucket_key ) : ?>
+                                <?php if ( isset( $temp_buckets[ $bucket_key ] ) ) : ?>
+                                    <span class="aegis-plp-filters__chip"><?php echo esc_html( $temp_buckets[ $bucket_key ]['label'] ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php if ( '' !== $request['min_price'] || '' !== $request['max_price'] ) : ?>
+                                <span class="aegis-plp-filters__chip">
+                                    <?php echo esc_html( sprintf( 'Price: %s - %s', $request['min_price'] !== '' ? $request['min_price'] : 'Any', $request['max_price'] !== '' ? $request['max_price'] : 'Any' ) ); ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <a class="aegis-plp-filters__clear" href="<?php echo $clear_url; ?>">Clear all</a>
+                    </div>
+                <?php endif; ?>
+
+                <div class="aegis-plp-filters__sidebar">
+                    <?php if ( taxonomy_exists( 'pa_sleepingbag-color' ) ) : ?>
+                        <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag-color', 'hide_empty' => false ) ); ?>
+                        <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
+                            <?php $color_filter_key = aegis_plp_filters_filter_key_with_prefix( 'pa_sleepingbag-color', 'af_' ); ?>
+                            <div class="aegis-plp-filters__group">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Color</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $terms as $term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="<?php echo esc_attr( $color_filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag-color'] ?? array(), true ) ); ?> />
+                                            <span><?php echo esc_html( $term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <div class="aegis-plp-filters__group">
+                        <button type="button" class="aegis-plp-filters__group-toggle">Temperature (°C)</button>
+                        <div class="aegis-plp-filters__group-content">
+                            <?php foreach ( $temp_buckets as $bucket_key => $bucket ) : ?>
+                                <label class="aegis-plp-filters__option">
+                                    <input type="checkbox" data-filter-key="temp_limit" data-filter-label="<?php echo esc_attr( $bucket['label'] ); ?>" value="<?php echo esc_attr( $bucket_key ); ?>" <?php checked( in_array( $bucket_key, $request['temp_limit'], true ) ); ?> />
+                                    <span><?php echo esc_html( $bucket['label'] ); ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="aegis-plp-filters__group">
+                        <button type="button" class="aegis-plp-filters__group-toggle">Price</button>
+                        <div class="aegis-plp-filters__group-content">
+                            <label class="aegis-plp-filters__option">
+                                <span>Min</span>
+                                <input type="number" name="min_price" min="0" step="1" value="<?php echo esc_attr( $request['min_price'] ); ?>" data-filter-input="min_price" data-filter-label="Min Price" />
+                            </label>
+                            <label class="aegis-plp-filters__option">
+                                <span>Max</span>
+                                <input type="number" name="max_price" min="0" step="1" value="<?php echo esc_attr( $request['max_price'] ); ?>" data-filter-input="max_price" data-filter-label="Max Price" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <?php if ( taxonomy_exists( 'pa_sleepingbag_fill_type' ) ) : ?>
+                        <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag_fill_type', 'hide_empty' => false ) ); ?>
+                        <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
+                            <?php $fill_filter_key = aegis_plp_filters_filter_key_with_prefix( 'pa_sleepingbag_fill_type', 'af_' ); ?>
+                            <div class="aegis-plp-filters__group">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Fill Type</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $terms as $term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="<?php echo esc_attr( $fill_filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag_fill_type'] ?? array(), true ) ); ?> />
+                                            <span><?php echo esc_html( $term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php if ( taxonomy_exists( 'pa_sleepingbag_activity' ) ) : ?>
+                        <?php $terms = get_terms( array( 'taxonomy' => 'pa_sleepingbag_activity', 'hide_empty' => false ) ); ?>
+                        <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
+                            <?php $activity_filter_key = aegis_plp_filters_filter_key_with_prefix( 'pa_sleepingbag_activity', 'af_' ); ?>
+                            <div class="aegis-plp-filters__group">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Best Use</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $terms as $term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="<?php echo esc_attr( $activity_filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters']['pa_sleepingbag_activity'] ?? array(), true ) ); ?> />
+                                            <span><?php echo esc_html( $term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php
+                    $more_taxonomies = $taxonomy_groups['More'];
+                    $has_more = false;
+                    foreach ( $more_taxonomies as $taxonomy ) {
+                        if ( taxonomy_exists( $taxonomy ) ) {
+                            $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
+                            if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) {
+                                $has_more = true;
+                                break;
+                            }
+                        }
+                    }
+                    ?>
+                    <?php if ( $has_more ) : ?>
+                        <div class="aegis-plp-filters__group">
+                            <button type="button" class="aegis-plp-filters__group-toggle">More Filters</button>
+                            <div class="aegis-plp-filters__group-content">
+                                <?php foreach ( $more_taxonomies as $taxonomy ) : ?>
+                                    <?php if ( taxonomy_exists( $taxonomy ) ) : ?>
+                                        <?php $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) ); ?>
+                                        <?php if ( ! empty( $terms ) && ! is_wp_error( $terms ) ) : ?>
+                                            <div class="aegis-plp-filters__subgroup">
+                                                <h4 class="aegis-plp-filters__subgroup-title"><?php echo esc_html( wc_attribute_label( $taxonomy ) ); ?></h4>
+                                                <?php foreach ( $terms as $term ) : ?>
+                                                    <?php $filter_key = aegis_plp_filters_filter_key_with_prefix( $taxonomy, 'af_' ); ?>
+                                                    <label class="aegis-plp-filters__option">
+                                                        <input type="checkbox" data-filter-key="<?php echo esc_attr( $filter_key ); ?>" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filters'][ $taxonomy ] ?? array(), true ) ); ?> />
+                                                        <span><?php echo esc_html( $term->name ); ?></span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="aegis-plp-filters__sidebar-footer">
+                        <div class="aegis-plp-filters__selected-title">Selected</div>
+                        <div class="aegis-plp-filters__selected" data-aegis-selected>
+                            <span class="aegis-plp-filters__selected-empty">No filters selected</span>
+                        </div>
+                        <div class="aegis-plp-filters__footer-actions">
+                            <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
+                            <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <?php
+        return;
+    }
+
+    if ( aegis_plp_filters_is_clothes_context() ) {
+        $request = aegis_plp_filters_parse_clothes_request();
+        $category_children = $request['category_children'];
+        $current_url = esc_url( add_query_arg( array() ) );
+        $current_orderby = '';
+        if ( isset( $_GET['orderby'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $current_orderby = wc_clean( wp_unslash( $_GET['orderby'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+        $filter_keys = array( 'af_cat', 'af_color', 'af_size' );
+        $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
+        $has_categories = ! empty( $category_children );
+        $has_colors = taxonomy_exists( 'pa_color' );
+        $has_sizes = taxonomy_exists( 'pa_size' );
+        $color_terms = array();
+        $size_terms = array();
+        if ( $has_colors ) {
+            $color_terms = get_terms( array( 'taxonomy' => 'pa_color', 'hide_empty' => true ) );
+            $has_colors = ! empty( $color_terms ) && ! is_wp_error( $color_terms );
+        }
+        if ( $has_sizes ) {
+            $size_terms = get_terms( array( 'taxonomy' => 'pa_size', 'hide_empty' => true ) );
+            $has_sizes = ! empty( $size_terms ) && ! is_wp_error( $size_terms );
+        }
+        $has_filters = $has_categories || $has_colors || $has_sizes;
+        ?>
+        <div class="aegis-plp-filters" data-aegis-plp-filters>
+            <form class="aegis-plp-filters__form" method="get" action="<?php echo $current_url; ?>">
+                <input type="hidden" name="orderby" value="<?php echo esc_attr( $current_orderby ); ?>" />
+                <input type="hidden" name="af_cat" value="<?php echo esc_attr( implode( ',', $request['af_cat'] ) ); ?>" data-filter-input="af_cat" data-aegis-hidden="af_cat" />
+                <input type="hidden" name="af_color" value="<?php echo esc_attr( implode( ',', $request['af_color'] ) ); ?>" data-filter-input="af_color" data-aegis-hidden="af_color" />
+                <input type="hidden" name="af_size" value="<?php echo esc_attr( implode( ',', $request['af_size'] ) ); ?>" data-filter-input="af_size" data-aegis-hidden="af_size" />
+
+                <?php if ( ! empty( $request['af_cat'] ) || ! empty( $request['af_color'] ) || ! empty( $request['af_size'] ) ) : ?>
+                    <div class="aegis-plp-filters__chips">
+                        <span class="aegis-plp-filters__chips-label">Active Filters:</span>
+                        <div class="aegis-plp-filters__chip-group">
+                            <?php foreach ( $request['af_cat'] as $term_slug ) : ?>
+                                <?php $term_obj = get_term_by( 'slug', $term_slug, 'product_cat' ); ?>
+                                <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                    <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php foreach ( $request['af_color'] as $term_slug ) : ?>
+                                <?php $term_obj = get_term_by( 'slug', $term_slug, 'pa_color' ); ?>
+                                <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                    <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php foreach ( $request['af_size'] as $term_slug ) : ?>
+                                <?php $term_obj = get_term_by( 'slug', $term_slug, 'pa_size' ); ?>
+                                <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                    <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                        <a class="aegis-plp-filters__clear" href="<?php echo $clear_url; ?>">Clear all</a>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ( $has_filters ) : ?>
+                    <div class="aegis-plp-filters__sidebar">
+                        <?php if ( $has_categories ) : ?>
+                            <div class="aegis-plp-filters__group">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Category</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $category_children as $child_term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="af_cat" data-filter-label="<?php echo esc_attr( $child_term->name ); ?>" value="<?php echo esc_attr( $child_term->slug ); ?>" <?php checked( in_array( $child_term->slug, $request['af_cat'], true ) ); ?> />
+                                            <span><?php echo esc_html( $child_term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ( $has_colors ) : ?>
+                            <div class="aegis-plp-filters__group">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Color</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $color_terms as $term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="af_color" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['af_color'], true ) ); ?> />
+                                            <span><?php echo esc_html( $term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ( $has_sizes ) : ?>
+                            <div class="aegis-plp-filters__group">
+                                <button type="button" class="aegis-plp-filters__group-toggle">Size</button>
+                                <div class="aegis-plp-filters__group-content">
+                                    <?php foreach ( $size_terms as $term ) : ?>
+                                        <label class="aegis-plp-filters__option">
+                                            <input type="checkbox" data-filter-key="af_size" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['af_size'], true ) ); ?> />
+                                            <span><?php echo esc_html( $term->name ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="aegis-plp-filters__sidebar-footer">
+                            <div class="aegis-plp-filters__selected-title">Selected</div>
+                            <div class="aegis-plp-filters__selected" data-aegis-selected>
+                                <span class="aegis-plp-filters__selected-empty">No filters selected</span>
+                            </div>
+                            <div class="aegis-plp-filters__footer-actions">
+                                <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
+                                <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </form>
+        </div>
+        <?php
+        return;
+    }
+
+    if ( ! aegis_plp_filters_is_other_product_cat_context() ) {
+        return;
+    }
+
+    $request = aegis_plp_filters_parse_other_request();
+    $category_children = $request['category_children'];
+    $current_url = esc_url( add_query_arg( array() ) );
+    $current_orderby = '';
+    if ( isset( $_GET['orderby'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $current_orderby = wc_clean( wp_unslash( $_GET['orderby'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    }
+    $filter_keys = array( 'filter_cat', 'filter_color', 'filter_size' );
+    $clear_url = esc_url( remove_query_arg( array_merge( $filter_keys, array( 'temp_limit', 'min_price', 'max_price' ) ) ) );
+    $has_categories = ! empty( $category_children );
+    $has_colors = taxonomy_exists( 'pa_color' );
+    $has_sizes = taxonomy_exists( 'pa_size' );
+    $color_terms = array();
+    $size_terms = array();
+    if ( $has_colors ) {
+        $color_terms = get_terms( array( 'taxonomy' => 'pa_color', 'hide_empty' => true ) );
+        $has_colors = ! empty( $color_terms ) && ! is_wp_error( $color_terms );
+    }
+    if ( $has_sizes ) {
+        $size_terms = get_terms( array( 'taxonomy' => 'pa_size', 'hide_empty' => true ) );
+        $has_sizes = ! empty( $size_terms ) && ! is_wp_error( $size_terms );
+    }
+    $has_filters = $has_categories || $has_colors || $has_sizes;
+    ?>
+    <div class="aegis-plp-filters" data-aegis-plp-filters>
+        <form class="aegis-plp-filters__form" method="get" action="<?php echo $current_url; ?>">
+            <input type="hidden" name="orderby" value="<?php echo esc_attr( $current_orderby ); ?>" />
+            <input type="hidden" name="filter_cat" value="<?php echo esc_attr( implode( ',', $request['filter_cat'] ) ); ?>" data-filter-input="filter_cat" data-aegis-hidden="filter_cat" />
+            <input type="hidden" name="filter_color" value="<?php echo esc_attr( implode( ',', $request['filter_color'] ) ); ?>" data-filter-input="filter_color" data-aegis-hidden="filter_color" />
+            <input type="hidden" name="filter_size" value="<?php echo esc_attr( implode( ',', $request['filter_size'] ) ); ?>" data-filter-input="filter_size" data-aegis-hidden="filter_size" />
+
+            <?php if ( ! empty( $request['filter_cat'] ) || ! empty( $request['filter_color'] ) || ! empty( $request['filter_size'] ) ) : ?>
+                <div class="aegis-plp-filters__chips">
+                    <span class="aegis-plp-filters__chips-label">Active Filters:</span>
+                    <div class="aegis-plp-filters__chip-group">
+                        <?php foreach ( $request['filter_cat'] as $term_slug ) : ?>
+                            <?php $term_obj = get_term_by( 'slug', $term_slug, 'product_cat' ); ?>
+                            <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                        <?php foreach ( $request['filter_color'] as $term_slug ) : ?>
+                            <?php $term_obj = get_term_by( 'slug', $term_slug, 'pa_color' ); ?>
+                            <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                        <?php foreach ( $request['filter_size'] as $term_slug ) : ?>
+                            <?php $term_obj = get_term_by( 'slug', $term_slug, 'pa_size' ); ?>
+                            <?php if ( $term_obj && ! is_wp_error( $term_obj ) ) : ?>
+                                <span class="aegis-plp-filters__chip"><?php echo esc_html( $term_obj->name ); ?></span>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <a class="aegis-plp-filters__clear" href="<?php echo $clear_url; ?>">Clear all</a>
+                </div>
+            <?php endif; ?>
+
+            <?php if ( $has_filters ) : ?>
+                <div class="aegis-plp-filters__sidebar">
+                    <?php if ( $has_categories ) : ?>
+                        <div class="aegis-plp-filters__group">
+                            <button type="button" class="aegis-plp-filters__group-toggle">Category</button>
+                            <div class="aegis-plp-filters__group-content">
+                                <?php foreach ( $category_children as $child_term ) : ?>
+                                    <label class="aegis-plp-filters__option">
+                                        <input type="checkbox" data-filter-key="filter_cat" data-filter-label="<?php echo esc_attr( $child_term->name ); ?>" value="<?php echo esc_attr( $child_term->slug ); ?>" <?php checked( in_array( $child_term->slug, $request['filter_cat'], true ) ); ?> />
+                                        <span><?php echo esc_html( $child_term->name ); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ( $has_colors ) : ?>
+                        <div class="aegis-plp-filters__group">
+                            <button type="button" class="aegis-plp-filters__group-toggle">Color</button>
+                            <div class="aegis-plp-filters__group-content">
+                                <?php foreach ( $color_terms as $term ) : ?>
+                                    <label class="aegis-plp-filters__option">
+                                        <input type="checkbox" data-filter-key="filter_color" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filter_color'], true ) ); ?> />
+                                        <span><?php echo esc_html( $term->name ); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ( $has_sizes ) : ?>
+                        <div class="aegis-plp-filters__group">
+                            <button type="button" class="aegis-plp-filters__group-toggle">Size</button>
+                            <div class="aegis-plp-filters__group-content">
+                                <?php foreach ( $size_terms as $term ) : ?>
+                                    <label class="aegis-plp-filters__option">
+                                        <input type="checkbox" data-filter-key="filter_size" data-filter-label="<?php echo esc_attr( $term->name ); ?>" value="<?php echo esc_attr( $term->slug ); ?>" <?php checked( in_array( $term->slug, $request['filter_size'], true ) ); ?> />
+                                        <span><?php echo esc_html( $term->name ); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="aegis-plp-filters__sidebar-footer">
+                        <div class="aegis-plp-filters__selected-title">Selected</div>
+                        <div class="aegis-plp-filters__selected" data-aegis-selected>
+                            <span class="aegis-plp-filters__selected-empty">No filters selected</span>
+                        </div>
+                        <div class="aegis-plp-filters__footer-actions">
+                            <button type="button" class="aegis-plp-filters__clear" data-aegis-clear>Clear</button>
+                            <button type="submit" class="aegis-plp-filters__submit">View Results</button>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </form>
+    </div>
+    <?php
+}
+
 function aegis_plp_filters_apply_query( $query ) {
     if ( aegis_plp_filters_is_sleepingbags_context() ) {
         $raw_args = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended

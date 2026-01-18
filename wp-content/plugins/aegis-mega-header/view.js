@@ -19,21 +19,27 @@
       return;
     }
 
+    const MOBILE_BREAKPOINT = 960;
+    const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const isMobile = () => window.innerWidth <= MOBILE_BREAKPOINT;
+    const isDesktop = () => ! isMobile();
     let activeKey = null;
     let mainActive = false;
     let mobilePanelsData = {};
     let ticking = false;
+    let canHover = hoverQuery.matches;
     const scroller = document.scrollingElement || document.documentElement;
     const getY = () => ( scroller ? scroller.scrollTop || 0 : window.scrollY );
     let lastScrollY = getY();
     let megaOpen = false;
     let mainHover = false;
     let mainFocus = false;
+    let isMobileState = isMobile();
     const isHome =
       document.body.classList.contains('home') ||
       document.body.classList.contains('front-page') ||
       document.body.classList.contains('page-id-49966');
-    let scrollBehaviorEnabled = isHome && window.innerWidth > 960;
+    let scrollBehaviorEnabled = isHome && isDesktop();
     const debugEnabled = window.location.search.includes('aegisHeaderDebug=1');
 
     if ( mobilePanelsScript && mobilePanelsScript.textContent ) {
@@ -213,7 +219,12 @@
     }
 
     if ( nav ) {
-      nav.addEventListener('mouseover', handleNavEnter);
+      nav.addEventListener('mouseover', ( event ) => {
+        if ( ! canHover ) {
+          return;
+        }
+        handleNavEnter( event );
+      } );
       nav.addEventListener('focusin', handleNavEnter);
       nav.addEventListener('click', ( event ) => {
         const trigger = event.target.closest('.aegis-header__nav-item');
@@ -281,8 +292,10 @@
     }
 
     function syncScrollBehaviorEnabled() {
-      scrollBehaviorEnabled = isHome && window.innerWidth > 960;
+      scrollBehaviorEnabled = isHome && isDesktop();
       lastScrollY = getY();
+      header.classList.toggle('is-mobile', isMobile());
+      header.classList.toggle('is-desktop', ! isMobile());
       applyHeaderState( 'sync-enabled' );
     }
 
@@ -445,14 +458,25 @@
       } );
 
       window.addEventListener('resize', () => {
-        if ( window.innerWidth > 960 ) {
+        const nextIsMobile = isMobile();
+        if ( ! nextIsMobile ) {
           closeMobileDrawer();
         }
+        if ( nextIsMobile && ! isMobileState ) {
+          closePanels();
+        }
+        isMobileState = nextIsMobile;
         syncScrollBehaviorEnabled();
       } );
     }
 
     bindMobileNav();
+    hoverQuery.addEventListener('change', ( event ) => {
+      canHover = event.matches;
+      if ( ! canHover ) {
+        closePanels();
+      }
+    } );
     syncScrollBehaviorEnabled();
     applyHeaderState( 'init' );
 
