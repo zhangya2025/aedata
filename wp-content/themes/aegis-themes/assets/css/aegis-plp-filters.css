@@ -29,6 +29,12 @@ body.aegis-plp-catalog .aegis-plp-filters__form {
     height: 100%;
 }
 
+body.aegis-plp-sleepingbags .aegis-plp-sidebar .aegis-plp-filters,
+body.aegis-plp-clothes .aegis-plp-sidebar .aegis-plp-filters,
+body.aegis-plp-catalog .aegis-plp-sidebar .aegis-plp-filters {
+    display: block;
+}
+
 body.aegis-plp-sleepingbags .wp-site-blocks > main,
 body.aegis-plp-clothes .wp-site-blocks > main,
 body.aegis-plp-catalog .wp-site-blocks > main {
