@@ -26,6 +26,35 @@ body.home .aegis-mega-header {
   z-index: 50;
 }
 
+/* =========================================================
+   AEGIS Footer: Force true black background (#000)
+   ========================================================= */
+
+/* Block 模板 Footer 外层（全宽背景） */
+.wp-site-blocks > footer.wp-block-template-part {
+  background: #000;
+}
+
+/* 插件 Footer 本体与内部容器（避免内部仍是灰色） */
+.wp-site-blocks > footer.wp-block-template-part .aegis-footer,
+.wp-site-blocks > footer.wp-block-template-part .aegis-footer__inner {
+  background: #000;
+}
+
+/* 如果你希望同时把文字/链接在黑底上保持可读（建议加上） */
+.wp-site-blocks > footer.wp-block-template-part .aegis-footer {
+  color: #fff;
+}
+
+.wp-site-blocks > footer.wp-block-template-part .aegis-footer a {
+  color: #fff;
+}
+
+/* 可选：如果 footer 内部有分割线/边框偏灰，可统一为更“干净”的暗线 */
+.wp-site-blocks > footer.wp-block-template-part .aegis-footer__bottom {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
 html,
 body {
   font-family: var(--wp--preset--font-family--noto-sans-sc);
