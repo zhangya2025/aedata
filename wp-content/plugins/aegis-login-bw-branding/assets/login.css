@@ -1,0 +1,95 @@
+body.login {
+	background: #0d0d0f;
+	color: #f2f2f2;
+	font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+body.login #login {
+	padding: 40px 0 20px;
+}
+
+body.login #login form {
+	background: #1b1b1f;
+	border: 1px solid #2a2a2f;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+	border-radius: 12px;
+	padding: 32px;
+}
+
+body.login #login h1 a {
+	background-repeat: no-repeat;
+	margin: 0 auto 24px;
+}
+
+body.login label {
+	color: #d8d8dd;
+	font-size: 13px;
+}
+
+body.login .input,
+body.login input[type="text"],
+body.login input[type="password"],
+body.login input[type="email"] {
+	background: #111113;
+	border: 1px solid #2d2d34;
+	color: #f7f7f7;
+	border-radius: 8px;
+	padding: 12px 14px;
+	box-shadow: none;
+}
+
+body.login .input:focus,
+body.login input[type="text"]:focus,
+body.login input[type="password"]:focus,
+body.login input[type="email"]:focus {
+	border-color: #666;
+	box-shadow: 0 0 0 1px #666;
+	outline: none;
+}
+
+body.login .button-primary {
+	background: #000;
+	border-color: #000;
+	color: #fff;
+	text-shadow: none;
+	box-shadow: none;
+	width: 100%;
+	padding: 12px 0;
+	border-radius: 8px;
+	font-weight: 600;
+	letter-spacing: 0.3px;
+}
+
+body.login .button-primary:hover,
+body.login .button-primary:focus {
+	background: #111;
+	border-color: #111;
+	color: #fff;
+}
+
+body.login #backtoblog a,
+body.login #nav a,
+body.login .privacy-policy-page-link a {
+	color: #9e9ea6;
+}
+
+body.login #backtoblog a:hover,
+body.login #nav a:hover,
+body.login .privacy-policy-page-link a:hover {
+	color: #ffffff;
+}
+
+body.login .message,
+body.login #login_error,
+body.login .success {
+	background: #1b1b1f;
+	border-left: 4px solid #ffffff;
+	color: #ffffff;
+}
+
+body.login .language-switcher select {
+	background: #1b1b1f;
+	color: #f0f0f0;
+	border: 1px solid #2d2d34;
+	border-radius: 6px;
+}

@@ -1,0 +1,20 @@
+.aegis-login-bw-branding .form-table th {
+	width: 220px;
+}
+
+.aegis-login-bw-branding__logo-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+}
+
+.aegis-login-bw-branding__logo-preview {
+	width: 240px;
+	height: auto;
+	max-height: 120px;
+	border: 1px solid #ccd0d4;
+	background: #fff;
+	padding: 8px;
+	border-radius: 6px;
+}
