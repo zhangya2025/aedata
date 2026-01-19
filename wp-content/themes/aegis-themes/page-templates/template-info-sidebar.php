@@ -12,7 +12,7 @@ $nav_id = 'aegis-info-nav-list';
 <main class="aegis-info-layout">
     <aside class="aegis-info-nav">
         <button class="aegis-info-nav-toggle" type="button" aria-expanded="false" aria-controls="<?php echo esc_attr( $nav_id ); ?>">
-            <?php esc_html_e( '目录', 'aegis-themes' ); ?>
+            <?php esc_html_e( 'Menu', 'aegis-themes' ); ?>
         </button>
         <?php echo aegis_info_sidebar_render_nav( $current_id, $nav_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     </aside>
