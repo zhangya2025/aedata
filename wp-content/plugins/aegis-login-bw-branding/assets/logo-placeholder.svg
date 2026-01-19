@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 160" role="img" aria-label="Placeholder logo">
+  <rect width="480" height="160" rx="20" fill="#111111" />
+  <rect x="24" y="24" width="432" height="112" rx="16" fill="#1f1f1f" stroke="#ffffff" stroke-width="2" />
+  <text x="240" y="90" font-size="28" font-family="Arial, sans-serif" fill="#ffffff" text-anchor="middle" letter-spacing="2">AEGIS LOGIN</text>
+</svg>
