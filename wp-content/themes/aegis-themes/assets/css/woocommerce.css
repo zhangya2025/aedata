@@ -266,21 +266,21 @@ body.woocommerce-cart .aegis-cart-item__details {
 }
 
 @media (min-width: 768px) {
-  .aegis-plp__layout {
+  body.aegis-plp-sleepingbags .aegis-plp__layout {
     display: grid;
     grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
     align-items: start;
     gap: 32px;
   }
 
-  .aegis-plp__filters {
+  body.aegis-plp-sleepingbags .aegis-plp__filters {
     position: static;
     width: auto;
     height: auto;
     overflow: visible;
   }
 
-  .aegis-plp__filters .aegis-plp-filters__drawer {
+  body.aegis-plp-sleepingbags .aegis-plp__filters .aegis-plp-filters__drawer {
     position: static;
     width: 100%;
     max-width: none;
@@ -289,13 +289,13 @@ body.woocommerce-cart .aegis-cart-item__details {
     transform: none;
   }
 
-  .aegis-plp__filters .aegis-plp-filters__drawer-header,
-  .aegis-plp__filters .aegis-plp-filters__overlay {
+  body.aegis-plp-sleepingbags .aegis-plp__filters .aegis-plp-filters__drawer-header,
+  body.aegis-plp-sleepingbags .aegis-plp__filters .aegis-plp-filters__overlay {
     display: none;
   }
 
-  .aegis-plp__filters .aegis-plp-filters__drawer-body,
-  .aegis-plp__filters .aegis-plp-filters__drawer-footer {
+  body.aegis-plp-sleepingbags .aegis-plp__filters .aegis-plp-filters__drawer-body,
+  body.aegis-plp-sleepingbags .aegis-plp__filters .aegis-plp-filters__drawer-footer {
     padding-left: 0;
     padding-right: 0;
   }
