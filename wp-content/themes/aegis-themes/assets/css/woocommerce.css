@@ -227,6 +227,15 @@ body.woocommerce-cart .aegis-cart-item__details {
   grid-template-columns: 1fr;
 }
 
+/* WooCommerce 对 ul.products 注入 clearfix 伪元素（::before/::after）。
+   当 ul.products 被设为 display:grid 后，这两个伪元素会变成 grid item，
+   常见现象就是“第一个格子空白”。这里仅在 AEGIS PLP 网格作用域内禁用它们。 */
+.woocommerce .aegis-plp__grid ul.products::before,
+.woocommerce .aegis-plp__grid ul.products::after {
+  content: none !important;
+  display: none !important;
+}
+
 .aegis-plp__grid ul.products li.product {
   margin: 0;
   width: 100%;
@@ -266,40 +275,6 @@ body.woocommerce-cart .aegis-cart-item__details {
 }
 
 @media (min-width: 768px) {
-  .aegis-plp__layout {
-    display: grid;
-    grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
-    align-items: start;
-    gap: 32px;
-  }
-
-  .aegis-plp__filters {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-  }
-
-  .aegis-plp__filters .aegis-plp-filters__drawer {
-    position: static;
-    width: 100%;
-    max-width: none;
-    height: auto;
-    box-shadow: none;
-    transform: none;
-  }
-
-  .aegis-plp__filters .aegis-plp-filters__drawer-header,
-  .aegis-plp__filters .aegis-plp-filters__overlay {
-    display: none;
-  }
-
-  .aegis-plp__filters .aegis-plp-filters__drawer-body,
-  .aegis-plp__filters .aegis-plp-filters__drawer-footer {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
   .aegis-plp__grid ul.products {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
