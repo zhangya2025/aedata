@@ -372,31 +372,42 @@ class AEGIS_Portal {
             $unavailable_panel = '<div class="aegis-t-a5">模块不存在或已并入订单流程。</div>';
         }
 
+        $default_panel = self::get_default_panel_for_user($user);
         if (empty($requested)) {
-            $requested = self::get_default_module_for_user($user);
+            $requested = $default_panel;
         }
 
-        if (!isset($modules[$requested])) {
-            $registered = AEGIS_System::get_registered_modules();
-            if (isset($registered[$requested])) {
-                $state = $module_states[$requested] ?? ['label' => $requested, 'enabled' => false];
+        $registered = AEGIS_System::get_registered_modules();
+        $is_virtual = in_array($requested, ['dashboard', 'workbench'], true);
+        $current_slug = $requested;
+        $current_panel = '';
+
+        if (!$is_virtual && !isset($registered[$requested])) {
+            $current_slug = $default_panel;
+            $current_panel = self::render_module_panel($current_slug, $modules[$current_slug] ?? []);
+        } elseif (!$is_virtual && !isset($visible[$requested])) {
+            $current_slug = $default_panel;
+            $current_panel = self::render_access_denied_panel($portal_url, $default_panel);
+        } elseif (!$is_virtual && empty($module_states[$requested]['enabled'])) {
+            $label = $module_states[$requested]['label'] ?? $requested;
+            $current_panel = self::render_module_disabled_panel($portal_url, $default_panel, $label);
+        } else {
+            if (!isset($modules[$requested]) && !$is_virtual) {
+                $state = $module_states[$requested] ?? ['label' => $requested, 'enabled' => true];
                 $modules[$requested] = [
                     'label'   => $state['label'] ?? $requested,
-                    'enabled' => !empty($state['enabled']),
+                    'enabled' => true,
                     'href'    => add_query_arg('m', $requested, $portal_url),
                 ];
-            } else {
-                $requested = self::get_default_module_for_user($user);
             }
+            $current_panel = $unavailable_panel ?: self::render_module_panel($requested, $modules[$requested] ?? []);
         }
-
-        $current_panel = $unavailable_panel ?: self::render_module_panel($requested, $modules[$requested]);
 
         $context = [
             'user'          => $user,
             'portal_url'    => $portal_url,
             'modules'       => $modules,
-            'current'       => $requested,
+            'current'       => $current_slug,
             'logout_url'    => wp_logout_url(self::get_login_url()),
             'current_panel' => $current_panel,
             'role_labels'   => implode(' / ', self::get_role_labels_for_user($user)),
@@ -424,11 +435,21 @@ class AEGIS_Portal {
     protected static function enqueue_portal_assets() {
         AEGIS_Assets_Media::enqueue_typography_style('aegis-system-portal-typography');
 
+        $css_path = AEGIS_SYSTEM_PATH . 'assets/css/portal.css';
         wp_enqueue_style(
             'aegis-system-portal-style',
             AEGIS_SYSTEM_URL . 'assets/css/portal.css',
             ['aegis-system-portal-typography'],
-            AEGIS_Assets_Media::get_asset_version('assets/css/portal.css')
+            file_exists($css_path) ? filemtime($css_path) : AEGIS_Assets_Media::get_asset_version('assets/css/portal.css')
+        );
+
+        $js_path = AEGIS_SYSTEM_PATH . 'assets/js/portal.js';
+        wp_enqueue_script(
+            'aegis-system-portal',
+            AEGIS_SYSTEM_URL . 'assets/js/portal.js',
+            [],
+            file_exists($js_path) ? filemtime($js_path) : AEGIS_Assets_Media::get_asset_version('assets/js/portal.js'),
+            true
         );
     }
 
@@ -588,7 +609,7 @@ class AEGIS_Portal {
         } elseif (in_array('aegis_sales', $roles, true) || in_array('aegis_finance', $roles, true)) {
             $allowed = ['orders', 'access_audit'];
         } elseif (AEGIS_System_Roles::is_warehouse_user($user)) {
-            $allowed = ['workbench', 'inbound', 'shipments'];
+            $allowed = ['inbound', 'shipments'];
         } elseif (in_array('aegis_dealer', $roles, true)) {
             $allowed = ['reset_b'];
             if (!empty($states['orders']['enabled'])) {
@@ -616,10 +637,6 @@ class AEGIS_Portal {
      * @return string
      */
     protected static function render_module_panel($slug, $info) {
-        if (empty($info['enabled'])) {
-            return '<div class="aegis-t-a5">模块未启用。</div>';
-        }
-
         switch ($slug) {
             case 'workbench':
                 return self::render_workbench_panel();
@@ -669,11 +686,100 @@ class AEGIS_Portal {
      */
     protected static function render_workbench_panel() {
         $portal_url = self::get_portal_url();
+        $user = wp_get_current_user();
+        $entries = [];
+
+        if (AEGIS_System_Roles::is_warehouse_user($user)) {
+            if (AEGIS_System::is_module_enabled('inbound')) {
+                $entries[] = [
+                    'title' => '扫码入库',
+                    'desc'  => '扫码模式',
+                    'icon'  => '📥',
+                    'href'  => add_query_arg('m', 'inbound', $portal_url),
+                ];
+            }
+            if (AEGIS_System::is_module_enabled('shipments')) {
+                $entries[] = [
+                    'title' => '扫码出库',
+                    'desc'  => '扫码模式',
+                    'icon'  => '📤',
+                    'href'  => add_query_arg('m', 'shipments', $portal_url),
+                ];
+            }
+        } elseif (in_array('aegis_dealer', (array) $user->roles, true)) {
+            if (AEGIS_System::is_module_enabled('orders')) {
+                $entries[] = [
+                    'title' => '订单',
+                    'desc'  => '订单管理',
+                    'icon'  => '🧾',
+                    'href'  => add_query_arg('m', 'orders', $portal_url),
+                ];
+            }
+            if (AEGIS_System::is_module_enabled('reset_b')) {
+                $entries[] = [
+                    'title' => '清零B',
+                    'desc'  => '清零申请',
+                    'icon'  => '♻️',
+                    'href'  => add_query_arg('m', 'reset_b', $portal_url),
+                ];
+            }
+        } else {
+            return self::render_dashboard_panel();
+        }
+
         $context = [
             'portal_url' => $portal_url,
+            'entries'    => $entries,
         ];
 
         return self::render_template('workbench', $context);
+    }
+
+    /**
+     * 模块未启用提示。
+     *
+     * @param string $portal_url
+     * @param string $default_panel
+     * @param string $label
+     * @return string
+     */
+    protected static function render_module_disabled_panel($portal_url, $default_panel, $label) {
+        $back_url = self::get_panel_back_url($portal_url, $default_panel);
+        return sprintf(
+            '<div class="aegis-t-a5"><p>模块“%s”未启用，请联系管理员。</p><a class="aegis-portal-button is-primary" href="%s">返回工作台</a></div>',
+            esc_html($label),
+            esc_url($back_url)
+        );
+    }
+
+    /**
+     * 无权限提示。
+     *
+     * @param string $portal_url
+     * @param string $default_panel
+     * @return string
+     */
+    protected static function render_access_denied_panel($portal_url, $default_panel) {
+        $back_url = self::get_panel_back_url($portal_url, $default_panel);
+        return sprintf(
+            '<div class="aegis-t-a5"><p>当前账号无权访问该模块。</p><a class="aegis-portal-button is-primary" href="%s">返回工作台</a></div>',
+            esc_url($back_url)
+        );
+    }
+
+    /**
+     * 获取返回工作台/控制台的 URL。
+     *
+     * @param string $portal_url
+     * @param string $panel
+     * @return string
+     */
+    protected static function get_panel_back_url($portal_url, $panel) {
+        if (in_array($panel, ['dashboard', 'workbench'], true)) {
+            return $portal_url;
+        }
+
+        return add_query_arg('m', $panel, $portal_url);
     }
 
     /**
@@ -711,8 +817,12 @@ class AEGIS_Portal {
      * @param WP_User|null $user
      * @return string
      */
-    protected static function get_default_module_for_user($user = null) {
+    protected static function get_default_panel_for_user($user = null) {
         if (AEGIS_System_Roles::is_warehouse_user($user)) {
+            return 'workbench';
+        }
+
+        if ($user && in_array('aegis_dealer', (array) $user->roles, true)) {
             return 'workbench';
         }
 

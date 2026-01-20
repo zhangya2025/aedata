@@ -173,7 +173,7 @@
 
 .aegis-workbench-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
     gap: 16px;
 }
 
@@ -222,13 +222,7 @@
     color: #667085;
 }
 
-@media (max-width: 960px) {
-    .aegis-workbench-grid {
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
-    }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 768px) {
     .aegis-portal-root.is-warehouse-mode .aegis-portal-topbar {
         grid-template-columns: auto 1fr auto;
     }
@@ -277,6 +271,11 @@
 
     .aegis-portal-root.is-warehouse-mode .aegis-portal-body {
         position: relative;
+    }
+
+    .aegis-portal-root.is-warehouse-mode .portal-nav-list .nav-item {
+        min-height: 52px;
+        padding: 12px 14px;
     }
 
     .aegis-workbench-grid {
