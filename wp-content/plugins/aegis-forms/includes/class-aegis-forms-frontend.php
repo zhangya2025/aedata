@@ -107,6 +107,19 @@ class Aegis_Forms_Frontend {
 	private static function render_form( $type ) {
 		$type = in_array( $type, array( 'repair', 'dealer', 'contact', 'sponsorship', 'customization' ), true ) ? $type : 'repair';
 		$notice = self::render_notice( $type );
+		$guest_allowed = Aegis_Forms_Settings::is_guest_allowed( $type );
+		if ( ! is_user_logged_in() && ! $guest_allowed ) {
+			$login_message = Aegis_Forms_Settings::get_message( 'login_required' );
+			$current_url = home_url( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+			$login_url = wp_login_url( $current_url );
+			$login_link = sprintf(
+				'<p><a href="%s">%s</a></p>',
+				esc_url( $login_url ),
+				esc_html__( 'Log in', 'aegis-forms' )
+			);
+
+			return $notice . '<div class="notice notice-warning"><p>' . esc_html( $login_message ) . '</p>' . $login_link . '</div>';
+		}
 		$nonce_action = 'aegis_forms_submit_' . $type;
 		$honeypot_name = 'website';
 		$token = wp_generate_uuid4();
@@ -278,18 +291,19 @@ class Aegis_Forms_Frontend {
 		}
 
 		if ( 'error' === $status ) {
-				$messages = array(
-					'invalid_nonce' => esc_html__( 'Security check failed. Please try again.', 'aegis-forms' ),
-					'invalid_input' => esc_html__( 'Please check the required fields and try again.', 'aegis-forms' ),
-					'rate_limited' => esc_html__( 'Too many submissions. Please try again later.', 'aegis-forms' ),
-					'attachment_required' => esc_html__( 'Please attach a file before submitting.', 'aegis-forms' ),
-					'too_many_files' => esc_html__( 'You can upload up to 1 file.', 'aegis-forms' ),
-					'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.', 'aegis-forms' ),
-					'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.', 'aegis-forms' ),
+			$messages = array(
+				'invalid_nonce' => esc_html__( 'Security check failed. Please try again.', 'aegis-forms' ),
+				'invalid_input' => esc_html__( 'Please check the required fields and try again.', 'aegis-forms' ),
+				'rate_limited' => esc_html__( 'Too many submissions. Please try again later.', 'aegis-forms' ),
+				'attachment_required' => esc_html__( 'Please attach a file before submitting.', 'aegis-forms' ),
+				'too_many_files' => esc_html__( 'You can upload up to 1 file.', 'aegis-forms' ),
+				'file_too_large' => esc_html__( 'Each file must be 10MB or smaller.', 'aegis-forms' ),
+				'invalid_file' => esc_html__( 'Only JPG, PNG, or PDF files are allowed.', 'aegis-forms' ),
 				'upload_failed' => esc_html__( 'File upload failed. Please try again.', 'aegis-forms' ),
 				'invalid_token' => esc_html__( 'Submission token missing. Please refresh and try again.', 'aegis-forms' ),
 				'expired_token' => esc_html__( 'Submission token expired. Please refresh and try again.', 'aegis-forms' ),
 				'busy' => esc_html__( 'Submission already in progress. Please try again.', 'aegis-forms' ),
+				'login_required' => esc_html( Aegis_Forms_Settings::get_message( 'submit_denied' ) ),
 				'server_error' => esc_html__( 'Submission failed. Please try again later.', 'aegis-forms' ),
 			);
 			$text = isset( $messages[ $reason ] ) ? $messages[ $reason ] : $messages['server_error'];
@@ -352,6 +366,10 @@ class Aegis_Forms_Frontend {
 		$form_type = isset( $_POST['form_type'] ) ? sanitize_text_field( wp_unslash( $_POST['form_type'] ) ) : '';
 		if ( ! in_array( $form_type, array( 'repair', 'dealer', 'contact', 'sponsorship', 'customization' ), true ) ) {
 			self::redirect_with_error( 'invalid_input', $redirect_status );
+		}
+
+		if ( ! Aegis_Forms_Settings::is_guest_allowed( $form_type ) && ! is_user_logged_in() ) {
+			self::redirect_with_error( 'login_required', $redirect_status );
 		}
 
 		$nonce_action = 'aegis_forms_submit_' . $form_type;

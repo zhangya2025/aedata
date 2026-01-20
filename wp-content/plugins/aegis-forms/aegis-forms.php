@@ -19,6 +19,7 @@ define( 'AEGIS_FORMS_DB_VERSION_OPTION', 'aegis_forms_db_version' );
 define( 'AEGIS_FORMS_INSTALL_ERROR_OPTION', 'aegis_forms_install_error' );
 
 require_once AEGIS_FORMS_PLUGIN_PATH . 'includes/class-aegis-forms-schema.php';
+require_once AEGIS_FORMS_PLUGIN_PATH . 'includes/class-aegis-forms-settings.php';
 require_once AEGIS_FORMS_PLUGIN_PATH . 'includes/class-aegis-forms-admin.php';
 require_once AEGIS_FORMS_PLUGIN_PATH . 'includes/class-aegis-forms-frontend.php';
 
