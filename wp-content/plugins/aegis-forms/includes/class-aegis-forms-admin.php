@@ -21,7 +21,7 @@ class Aegis_Forms_Admin {
 		add_menu_page(
 			'Aegis Forms',
 			'Aegis Forms',
-			'manage_options',
+			AEGIS_FORMS_CAP_VIEW,
 			self::MENU_SLUG,
 			array( __CLASS__, 'render_page' ),
 			'dashicons-feedback',
@@ -34,14 +34,14 @@ class Aegis_Forms_Admin {
 			null,
 			'Aegis Forms - View',
 			'Aegis Forms - View',
-			'manage_options',
+			AEGIS_FORMS_CAP_VIEW,
 			'aegis-forms-view',
 			array( __CLASS__, 'render_view_page' )
 		);
 	}
 
 	public static function render_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! self::user_can( AEGIS_FORMS_CAP_VIEW ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
 		}
 
@@ -63,6 +63,9 @@ class Aegis_Forms_Admin {
 			self::render_tab_navigation( $tab );
 
 			if ( 'settings' === $tab ) {
+				if ( ! self::user_can( AEGIS_FORMS_CAP_MANAGE_SETTINGS ) ) {
+					wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
+				}
 				self::render_settings_section();
 			} else {
 				self::render_submissions_section( $filters );
@@ -76,8 +79,11 @@ class Aegis_Forms_Admin {
 		$base_url = add_query_arg( 'page', self::MENU_SLUG, admin_url( 'admin.php' ) );
 		$tabs = array(
 			'submissions' => __( 'Submissions' ),
-			'settings' => __( 'Settings' ),
 		);
+
+		if ( self::user_can( AEGIS_FORMS_CAP_MANAGE_SETTINGS ) ) {
+			$tabs['settings'] = __( 'Settings' );
+		}
 		?>
 		<h2 class="nav-tab-wrapper">
 			<?php foreach ( $tabs as $tab => $label ) : ?>
@@ -127,13 +133,15 @@ class Aegis_Forms_Admin {
 			</select>
 			<button class="button"><?php echo esc_html__( 'Filter' ); ?></button>
 		</form>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:10px;">
-			<?php wp_nonce_field( 'aegis_forms_export_csv' ); ?>
-			<input type="hidden" name="action" value="aegis_forms_export_csv" />
-			<input type="hidden" name="type" value="<?php echo esc_attr( $filters['type'] ); ?>" />
-			<input type="hidden" name="status" value="<?php echo esc_attr( $filters['status'] ); ?>" />
-			<button class="button"><?php echo esc_html__( 'Export CSV' ); ?></button>
-		</form>
+		<?php if ( self::user_can( AEGIS_FORMS_CAP_EXPORT ) ) : ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:10px;">
+				<?php wp_nonce_field( 'aegis_forms_export_csv' ); ?>
+				<input type="hidden" name="action" value="aegis_forms_export_csv" />
+				<input type="hidden" name="type" value="<?php echo esc_attr( $filters['type'] ); ?>" />
+				<input type="hidden" name="status" value="<?php echo esc_attr( $filters['status'] ); ?>" />
+				<button class="button"><?php echo esc_html__( 'Export CSV' ); ?></button>
+			</form>
+		<?php endif; ?>
 		<?php
 
 		if ( ! Aegis_Forms_Schema::table_exists() ) {
@@ -183,11 +191,11 @@ class Aegis_Forms_Admin {
 									$redirect_url = self::get_list_redirect_url( $filters );
 									?>
 									<a href="<?php echo esc_url( $view_url ); ?>"><?php echo esc_html__( 'View' ); ?></a>
-									<?php if ( 'deleted' !== $item['status'] ) : ?>
-										<?php
-										$delete_url = add_query_arg(
-											array(
-												'action' => 'aegis_forms_delete_submission',
+								<?php if ( 'deleted' !== $item['status'] && self::user_can( AEGIS_FORMS_CAP_DELETE_SUBMISSION ) ) : ?>
+									<?php
+									$delete_url = add_query_arg(
+										array(
+											'action' => 'aegis_forms_delete_submission',
 												'ticket' => rawurlencode( $item['ticket_no'] ),
 												'redirect_to' => rawurlencode( $redirect_url ),
 											),
@@ -197,7 +205,7 @@ class Aegis_Forms_Admin {
 										?>
 										<span class="separator"> | </span>
 										<a href="<?php echo esc_url( $delete_url ); ?>"><?php echo esc_html__( 'Delete' ); ?></a>
-									<?php else : ?>
+									<?php elseif ( 'deleted' === $item['status'] && self::user_can( AEGIS_FORMS_CAP_RESTORE_SUBMISSION ) ) : ?>
 										<?php
 										$restore_url = add_query_arg(
 											array(
@@ -343,7 +351,7 @@ class Aegis_Forms_Admin {
 	}
 
 	public static function handle_export_csv() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! self::user_can( AEGIS_FORMS_CAP_EXPORT ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ), 403 );
 		}
 
@@ -425,7 +433,7 @@ class Aegis_Forms_Admin {
 	}
 
 	public static function render_view_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! self::user_can( AEGIS_FORMS_CAP_VIEW ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
 		}
 
@@ -557,34 +565,36 @@ class Aegis_Forms_Admin {
 				</tbody>
 			</table>
 
-			<h2><?php echo esc_html__( 'Update Submission' ); ?></h2>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-				<?php wp_nonce_field( 'aegis_forms_update_' . $row['ticket_no'] ); ?>
-				<input type="hidden" name="action" value="aegis_forms_update" />
-				<input type="hidden" name="ticket" value="<?php echo esc_attr( $row['ticket_no'] ); ?>" />
-				<table class="form-table">
-					<tr>
-						<th scope="row"><label for="aegis-forms-status"><?php echo esc_html__( 'Status' ); ?></label></th>
-						<td>
-							<select id="aegis-forms-status" name="status">
-								<?php foreach ( $allowed_statuses as $status ) : ?>
-									<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $row['status'], $status ); ?>>
-										<?php echo esc_html( $status ); ?>
-									</option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="aegis-forms-admin-notes"><?php echo esc_html__( 'Admin Notes' ); ?></label></th>
-						<td>
-							<textarea id="aegis-forms-admin-notes" name="admin_notes" rows="6" class="large-text"><?php echo esc_textarea( $admin_notes_value ); ?></textarea>
-						</td>
-					</tr>
-				</table>
-				<?php submit_button( __( 'Save' ) ); ?>
-			</form>
-			<?php if ( 'deleted' === $row['status'] ) : ?>
+			<?php if ( self::user_can( AEGIS_FORMS_CAP_EDIT_SUBMISSION ) ) : ?>
+				<h2><?php echo esc_html__( 'Update Submission' ); ?></h2>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( 'aegis_forms_update_' . $row['ticket_no'] ); ?>
+					<input type="hidden" name="action" value="aegis_forms_update" />
+					<input type="hidden" name="ticket" value="<?php echo esc_attr( $row['ticket_no'] ); ?>" />
+					<table class="form-table">
+						<tr>
+							<th scope="row"><label for="aegis-forms-status"><?php echo esc_html__( 'Status' ); ?></label></th>
+							<td>
+								<select id="aegis-forms-status" name="status">
+									<?php foreach ( $allowed_statuses as $status ) : ?>
+										<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $row['status'], $status ); ?>>
+											<?php echo esc_html( $status ); ?>
+										</option>
+									<?php endforeach; ?>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="aegis-forms-admin-notes"><?php echo esc_html__( 'Admin Notes' ); ?></label></th>
+							<td>
+								<textarea id="aegis-forms-admin-notes" name="admin_notes" rows="6" class="large-text"><?php echo esc_textarea( $admin_notes_value ); ?></textarea>
+							</td>
+						</tr>
+					</table>
+					<?php submit_button( __( 'Save' ) ); ?>
+				</form>
+			<?php endif; ?>
+			<?php if ( 'deleted' === $row['status'] && self::user_can( AEGIS_FORMS_CAP_RESTORE_SUBMISSION ) ) : ?>
 				<?php
 				$restore_url = add_query_arg(
 					array(
@@ -614,7 +624,7 @@ class Aegis_Forms_Admin {
 	}
 
 	public static function handle_update_submission() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! self::user_can( AEGIS_FORMS_CAP_EDIT_SUBMISSION ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
 		}
 
@@ -659,7 +669,7 @@ class Aegis_Forms_Admin {
 	}
 
 	public static function handle_settings_save() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! self::user_can( AEGIS_FORMS_CAP_MANAGE_SETTINGS ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
 		}
 
@@ -732,7 +742,8 @@ class Aegis_Forms_Admin {
 	}
 
 	private static function handle_trash_action( $status, $nonce_prefix, $notice ) {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		$cap = 'deleted' === $status ? AEGIS_FORMS_CAP_DELETE_SUBMISSION : AEGIS_FORMS_CAP_RESTORE_SUBMISSION;
+		if ( ! self::user_can( $cap ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' ) );
 		}
 
@@ -762,6 +773,10 @@ class Aegis_Forms_Admin {
 		$redirect_to = add_query_arg( 'aegis_forms_notice', $notice, $redirect_to );
 		wp_safe_redirect( $redirect_to );
 		exit;
+	}
+
+	private static function user_can( $capability ) {
+		return current_user_can( $capability ) || current_user_can( 'manage_options' );
 	}
 
 }
