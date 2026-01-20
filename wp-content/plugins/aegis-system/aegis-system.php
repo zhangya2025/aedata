@@ -29,6 +29,8 @@ require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-codes.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-inbound.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-orders.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-shipments.php';
+require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-reports.php';
+require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-monitoring.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-public-query.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-reset-b.php';
 
