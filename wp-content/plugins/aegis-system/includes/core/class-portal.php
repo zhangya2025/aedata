@@ -580,9 +580,9 @@ class AEGIS_Portal {
         } elseif (in_array('aegis_sales', $roles, true) || in_array('aegis_finance', $roles, true)) {
             $allowed = ['orders', 'access_audit'];
         } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
-            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b'];
+            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b', 'reports', 'monitoring'];
         } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
-            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b'];
+            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b', 'reports', 'monitoring'];
         } elseif (in_array('aegis_dealer', $roles, true)) {
             $allowed = ['reset_b'];
             if (!empty($states['orders']['enabled'])) {
@@ -645,6 +645,10 @@ class AEGIS_Portal {
                 return AEGIS_Reset_B::render_portal_panel(self::get_portal_url());
             case 'orders':
                 return AEGIS_Orders::render_portal_panel(self::get_portal_url());
+            case 'reports':
+                return AEGIS_Reports::render_portal_panel(self::get_portal_url());
+            case 'monitoring':
+                return AEGIS_Monitoring::render_portal_panel(self::get_portal_url());
             default:
                 return '<div class="aegis-t-a5">该模块前台界面尚未实现（占位）。</div>';
         }
@@ -938,4 +942,3 @@ class AEGIS_Portal {
         return $labels;
     }
 }
-

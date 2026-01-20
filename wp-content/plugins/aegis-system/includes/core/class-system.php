@@ -96,6 +96,8 @@ class AEGIS_System {
     const ACTION_LOGIN_REDIRECT = 'LOGIN_REDIRECT';
     const ACTION_ADMIN_BLOCKED = 'ADMIN_BLOCKED';
     const ACTION_PORTAL_BLOCKED = 'PORTAL_BLOCKED';
+    const ACTION_REPORT_EXPORT = 'REPORT_EXPORT';
+    const ACTION_MONITOR_EXPORT = 'MONITOR_EXPORT';
 
     /**
      * 预置模块注册表。
@@ -548,4 +550,3 @@ class AEGIS_System {
     }
 
 }
-
