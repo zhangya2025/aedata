@@ -107,6 +107,7 @@ class AEGIS_System {
     public static function get_registered_modules() {
         return [
             'core_manager'   => ['label' => '核心管理', 'default' => true],
+            'workbench'      => ['label' => '工作台', 'default' => true],
             'access_audit'   => ['label' => '访问审计', 'default' => true],
             'assets_media'   => ['label' => '资产与媒体', 'default' => false],
             'sku'            => ['label' => 'SKU', 'default' => false],

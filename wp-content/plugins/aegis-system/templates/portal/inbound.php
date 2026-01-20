@@ -9,6 +9,8 @@ $summary = $context['summary'];
 $sku_summary = $context['sku_summary'];
 $filters = $context['filters'];
 $receipts = $context['receipts'];
+$view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
+$is_list_view = 'list' === $view;
 ?>
 <div class="aegis-t-a4">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码入库</div>
@@ -82,7 +84,7 @@ $receipts = $context['receipts'];
                 <input type="hidden" name="inbound_action" value="add" />
                 <input type="hidden" name="receipt_id" value="<?php echo esc_attr($receipt->id); ?>" />
                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                <input type="text" name="code" class="regular-text" placeholder="扫码或输入防伪码" required />
+                <input type="text" name="code" id="aegis-inbound-scan-input" class="regular-text" placeholder="扫码或输入防伪码" required />
                 <button type="submit" class="button button-primary">加入入库单</button>
             </form>
         </div>
@@ -117,6 +119,7 @@ $receipts = $context['receipts'];
         </div>
     <?php endif; ?>
 
+    <div id="aegis-inbound-list"></div>
     <div class="aegis-t-a4" style="margin-top:16px;">入库单列表（最近 7 天）</div>
     <form method="get" class="aegis-t-a6" style="margin:8px 0;">
         <input type="hidden" name="m" value="inbound" />
@@ -161,3 +164,23 @@ $receipts = $context['receipts'];
         </div></div>
     <?php endif; ?>
 </div>
+<?php if (!$is_list_view) : ?>
+    <script>
+        (function() {
+            var input = document.getElementById('aegis-inbound-scan-input');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        })();
+    </script>
+<?php else : ?>
+    <script>
+        (function() {
+            var anchor = document.getElementById('aegis-inbound-list');
+            if (anchor) {
+                anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        })();
+    </script>
+<?php endif; ?>
