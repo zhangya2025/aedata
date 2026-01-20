@@ -11,11 +11,19 @@ $logout_url    = $context_data['logout_url'] ?? '';
 $current_panel = $context_data['current_panel'] ?? '';
 $role_labels   = $context_data['role_labels'] ?? '';
 $dealer_notice = $context_data['dealer_notice'] ?? null;
+$is_warehouse_mode = !empty($context_data['is_warehouse_mode']);
 ?>
 <div class="aegis-portal-shell">
-    <div class="aegis-system-root aegis-portal-root aegis-t-a5">
+    <div class="aegis-system-root aegis-portal-root aegis-t-a5<?php echo $is_warehouse_mode ? ' is-warehouse-mode' : ''; ?>">
         <header class="aegis-portal-topbar">
-            <div class="topbar-spacer" aria-hidden="true"></div>
+            <div class="topbar-spacer" aria-hidden="true">
+                <?php if ($is_warehouse_mode) : ?>
+                    <button class="aegis-portal-menu-toggle" type="button" aria-controls="aegis-portal-sidebar" aria-expanded="false">
+                        <span class="menu-icon" aria-hidden="true">☰</span>
+                        <span class="menu-label">菜单</span>
+                    </button>
+                <?php endif; ?>
+            </div>
             <div class="aegis-portal-title aegis-t-a3">AEGISMAX 管理系统 · AEGIS SYSTEM V2026版</div>
             <div class="aegis-portal-actions">
                 <?php if (is_user_logged_in()) : ?>
@@ -24,7 +32,8 @@ $dealer_notice = $context_data['dealer_notice'] ?? null;
             </div>
         </header>
         <div class="aegis-portal-body">
-            <aside class="aegis-portal-sidebar">
+            <button class="portal-sidebar-backdrop" type="button" aria-hidden="true" tabindex="-1"></button>
+            <aside class="aegis-portal-sidebar" id="aegis-portal-sidebar">
                 <div class="portal-user-card">
                     <div class="portal-user aegis-t-a4"><?php echo esc_html($user ? $user->user_login : ''); ?></div>
                     <div class="portal-roles aegis-t-a6"><?php echo esc_html($role_labels); ?></div>

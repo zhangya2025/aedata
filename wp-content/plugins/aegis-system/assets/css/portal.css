@@ -35,6 +35,27 @@
     justify-content: flex-end;
 }
 
+.aegis-portal-menu-toggle {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid #d9dce3;
+    border-radius: 6px;
+    background: #f7f9fc;
+    color: inherit;
+    cursor: pointer;
+}
+
+.aegis-portal-menu-toggle .menu-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.portal-sidebar-backdrop {
+    display: none;
+}
+
 .aegis-portal-logout {
     padding: 8px 14px;
     border: 1px solid #c00;
@@ -148,6 +169,125 @@
     background: #fff;
     min-height: 420px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.aegis-workbench-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+    gap: 16px;
+}
+
+.aegis-workbench-tile {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 6px;
+    padding: 18px 16px;
+    border-radius: 18px;
+    border: 1px solid #e3e7f0;
+    background: linear-gradient(180deg, #f8faff, #ffffff);
+    text-decoration: none;
+    color: inherit;
+    min-height: 140px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.aegis-workbench-tile:hover {
+    transform: translateY(-2px);
+    border-color: #bcd1fb;
+    box-shadow: 0 8px 16px rgba(31, 111, 235, 0.12);
+}
+
+.aegis-workbench-tile:focus-visible {
+    outline: 2px solid #1f6feb;
+    outline-offset: 2px;
+}
+
+.aegis-workbench-tile .workbench-icon {
+    font-size: 32px;
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef4ff;
+}
+
+.aegis-workbench-tile .workbench-title {
+    font-weight: 600;
+}
+
+.aegis-workbench-tile .workbench-desc {
+    color: #667085;
+}
+
+@media (max-width: 768px) {
+    .aegis-portal-root.is-warehouse-mode .aegis-portal-topbar {
+        grid-template-columns: auto 1fr auto;
+    }
+
+    .aegis-portal-root.is-warehouse-mode .aegis-portal-title {
+        font-size: 16px;
+        white-space: normal;
+        text-align: left;
+    }
+
+    .aegis-portal-root.is-warehouse-mode .aegis-portal-menu-toggle {
+        display: inline-flex;
+    }
+
+    .aegis-portal-root.is-warehouse-mode .aegis-portal-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        width: min(260px, 80vw);
+        background: #fff;
+        padding: 16px;
+        z-index: 30;
+        transform: translateX(-110%);
+        transition: transform 0.2s ease;
+        box-shadow: 6px 0 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .aegis-portal-root.is-warehouse-mode .aegis-portal-body.is-menu-open .aegis-portal-sidebar {
+        transform: translateX(0);
+    }
+
+    .aegis-portal-root.is-warehouse-mode .portal-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        border: none;
+        padding: 0;
+        z-index: 20;
+        display: none;
+    }
+
+    .aegis-portal-root.is-warehouse-mode .aegis-portal-body.is-menu-open .portal-sidebar-backdrop {
+        display: block;
+    }
+
+    .aegis-portal-root.is-warehouse-mode .aegis-portal-body {
+        position: relative;
+    }
+
+    .aegis-portal-root.is-warehouse-mode .portal-nav-list .nav-item {
+        min-height: 52px;
+        padding: 12px 14px;
+    }
+
+    .aegis-workbench-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .aegis-workbench-tile {
+        min-height: 120px;
+        border-radius: 16px;
+        padding: 16px 12px;
+    }
 }
 
 .aegis-table-wrap {
