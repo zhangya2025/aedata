@@ -561,6 +561,7 @@ class AEGIS_Portal {
         $label_map = [
             'core_manager'     => '系统设置',
             'aegis_typography' => '排版设置',
+            'workbench'        => '工作台',
             'sku'              => 'SKU 管理',
             'dealer_master'    => '经销商管理',
             'codes'            => '防伪码生成',

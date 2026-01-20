@@ -72,3 +72,35 @@ $is_warehouse_mode = !empty($context_data['is_warehouse_mode']);
         </div>
     </div>
 </div>
+<?php if ($is_warehouse_mode) : ?>
+    <script>
+        (function() {
+            var root = document.querySelector('.aegis-portal-root.is-warehouse-mode');
+            if (!root) {
+                return;
+            }
+            var body = root.querySelector('.aegis-portal-body');
+            var toggle = root.querySelector('.aegis-portal-menu-toggle');
+            var backdrop = root.querySelector('.portal-sidebar-backdrop');
+            var sidebar = root.querySelector('#aegis-portal-sidebar');
+            if (!body || !toggle || !backdrop || !sidebar) {
+                return;
+            }
+            var closeMenu = function() {
+                body.classList.remove('is-menu-open');
+                toggle.setAttribute('aria-expanded', 'false');
+            };
+            toggle.addEventListener('click', function() {
+                var isOpen = body.classList.contains('is-menu-open');
+                body.classList.toggle('is-menu-open', !isOpen);
+                toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            });
+            backdrop.addEventListener('click', closeMenu);
+            sidebar.addEventListener('click', function(event) {
+                if (event.target && event.target.closest('a')) {
+                    closeMenu();
+                }
+            });
+        })();
+    </script>
+<?php endif; ?>
