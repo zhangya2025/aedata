@@ -372,6 +372,10 @@ class AEGIS_Portal {
             $unavailable_panel = '<div class="aegis-t-a5">模块不存在或已并入订单流程。</div>';
         }
 
+        if (empty($requested)) {
+            $requested = self::get_default_module_for_user($user);
+        }
+
         if (!isset($modules[$requested])) {
             $registered = AEGIS_System::get_registered_modules();
             if (isset($registered[$requested])) {
@@ -382,7 +386,7 @@ class AEGIS_Portal {
                     'href'    => add_query_arg('m', $requested, $portal_url),
                 ];
             } else {
-                $requested = 'dashboard';
+                $requested = self::get_default_module_for_user($user);
             }
         }
 
@@ -397,6 +401,7 @@ class AEGIS_Portal {
             'current_panel' => $current_panel,
             'role_labels'   => implode(' / ', self::get_role_labels_for_user($user)),
             'dealer_notice' => $dealer_notice,
+            'is_warehouse_mode' => AEGIS_System_Roles::is_warehouse_user($user),
         ];
 
         return self::render_template('shell', $context);
@@ -509,13 +514,15 @@ class AEGIS_Portal {
      * @return array
      */
     protected static function build_portal_modules($user, $visible, $module_states, $portal_url) {
-        $modules = [
-            'dashboard' => [
+        $modules = [];
+
+        if (!AEGIS_System_Roles::is_warehouse_user($user)) {
+            $modules['dashboard'] = [
                 'label'   => '控制台',
                 'enabled' => true,
                 'href'    => $portal_url,
-            ],
-        ];
+            ];
+        }
 
         if (AEGIS_System_Roles::user_can_manage_system($user)) {
             $modules['system_settings'] = [
@@ -533,11 +540,12 @@ class AEGIS_Portal {
         $label_map = [
             'core_manager'     => '系统设置',
             'aegis_typography' => '排版设置',
+            'workbench'        => '工作台',
             'sku'              => 'SKU 管理',
             'dealer_master'    => '经销商管理',
             'codes'            => '防伪码生成',
             'inbound'          => '扫码入库',
-            'shipments'        => '出库管理',
+            'shipments'        => '扫码出库',
             'public_query'     => '公共查询',
             'reset_b'          => '清零B',
             'orders'           => '订单',
@@ -575,14 +583,12 @@ class AEGIS_Portal {
         $roles = (array) $user->roles;
         $all_modules = array_keys(AEGIS_System::get_registered_modules());
 
-        if (in_array('aegis_hq_admin', $roles, true)) {
+        if (AEGIS_System_Roles::is_hq_admin($user)) {
             $allowed = $all_modules;
         } elseif (in_array('aegis_sales', $roles, true) || in_array('aegis_finance', $roles, true)) {
             $allowed = ['orders', 'access_audit'];
-        } elseif (in_array('aegis_warehouse_manager', $roles, true)) {
-            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b', 'reports', 'monitoring'];
-        } elseif (in_array('aegis_warehouse_staff', $roles, true)) {
-            $allowed = ['sku', 'dealer_master', 'codes', 'inbound', 'shipments', 'public_query', 'reset_b', 'reports', 'monitoring'];
+        } elseif (AEGIS_System_Roles::is_warehouse_user($user)) {
+            $allowed = ['workbench', 'inbound', 'shipments'];
         } elseif (in_array('aegis_dealer', $roles, true)) {
             $allowed = ['reset_b'];
             if (!empty($states['orders']['enabled'])) {
@@ -615,6 +621,8 @@ class AEGIS_Portal {
         }
 
         switch ($slug) {
+            case 'workbench':
+                return self::render_workbench_panel();
             case 'dashboard':
                 return self::render_dashboard_panel();
             case 'system_settings':
@@ -655,6 +663,20 @@ class AEGIS_Portal {
     }
 
     /**
+     * 工作台页面。
+     *
+     * @return string
+     */
+    protected static function render_workbench_panel() {
+        $portal_url = self::get_portal_url();
+        $context = [
+            'portal_url' => $portal_url,
+        ];
+
+        return self::render_template('workbench', $context);
+    }
+
+    /**
      * 欢迎页控制台。
      */
     protected static function render_dashboard_panel() {
@@ -681,6 +703,20 @@ class AEGIS_Portal {
         <?php endif; ?>
         <?php
         return ob_get_clean();
+    }
+
+    /**
+     * 获取默认落地模块。
+     *
+     * @param WP_User|null $user
+     * @return string
+     */
+    protected static function get_default_module_for_user($user = null) {
+        if (AEGIS_System_Roles::is_warehouse_user($user)) {
+            return 'workbench';
+        }
+
+        return 'dashboard';
     }
 
     /**

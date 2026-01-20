@@ -10,6 +10,8 @@ $sku_summary = $context['sku_summary'];
 $dealers = $context['dealers'];
 $filters = $context['filters'];
 $shipments = $context['shipments'];
+$view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
+$is_list_view = 'list' === $view;
 ?>
 <div class="aegis-t-a4">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
@@ -87,7 +89,7 @@ $shipments = $context['shipments'];
                 <input type="hidden" name="shipments_action" value="add" />
                 <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                <input type="text" name="code" class="regular-text" placeholder="扫码或输入防伪码" required />
+                <input type="text" name="code" id="aegis-shipments-scan-input" class="regular-text" placeholder="扫码或输入防伪码" required />
                 <button type="submit" class="button button-primary">加入出库单</button>
             </form>
         </div>
@@ -122,6 +124,7 @@ $shipments = $context['shipments'];
         </div>
     <?php endif; ?>
 
+    <div id="aegis-shipments-list"></div>
     <div class="aegis-t-a4" style="margin-top:16px;">出库单列表（最近 7 天）</div>
     <form method="get" class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
         <input type="hidden" name="m" value="shipments" />
@@ -186,3 +189,23 @@ $shipments = $context['shipments'];
         </div></div>
     <?php endif; ?>
 </div>
+<?php if (!$is_list_view) : ?>
+    <script>
+        (function() {
+            var input = document.getElementById('aegis-shipments-scan-input');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        })();
+    </script>
+<?php else : ?>
+    <script>
+        (function() {
+            var anchor = document.getElementById('aegis-shipments-list');
+            if (anchor) {
+                anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        })();
+    </script>
+<?php endif; ?>

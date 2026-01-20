@@ -96,16 +96,72 @@ class AEGIS_System_Roles {
     }
 
     /**
+     * 获取用户角色列表。
+     *
+     * @param WP_User|null $user
+     * @return array
+     */
+    public static function get_user_roles($user = null) {
+        if (null === $user) {
+            $user = wp_get_current_user();
+        }
+
+        if (!$user || empty($user->roles)) {
+            return [];
+        }
+
+        return (array) $user->roles;
+    }
+
+    /**
+     * 是否为总部管理员。
+     *
+     * @param WP_User|null $user
+     * @return bool
+     */
+    public static function is_hq_admin($user = null) {
+        return in_array('aegis_hq_admin', self::get_user_roles($user), true);
+    }
+
+    /**
+     * 是否为仓库管理员角色。
+     *
+     * @param WP_User|null $user
+     * @return bool
+     */
+    public static function is_warehouse_manager($user = null) {
+        return in_array('aegis_warehouse_manager', self::get_user_roles($user), true);
+    }
+
+    /**
+     * 是否为仓库员工角色。
+     *
+     * @param WP_User|null $user
+     * @return bool
+     */
+    public static function is_warehouse_staff($user = null) {
+        return in_array('aegis_warehouse_staff', self::get_user_roles($user), true);
+    }
+
+    /**
+     * 是否为仓库相关角色。
+     *
+     * @param WP_User|null $user
+     * @return bool
+     */
+    public static function is_warehouse_user($user = null) {
+        $roles = self::get_user_roles($user);
+        return in_array('aegis_warehouse_manager', $roles, true)
+            || in_array('aegis_warehouse_staff', $roles, true);
+    }
+
+    /**
      * 是否为仅经销商角色。
      *
      * @return bool
      */
     public static function is_dealer_only() {
-        $user = wp_get_current_user();
-        if (!$user || empty($user->roles)) {
-            return false;
-        }
-        $roles = (array) $user->roles;
+        $roles = self::get_user_roles();
         return 1 === count($roles) && in_array('aegis_dealer', $roles, true);
     }
 
@@ -213,4 +269,3 @@ class AEGIS_System_Roles {
         ];
     }
 }
-
