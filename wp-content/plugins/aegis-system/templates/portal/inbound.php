@@ -26,9 +26,28 @@ $receipts = $context['receipts'];
             <?php wp_nonce_field('aegis_inbound_action', 'aegis_inbound_nonce'); ?>
             <input type="hidden" name="inbound_action" value="start" />
             <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-            <label class="aegis-t-a6">备注（可选）：<input type="text" name="note" /></label>
-            <p style="margin-top:10px;"><button type="submit" class="button button-primary">开始入库</button></p>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+                <button type="submit" class="button button-primary">开始入库</button>
+                <button type="button" class="button" id="aegis-inbound-note-toggle" aria-expanded="false" aria-controls="aegis-inbound-note-field">备注</button>
+                <div id="aegis-inbound-note-field" style="display:none; min-width:240px;">
+                    <label class="aegis-t-a6" style="display:block;">备注（可选）：<input type="text" name="note" class="regular-text" /></label>
+                </div>
+            </div>
         </form>
+        <script>
+            (function() {
+                var toggle = document.getElementById('aegis-inbound-note-toggle');
+                var field = document.getElementById('aegis-inbound-note-field');
+                if (!toggle || !field) {
+                    return;
+                }
+                toggle.addEventListener('click', function() {
+                    var expanded = toggle.getAttribute('aria-expanded') === 'true';
+                    toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                    field.style.display = expanded ? 'none' : 'block';
+                });
+            })();
+        </script>
     <?php else : ?>
         <div class="aegis-t-a5" style="padding:12px 16px; border:1px solid #d9dce3; border-radius:8px; background:#f8f9fb; margin-bottom:12px;">
             <div class="aegis-t-a4">入库单信息</div>
