@@ -267,15 +267,15 @@ class AEGIS_Portal {
 <html <?php language_attributes(); ?>>
 <head>
     <meta charset="<?php bloginfo('charset'); ?>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>AEGIS SYSTEM</title>
     <?php
-        wp_print_styles();
-        wp_print_scripts();
+        wp_head();
     ?>
 </head>
 <body class="aegis-portal-shell">
 <?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+<?php wp_footer(); ?>
 </body>
 </html>
 <?php
@@ -449,9 +449,9 @@ class AEGIS_Portal {
         wp_enqueue_script(
             'aegis-system-portal-mobile',
             AEGIS_SYSTEM_URL . 'assets/js/portal-mobile.js',
-            [],
+            ['aegis-system-portal'],
             file_exists($mobile_js_path) ? filemtime($mobile_js_path) : AEGIS_Assets_Media::get_asset_version('assets/js/portal-mobile.js'),
-            true
+            false
         );
     }
 
@@ -852,7 +852,7 @@ class AEGIS_Portal {
         ];
 
         foreach ($visible as $slug => $info) {
-            if (empty($info['enabled'])) {
+            if (empty($module_states[$slug]['enabled'])) {
                 continue;
             }
             $allowed[$slug] = true;

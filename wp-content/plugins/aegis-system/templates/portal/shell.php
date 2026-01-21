@@ -29,13 +29,17 @@ foreach ($modules as $slug => $info) {
 <div class="aegis-portal-shell">
     <div class="aegis-system-root aegis-portal-root aegis-t-a5<?php echo $is_warehouse_mode ? ' is-warehouse-mode' : ''; ?>">
         <header class="aegis-portal-topbar">
-            <div class="topbar-spacer" aria-hidden="true">
+            <div class="topbar-spacer">
                 <button class="aegis-portal-menu-toggle" type="button" aria-controls="aegis-portal-sidebar" aria-expanded="false">
                     <span class="menu-icon" aria-hidden="true">☰</span>
                     <span class="menu-label">菜单</span>
                 </button>
             </div>
-            <div class="aegis-portal-title aegis-t-a3">AEGISMAX 管理系统 · AEGIS SYSTEM V2026版</div>
+            <div class="aegis-portal-title aegis-t-a3">
+                <span class="aegis-portal-title-line">AEGISMAX 管理系统</span>
+                <span class="aegis-portal-title-line">AEGIS SYSTEM</span>
+                <span class="aegis-portal-title-line">V2026版</span>
+            </div>
             <div class="aegis-portal-actions">
                 <?php if (is_user_logged_in()) : ?>
                     <a class="aegis-portal-logout aegis-t-a6" href="<?php echo esc_url($logout_url); ?>">退出</a>

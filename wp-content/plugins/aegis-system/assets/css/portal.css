@@ -3,6 +3,11 @@
     background: #f7f8fa;
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 .aegis-portal-shell .aegis-system-root {
     width: 100%;
     max-width: none;
@@ -30,6 +35,11 @@
     white-space: nowrap;
 }
 
+.aegis-portal-title-line + .aegis-portal-title-line::before {
+    content: '·';
+    margin: 0 6px;
+}
+
 .aegis-portal-actions {
     display: flex;
     justify-content: flex-end;
@@ -45,6 +55,7 @@
     background: #f7f9fc;
     color: inherit;
     cursor: pointer;
+    touch-action: manipulation;
 }
 
 .aegis-portal-menu-toggle .menu-icon {
@@ -232,9 +243,21 @@
     }
 
     .aegis-portal-title {
-        font-size: 16px;
+        font-size: 16px !important;
+        line-height: 1.4 !important;
+        letter-spacing: 0 !important;
         white-space: normal;
         text-align: left;
+        max-width: min(70vw, 240px);
+    }
+
+    .aegis-portal-title-line {
+        display: block;
+    }
+
+    .aegis-portal-title-line + .aegis-portal-title-line::before {
+        content: '';
+        margin: 0;
     }
 
     .aegis-portal-menu-toggle {
