@@ -56,6 +56,10 @@
     display: none;
 }
 
+.portal-drawer-overlay {
+    display: none;
+}
+
 .aegis-portal-logout {
     padding: 8px 14px;
     border: 1px solid #c00;
@@ -223,21 +227,22 @@
 }
 
 @media (max-width: 768px) {
-    .aegis-portal-root.is-warehouse-mode .aegis-portal-topbar {
+    .aegis-portal-topbar {
         grid-template-columns: auto 1fr auto;
     }
 
-    .aegis-portal-root.is-warehouse-mode .aegis-portal-title {
+    .aegis-portal-title {
         font-size: 16px;
         white-space: normal;
         text-align: left;
     }
 
-    .aegis-portal-root.is-warehouse-mode .aegis-portal-menu-toggle {
+    .aegis-portal-menu-toggle {
         display: inline-flex;
+        min-height: 44px;
     }
 
-    .aegis-portal-root.is-warehouse-mode .aegis-portal-sidebar {
+    .aegis-portal-sidebar {
         position: fixed;
         left: 0;
         top: 0;
@@ -251,11 +256,11 @@
         box-shadow: 6px 0 18px rgba(0, 0, 0, 0.12);
     }
 
-    .aegis-portal-root.is-warehouse-mode .aegis-portal-body.is-menu-open .aegis-portal-sidebar {
+    .aegis-portal-root.is-drawer-open .aegis-portal-sidebar {
         transform: translateX(0);
     }
 
-    .aegis-portal-root.is-warehouse-mode .portal-sidebar-backdrop {
+    .portal-drawer-overlay {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.4);
@@ -265,17 +270,33 @@
         display: none;
     }
 
-    .aegis-portal-root.is-warehouse-mode .aegis-portal-body.is-menu-open .portal-sidebar-backdrop {
+    .aegis-portal-root.is-drawer-open .portal-drawer-overlay {
         display: block;
     }
 
-    .aegis-portal-root.is-warehouse-mode .aegis-portal-body {
+    .aegis-portal-body {
         position: relative;
+        flex-direction: column;
     }
 
-    .aegis-portal-root.is-warehouse-mode .portal-nav-list .nav-item {
+    .aegis-portal-main {
+        width: 100%;
+    }
+
+    .portal-nav-list .nav-item {
         min-height: 52px;
         padding: 12px 14px;
+    }
+
+    .aegis-portal-button,
+    .aegis-portal-input,
+    .aegis-portal-select {
+        min-height: 44px;
+    }
+
+    .aegis-portal-input,
+    .aegis-portal-select {
+        padding: 10px 12px;
     }
 
     .aegis-workbench-grid {
@@ -290,9 +311,28 @@
     }
 }
 
+@media (max-width: 480px) {
+    .aegis-workbench-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .aegis-workbench-tile {
+        min-height: 110px;
+    }
+
+    .aegis-portal-panel {
+        padding: 14px;
+    }
+}
+
+body.aegis-portal-drawer-open {
+    overflow: hidden;
+}
+
 .aegis-table-wrap {
     overflow-x: auto;
     width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 .sku-thumb {

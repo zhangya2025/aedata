@@ -340,6 +340,7 @@ class AEGIS_Portal {
         $module_states = self::get_portal_module_states();
         $visible = self::get_visible_modules_for_user($user, $module_states);
         $modules = self::build_portal_modules($user, $visible, $module_states, $portal_url);
+        $allowed_modules = self::get_allowed_modules($user, $visible, $module_states);
 
         $dealer_notice = null;
         if (in_array('aegis_dealer', (array) $user->roles, true)) {
@@ -373,9 +374,7 @@ class AEGIS_Portal {
         }
 
         $default_panel = self::get_default_panel_for_user($user);
-        if (empty($requested)) {
-            $requested = $default_panel;
-        }
+        $requested = self::resolve_requested_panel($requested, $allowed_modules, $user, $default_panel);
 
         $registered = AEGIS_System::get_registered_modules();
         $is_virtual = in_array($requested, ['dashboard', 'workbench'], true);
@@ -385,12 +384,6 @@ class AEGIS_Portal {
         if (!$is_virtual && !isset($registered[$requested])) {
             $current_slug = $default_panel;
             $current_panel = self::render_module_panel($current_slug, $modules[$current_slug] ?? []);
-        } elseif (!$is_virtual && !isset($visible[$requested])) {
-            $current_slug = $default_panel;
-            $current_panel = self::render_access_denied_panel($portal_url, $default_panel);
-        } elseif (!$is_virtual && empty($module_states[$requested]['enabled'])) {
-            $label = $module_states[$requested]['label'] ?? $requested;
-            $current_panel = self::render_module_disabled_panel($portal_url, $default_panel, $label);
         } else {
             if (!isset($modules[$requested]) && !$is_virtual) {
                 $state = $module_states[$requested] ?? ['label' => $requested, 'enabled' => true];
@@ -449,6 +442,15 @@ class AEGIS_Portal {
             AEGIS_SYSTEM_URL . 'assets/js/portal.js',
             [],
             file_exists($js_path) ? filemtime($js_path) : AEGIS_Assets_Media::get_asset_version('assets/js/portal.js'),
+            true
+        );
+
+        $mobile_js_path = AEGIS_SYSTEM_PATH . 'assets/js/portal-mobile.js';
+        wp_enqueue_script(
+            'aegis-system-portal-mobile',
+            AEGIS_SYSTEM_URL . 'assets/js/portal-mobile.js',
+            [],
+            file_exists($mobile_js_path) ? filemtime($mobile_js_path) : AEGIS_Assets_Media::get_asset_version('assets/js/portal-mobile.js'),
             true
         );
     }
@@ -537,7 +539,13 @@ class AEGIS_Portal {
     protected static function build_portal_modules($user, $visible, $module_states, $portal_url) {
         $modules = [];
 
-        if (!AEGIS_System_Roles::is_warehouse_user($user)) {
+        if (AEGIS_System_Roles::is_warehouse_user($user) || in_array('aegis_dealer', (array) $user->roles, true)) {
+            $modules['workbench'] = [
+                'label'   => '工作台',
+                'enabled' => true,
+                'href'    => add_query_arg('m', 'workbench', $portal_url),
+            ];
+        } else {
             $modules['dashboard'] = [
                 'label'   => '控制台',
                 'enabled' => true,
@@ -827,6 +835,70 @@ class AEGIS_Portal {
         }
 
         return 'dashboard';
+    }
+
+    /**
+     * 获取当前用户可见且已启用的模块集合。
+     *
+     * @param WP_User $user
+     * @param array   $visible
+     * @param array   $module_states
+     * @return array
+     */
+    protected static function get_allowed_modules($user, $visible, $module_states) {
+        $allowed = [
+            'dashboard' => true,
+            'workbench' => true,
+        ];
+
+        foreach ($visible as $slug => $info) {
+            if (empty($info['enabled'])) {
+                continue;
+            }
+            $allowed[$slug] = true;
+        }
+
+        if (AEGIS_System_Roles::user_can_manage_system($user)) {
+            $allowed['system_settings'] = true;
+            $allowed['aegis_typography'] = true;
+        }
+
+        if (!empty($module_states['public_query']['enabled'])) {
+            $allowed['public_query'] = true;
+        }
+
+        return $allowed;
+    }
+
+    /**
+     * 解析请求模块，确保落地到可访问页面。
+     *
+     * @param string $requested
+     * @param array  $allowed_modules
+     * @param WP_User $user
+     * @param string $default_panel
+     * @return string
+     */
+    protected static function resolve_requested_panel($requested, $allowed_modules, $user, $default_panel) {
+        if (!empty($requested) && isset($allowed_modules[$requested])) {
+            return $requested;
+        }
+
+        if (wp_is_mobile() && AEGIS_System_Roles::is_warehouse_user($user)) {
+            $default_panel = 'workbench';
+        }
+
+        if (isset($allowed_modules[$default_panel])) {
+            return $default_panel;
+        }
+
+        foreach ($allowed_modules as $slug => $enabled) {
+            if ($enabled) {
+                return $slug;
+            }
+        }
+
+        return $default_panel;
     }
 
     /**
