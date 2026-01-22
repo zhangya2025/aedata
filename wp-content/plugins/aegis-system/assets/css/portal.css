@@ -535,6 +535,77 @@ body.aegis-portal-drawer-open {
     transition: transform 0.2s ease;
 }
 
+.aegis-scan-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.86);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.aegis-scan-overlay[hidden] {
+    display: none;
+}
+
+.aegis-scan-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    font-size: 16px;
+}
+
+.aegis-scan-close {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: transparent;
+    color: #fff;
+    font-size: 24px;
+    line-height: 1;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.aegis-scan-video {
+    width: 100%;
+    height: auto;
+    max-height: calc(100vh - 220px);
+    background: #000;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.aegis-scan-frame {
+    width: min(80vw, 360px);
+    height: min(40vh, 220px);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+.aegis-scan-hint,
+.aegis-scan-status {
+    color: #fff;
+    font-size: 14px;
+    text-align: center;
+}
+
+.aegis-scan-status {
+    min-height: 20px;
+}
+
 .aegis-inbound-page .aegis-collapsible.is-open > .aegis-collapsible__toggle::after,
 .aegis-shipments-page .aegis-collapsible.is-open > .aegis-collapsible__toggle::after {
     transform: rotate(180deg);
