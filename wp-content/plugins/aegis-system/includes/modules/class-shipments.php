@@ -140,11 +140,19 @@ class AEGIS_Shipments {
     }
 
     protected static function enqueue_scanner_assets() {
+        $quagga_path = AEGIS_SYSTEM_PATH . 'assets/vendor/quagga2.min.js';
+        wp_enqueue_script(
+            'aegis-system-quagga2',
+            AEGIS_SYSTEM_URL . 'assets/vendor/quagga2.min.js',
+            [],
+            file_exists($quagga_path) ? filemtime($quagga_path) : AEGIS_Assets_Media::get_asset_version('assets/vendor/quagga2.min.js'),
+            true
+        );
         $js_path = AEGIS_SYSTEM_PATH . 'assets/js/scanner-1d.js';
         wp_enqueue_script(
             'aegis-system-scanner-1d',
             AEGIS_SYSTEM_URL . 'assets/js/scanner-1d.js',
-            [],
+            ['aegis-system-quagga2'],
             file_exists($js_path) ? filemtime($js_path) : AEGIS_Assets_Media::get_asset_version('assets/js/scanner-1d.js'),
             true
         );
