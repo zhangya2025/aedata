@@ -2,7 +2,14 @@
     const DETECT_INTERVAL = 260;
     const COOLDOWN_MS = 1200;
     const FORMATS = ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39'];
-    const QUAGGA_READERS = ['code_128', 'ean', 'ean_8', 'upc', 'upc_e', 'code_39'];
+    const QUAGGA_READERS = [
+        'code_128_reader',
+        'ean_reader',
+        'ean_8_reader',
+        'upc_reader',
+        'upc_e_reader',
+        'code_39_reader',
+    ];
     let activeSession = null;
 
     const lockBody = () => document.body.classList.add('aegis-scan-open');
@@ -66,6 +73,17 @@
             }
             window.Quagga.stop();
         }
+        if (overlay) {
+            const wrap = overlay.querySelector('.aegis-scan-video-wrap');
+            if (wrap) {
+                wrap.querySelectorAll('video, canvas').forEach((node) => {
+                    if (node.classList.contains('aegis-scan-video')) {
+                        return;
+                    }
+                    node.remove();
+                });
+            }
+        }
         if (stream) {
             stream.getTracks().forEach((track) => track.stop());
         }
@@ -82,9 +100,23 @@
         activeSession = null;
     };
 
+    const getCameraErrorMessage = (error) => {
+        if (!window.isSecureContext) {
+            return '仅 HTTPS 支持相机扫码';
+        }
+        const name = error && error.name;
+        if (name === 'NotAllowedError' || name === 'SecurityError') {
+            return '相机权限被拒绝，请在浏览器设置中允许相机权限';
+        }
+        if (name === 'NotFoundError') {
+            return '未检测到摄像头设备';
+        }
+        return '相机启动失败，请检查权限/浏览器兼容性';
+    };
+
     const openScanner = (trigger) => {
         const container = trigger.closest('.aegis-inbound-page, .aegis-shipments-page') || document.body;
-        const overlay = container.querySelector('.aegis-scan-overlay');
+        const overlay = container.querySelector('.aegis-scan-overlay') || document.querySelector('.aegis-scan-overlay');
         if (!overlay) {
             return;
         }
@@ -167,6 +199,11 @@
                 setStatus(overlay, '相机容器加载失败，请手动输入。');
                 return;
             }
+            const preservedVideo = target.querySelector('.aegis-scan-video');
+            target.innerHTML = '';
+            if (preservedVideo) {
+                target.appendChild(preservedVideo);
+            }
 
             const quaggaHandler = (result) => {
                 const code = result && result.codeResult ? result.codeResult.code : '';
@@ -192,7 +229,7 @@
                 },
                 (err) => {
                     if (err) {
-                        setStatus(overlay, '相机启动失败，请检查权限。');
+                        setStatus(overlay, getCameraErrorMessage(err));
                         return;
                     }
                     window.Quagga.onDetected(quaggaHandler);
@@ -261,7 +298,9 @@
                             const rawValue = codes[0].rawValue || '';
                             handleDetected(rawValue);
                         })
-                        .catch(() => {})
+                        .catch((error) => {
+                            setStatus(overlay, getCameraErrorMessage(error));
+                        })
                         .finally(() => {
                             detecting = false;
                         });
@@ -273,18 +312,23 @@
                     intervalId,
                 };
             })
-            .catch(() => {
-                setStatus(overlay, '相机权限被拒绝，请手动输入。');
+            .catch((error) => {
+                setStatus(overlay, getCameraErrorMessage(error));
             });
     };
 
     const init = () => {
         const triggers = document.querySelectorAll('[data-aegis-scan="1"]');
-        if (!triggers.length) {
-            return;
-        }
         triggers.forEach((trigger) => {
             trigger.addEventListener('click', () => openScanner(trigger));
+        });
+        document.addEventListener('click', (event) => {
+            const target = event.target.closest('[data-aegis-scan="1"]');
+            if (!target) {
+                return;
+            }
+            event.preventDefault();
+            openScanner(target);
         });
 
         document.querySelectorAll('.aegis-scan-overlay').forEach((overlay) => {
