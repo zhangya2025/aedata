@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Plugins - WooCommerce - Stable (latest release) package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-10 16:43:13+0000\n"
+"PO-Revision-Date: 2026-01-21 15:55:04+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -10,6 +10,10 @@ msgstr ""
 "X-Generator: GlotPress/4.0.3\n"
 "Language: ja_JP\n"
 "Project-Id-Version: Plugins - WooCommerce - Stable (latest release)\n"
+
+#: src/StoreApi/Utilities/OrderAuthorizationTrait.php:76
+msgid "No billing email provided."
+msgstr "請求先メールアドレスが入力されていません。"
 
 #: assets/client/blocks/category-title/block.json
 msgctxt "block description"
@@ -983,6 +987,26 @@ msgstr "カタログファイルがすでに存在するかどうかにかかわ
 #: includes/rest-api/Controllers/Version3/class-wc-rest-products-catalog-controller.php:53
 msgid "Product/variation fields to include in the catalog. Can be an array or comma-separated string."
 msgstr "カタログに含める商品 / バリエーションのフィールド。 配列またはカンマ区切りの文字列を指定できます。"
+
+#. translators: %1$s: Authorization ID, %2$s: open link tag, %3$s: close link
+#. tag
+#: includes/gateways/paypal/includes/class-wc-gateway-paypal-request.php:423
+msgid ". Authorization ID: %1$s not found. Please log into your %2$sPayPal account%3$s to capture the payment"
+msgstr "。 認証 ID: %1$s が見つかりません。 支払いを受け取るには %2$sPayPal%3$s アカウントにログインしてください"
+
+#. translators: %s: Currency code
+#: includes/gateways/paypal/includes/class-wc-gateway-paypal-notices.php:226
+msgid "PayPal Standard does not support your store currency (%s)."
+msgstr "PayPal Standard はストアの通貨 (%s) に対応していません。"
+
+#: includes/gateways/paypal/includes/class-wc-gateway-paypal-notices.php:197
+msgid "PayPal Account Restricted"
+msgstr "PayPal アカウントが制限されています"
+
+#. translators: 1: opening <a> tag, 2: closing </a> tag
+#: includes/gateways/paypal/includes/class-wc-gateway-paypal-notices.php:190
+msgid "Your PayPal account has been restricted by PayPal. This may prevent customers from completing payments. Please %1$scontact PayPal support%2$s to resolve this issue and restore full functionality to your account."
+msgstr "ご利用の PayPal アカウントは PayPal によって制限されています。 そのため、顧客が支払いを完了できなくなる可能性があります。 この問題を解決してアカウントの完全な機能を復元するには、%1$sPayPal サポートにお問い合わせください%2$s。"
 
 #. translators: %s: Link to PayPal sandbox testing guide page
 #: includes/gateways/paypal/class-wc-gateway-paypal.php:181

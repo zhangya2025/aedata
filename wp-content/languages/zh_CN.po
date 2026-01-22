@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the WordPress - 6.9.x - Development package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-03 08:19:35+0000\n"
+"PO-Revision-Date: 2026-01-06 20:16:48+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -294,67 +294,67 @@ msgstr "标签"
 #: wp-includes/blocks/terms-query/block.json
 msgctxt "block keyword"
 msgid "taxonomy"
-msgstr "分类"
+msgstr "分类法"
 
 #: wp-includes/blocks/terms-query/block.json
 msgctxt "block keyword"
 msgid "terms"
-msgstr "terms"
+msgstr "分类项"
 
 #: wp-includes/blocks/terms-query/block.json
 msgctxt "block description"
 msgid "An advanced block that allows displaying taxonomy terms based on different query parameters and visual configurations."
-msgstr "一个可以根据不同的查询参数和视觉配置来显示分类术语的高级区块。"
+msgstr "一个高级区块，允许根据不同的查询参数和视觉配置显示分类法内容。"
 
 #: wp-includes/blocks/terms-query/block.json
 msgctxt "block title"
 msgid "Terms Query"
-msgstr "术语查询"
+msgstr "分类项查询"
 
 #: wp-includes/blocks/term-template/block.json
 msgctxt "block description"
 msgid "Contains the block elements used to render a taxonomy term, like the name, description, and more."
-msgstr "包含用于渲染分类术语的区块元素，如名称、描述等。"
+msgstr "包含用于渲染分类项（如名称、描述等）的区块元素。"
 
 #: wp-includes/blocks/term-template/block.json
 msgctxt "block title"
 msgid "Term Template"
-msgstr "术语模板"
+msgstr "分类项模板"
 
 #: wp-includes/blocks/term-name/block.json
 msgctxt "block keyword"
 msgid "term title"
-msgstr "术语标题"
+msgstr "项标题"
 
 #: wp-includes/blocks/term-name/block.json
 msgctxt "block description"
 msgid "Displays the name of a taxonomy term."
-msgstr "显示分类术语的名称"
+msgstr "显示分类法项的名称。"
 
 #: wp-includes/blocks/term-name/block.json
 msgctxt "block title"
 msgid "Term Name"
-msgstr "术语名称"
+msgstr "项名称"
 
 #: wp-includes/blocks/term-count/block.json
 msgctxt "block description"
 msgid "Displays the post count of a taxonomy term."
-msgstr "显示分类术语的文章数量"
+msgstr "显示分类法项的文章计数。"
 
 #: wp-includes/blocks/term-count/block.json
 msgctxt "block title"
 msgid "Term Count"
-msgstr "术语数量"
+msgstr "项目计数"
 
 #: wp-includes/blocks/site-tagline/block.json
 msgctxt "block description"
 msgid "Describe in a few words what this site is about. This is important for search results, sharing on social media, and gives overall clarity to visitors."
-msgstr "这个区块用于简单说明这个网站的内容，这对于搜索引擎的搜索结果、社交媒体分享以及让访客全面了解网站内容都很重要。"
+msgstr "用寥寥数语描述本站点。这对搜索结果、社交媒体分享非常重要，也能让访客对站点一目了然。"
 
 #: wp-includes/blocks/post-time-to-read/block.json
 msgctxt "block description"
 msgid "Show minutes required to finish reading the post. Can also show a word count."
-msgstr "显示读完这篇文章所需的分钟数，同时也可以显示字数统计。"
+msgstr "显示阅读文章所需的分钟数。也可以显示字数。"
 
 #: wp-includes/blocks/post-time-to-read/block.json
 msgctxt "block title"
@@ -389,7 +389,7 @@ msgstr "评论计数"
 #: wp-includes/blocks/math/block.json
 msgctxt "block keyword"
 msgid "mathematics"
-msgstr "mathematics"
+msgstr "数学"
 
 #: wp-includes/blocks/math/block.json
 msgctxt "block keyword"
@@ -399,12 +399,12 @@ msgstr "latex"
 #: wp-includes/blocks/math/block.json
 msgctxt "block keyword"
 msgid "formula"
-msgstr "formula"
+msgstr "公式"
 
 #: wp-includes/blocks/math/block.json
 msgctxt "block keyword"
 msgid "equation"
-msgstr "equation"
+msgstr "等式"
 
 #: wp-includes/blocks/math/block.json
 msgctxt "block description"
@@ -419,7 +419,7 @@ msgstr "数学"
 #: wp-includes/blocks/accordion/block.json
 msgctxt "block description"
 msgid "Displays a foldable layout that groups content in collapsible sections."
-msgstr "显示可折叠的布局，将内容分成可折叠的部分。"
+msgstr "显示可折叠布局，将内容分组到可折叠部分中。"
 
 #: wp-includes/blocks/accordion/block.json
 msgctxt "block title"
@@ -429,17 +429,17 @@ msgstr "手风琴"
 #: wp-includes/blocks/accordion-panel/block.json
 msgctxt "block description"
 msgid "Contains the hidden or revealed content beneath the heading."
-msgstr "包含标题下隐藏或揭示的内容。"
+msgstr "包含标题下方隐藏或显示的内容。"
 
 #: wp-includes/blocks/accordion-panel/block.json
 msgctxt "block title"
 msgid "Accordion Panel"
-msgstr "手风琴面板"
+msgstr "手风琴 面板"
 
 #: wp-includes/blocks/accordion-item/block.json
 msgctxt "block description"
 msgid "Wraps the heading and panel in one unit."
-msgstr "将标题和面板包裹在一个单元中。"
+msgstr "将标题和面板包装在一个单元中。"
 
 #: wp-includes/blocks/accordion-item/block.json
 msgctxt "block title"
@@ -449,12 +449,12 @@ msgstr "手风琴项目"
 #: wp-includes/blocks/accordion-heading/block.json
 msgctxt "block description"
 msgid "Displays a heading that toggles the accordion panel."
-msgstr "显示切换手风琴面板的标题。"
+msgstr "显示用于切换手风琴面板的标题。"
 
 #: wp-includes/blocks/accordion-heading/block.json
 msgctxt "block title"
 msgid "Accordion Heading"
-msgstr "手风琴标题"
+msgstr "手风琴式标题"
 
 #: wp-includes/js/dist/editor.js:6946
 #: wp-admin/includes/class-wp-posts-list-table.php:1934
@@ -493,7 +493,7 @@ msgstr "触发用户错误："
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:153
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:594
 msgid "Sorry, this post type does not support notes."
-msgstr "很抱歉，此文章类型不支持批注。"
+msgstr "抱歉，此文章类型不支持批注。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-attachments-controller.php:1592
 msgid "Whether to flip in the vertical direction."
@@ -521,11 +521,11 @@ msgstr "翻转"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-attachments-controller.php:1379
 msgid "Limit result set to attachments of a particular MIME type or MIME types."
-msgstr "将结果集限制为特定 MIME 类型或多个 MIME 类型的附件。"
+msgstr "将结果集限制为特定 MIME 类型的附件。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-attachments-controller.php:1369
 msgid "Limit result set to attachments of a particular media type or media types."
-msgstr "将结果集限制为特定媒体类型或多个媒体类型的附件。"
+msgstr "将结果集限制为特定媒体类型的附件。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-attachments-controller.php:677
 msgid "Unable to flip this image."
@@ -627,12 +627,12 @@ msgstr "文章 ID 必须大于 0。"
 #. translators: Note notification email subject. 1: Site title, 2: Post title.
 #: wp-includes/pluggable.php:1910
 msgid "[%1$s] Note: \"%2$s\""
-msgstr "[%1$s] 批注：「%2$s」"
+msgstr "[%1$s] 批注：“%2$s”"
 
 #. translators: %s: Note text.
 #: wp-includes/pluggable.php:1907
 msgid "resolved/reopened"
-msgstr "已解决/重新开放"
+msgstr "已解决/已重新开启"
 
 #. translators: %s: Note text.
 #. translators: %s: note excerpt
@@ -643,7 +643,7 @@ msgstr "批注：%s"
 #. translators: %s: Post title.
 #: wp-includes/pluggable.php:1901
 msgid "New note on your post \"%s\""
-msgstr "您的文章《%s》有新批注"
+msgstr "您的文章“%s”有新批注"
 
 #: wp-includes/ms-functions.php:573
 msgid "That email address is pending activation and is not available for new registration. If you made a previous attempt with this email address, please check your inbox for an activation email. If left unconfirmed, it will become available in a couple of days."
@@ -807,7 +807,7 @@ msgstr "Skype"
 #: wp-includes/blocks/social-link.php:265
 msgctxt "social link block variation name"
 msgid "Share Icon"
-msgstr "Share Icon"
+msgstr "分享图标"
 
 #: wp-includes/blocks/social-link.php:261
 #: wp-includes/js/dist/block-library.js:49187
@@ -855,7 +855,7 @@ msgstr "Mastodon"
 #: wp-includes/js/dist/block-library.js:49144
 msgctxt "social link block variation name"
 msgid "Mail"
-msgstr "Mail"
+msgstr "电子邮件"
 
 #: wp-includes/blocks/social-link.php:229
 #: wp-includes/js/dist/block-library.js:49138
@@ -963,7 +963,7 @@ msgstr "CodePen"
 #: wp-includes/js/dist/block-library.js:49036
 msgctxt "social link block variation name"
 msgid "Link"
-msgstr "Link"
+msgstr "链接"
 
 #: wp-includes/blocks/social-link.php:157
 #: wp-includes/js/dist/block-library.js:49030
@@ -1000,21 +1000,21 @@ msgstr "500px"
 #: wp-includes/blocks/query-title.php:69
 #: wp-includes/js/dist/block-library.js:44916
 msgid "Post Type: \"%s\""
-msgstr "文章类型：「%s」"
+msgstr "文章类型：“%s”"
 
 #. translators: %s: the number of characters in the post.
 #: wp-includes/blocks/post-time-to-read.php:151
 #: wp-includes/js/dist/block-library.js:40444
 msgid "%s character"
 msgid_plural "%s characters"
-msgstr[0] "%s 个字符"
+msgstr[0] "%s字"
 
 #. translators: 1: minimum minutes, 2: maximum minutes to read the post.
 #: wp-includes/blocks/post-time-to-read.php:128
 #: wp-includes/js/dist/block-library.js:40421
 msgctxt "Range of minutes to read"
 msgid "%1$s–%2$s minutes"
-msgstr "%1$s-%2$s 分钟"
+msgstr "%1$s–%2$s 分钟"
 
 #. translators: 1: Number of comments, 2: post title
 #: wp-includes/blocks/post-comments-link.php:49
@@ -1030,7 +1030,7 @@ msgstr "<span class=\"screen-reader-text\">%s</span>无评论"
 #: wp-includes/block-bindings/term-data.php:112
 msgctxt "block bindings source"
 msgid "Term Data"
-msgstr "术语数据"
+msgstr "项数据"
 
 #: wp-includes/block-bindings/post-data.php:91
 msgctxt "block bindings source"
@@ -1319,7 +1319,7 @@ msgstr "博客"
 #: wp-includes/blocks/query-total/block.json
 msgctxt "block description"
 msgid "Display the total number of results in a query."
-msgstr "显示查询结果总数。"
+msgstr "显示查询结果的总数。"
 
 #: wp-includes/blocks/query-total/block.json
 msgctxt "block title"
@@ -1368,7 +1368,7 @@ msgstr "处理您的请求时发生错误。请稍后再试。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-themes-controller.php:665
 msgid "A list of allowed area values for template parts."
-msgstr "模板组件的允许面积值列表。"
+msgstr "模板组件允许的区域值列表。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-themes-controller.php:646
 msgid "A list of default template types."
@@ -1679,12 +1679,12 @@ msgstr[0] "找到 %d 个结果"
 #. of posts
 #: wp-includes/blocks/query-total.php:54
 msgid "Displaying %1$s – %2$s of %3$s"
-msgstr "显示 %1$s – %2$s，共 %3$s"
+msgstr "正在显示第 %1$s 到 %2$s 个，共 %3$s 个"
 
 #. translators: 1: Start index of posts, 2: Total number of posts
 #: wp-includes/blocks/query-total.php:47
 msgid "Displaying %1$s of %2$s"
-msgstr "显示 %1$s，共 %2$s"
+msgstr "正在显示第 %1$s 个，共 %2$s 个"
 
 #: wp-includes/blocks/image.php:199
 msgid "Enlarge"
@@ -1697,7 +1697,7 @@ msgstr "该页面是空白的，因为模板是空的。您可以在网站编辑
 #. translators: %s: Post format name.
 #: wp-includes/block-template-utils.php:220
 msgid "Displays the %s post format archive."
-msgstr "显示 %s 文章格式归档。"
+msgstr "显示 %s 文章形式归档。"
 
 #. translators: %s: Post format name.
 #: wp-includes/block-template-utils.php:215
@@ -1717,7 +1717,7 @@ msgstr "区块元数据集合无法注册为以下目录或其父目录之一：
 #: wp-includes/theme.json
 msgctxt "Shadow name"
 msgid "Crisp"
-msgstr "明晰"
+msgstr "清爽"
 
 #: wp-includes/theme.json
 msgctxt "Shadow name"
@@ -1732,7 +1732,7 @@ msgstr "锐利"
 #: wp-includes/theme.json
 msgctxt "Shadow name"
 msgid "Deep"
-msgstr "加深"
+msgstr "深邃"
 
 #: wp-includes/theme.json
 msgctxt "Shadow name"
@@ -1742,17 +1742,17 @@ msgstr "自然"
 #: wp-includes/theme.json
 msgctxt "Aspect ratio name"
 msgid "Tall - 9:16"
-msgstr "高 - 9:16"
+msgstr "高幅 - 9:16"
 
 #: wp-includes/theme.json
 msgctxt "Aspect ratio name"
 msgid "Wide - 16:9"
-msgstr "宽 - 16:9"
+msgstr "宽幅 - 16:9"
 
 #: wp-includes/theme.json
 msgctxt "Aspect ratio name"
 msgid "Classic Portrait - 2:3"
-msgstr "经典竖向 - 2:3"
+msgstr "经典纵向 - 2:3"
 
 #: wp-includes/theme.json
 msgctxt "Aspect ratio name"
@@ -1762,7 +1762,7 @@ msgstr "经典 - 3:2"
 #: wp-includes/theme.json
 msgctxt "Aspect ratio name"
 msgid "Portrait - 3:4"
-msgstr "竖向 - 3:4"
+msgstr "纵向 - 3:4"
 
 #: wp-includes/theme.json
 msgctxt "Aspect ratio name"
@@ -2993,7 +2993,7 @@ msgstr "摘要"
 #: wp-includes/blocks/pattern/block.json
 msgctxt "block title"
 msgid "Pattern Placeholder"
-msgstr "样板占位符"
+msgstr "区块样板占位符"
 
 #: wp-includes/blocks/footnotes/block.json
 msgctxt "block keyword"
@@ -3528,19 +3528,19 @@ msgstr "请检查 PHP 扩展 %s 已安装并启用。"
 msgid "When using the %1$s constant, make sure to set these globals to an array: %2$s."
 msgstr "使用 %1$s 常量时，请确保将这些全局变量设置为数组：%2$s。"
 
-#: wp-includes/html-api/class-wp-html-tag-processor.php:4343
+#: wp-includes/html-api/class-wp-html-tag-processor.php:4345
 msgid "The query argument must be an array or a tag name."
 msgstr "查询参数必须是数组或标签名称。"
 
-#: wp-includes/html-api/class-wp-html-tag-processor.php:3961
+#: wp-includes/html-api/class-wp-html-tag-processor.php:3963
 msgid "Invalid attribute name."
 msgstr "属性名称无效。"
 
-#: wp-includes/html-api/class-wp-html-tag-processor.php:2629
+#: wp-includes/html-api/class-wp-html-tag-processor.php:2631
 msgid "Too many calls to seek() - this can lead to performance issues."
 msgstr "seek() 调用过多 - 这可能导致性能问题。"
 
-#: wp-includes/html-api/class-wp-html-tag-processor.php:2611
+#: wp-includes/html-api/class-wp-html-tag-processor.php:2613
 msgid "Unknown bookmark name."
 msgstr "未知书签名称。"
 
@@ -3710,7 +3710,7 @@ msgstr "原始大小值必须是字符串、整数或浮点数。"
 #: wp-includes/blocks/list-item/block.json
 msgctxt "block title"
 msgid "List Item"
-msgstr "列表项目"
+msgstr "列表项"
 
 #: wp-includes/blocks/comments/block.json
 msgctxt "block title"
@@ -3797,11 +3797,11 @@ msgstr "修订版本未启用。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-templates-controller.php:89
 msgid "The template prefix for the created template. This is used to extract the main template type, e.g. in `taxonomy-books` extracts the `taxonomy`"
-msgstr "所创建模板的模板前缀。 这被用于提取主模板类型，例如在「taxonomy-books」中将提取「taxonomy」。"
+msgstr "所创建模板的模板前缀。用于提取主模板类型，例如在 `taxonomy-books` 中提取 `taxonomy`"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-templates-controller.php:85
 msgid "Indicates if a template is custom or part of the template hierarchy"
-msgstr "指明模板是自定义的，或是属于模板层级的一部分"
+msgstr "表明模板是自定义的，还是属于模板层级的一部分"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-templates-controller.php:80
 msgid "The slug of the template to get the fallback for"
@@ -4572,7 +4572,7 @@ msgstr "显示一个区块样板。"
 #: wp-includes/blocks/block/block.json
 msgctxt "block title"
 msgid "Pattern"
-msgstr "样板"
+msgstr "区块样板"
 
 #: wp-includes/blocks/navigation/block.json
 msgctxt "block description"
@@ -6190,7 +6190,7 @@ msgstr "在前面显示"
 #: wp-includes/post.php:320 wp-includes/js/dist/block-editor.js:49801
 #: wp-includes/js/dist/block-editor.js:56676
 msgid "Patterns list"
-msgstr "样板列表"
+msgstr "区块样板列表"
 
 #. translators: %s: taxonomy's singular name
 #. translators: Hidden accessibility text. %s: Link name.
@@ -6648,7 +6648,7 @@ msgstr "按评论属性对集合进行排序。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:1608
 msgid "Type of the comment."
-msgstr "评论的类型。"
+msgstr "评论类型。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:1581
 msgid "URL to the comment."
@@ -6992,7 +6992,7 @@ msgstr "引文"
 #: wp-includes/blocks/preformatted/block.json
 msgctxt "block title"
 msgid "Preformatted"
-msgstr "预格式化"
+msgstr "预格式"
 
 #: wp-includes/blocks/nextpage/block.json
 msgctxt "block title"
@@ -7665,7 +7665,7 @@ msgstr "此主题未适配您当前的 WordPress 版本。"
 #: wp-admin/includes/class-wp-plugins-list-table.php:1457
 #: wp-admin/includes/plugin.php:1153 wp-admin/includes/theme.php:928
 #: wp-admin/includes/theme.php:959 wp-admin/includes/theme.php:1005
-#: wp-admin/includes/theme.php:1028 wp-admin/includes/update-core.php:1152
+#: wp-admin/includes/theme.php:1028 wp-admin/includes/update-core.php:1153
 #: wp-admin/includes/update.php:786 wp-admin/includes/update.php:813
 #: wp-admin/install.php:248 wp-admin/theme-install.php:358
 #: wp-admin/theme-install.php:381 wp-admin/theme-install.php:563
@@ -9908,7 +9908,7 @@ msgstr "提交复审"
 #: wp-includes/js/dist/editor.js:6529 wp-includes/js/dist/editor.js:21142
 #: wp-admin/includes/post.php:1587 wp-admin/includes/post.php:1612
 msgid "Permalink:"
-msgstr "永久链接："
+msgstr "固定链接："
 
 #: wp-includes/media.php:5052 wp-includes/js/dist/format-library.js:429
 msgid "Replace image"
@@ -11173,7 +11173,7 @@ msgstr "%s："
 #: wp-includes/pluggable.php:1903 wp-includes/pluggable.php:1917
 #: wp-includes/pluggable.php:2104
 msgid "Author: %1$s (IP address: %2$s, %3$s)"
-msgstr "评论者：%1$s（IP 地址：%2$s，%3$s）"
+msgstr "作者：%1$s（IP 地址：%2$s，%3$s）"
 
 #. translators: 1: Trackback/pingback website name, 2: Website IP address, 3:
 #. Website hostname.
@@ -11626,7 +11626,7 @@ msgstr "不允许使用某些 HTML 标记，其中包括："
 
 #: wp-includes/widgets/class-wp-widget-custom-html.php:54
 msgid "Custom HTML"
-msgstr "自定义 HTML"
+msgstr "自定义HTML"
 
 #: wp-includes/widgets/class-wp-widget-custom-html.php:46
 msgid "Arbitrary HTML code."
@@ -12312,7 +12312,7 @@ msgstr "RSS 错误："
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:655
 msgid "Cannot create a comment with that type."
-msgstr "无法创建此类型的评论。"
+msgstr "无法创建该类型的评论。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-users-controller.php:798
 msgid "Invalid slug."
@@ -12457,11 +12457,11 @@ msgstr "抱歉，您不能阅读此评论对应的文章。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:455
 msgid "Sorry, you are not allowed to read this comment."
-msgstr "抱歉，您不能阅读此评论。"
+msgstr "抱歉，您无权阅读此评论。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:144
 msgid "Sorry, you are not allowed to read comments without a post."
-msgstr "抱歉，您不能阅读没有对应文章的评论。"
+msgstr "抱歉，您无法阅读没有对应文章的评论。"
 
 #: wp-includes/theme.php:2443
 msgctxt "Theme starter content"
@@ -13141,7 +13141,7 @@ msgstr "文章已经被删除。"
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:445
 #: wp-admin/edit-comments.php:14
 msgid "Sorry, you are not allowed to edit comments."
-msgstr "抱歉，您不能编辑评论。"
+msgstr "抱歉，您无法编辑评论。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-plugins-controller.php:228
 msgid "Sorry, you are not allowed to manage this plugin."
@@ -13421,7 +13421,7 @@ msgstr "创建评论失败。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:709
 msgid "Creating a comment requires valid author name and email values."
-msgstr "需要有效的评论者名称及邮箱地址来创建评论。"
+msgstr "创建评论需要有效的作者姓名和电子邮箱。"
 
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:646
 msgid "Cannot create existing comment."
@@ -13583,7 +13583,7 @@ msgstr "「%s」设置组已被移除，请使用其他设置组。"
 
 #: wp-includes/option.php:2944 wp-includes/js/dist/editor.js:6947
 msgid "Allow link notifications from other blogs (pingbacks and trackbacks) on new articles."
-msgstr "允许其他博客发送链接通知（pingback 和 trackback）到新文章。"
+msgstr "允许在文章中接收来自其他博客的链接通知（Pingback 和 Trackback）。"
 
 #: wp-includes/option.php:2897
 msgid "Blog pages show at most."
@@ -14601,7 +14601,7 @@ msgstr "任务完成。信息 %s 已删除。"
 msgid "Posted title:"
 msgstr "文章标题："
 
-#: wp-mail.php:256 wp-admin/includes/plugin-install.php:660
+#: wp-mail.php:256 wp-admin/includes/plugin-install.php:658
 msgid "Author:"
 msgstr "作者："
 
@@ -20267,7 +20267,7 @@ msgstr "[%1$s] 评论：「%2$s」"
 
 #: wp-includes/pluggable.php:1908
 msgid "You can see all notes on this post here:"
-msgstr "您可在这里查看这篇文章的所有批注："
+msgstr "您可在此查看该文章的所有批注："
 
 #: wp-includes/ms-load.php:502
 msgid "If you are still stuck with this message, then check that your database contains the following tables:"
@@ -21390,7 +21390,7 @@ msgstr "&laquo; 上一页"
 #: wp-includes/class-wp-xmlrpc-server.php:3957 wp-includes/comment.php:3681
 #: wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php:626
 msgid "Sorry, comments are closed for this item."
-msgstr "抱歉，该项目的评论已关闭。"
+msgstr "抱歉，此项目的评论已关闭。"
 
 #: wp-includes/admin-bar.php:1096
 #: wp-includes/class-wp-customize-widgets.php:419
@@ -22622,7 +22622,7 @@ msgstr "「%s」的搜索结果"
 #: wp-admin/includes/class-wp-media-list-table.php:554
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:710
 #: wp-admin/includes/class-wp-privacy-requests-table.php:487
-#: wp-admin/includes/plugin-install.php:665 wp-admin/includes/revision.php:254
+#: wp-admin/includes/plugin-install.php:663 wp-admin/includes/revision.php:254
 #: wp-admin/includes/revision.php:297
 msgid "%s ago"
 msgstr "%s 前"

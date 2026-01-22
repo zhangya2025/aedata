@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the WordPress - 6.9.x - Development - Administration package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-22 07:28:43+0000\n"
+"PO-Revision-Date: 2026-01-08 15:07:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -622,7 +622,7 @@ msgstr "すべての新情報を見る"
 #. translators: %s: WordPress version number.
 #: wp-admin/about.php:33
 msgid "https://wordpress.org/download/releases/%s/"
-msgstr "https://wordpress.org/download/releases/%s/"
+msgstr "https://ja.wordpress.org/download/releases/%s/"
 
 #. translators: %s: Version number.
 #: wp-admin/about.php:163
@@ -649,8 +649,8 @@ msgid "<strong>Error:</strong> %1$s requires %2$d plugin to be installed and act
 msgid_plural "<strong>Error:</strong> %1$s requires %2$d plugins to be installed and activated: %3$s."
 msgstr[0] "<strong>エラー:</strong> %1$s を使用するには%2$d件のプラグインのインストールと有効化が必須です: %3$s。"
 
-#: wp-admin/includes/plugin-install.php:973
-#: wp-admin/includes/plugin-install.php:978
+#: wp-admin/includes/plugin-install.php:971
+#: wp-admin/includes/plugin-install.php:976
 msgctxt "plugin"
 msgid "Update Now"
 msgstr "今すぐ更新"
@@ -715,9 +715,9 @@ msgstr "サイトネットワークで停止"
 #: wp-admin/includes/class-wp-plugins-list-table.php:611
 #: wp-admin/includes/class-wp-plugins-list-table.php:942
 #: wp-admin/includes/class-wp-plugins-list-table.php:959
-#: wp-admin/includes/plugin-install.php:879
-#: wp-admin/includes/plugin-install.php:993
-#: wp-admin/includes/plugin-install.php:1024 wp-admin/js/updates.js:980
+#: wp-admin/includes/plugin-install.php:877
+#: wp-admin/includes/plugin-install.php:991
+#: wp-admin/includes/plugin-install.php:1022 wp-admin/js/updates.js:980
 #: wp-admin/js/updates.js:1025
 msgctxt "plugin"
 msgid "Activate"
@@ -747,8 +747,8 @@ msgstr "WordPress のバージョンは %1$s ですが、新しいテーマの�
 #: wp-admin/includes/class-wp-plugins-list-table.php:611
 #: wp-admin/includes/class-wp-plugins-list-table.php:836
 #: wp-admin/includes/class-wp-plugins-list-table.php:853
-#: wp-admin/includes/plugin-install.php:1006
-#: wp-admin/includes/plugin-install.php:1024 wp-admin/js/updates.js:969
+#: wp-admin/includes/plugin-install.php:1004
+#: wp-admin/includes/plugin-install.php:1022 wp-admin/js/updates.js:969
 msgctxt "plugin"
 msgid "Network Activate"
 msgstr "サイトネットワークで有効化"
@@ -759,8 +759,8 @@ msgid "%s is already active."
 msgstr "%s はすでに有効です。"
 
 #: wp-admin/import.php:166 wp-admin/includes/plugin-install.php:355
-#: wp-admin/includes/plugin-install.php:951
-#: wp-admin/includes/plugin-install.php:956 wp-admin/press-this.php:63
+#: wp-admin/includes/plugin-install.php:949
+#: wp-admin/includes/plugin-install.php:954 wp-admin/press-this.php:63
 #: wp-admin/js/updates.js:1312 wp-admin/js/updates.js:2637
 #: wp-admin/js/updates.js:2693
 msgctxt "plugin"
@@ -1934,7 +1934,7 @@ msgstr "試みましたが、サイトを自動的に更新できませんでし
 
 #: wp-admin/includes/class-core-upgrader.php:166
 #: wp-admin/includes/class-wp-upgrader.php:206
-#: wp-admin/includes/update-core.php:1108
+#: wp-admin/includes/update-core.php:1109
 msgid "The update cannot be installed because some files could not be copied. This is usually due to inconsistent file permissions."
 msgstr "いくつかのファイルをコピーできないため、最新版のインストールができません。これはたいていの場合、ファイルのパーミッションが適切でないことが原因です。"
 
@@ -3199,7 +3199,7 @@ msgstr "プラグインはインストール済みです。"
 
 #. translators: %s: Plugin name and version.
 #. translators: %s: Plugin name.
-#: wp-admin/includes/plugin-install.php:971 wp-admin/includes/update.php:566
+#: wp-admin/includes/plugin-install.php:969 wp-admin/includes/update.php:566
 #: wp-admin/js/updates.js:2544
 msgctxt "plugin"
 msgid "Update %s now"
@@ -3208,7 +3208,7 @@ msgstr "今すぐ %s を更新"
 #. translators: %s: Importer name.
 #. translators: %s: Plugin name and version.
 #. translators: %s: Plugin name.
-#: wp-admin/import.php:165 wp-admin/includes/plugin-install.php:949
+#: wp-admin/import.php:165 wp-admin/includes/plugin-install.php:947
 #: wp-admin/js/updates.js:1308 wp-admin/js/updates.js:2553
 #: wp-admin/js/updates.js:2689
 msgctxt "plugin"
@@ -3956,7 +3956,7 @@ msgid "The seventh parameter passed to %s should be numeric representing menu po
 msgstr "%s に渡される第7引数はメニュー位置を示す数値である必要があります。"
 
 #. translators: 1: WordPress version number, 2: The PHP extension name needed.
-#: wp-admin/includes/update-core.php:1214
+#: wp-admin/includes/update-core.php:1215
 msgid "The update cannot be installed because WordPress %1$s requires the %2$s PHP extension."
 msgstr "WordPress %1$s には %2$s PHP 拡張機能が必要なため、アップデートをインストールできません。"
 
@@ -5792,20 +5792,20 @@ msgid "Removing the old version of the translation&#8230;"
 msgstr "古いバージョンの翻訳を削除中&#8230;"
 
 #. translators: %s: URL to WordPress Updates screen.
-#: wp-admin/includes/plugin-install.php:845
+#: wp-admin/includes/plugin-install.php:843
 msgid "<a href=\"%s\" target=\"_parent\">Click here to update WordPress</a>."
 msgstr "<a href=\"%s\" target=\"_parent\">WordPress を更新するにはここをクリックしてください</a>。"
 
-#: wp-admin/includes/plugin-install.php:841
+#: wp-admin/includes/plugin-install.php:839
 msgid "<strong>Error:</strong> This plugin <strong>requires a newer version of WordPress</strong>."
 msgstr "<strong>エラー:</strong> このプラグインには<strong>新しいバージョンの WordPress が必要です</strong>。"
 
 #. translators: %s: URL to Update PHP page.
-#: wp-admin/includes/plugin-install.php:815
+#: wp-admin/includes/plugin-install.php:813
 msgid "<a href=\"%s\" target=\"_blank\">Click here to learn more about updating PHP</a>."
 msgstr "<a href=\"%s\" target=\"_blank\">PHP の更新についての詳細はこちらをクリック</a>してください。"
 
-#: wp-admin/includes/plugin-install.php:810
+#: wp-admin/includes/plugin-install.php:808
 msgid "<strong>Error:</strong> This plugin <strong>requires a newer version of PHP</strong>."
 msgstr "<strong>エラー:</strong> このプラグインには<strong>新しいバージョンの PHP</strong> が必要です。"
 
@@ -6767,7 +6767,7 @@ msgstr "消去ツールインデックスは1以上でなければなりませ�
 msgid "Invalid email address in request."
 msgstr "リクエストのメールアドレスが無効です。"
 
-#: wp-admin/includes/plugin-install.php:680
+#: wp-admin/includes/plugin-install.php:678
 msgid "Requires PHP Version:"
 msgstr "必須 PHP バージョン:"
 
@@ -7029,11 +7029,11 @@ msgstr "%s さんが現在この投稿を編集中です。引き継ぎますか
 msgid "Custom installation script."
 msgstr "カスタムインストールスクリプト。"
 
-#: wp-admin/includes/plugin-install.php:687
+#: wp-admin/includes/plugin-install.php:685
 msgid "Active Installations:"
 msgstr "有効インストール数:"
 
-#: wp-admin/includes/plugin-install.php:602 wp-admin/update.php:128
+#: wp-admin/includes/plugin-install.php:600 wp-admin/update.php:128
 msgid "Plugin Installation"
 msgstr "プラグインのインストール"
 
@@ -7130,14 +7130,14 @@ msgstr "新しい投稿に対し他のブログからの通知 (ピンバック�
 
 #. translators: %s: Plugin name.
 #: wp-admin/includes/class-wp-plugins-list-table.php:852
-#: wp-admin/includes/plugin-install.php:1008 wp-admin/js/updates.js:972
+#: wp-admin/includes/plugin-install.php:1006 wp-admin/js/updates.js:972
 msgctxt "plugin"
 msgid "Network Activate %s"
 msgstr "%s をサイトネットワークで有効化"
 
 #. translators: %s: Plugin name.
 #: wp-admin/includes/class-wp-plugins-list-table.php:958
-#: wp-admin/includes/plugin-install.php:995 wp-admin/js/updates.js:983
+#: wp-admin/includes/plugin-install.php:993 wp-admin/js/updates.js:983
 msgctxt "plugin"
 msgid "Activate %s"
 msgstr "%s を有効化"
@@ -7302,7 +7302,7 @@ msgid "&#8220;%s&#8221; is locked"
 msgstr "&#8220;%s&#8221; はロックされています"
 
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:723
-#: wp-admin/includes/plugin-install.php:697
+#: wp-admin/includes/plugin-install.php:695
 msgctxt "Active plugin installations"
 msgid "Less Than 10"
 msgstr "10未満"
@@ -7313,7 +7313,7 @@ msgstr "この投稿にファイルを添付する権限がありません。"
 
 #: wp-admin/freedoms.php:105
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:346
-#: wp-admin/includes/plugin-install.php:704 wp-admin/plugin-install.php:101
+#: wp-admin/includes/plugin-install.php:702 wp-admin/plugin-install.php:101
 #: wp-admin/plugins.php:570
 msgid "https://wordpress.org/plugins/"
 msgstr "https://ja.wordpress.org/plugins/"
@@ -7616,7 +7616,7 @@ msgstr "埋め込み 404 テンプレート"
 msgid "Embed Template"
 msgstr "埋め込みテンプレート"
 
-#: wp-admin/includes/plugin-install.php:989 wp-admin/js/updates.js:1155
+#: wp-admin/includes/plugin-install.php:987 wp-admin/js/updates.js:1155
 #: wp-admin/js/updates.js:1163
 msgctxt "plugin"
 msgid "Active"
@@ -7882,16 +7882,16 @@ msgstr "編集または更新する画像をクリック"
 
 #. translators: 1: Number of stars (used to determine singular/plural), 2:
 #. Number of reviews.
-#: wp-admin/includes/plugin-install.php:745
+#: wp-admin/includes/plugin-install.php:743
 msgid "Reviews with %1$d star: %2$s. Opens in a new tab."
 msgid_plural "Reviews with %1$d stars: %2$s. Opens in a new tab."
 msgstr[0] "%1$dつ星のレビュー%2$d件。新しいタブで開きます。"
 
-#: wp-admin/includes/plugin-install.php:737
+#: wp-admin/includes/plugin-install.php:735
 msgid "Read all reviews on WordPress.org or write your own!"
 msgstr "WordPress.org ですべてのレビューを読むか、自分でも書いてみましょう。"
 
-#: wp-admin/includes/plugin-install.php:736
+#: wp-admin/includes/plugin-install.php:734
 msgid "Reviews"
 msgstr "レビュー"
 
@@ -8912,7 +8912,7 @@ msgstr "プラグインの更新に成功しました。"
 
 #. translators: %s: Number of millions.
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:719
-#: wp-admin/includes/plugin-install.php:693
+#: wp-admin/includes/plugin-install.php:691
 msgctxt "Active plugin installations"
 msgid "%s+ Million"
 msgid_plural "%s+ Million"
@@ -9107,7 +9107,7 @@ msgstr "%3$s年%1$s%2$s日 @ %4$s:%5$s"
 msgid "You are only logged in at this location."
 msgstr "この場所のみでログインしています。"
 
-#: wp-admin/includes/plugin-install.php:404
+#: wp-admin/includes/plugin-install.php:405
 msgid "These suggestions are based on the plugins you and other users have installed."
 msgstr "これらのおすすめは、あなたや他のユーザーがインストールしているプラグインに基づいています。"
 
@@ -9319,7 +9319,7 @@ msgid "<strong>Incompatible</strong> with your version of WordPress"
 msgstr "使用中の WP バージョンと<strong>非互換</strong>"
 
 #. translators: %s: Number of stars.
-#: wp-admin/includes/plugin-install.php:763
+#: wp-admin/includes/plugin-install.php:761
 msgid "%d star"
 msgid_plural "%d stars"
 msgstr[0] "%dつ星"
@@ -9338,16 +9338,16 @@ msgstr "確認を必要とするメールを送信せずにユーザーを追加
 msgid "The grid view for the Media Library requires JavaScript. <a href=\"%s\">Switch to the list view</a>."
 msgstr "メディアライブラリのグリッド表示には JavaScript が必要です。<a href=\"%s\">一覧表示に切り替える</a>。"
 
-#: wp-admin/credits.php:36 wp-admin/includes/plugin-install.php:777
+#: wp-admin/credits.php:36 wp-admin/includes/plugin-install.php:775
 msgid "Contributors"
 msgstr "貢献者"
 
-#: wp-admin/includes/plugin-install.php:708
-#: wp-admin/includes/plugin-install.php:795
+#: wp-admin/includes/plugin-install.php:706
+#: wp-admin/includes/plugin-install.php:793
 msgid "Donate to this plugin &#187;"
 msgstr "このプラグインに寄付 &#187;"
 
-#: wp-admin/includes/plugin-install.php:578
+#: wp-admin/includes/plugin-install.php:576
 msgctxt "Plugin installer section title"
 msgid "Reviews"
 msgstr "レビュー"
@@ -9830,8 +9830,8 @@ msgstr "%1$s のサイトは、WordPress をバージョン %2$s に更新する
 msgid "WordPress %s is also now available."
 msgstr "WordPress %s も利用できます。"
 
-#: wp-admin/includes/update-core.php:1304
-#: wp-admin/includes/update-core.php:1340
+#: wp-admin/includes/update-core.php:1305
+#: wp-admin/includes/update-core.php:1341
 msgid "The update cannot be installed because your site is unable to copy some files. This is usually due to inconsistent file permissions."
 msgstr "サイトが一部のファイルをコピーできないため、最新版のインストールができません。これは通常、ファイルのパーミッションが一致していないことが原因です。"
 
@@ -9946,7 +9946,7 @@ msgstr "翻訳を更新"
 msgid "Background updates"
 msgstr "バックグラウンド更新"
 
-#: wp-admin/includes/update-core.php:1407
+#: wp-admin/includes/update-core.php:1408
 msgid "There is not enough free disk space to complete the update."
 msgstr "更新を完了するための十分な空きディスクスペースがありません。"
 
@@ -10024,11 +10024,11 @@ msgstr "ユーザー名に無効な文字が含まれています。"
 msgid "Please provide a valid username."
 msgstr "有効なユーザー名を入力してください。"
 
-#: wp-admin/includes/update-core.php:1321
+#: wp-admin/includes/update-core.php:1322
 msgid "Copying the required files&#8230;"
 msgstr "必要なファイルをコピーしています&#8230;"
 
-#: wp-admin/includes/update-core.php:1228
+#: wp-admin/includes/update-core.php:1229
 msgid "Preparing to install the latest version&#8230;"
 msgstr "最新版をインストールする準備をしています&#8230;"
 
@@ -10707,7 +10707,7 @@ msgid "Search engine visibility"
 msgstr "検索エンジンでの表示"
 
 #. translators: 1: WordPress version, 2: URL to About screen.
-#: wp-admin/includes/update-core.php:1709 wp-admin/update-core.php:923
+#: wp-admin/includes/update-core.php:1710 wp-admin/update-core.php:923
 msgid "Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href=\"%2$s\">here</a>."
 msgstr "WordPress %1$s へようこそ。「WordPress について」の画面に自動的に移動します。画面が切り替わらない場合は、<a href=\"%2$s\">ここ</a>をクリックしてください。"
 
@@ -10845,7 +10845,7 @@ msgstr "折りたたむ"
 msgid "If you do not want a header image to be displayed on your site at all, click the &#8220;Remove Header Image&#8221; button at the bottom of the Header Image section of this page. If you want to re-enable the header image later, you just have to select one of the other image options and click &#8220;Save Changes&#8221;."
 msgstr "ヘッダー画像をまったく表示させないようにするには、このページのヘッダー画像セクションの下の「ヘッダー画像を削除」ボタンをクリックしてください。ヘッダー画像を再び表示させるには、画像の一つを選択して「変更を保存」ボタンをクリックします。"
 
-#: wp-admin/includes/plugin-install.php:1030
+#: wp-admin/includes/plugin-install.php:1028
 msgctxt "plugin"
 msgid "Installed"
 msgstr "インストール済み"
@@ -11000,7 +11000,7 @@ msgstr "まだコメントはありません。"
 
 #: wp-admin/includes/class-wp-theme-install-list-table.php:520
 #: wp-admin/includes/class-wp-themes-list-table.php:281
-#: wp-admin/includes/plugin-install.php:658
+#: wp-admin/includes/plugin-install.php:656
 msgid "Version:"
 msgstr "バージョン:"
 
@@ -11314,37 +11314,37 @@ msgstr "このページで自動的にデータベースの問題を修正する
 msgid "No comments awaiting moderation."
 msgstr "承認待ちのコメントはありません。"
 
-#: wp-admin/includes/plugin-install.php:579
+#: wp-admin/includes/plugin-install.php:577
 msgctxt "Plugin installer section title"
 msgid "Other Notes"
 msgstr "その他"
 
-#: wp-admin/includes/plugin-install.php:577
+#: wp-admin/includes/plugin-install.php:575
 msgctxt "Plugin installer section title"
 msgid "Changelog"
 msgstr "更新履歴"
 
-#: wp-admin/includes/plugin-install.php:576
+#: wp-admin/includes/plugin-install.php:574
 msgctxt "Plugin installer section title"
 msgid "Screenshots"
 msgstr "スクリーンショット"
 
-#: wp-admin/includes/plugin-install.php:575
+#: wp-admin/includes/plugin-install.php:573
 msgctxt "Plugin installer section title"
 msgid "FAQ"
 msgstr "FAQ"
 
-#: wp-admin/includes/plugin-install.php:574
+#: wp-admin/includes/plugin-install.php:572
 msgctxt "Plugin installer section title"
 msgid "Installation"
 msgstr "インストール"
 
-#: wp-admin/includes/plugin-install.php:573
+#: wp-admin/includes/plugin-install.php:571
 msgctxt "Plugin installer section title"
 msgid "Description"
 msgstr "説明"
 
-#: wp-admin/includes/plugin-install.php:706
+#: wp-admin/includes/plugin-install.php:704
 msgid "Plugin Homepage &#187;"
 msgstr "プラグインホームページ &#187;"
 
@@ -11473,7 +11473,7 @@ msgid "This screen allows you to choose your permalink structure. You can choose
 msgstr "この画面ではパーマリンク構造を選択できます。共通設定から選ぶか、独自の URL 構造を作成できます。"
 
 #. translators: 1: WordPress version, 2: URL to About screen.
-#: wp-admin/includes/update-core.php:1717 wp-admin/update-core.php:931
+#: wp-admin/includes/update-core.php:1718 wp-admin/update-core.php:931
 msgid "Welcome to WordPress %1$s. <a href=\"%2$s\">Learn more</a>."
 msgstr "WordPress %1$s へようこそ。<a href=\"%2$s\">詳細を読む</a>。"
 
@@ -13397,7 +13397,7 @@ msgid "User already exists. Password inherited."
 msgstr "ユーザーはすでに存在しています。パスワードを引き継ぎました。"
 
 #: wp-admin/includes/class-wp-automatic-updater.php:529
-#: wp-admin/includes/update-core.php:1703 wp-admin/update-core.php:919
+#: wp-admin/includes/update-core.php:1704 wp-admin/update-core.php:919
 msgid "WordPress updated successfully."
 msgstr "WordPress の更新を完了しました。"
 
@@ -14548,34 +14548,34 @@ msgstr "%s に更新"
 msgid "You are using a development version (%1$s). Cool! Please <a href=\"%2$s\">stay updated</a>."
 msgstr "お使いの WordPress は開発版 (%1$s) です。すばらしい ! どうぞ<a href=\"%2$s\">最新版を使い続けてください</a>。"
 
-#: wp-admin/includes/update-core.php:1576
+#: wp-admin/includes/update-core.php:1577
 msgid "Upgrading database&#8230;"
 msgstr "データベースをアップグレードしています…"
 
-#: wp-admin/includes/update-core.php:1092
+#: wp-admin/includes/update-core.php:1093
 msgid "The update could not be unpacked"
 msgstr "更新用ファイルを展開できませんでした"
 
-#: wp-admin/includes/update-core.php:1074
+#: wp-admin/includes/update-core.php:1075
 msgid "Verifying the unpacked files&#8230;"
 msgstr "展開したファイルを検証しています…"
 
 #. translators: 1: WordPress version number, 2: Minimum required MySQL version
 #. number, 3: Current MySQL version number.
-#: wp-admin/includes/update-core.php:1194
+#: wp-admin/includes/update-core.php:1195
 msgid "The update cannot be installed because WordPress %1$s requires MySQL version %2$s or higher. You are running version %3$s."
 msgstr "WordPress %1$s は MySQL %2$s 以降を必要とするため、更新をインストールできません。現在実行中のバージョンは %3$s です。"
 
 #. translators: 1: WordPress version number, 2: Minimum required PHP version
 #. number, 3: Current PHP version number.
-#: wp-admin/includes/update-core.php:1183
+#: wp-admin/includes/update-core.php:1184
 msgid "The update cannot be installed because WordPress %1$s requires PHP version %2$s or higher. You are running version %3$s."
 msgstr "WordPress %1$s は PHP %2$s 以降を必要とするため、更新をインストールできません。現在実行中のバージョンは %3$s です。"
 
 #. translators: 1: WordPress version number, 2: Minimum required PHP version
 #. number, 3: Minimum required MySQL version number, 4: Current PHP version
 #. number, 5: Current MySQL version number.
-#: wp-admin/includes/update-core.php:1170
+#: wp-admin/includes/update-core.php:1171
 msgid "The update cannot be installed because WordPress %1$s requires PHP version %2$s or higher and MySQL version %3$s or higher. You are running PHP version %4$s and MySQL version %5$s."
 msgstr "WordPress %1$s は PHP %2$s 以降、MySQL %3$s 以降を必要とするため、更新をインストールできません。現在実行中の PHP バージョンは %4$s、MySQL バージョンは %5$s です。"
 
@@ -14855,39 +14855,39 @@ msgstr "プラグインのひとつが不正です。"
 msgid "The plugin generated unexpected output."
 msgstr "プラグインが予期しない出力をしました。"
 
-#: wp-admin/includes/plugin-install.php:834
+#: wp-admin/includes/plugin-install.php:832
 msgid "<strong>Warning:</strong> This plugin <strong>has not been tested</strong> with your current version of WordPress."
 msgstr "<strong>注意:</strong> このプラグインは現在使用中の WordPress バージョンでは<strong>テストされていません</strong>。"
 
-#: wp-admin/includes/plugin-install.php:712
+#: wp-admin/includes/plugin-install.php:710
 msgid "Average Rating"
 msgstr "評価の平均"
 
-#: wp-admin/includes/plugin-install.php:704
+#: wp-admin/includes/plugin-install.php:702
 msgid "WordPress.org Plugin Page &#187;"
 msgstr "WordPress.org プラグインページ &#187;"
 
-#: wp-admin/includes/plugin-install.php:677
+#: wp-admin/includes/plugin-install.php:675
 msgid "Compatible up to:"
 msgstr "対応する最新バージョン:"
 
 #. translators: %s: Version number.
-#: wp-admin/includes/plugin-install.php:673
-#: wp-admin/includes/plugin-install.php:683
+#: wp-admin/includes/plugin-install.php:671
+#: wp-admin/includes/plugin-install.php:681
 msgid "%s or higher"
 msgstr "%s以上"
 
-#: wp-admin/includes/plugin-install.php:670
+#: wp-admin/includes/plugin-install.php:668
 msgid "Requires WordPress Version:"
 msgstr "WordPress の必須バージョン:"
 
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:707
-#: wp-admin/includes/plugin-install.php:662
+#: wp-admin/includes/plugin-install.php:660
 msgid "Last Updated:"
 msgstr "最終更新:"
 
 #. translators: %s: Number of ratings.
-#: wp-admin/includes/plugin-install.php:726
+#: wp-admin/includes/plugin-install.php:724
 msgid "(based on %s rating)"
 msgid_plural "(based on %s ratings)"
 msgstr[0] "(%s件の評価に基づく)"
@@ -15437,7 +15437,7 @@ msgid "Empty archive."
 msgstr "空のアーカイブ。"
 
 #: wp-admin/includes/file.php:1831 wp-admin/includes/file.php:1985
-#: wp-admin/includes/file.php:2043 wp-admin/includes/update-core.php:1514
+#: wp-admin/includes/file.php:2043 wp-admin/includes/update-core.php:1515
 msgid "Could not copy file."
 msgstr "ファイルをコピーできませんでした。"
 
@@ -15742,12 +15742,12 @@ msgid "The plugin is at the latest version."
 msgstr "プラグインは最新のバージョンです。"
 
 #: wp-admin/includes/class-wp-upgrader.php:210
-#: wp-admin/includes/update-core.php:1461
+#: wp-admin/includes/update-core.php:1462
 msgid "Disabling Maintenance mode&#8230;"
 msgstr "メンテナンスモードを無効にします…"
 
 #: wp-admin/includes/class-wp-upgrader.php:209
-#: wp-admin/includes/update-core.php:1312
+#: wp-admin/includes/update-core.php:1313
 msgid "Enabling Maintenance mode&#8230;"
 msgstr "メンテナンスモードを有効化中&#8230;"
 

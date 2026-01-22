@@ -649,8 +649,8 @@ msgid "<strong>Error:</strong> %1$s requires %2$d plugin to be installed and act
 msgid_plural "<strong>Error:</strong> %1$s requires %2$d plugins to be installed and activated: %3$s."
 msgstr[0] "<strong>错误：</strong>%1$s 需要安装并启用 %2$d 插件：%3$s。"
 
-#: wp-admin/includes/plugin-install.php:973
-#: wp-admin/includes/plugin-install.php:978
+#: wp-admin/includes/plugin-install.php:971
+#: wp-admin/includes/plugin-install.php:976
 msgctxt "plugin"
 msgid "Update Now"
 msgstr "立即更新"
@@ -715,9 +715,9 @@ msgstr "网络禁用"
 #: wp-admin/includes/class-wp-plugins-list-table.php:611
 #: wp-admin/includes/class-wp-plugins-list-table.php:942
 #: wp-admin/includes/class-wp-plugins-list-table.php:959
-#: wp-admin/includes/plugin-install.php:879
-#: wp-admin/includes/plugin-install.php:993
-#: wp-admin/includes/plugin-install.php:1024 wp-admin/js/updates.js:980
+#: wp-admin/includes/plugin-install.php:877
+#: wp-admin/includes/plugin-install.php:991
+#: wp-admin/includes/plugin-install.php:1022 wp-admin/js/updates.js:980
 #: wp-admin/js/updates.js:1025
 msgctxt "plugin"
 msgid "Activate"
@@ -747,8 +747,8 @@ msgstr "您的 WordPress 版本是 %1$s，但新主题版本需要 %2$s。"
 #: wp-admin/includes/class-wp-plugins-list-table.php:611
 #: wp-admin/includes/class-wp-plugins-list-table.php:836
 #: wp-admin/includes/class-wp-plugins-list-table.php:853
-#: wp-admin/includes/plugin-install.php:1006
-#: wp-admin/includes/plugin-install.php:1024 wp-admin/js/updates.js:969
+#: wp-admin/includes/plugin-install.php:1004
+#: wp-admin/includes/plugin-install.php:1022 wp-admin/js/updates.js:969
 msgctxt "plugin"
 msgid "Network Activate"
 msgstr "网络启用"
@@ -759,8 +759,8 @@ msgid "%s is already active."
 msgstr "%s 已经启用。"
 
 #: wp-admin/import.php:166 wp-admin/includes/plugin-install.php:355
-#: wp-admin/includes/plugin-install.php:951
-#: wp-admin/includes/plugin-install.php:956 wp-admin/press-this.php:63
+#: wp-admin/includes/plugin-install.php:949
+#: wp-admin/includes/plugin-install.php:954 wp-admin/press-this.php:63
 #: wp-admin/js/updates.js:1312 wp-admin/js/updates.js:2637
 #: wp-admin/js/updates.js:2693
 msgctxt "plugin"
@@ -1933,7 +1933,7 @@ msgstr "系统已进行尝试，但您的站点无法自动更新。"
 
 #: wp-admin/includes/class-core-upgrader.php:166
 #: wp-admin/includes/class-wp-upgrader.php:206
-#: wp-admin/includes/update-core.php:1108
+#: wp-admin/includes/update-core.php:1109
 msgid "The update cannot be installed because some files could not be copied. This is usually due to inconsistent file permissions."
 msgstr "由于某些文件无法被复制，更新无法进行。此问题通常是由于文件权限不一致造成的。"
 
@@ -3198,7 +3198,7 @@ msgstr "该插件已安装。"
 
 #. translators: %s: Plugin name and version.
 #. translators: %s: Plugin name.
-#: wp-admin/includes/plugin-install.php:971 wp-admin/includes/update.php:566
+#: wp-admin/includes/plugin-install.php:969 wp-admin/includes/update.php:566
 #: wp-admin/js/updates.js:2544
 msgctxt "plugin"
 msgid "Update %s now"
@@ -3207,7 +3207,7 @@ msgstr "立即更新「%s」"
 #. translators: %s: Importer name.
 #. translators: %s: Plugin name and version.
 #. translators: %s: Plugin name.
-#: wp-admin/import.php:165 wp-admin/includes/plugin-install.php:949
+#: wp-admin/import.php:165 wp-admin/includes/plugin-install.php:947
 #: wp-admin/js/updates.js:1308 wp-admin/js/updates.js:2553
 #: wp-admin/js/updates.js:2689
 msgctxt "plugin"
@@ -3955,7 +3955,7 @@ msgid "The seventh parameter passed to %s should be numeric representing menu po
 msgstr "传递给 %s 的第七个参数应表示为菜单位置的整数。"
 
 #. translators: 1: WordPress version number, 2: The PHP extension name needed.
-#: wp-admin/includes/update-core.php:1214
+#: wp-admin/includes/update-core.php:1215
 msgid "The update cannot be installed because WordPress %1$s requires the %2$s PHP extension."
 msgstr "无法安装更新，因为 WordPress %1$s 要求 PHP 扩展 %2$s。"
 
@@ -5791,20 +5791,20 @@ msgid "Removing the old version of the translation&#8230;"
 msgstr "移除旧版本的翻译…"
 
 #. translators: %s: URL to WordPress Updates screen.
-#: wp-admin/includes/plugin-install.php:845
+#: wp-admin/includes/plugin-install.php:843
 msgid "<a href=\"%s\" target=\"_parent\">Click here to update WordPress</a>."
 msgstr "<a href=\"%s\" target=\"_parent\">点击此处更新 WordPress</a>。"
 
-#: wp-admin/includes/plugin-install.php:841
+#: wp-admin/includes/plugin-install.php:839
 msgid "<strong>Error:</strong> This plugin <strong>requires a newer version of WordPress</strong>."
 msgstr "<strong>错误：</strong>此插件<strong>需要新版本的 WordPress</strong>。"
 
 #. translators: %s: URL to Update PHP page.
-#: wp-admin/includes/plugin-install.php:815
+#: wp-admin/includes/plugin-install.php:813
 msgid "<a href=\"%s\" target=\"_blank\">Click here to learn more about updating PHP</a>."
 msgstr "<a href=\"%s\" target=\"_blank\">点击此处查阅如何更新 PHP</a>。"
 
-#: wp-admin/includes/plugin-install.php:810
+#: wp-admin/includes/plugin-install.php:808
 msgid "<strong>Error:</strong> This plugin <strong>requires a newer version of PHP</strong>."
 msgstr "<strong>错误：</strong>此插件<strong>需要新版本的 PHP</strong>。"
 
@@ -6761,7 +6761,7 @@ msgstr "抹除器索引不能小于 1。"
 msgid "Invalid email address in request."
 msgstr "请求中包含无效的邮箱地址。"
 
-#: wp-admin/includes/plugin-install.php:680
+#: wp-admin/includes/plugin-install.php:678
 msgid "Requires PHP Version:"
 msgstr "要求 PHP 版本："
 
@@ -7023,11 +7023,11 @@ msgstr "%s 正在编辑此文章，您希望接手吗？"
 msgid "Custom installation script."
 msgstr "自定义安装脚本。"
 
-#: wp-admin/includes/plugin-install.php:687
+#: wp-admin/includes/plugin-install.php:685
 msgid "Active Installations:"
 msgstr "已启用安装数："
 
-#: wp-admin/includes/plugin-install.php:602 wp-admin/update.php:128
+#: wp-admin/includes/plugin-install.php:600 wp-admin/update.php:128
 msgid "Plugin Installation"
 msgstr "安装插件"
 
@@ -7124,14 +7124,14 @@ msgstr "允许其他博客发送链接通知（Pingback 和 Trackback）到新�
 
 #. translators: %s: Plugin name.
 #: wp-admin/includes/class-wp-plugins-list-table.php:852
-#: wp-admin/includes/plugin-install.php:1008 wp-admin/js/updates.js:972
+#: wp-admin/includes/plugin-install.php:1006 wp-admin/js/updates.js:972
 msgctxt "plugin"
 msgid "Network Activate %s"
 msgstr "在站点网络中启用 %s"
 
 #. translators: %s: Plugin name.
 #: wp-admin/includes/class-wp-plugins-list-table.php:958
-#: wp-admin/includes/plugin-install.php:995 wp-admin/js/updates.js:983
+#: wp-admin/includes/plugin-install.php:993 wp-admin/js/updates.js:983
 msgctxt "plugin"
 msgid "Activate %s"
 msgstr "启用 %s"
@@ -7296,7 +7296,7 @@ msgid "&#8220;%s&#8221; is locked"
 msgstr "「%s」已被锁定"
 
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:723
-#: wp-admin/includes/plugin-install.php:697
+#: wp-admin/includes/plugin-install.php:695
 msgctxt "Active plugin installations"
 msgid "Less Than 10"
 msgstr "小于 10"
@@ -7307,7 +7307,7 @@ msgstr "抱歉，您不能添加附件到此文章。"
 
 #: wp-admin/freedoms.php:105
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:346
-#: wp-admin/includes/plugin-install.php:704 wp-admin/plugin-install.php:101
+#: wp-admin/includes/plugin-install.php:702 wp-admin/plugin-install.php:101
 #: wp-admin/plugins.php:570
 msgid "https://wordpress.org/plugins/"
 msgstr "https://cn.wordpress.org/plugins/"
@@ -7607,7 +7607,7 @@ msgstr "嵌入 404 模板"
 msgid "Embed Template"
 msgstr "嵌入模板"
 
-#: wp-admin/includes/plugin-install.php:989 wp-admin/js/updates.js:1155
+#: wp-admin/includes/plugin-install.php:987 wp-admin/js/updates.js:1155
 #: wp-admin/js/updates.js:1163
 msgctxt "plugin"
 msgid "Active"
@@ -7873,16 +7873,16 @@ msgstr "点击图片来修改或更新"
 
 #. translators: 1: Number of stars (used to determine singular/plural), 2:
 #. Number of reviews.
-#: wp-admin/includes/plugin-install.php:745
+#: wp-admin/includes/plugin-install.php:743
 msgid "Reviews with %1$d star: %2$s. Opens in a new tab."
 msgid_plural "Reviews with %1$d stars: %2$s. Opens in a new tab."
 msgstr[0] "%1$d 星的评价：%2$s。在新标签页中打开。"
 
-#: wp-admin/includes/plugin-install.php:737
+#: wp-admin/includes/plugin-install.php:735
 msgid "Read all reviews on WordPress.org or write your own!"
 msgstr "在 WordPress.org 阅读所有评价或撰写您的评价！"
 
-#: wp-admin/includes/plugin-install.php:736
+#: wp-admin/includes/plugin-install.php:734
 msgid "Reviews"
 msgstr "评价"
 
@@ -8903,7 +8903,7 @@ msgstr "插件成功升级。"
 
 #. translators: %s: Number of millions.
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:719
-#: wp-admin/includes/plugin-install.php:693
+#: wp-admin/includes/plugin-install.php:691
 msgctxt "Active plugin installations"
 msgid "%s+ Million"
 msgid_plural "%s+ Million"
@@ -9095,7 +9095,7 @@ msgstr "%3$s 年 %1$s %2$s 日 %4$s:%5$s"
 msgid "You are only logged in at this location."
 msgstr "您目前只有当前会话保持登录状态。"
 
-#: wp-admin/includes/plugin-install.php:404
+#: wp-admin/includes/plugin-install.php:405
 msgid "These suggestions are based on the plugins you and other users have installed."
 msgstr "这些建议是基于您和其他用户已安装的插件做出的。"
 
@@ -9308,7 +9308,7 @@ msgid "<strong>Incompatible</strong> with your version of WordPress"
 msgstr "该插件<strong>不兼容</strong>于您当前使用的 WordPress 版本"
 
 #. translators: %s: Number of stars.
-#: wp-admin/includes/plugin-install.php:763
+#: wp-admin/includes/plugin-install.php:761
 msgid "%d star"
 msgid_plural "%d stars"
 msgstr[0] "%d 星"
@@ -9327,16 +9327,16 @@ msgstr "不发送确认邮件，直接添加用户。"
 msgid "The grid view for the Media Library requires JavaScript. <a href=\"%s\">Switch to the list view</a>."
 msgstr "媒体库的网格视图需要 JavaScript 支持。<a href=\"%s\">切换回列表视图</a>。"
 
-#: wp-admin/credits.php:36 wp-admin/includes/plugin-install.php:777
+#: wp-admin/credits.php:36 wp-admin/includes/plugin-install.php:775
 msgid "Contributors"
 msgstr "贡献者"
 
-#: wp-admin/includes/plugin-install.php:708
-#: wp-admin/includes/plugin-install.php:795
+#: wp-admin/includes/plugin-install.php:706
+#: wp-admin/includes/plugin-install.php:793
 msgid "Donate to this plugin &#187;"
 msgstr "捐助该插件 &#187;"
 
-#: wp-admin/includes/plugin-install.php:578
+#: wp-admin/includes/plugin-install.php:576
 msgctxt "Plugin installer section title"
 msgid "Reviews"
 msgstr "评价"
@@ -9819,8 +9819,8 @@ msgstr "您位于 %1$s 的站点在更新至到 WordPress %2$s 的过程中遇�
 msgid "WordPress %s is also now available."
 msgstr "WordPress %s 也已可用。"
 
-#: wp-admin/includes/update-core.php:1304
-#: wp-admin/includes/update-core.php:1340
+#: wp-admin/includes/update-core.php:1305
+#: wp-admin/includes/update-core.php:1341
 msgid "The update cannot be installed because your site is unable to copy some files. This is usually due to inconsistent file permissions."
 msgstr "因为不能复制一些文件，更新无法安装。这通常是因为存在不正确的文件权限。"
 
@@ -9935,7 +9935,7 @@ msgstr "更新翻译"
 msgid "Background updates"
 msgstr "后台更新"
 
-#: wp-admin/includes/update-core.php:1407
+#: wp-admin/includes/update-core.php:1408
 msgid "There is not enough free disk space to complete the update."
 msgstr "磁盘空间不足，无法执行更新。"
 
@@ -10013,11 +10013,11 @@ msgstr "您提供的用户名包含非法字符。"
 msgid "Please provide a valid username."
 msgstr "请提供有效的用户名。"
 
-#: wp-admin/includes/update-core.php:1321
+#: wp-admin/includes/update-core.php:1322
 msgid "Copying the required files&#8230;"
 msgstr "正在复制所需的文件&#8230;"
 
-#: wp-admin/includes/update-core.php:1228
+#: wp-admin/includes/update-core.php:1229
 msgid "Preparing to install the latest version&#8230;"
 msgstr "正在准备安装最新版本&#8230;"
 
@@ -10696,7 +10696,7 @@ msgid "Search engine visibility"
 msgstr "对搜索引擎的可见性"
 
 #. translators: 1: WordPress version, 2: URL to About screen.
-#: wp-admin/includes/update-core.php:1709 wp-admin/update-core.php:923
+#: wp-admin/includes/update-core.php:1710 wp-admin/update-core.php:923
 msgid "Welcome to WordPress %1$s. You will be redirected to the About WordPress screen. If not, click <a href=\"%2$s\">here</a>."
 msgstr "欢迎使用 WordPress %1$s。我们将带您到「关于 WordPress」页面。如果没有自动跳转，请<a href=\"%2$s\">点击这里</a>。"
 
@@ -10832,7 +10832,7 @@ msgstr "收起"
 msgid "If you do not want a header image to be displayed on your site at all, click the &#8220;Remove Header Image&#8221; button at the bottom of the Header Image section of this page. If you want to re-enable the header image later, you just have to select one of the other image options and click &#8220;Save Changes&#8221;."
 msgstr "如果您不想要页眉图片，点击本页下方「页眉图片」一节的「移除页眉图片」按钮。移除之后如需再次启用页眉图片功能，您只须选择一张图片，然后点击「保存更改」。"
 
-#: wp-admin/includes/plugin-install.php:1030
+#: wp-admin/includes/plugin-install.php:1028
 msgctxt "plugin"
 msgid "Installed"
 msgstr "已安装"
@@ -10987,7 +10987,7 @@ msgstr "还没有评论。"
 
 #: wp-admin/includes/class-wp-theme-install-list-table.php:520
 #: wp-admin/includes/class-wp-themes-list-table.php:281
-#: wp-admin/includes/plugin-install.php:658
+#: wp-admin/includes/plugin-install.php:656
 msgid "Version:"
 msgstr "版本："
 
@@ -11301,37 +11301,37 @@ msgstr "要允许本页面自动修复数据库问题，请将下面一行加入
 msgid "No comments awaiting moderation."
 msgstr "尚无评论待审。"
 
-#: wp-admin/includes/plugin-install.php:579
+#: wp-admin/includes/plugin-install.php:577
 msgctxt "Plugin installer section title"
 msgid "Other Notes"
 msgstr "其他备注"
 
-#: wp-admin/includes/plugin-install.php:577
+#: wp-admin/includes/plugin-install.php:575
 msgctxt "Plugin installer section title"
 msgid "Changelog"
 msgstr "修订历史"
 
-#: wp-admin/includes/plugin-install.php:576
+#: wp-admin/includes/plugin-install.php:574
 msgctxt "Plugin installer section title"
 msgid "Screenshots"
 msgstr "截图"
 
-#: wp-admin/includes/plugin-install.php:575
+#: wp-admin/includes/plugin-install.php:573
 msgctxt "Plugin installer section title"
 msgid "FAQ"
 msgstr "常见问题"
 
-#: wp-admin/includes/plugin-install.php:574
+#: wp-admin/includes/plugin-install.php:572
 msgctxt "Plugin installer section title"
 msgid "Installation"
 msgstr "安装"
 
-#: wp-admin/includes/plugin-install.php:573
+#: wp-admin/includes/plugin-install.php:571
 msgctxt "Plugin installer section title"
 msgid "Description"
 msgstr "描述"
 
-#: wp-admin/includes/plugin-install.php:706
+#: wp-admin/includes/plugin-install.php:704
 msgid "Plugin Homepage &#187;"
 msgstr "插件主页 &#187;"
 
@@ -11460,7 +11460,7 @@ msgid "This screen allows you to choose your permalink structure. You can choose
 msgstr "此界面可以让您选择您的固定链接结构。您可以选择常见的设置或建立自定义 URL 结构。"
 
 #. translators: 1: WordPress version, 2: URL to About screen.
-#: wp-admin/includes/update-core.php:1717 wp-admin/update-core.php:931
+#: wp-admin/includes/update-core.php:1718 wp-admin/update-core.php:931
 msgid "Welcome to WordPress %1$s. <a href=\"%2$s\">Learn more</a>."
 msgstr "欢迎使用 WordPress %1$s。<a href=\"%2$s\">了解更多</a>。"
 
@@ -13384,7 +13384,7 @@ msgid "User already exists. Password inherited."
 msgstr "用户已存在。密码保持不变。"
 
 #: wp-admin/includes/class-wp-automatic-updater.php:529
-#: wp-admin/includes/update-core.php:1703 wp-admin/update-core.php:919
+#: wp-admin/includes/update-core.php:1704 wp-admin/update-core.php:919
 msgid "WordPress updated successfully."
 msgstr "WordPress 升级成功。"
 
@@ -14535,34 +14535,34 @@ msgstr "更新到 %s"
 msgid "You are using a development version (%1$s). Cool! Please <a href=\"%2$s\">stay updated</a>."
 msgstr "您在使用开发版本（%1$s）。太棒了，请<a href=\"%2$s\">保持更新</a>。"
 
-#: wp-admin/includes/update-core.php:1576
+#: wp-admin/includes/update-core.php:1577
 msgid "Upgrading database&#8230;"
 msgstr "正在升级数据库&#8230;"
 
-#: wp-admin/includes/update-core.php:1092
+#: wp-admin/includes/update-core.php:1093
 msgid "The update could not be unpacked"
 msgstr "无法解压升级包"
 
-#: wp-admin/includes/update-core.php:1074
+#: wp-admin/includes/update-core.php:1075
 msgid "Verifying the unpacked files&#8230;"
 msgstr "正在校验解压的文件&#8230;"
 
 #. translators: 1: WordPress version number, 2: Minimum required MySQL version
 #. number, 3: Current MySQL version number.
-#: wp-admin/includes/update-core.php:1194
+#: wp-admin/includes/update-core.php:1195
 msgid "The update cannot be installed because WordPress %1$s requires MySQL version %2$s or higher. You are running version %3$s."
 msgstr "无法安装更新，因为 WordPress %1$s 要求 MySQL 版本 %2$s 或更高，而您运行的 MySQL 版本为 %3$s。"
 
 #. translators: 1: WordPress version number, 2: Minimum required PHP version
 #. number, 3: Current PHP version number.
-#: wp-admin/includes/update-core.php:1183
+#: wp-admin/includes/update-core.php:1184
 msgid "The update cannot be installed because WordPress %1$s requires PHP version %2$s or higher. You are running version %3$s."
 msgstr "无法安装更新，因为 WordPress %1$s 要求 PHP 版本 %2$s 或更高，而您运行的 PHP 版本为 %3$s。"
 
 #. translators: 1: WordPress version number, 2: Minimum required PHP version
 #. number, 3: Minimum required MySQL version number, 4: Current PHP version
 #. number, 5: Current MySQL version number.
-#: wp-admin/includes/update-core.php:1170
+#: wp-admin/includes/update-core.php:1171
 msgid "The update cannot be installed because WordPress %1$s requires PHP version %2$s or higher and MySQL version %3$s or higher. You are running PHP version %4$s and MySQL version %5$s."
 msgstr "升级无法完成，因为 WordPress %1$s 需要 PHP %2$s 或更高版本和 MySQL %3$s 或更高版本。而您当前的 PHP 版本为 %4$s，MySQL 版本为 %5$s。"
 
@@ -14842,39 +14842,39 @@ msgstr "其中有一个插件无效。"
 msgid "The plugin generated unexpected output."
 msgstr "此插件产生了一个异常输出。"
 
-#: wp-admin/includes/plugin-install.php:834
+#: wp-admin/includes/plugin-install.php:832
 msgid "<strong>Warning:</strong> This plugin <strong>has not been tested</strong> with your current version of WordPress."
 msgstr "<strong>警告：</strong>此插件没有与您当前版本的 WordPress 进行<strong>兼容性测试</strong>。"
 
-#: wp-admin/includes/plugin-install.php:712
+#: wp-admin/includes/plugin-install.php:710
 msgid "Average Rating"
 msgstr "平均评级"
 
-#: wp-admin/includes/plugin-install.php:704
+#: wp-admin/includes/plugin-install.php:702
 msgid "WordPress.org Plugin Page &#187;"
 msgstr "WordPress.org 插件页面 &#187;"
 
-#: wp-admin/includes/plugin-install.php:677
+#: wp-admin/includes/plugin-install.php:675
 msgid "Compatible up to:"
 msgstr "兼容至："
 
 #. translators: %s: Version number.
-#: wp-admin/includes/plugin-install.php:673
-#: wp-admin/includes/plugin-install.php:683
+#: wp-admin/includes/plugin-install.php:671
+#: wp-admin/includes/plugin-install.php:681
 msgid "%s or higher"
 msgstr "%s 或更高版本"
 
-#: wp-admin/includes/plugin-install.php:670
+#: wp-admin/includes/plugin-install.php:668
 msgid "Requires WordPress Version:"
 msgstr "需要 WordPress 版本："
 
 #: wp-admin/includes/class-wp-plugin-install-list-table.php:707
-#: wp-admin/includes/plugin-install.php:662
+#: wp-admin/includes/plugin-install.php:660
 msgid "Last Updated:"
 msgstr "最近更新："
 
 #. translators: %s: Number of ratings.
-#: wp-admin/includes/plugin-install.php:726
+#: wp-admin/includes/plugin-install.php:724
 msgid "(based on %s rating)"
 msgid_plural "(based on %s ratings)"
 msgstr[0] "（基于 %s 次评级）"
@@ -15424,7 +15424,7 @@ msgid "Empty archive."
 msgstr "压缩文件为空。"
 
 #: wp-admin/includes/file.php:1831 wp-admin/includes/file.php:1985
-#: wp-admin/includes/file.php:2043 wp-admin/includes/update-core.php:1514
+#: wp-admin/includes/file.php:2043 wp-admin/includes/update-core.php:1515
 msgid "Could not copy file."
 msgstr "无法复制文件。"
 
@@ -15729,12 +15729,12 @@ msgid "The plugin is at the latest version."
 msgstr "插件已是最新版。"
 
 #: wp-admin/includes/class-wp-upgrader.php:210
-#: wp-admin/includes/update-core.php:1461
+#: wp-admin/includes/update-core.php:1462
 msgid "Disabling Maintenance mode&#8230;"
 msgstr "正在停用维护模式&#8230;"
 
 #: wp-admin/includes/class-wp-upgrader.php:209
-#: wp-admin/includes/update-core.php:1312
+#: wp-admin/includes/update-core.php:1313
 msgid "Enabling Maintenance mode&#8230;"
 msgstr "正在启用维护模式&#8230;"
 
