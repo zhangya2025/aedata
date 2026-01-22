@@ -300,7 +300,8 @@ class AEGIS_Portal {
         self::enqueue_portal_assets();
         $content = self::render_portal_shortcode();
         $manifest_url = AEGIS_SYSTEM_URL . 'pwa/manifest.json';
-        $icon_svg = AEGIS_SYSTEM_URL . 'pwa/icons/icon.svg';
+        $icon_png = AEGIS_SYSTEM_URL . 'pwa/icons/icon-512.png';
+        $apple_touch_icon = AEGIS_SYSTEM_URL . 'pwa/icons/apple-touch-icon.png';
         $theme_color = '#111111';
         $sw_path = AEGIS_SYSTEM_PATH . 'pwa/sw.js';
         $sw_url = AEGIS_SYSTEM_URL . 'pwa/sw.js';
@@ -317,8 +318,10 @@ class AEGIS_Portal {
     <meta name="theme-color" content="<?php echo esc_attr($theme_color); ?>" />
     <link rel="manifest" href="<?php echo esc_url($manifest_url); ?>" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="apple-touch-icon" href="<?php echo esc_url($icon_svg); ?>" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AEGISMAX 管理系统" />
+    <link rel="apple-touch-icon" sizes="180x180" href="<?php echo esc_url($apple_touch_icon); ?>" />
+    <link rel="icon" type="image/png" sizes="512x512" href="<?php echo esc_url($icon_png); ?>" />
     <?php
         wp_head();
     ?>
