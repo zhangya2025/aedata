@@ -1,0 +1,16 @@
+{
+  "name": "AEGISMAX 管理系统",
+  "short_name": "AEGIS",
+  "start_url": "/aegis-system/",
+  "scope": "/aegis-system/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/wp-content/plugins/aegis-system/pwa/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
