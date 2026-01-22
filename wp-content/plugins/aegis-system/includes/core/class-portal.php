@@ -209,7 +209,7 @@ class AEGIS_Portal {
      * 处理 Portal 访问权限。
      */
     public static function handle_portal_access() {
-        if (is_admin() || !is_page(self::PORTAL_SLUG)) {
+        if (is_admin() || !self::is_portal_request()) {
             return;
         }
 
@@ -250,8 +250,45 @@ class AEGIS_Portal {
             }
         }
 
+        if (!self::is_app_shell_enabled()) {
+            return;
+        }
+
         self::render_portal_shell();
         exit;
+    }
+
+    /**
+     * Portal 独立壳开关。
+     */
+    protected static function is_app_shell_enabled() {
+        $enabled = true;
+
+        if (defined('AEGIS_SYSTEM_APP_SHELL')) {
+            $enabled = (bool) AEGIS_SYSTEM_APP_SHELL;
+        }
+
+        return (bool) apply_filters('aegis_system_app_shell_enabled', $enabled);
+    }
+
+    /**
+     * 判断当前请求是否为 Portal 页面。
+     */
+    protected static function is_portal_request() {
+        if (is_page(self::PORTAL_SLUG)) {
+            return true;
+        }
+
+        if (!is_singular()) {
+            return false;
+        }
+
+        $post = get_post();
+        if (!$post instanceof WP_Post) {
+            return false;
+        }
+
+        return has_shortcode($post->post_content, self::PORTAL_SHORTCODE);
     }
 
     /**
