@@ -352,6 +352,10 @@ body.aegis-portal-drawer-open {
     overflow: hidden;
 }
 
+body.aegis-scan-open {
+    overflow: hidden;
+}
+
 .aegis-table-wrap {
     overflow-x: auto;
     width: 100%;
@@ -547,6 +551,8 @@ body.aegis-portal-drawer-open {
     gap: 12px;
     padding: 16px;
     box-sizing: border-box;
+    pointer-events: auto;
+    overflow: hidden;
 }
 
 .aegis-scan-overlay[hidden] {
@@ -604,6 +610,13 @@ body.aegis-portal-drawer-open {
 
 .aegis-scan-status {
     min-height: 20px;
+}
+
+.aegis-scan-status.is-success {
+    color: #d1fae5;
+    background: rgba(16, 185, 129, 0.2);
+    border-radius: 999px;
+    padding: 4px 12px;
 }
 
 .aegis-inbound-page .aegis-collapsible.is-open > .aegis-collapsible__toggle::after,
@@ -669,6 +682,14 @@ body.aegis-portal-drawer-open {
     .aegis-shipments-page .aegis-collapsible__toggle {
         padding: 10px 0;
         min-height: 44px;
+    }
+
+    .aegis-inbound-page .aegis-scan-form .aegis-scan-trigger,
+    .aegis-shipments-page .aegis-scan-form .aegis-scan-trigger {
+        min-height: 48px;
+        font-size: 16px;
+        font-weight: 600;
+        width: 100%;
     }
 
     .aegis-inbound-page .aegis-filter-form,

@@ -110,9 +110,9 @@ $is_list_view = 'list' === $view;
                 <input type="hidden" name="shipments_action" value="add" />
                 <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                <button type="button" class="button button-primary aegis-scan-trigger" data-aegis-scan="1" data-target-input="#aegis-shipments-scan-input" data-target-submit="#aegis-shipments-add-submit">相机扫码</button>
                 <input type="text" name="code" id="aegis-shipments-scan-input" class="regular-text aegis-scan-input" placeholder="扫码或输入防伪码" required />
-                <button type="button" class="button" data-aegis-scan="1" data-target-input="#aegis-shipments-scan-input" data-target-submit="#aegis-shipments-add-submit">相机扫码</button>
-                <button type="submit" class="button button-primary" id="aegis-shipments-add-submit">加入出库单</button>
+                <button type="submit" class="button button-secondary" id="aegis-shipments-add-submit">加入出库单</button>
             </form>
         </div>
         <div class="aegis-scan-overlay" hidden>
@@ -236,6 +236,42 @@ $is_list_view = 'list' === $view;
         </div>
     </div>
 </div>
+<script>
+    (function() {
+        var overlays = document.querySelectorAll('.aegis-shipments-page .aegis-scan-overlay');
+        if (!overlays.length) {
+            return;
+        }
+        overlays.forEach(function(overlay) {
+            var closeButton = overlay.querySelector('.aegis-scan-close');
+            var status = overlay.querySelector('.aegis-scan-status');
+            var syncBody = function() {
+                if (overlay.hidden) {
+                    document.body.classList.remove('aegis-scan-open');
+                } else {
+                    document.body.classList.add('aegis-scan-open');
+                }
+            };
+            syncBody();
+            var overlayObserver = new MutationObserver(syncBody);
+            overlayObserver.observe(overlay, { attributes: true, attributeFilter: ['hidden', 'class'] });
+            if (status) {
+                var statusObserver = new MutationObserver(function() {
+                    var message = status.textContent || '';
+                    if (message.indexOf('已识别') === 0) {
+                        status.classList.add('is-success');
+                        window.setTimeout(function() {
+                            if (closeButton) {
+                                closeButton.click();
+                            }
+                        }, 400);
+                    }
+                });
+                statusObserver.observe(status, { childList: true, characterData: true, subtree: true });
+            }
+        });
+    })();
+</script>
 <script>
     (function() {
         var toggles = document.querySelectorAll('.aegis-shipments-page .aegis-collapsible__toggle');
