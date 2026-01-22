@@ -27,6 +27,8 @@ Thumbs.db
 # Dependency dirs (如有)
 node_modules/
 vendor/
+!wp-content/plugins/aegis-system/assets/vendor/
+!wp-content/plugins/aegis-system/assets/vendor/**
 
 # Misc
 .htaccess~

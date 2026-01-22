@@ -120,7 +120,9 @@ $is_list_view = 'list' === $view;
                 <span>相机扫码</span>
                 <button type="button" class="aegis-scan-close" aria-label="关闭">×</button>
             </div>
-            <video class="aegis-scan-video" playsinline></video>
+            <div class="aegis-scan-video-wrap">
+                <video class="aegis-scan-video" playsinline></video>
+            </div>
             <div class="aegis-scan-frame"></div>
             <div class="aegis-scan-hint">对准条码，自动识别</div>
             <div class="aegis-scan-status" role="status" aria-live="polite"></div>
@@ -236,42 +238,6 @@ $is_list_view = 'list' === $view;
         </div>
     </div>
 </div>
-<script>
-    (function() {
-        var overlays = document.querySelectorAll('.aegis-shipments-page .aegis-scan-overlay');
-        if (!overlays.length) {
-            return;
-        }
-        overlays.forEach(function(overlay) {
-            var closeButton = overlay.querySelector('.aegis-scan-close');
-            var status = overlay.querySelector('.aegis-scan-status');
-            var syncBody = function() {
-                if (overlay.hidden) {
-                    document.body.classList.remove('aegis-scan-open');
-                } else {
-                    document.body.classList.add('aegis-scan-open');
-                }
-            };
-            syncBody();
-            var overlayObserver = new MutationObserver(syncBody);
-            overlayObserver.observe(overlay, { attributes: true, attributeFilter: ['hidden', 'class'] });
-            if (status) {
-                var statusObserver = new MutationObserver(function() {
-                    var message = status.textContent || '';
-                    if (message.indexOf('已识别') === 0) {
-                        status.classList.add('is-success');
-                        window.setTimeout(function() {
-                            if (closeButton) {
-                                closeButton.click();
-                            }
-                        }, 400);
-                    }
-                });
-                statusObserver.observe(status, { childList: true, characterData: true, subtree: true });
-            }
-        });
-    })();
-</script>
 <script>
     (function() {
         var toggles = document.querySelectorAll('.aegis-shipments-page .aegis-collapsible__toggle');
