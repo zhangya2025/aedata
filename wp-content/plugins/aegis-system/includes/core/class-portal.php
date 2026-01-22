@@ -299,6 +299,14 @@ class AEGIS_Portal {
 
         self::enqueue_portal_assets();
         $content = self::render_portal_shortcode();
+        $manifest_url = AEGIS_SYSTEM_URL . 'pwa/manifest.json';
+        $icon_svg = AEGIS_SYSTEM_URL . 'pwa/icons/icon.svg';
+        $theme_color = '#111111';
+        $sw_path = AEGIS_SYSTEM_PATH . 'pwa/sw.js';
+        $sw_url = AEGIS_SYSTEM_URL . 'pwa/sw.js';
+        $sw_version = file_exists($sw_path) ? filemtime($sw_path) : AEGIS_Assets_Media::get_asset_version('pwa/sw.js');
+        $sw_scope = wp_parse_url(AEGIS_SYSTEM_URL, PHP_URL_PATH);
+        $sw_scope = is_string($sw_scope) ? trailingslashit($sw_scope) : '/';
 
         ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -306,6 +314,11 @@ class AEGIS_Portal {
     <meta charset="<?php bloginfo('charset'); ?>" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>AEGIS SYSTEM</title>
+    <meta name="theme-color" content="<?php echo esc_attr($theme_color); ?>" />
+    <link rel="manifest" href="<?php echo esc_url($manifest_url); ?>" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="<?php echo esc_url($icon_svg); ?>" />
     <?php
         wp_head();
     ?>
@@ -313,6 +326,14 @@ class AEGIS_Portal {
 <body class="aegis-portal-shell">
 <?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 <?php wp_footer(); ?>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register(<?php echo wp_json_encode($sw_url . '?ver=' . $sw_version); ?>, { scope: <?php echo wp_json_encode($sw_scope); ?> })
+                .catch(function () {});
+        });
+    }
+</script>
 </body>
 </html>
 <?php

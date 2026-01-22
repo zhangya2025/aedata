@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AEGIS">
+  <rect width="512" height="512" rx="96" fill="#111111" />
+  <path d="M256 88c70 0 140 30 176 48v134c0 112-80 166-176 206-96-40-176-94-176-206V136c36-18 106-48 176-48z" fill="#f5f5f5" />
+  <path d="M256 152l78 204h-44l-12-36h-44l-12 36h-44l78-204zm0 74l-18 54h36l-18-54z" fill="#111111" />
+</svg>

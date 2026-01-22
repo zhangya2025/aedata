@@ -21,4 +21,7 @@ $entries = $context_data['entries'] ?? [];
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
+    <div class="aegis-t-a6" style="margin-top:16px; color:#666;">
+        Android 可通过浏览器菜单“安装应用”。iOS 请使用 Safari 分享菜单“添加到主屏幕”。
+    </div>
 </div>
