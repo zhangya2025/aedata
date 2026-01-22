@@ -121,7 +121,19 @@ class AEGIS_Inbound {
             'receipts'      => $receipts,
         ];
 
+        self::enqueue_scanner_assets();
         return AEGIS_Portal::render_portal_template('inbound', $context);
+    }
+
+    protected static function enqueue_scanner_assets() {
+        $js_path = AEGIS_SYSTEM_PATH . 'assets/js/scanner-1d.js';
+        wp_enqueue_script(
+            'aegis-system-scanner-1d',
+            AEGIS_SYSTEM_URL . 'assets/js/scanner-1d.js',
+            [],
+            file_exists($js_path) ? filemtime($js_path) : AEGIS_Assets_Media::get_asset_version('assets/js/scanner-1d.js'),
+            true
+        );
     }
 
     protected static function handle_start($note = '') {

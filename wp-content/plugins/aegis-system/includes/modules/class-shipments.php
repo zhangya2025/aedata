@@ -135,7 +135,19 @@ class AEGIS_Shipments {
             'shipments'    => $shipments,
         ];
 
+        self::enqueue_scanner_assets();
         return AEGIS_Portal::render_portal_template('shipments', $context);
+    }
+
+    protected static function enqueue_scanner_assets() {
+        $js_path = AEGIS_SYSTEM_PATH . 'assets/js/scanner-1d.js';
+        wp_enqueue_script(
+            'aegis-system-scanner-1d',
+            AEGIS_SYSTEM_URL . 'assets/js/scanner-1d.js',
+            [],
+            file_exists($js_path) ? filemtime($js_path) : AEGIS_Assets_Media::get_asset_version('assets/js/scanner-1d.js'),
+            true
+        );
     }
 
     protected static function handle_portal_start($dealer_id, $note = '') {
@@ -970,4 +982,3 @@ class AEGIS_Shipments {
         return gmdate('Y-m-d 00:00:00', $timestamp + (get_option('gmt_offset') * HOUR_IN_SECONDS));
     }
 }
-

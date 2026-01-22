@@ -352,6 +352,10 @@ body.aegis-portal-drawer-open {
     overflow: hidden;
 }
 
+body.aegis-scan-open {
+    overflow: hidden;
+}
+
 .aegis-table-wrap {
     overflow-x: auto;
     width: 100%;
@@ -516,6 +520,239 @@ body.aegis-portal-drawer-open {
     width: 6ch;
     max-width: 8ch;
     white-space: nowrap;
+}
+
+.aegis-inbound-page .aegis-collapsible__toggle,
+.aegis-shipments-page .aegis-collapsible__toggle {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    padding: 6px 0;
+    cursor: pointer;
+}
+
+.aegis-inbound-page .aegis-collapsible__toggle::after,
+.aegis-shipments-page .aegis-collapsible__toggle::after {
+    content: '▾';
+    float: right;
+    transition: transform 0.2s ease;
+}
+
+.aegis-scan-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.86);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+    pointer-events: auto;
+    overflow: hidden;
+}
+
+.aegis-scan-overlay[hidden] {
+    display: none;
+}
+
+.aegis-scan-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    font-size: 16px;
+}
+
+.aegis-scan-close {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: transparent;
+    color: #fff;
+    font-size: 24px;
+    line-height: 1;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.aegis-scan-video {
+    width: 100%;
+    height: auto;
+    max-height: calc(100vh - 220px);
+    background: #000;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.aegis-scan-frame {
+    width: min(80vw, 360px);
+    height: min(40vh, 220px);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+.aegis-scan-hint,
+.aegis-scan-status {
+    color: #fff;
+    font-size: 14px;
+    text-align: center;
+}
+
+.aegis-scan-status {
+    min-height: 20px;
+}
+
+.aegis-scan-status.is-success {
+    color: #d1fae5;
+    background: rgba(16, 185, 129, 0.2);
+    border-radius: 999px;
+    padding: 4px 12px;
+}
+
+.aegis-inbound-page .aegis-collapsible.is-open > .aegis-collapsible__toggle::after,
+.aegis-shipments-page .aegis-collapsible.is-open > .aegis-collapsible__toggle::after {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+    .aegis-inbound-page .button,
+    .aegis-shipments-page .button,
+    .aegis-inbound-page input[type='text'],
+    .aegis-shipments-page input[type='text'],
+    .aegis-inbound-page input[type='date'],
+    .aegis-shipments-page input[type='date'],
+    .aegis-inbound-page select,
+    .aegis-shipments-page select {
+        min-height: 44px;
+    }
+
+    .aegis-inbound-page .aegis-start-actions,
+    .aegis-shipments-page .aegis-start-actions,
+    .aegis-inbound-page .aegis-scan-form,
+    .aegis-shipments-page .aegis-scan-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .aegis-inbound-page .aegis-start-actions > *,
+    .aegis-shipments-page .aegis-start-actions > * {
+        width: 100%;
+    }
+
+    .aegis-inbound-page .aegis-scan-input,
+    .aegis-shipments-page .aegis-scan-input,
+    .aegis-inbound-page .aegis-note-field input,
+    .aegis-shipments-page .aegis-note-field input,
+    .aegis-inbound-page .aegis-start-actions select,
+    .aegis-shipments-page .aegis-start-actions select,
+    .aegis-inbound-page .aegis-filter-form input,
+    .aegis-shipments-page .aegis-filter-form input,
+    .aegis-inbound-page .aegis-filter-form select,
+    .aegis-shipments-page .aegis-filter-form select {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .aegis-inbound-page .aegis-note-field,
+    .aegis-shipments-page .aegis-note-field {
+        width: 100%;
+    }
+
+    .aegis-inbound-page .aegis-mobile-collapsible .aegis-collapsible__content,
+    .aegis-shipments-page .aegis-mobile-collapsible .aegis-collapsible__content {
+        display: none;
+    }
+
+    .aegis-inbound-page .aegis-mobile-collapsible.is-open .aegis-collapsible__content,
+    .aegis-shipments-page .aegis-mobile-collapsible.is-open .aegis-collapsible__content {
+        display: block;
+    }
+
+    .aegis-inbound-page .aegis-collapsible__toggle,
+    .aegis-shipments-page .aegis-collapsible__toggle {
+        padding: 10px 0;
+        min-height: 44px;
+    }
+
+    .aegis-inbound-page .aegis-scan-form .aegis-scan-trigger,
+    .aegis-shipments-page .aegis-scan-form .aegis-scan-trigger {
+        min-height: 48px;
+        font-size: 16px;
+        font-weight: 600;
+        width: 100%;
+    }
+
+    .aegis-inbound-page .aegis-filter-form,
+    .aegis-shipments-page .aegis-filter-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .aegis-inbound-page .aegis-table,
+    .aegis-shipments-page .aegis-table {
+        font-size: 14px;
+    }
+
+    .aegis-inbound-page .aegis-receipts-table th:nth-child(1),
+    .aegis-inbound-page .aegis-receipts-table td:nth-child(1),
+    .aegis-inbound-page .aegis-receipts-table th:nth-child(4),
+    .aegis-inbound-page .aegis-receipts-table td:nth-child(4) {
+        display: none;
+    }
+
+    .aegis-shipments-page .aegis-shipments-table th:nth-child(1),
+    .aegis-shipments-page .aegis-shipments-table td:nth-child(1),
+    .aegis-shipments-page .aegis-shipments-table th:nth-child(3),
+    .aegis-shipments-page .aegis-shipments-table td:nth-child(3),
+    .aegis-shipments-page .aegis-shipments-table th:nth-child(5),
+    .aegis-shipments-page .aegis-shipments-table td:nth-child(5) {
+        display: none;
+    }
+
+    .aegis-inbound-page .aegis-codes-table th:nth-child(3),
+    .aegis-inbound-page .aegis-codes-table td:nth-child(3),
+    .aegis-inbound-page .aegis-codes-table th:nth-child(4),
+    .aegis-inbound-page .aegis-codes-table td:nth-child(4),
+    .aegis-shipments-page .aegis-codes-table th:nth-child(3),
+    .aegis-shipments-page .aegis-codes-table td:nth-child(3),
+    .aegis-shipments-page .aegis-codes-table th:nth-child(4),
+    .aegis-shipments-page .aegis-codes-table td:nth-child(4) {
+        display: none;
+    }
+
+    .aegis-inbound-page .aegis-codes-table td:nth-child(2),
+    .aegis-shipments-page .aegis-codes-table td:nth-child(2) {
+        word-break: break-all;
+    }
+}
+
+@media (min-width: 769px) {
+    .aegis-inbound-page .aegis-collapsible__toggle,
+    .aegis-shipments-page .aegis-collapsible__toggle {
+        cursor: default;
+    }
+
+    .aegis-inbound-page .aegis-mobile-collapsible .aegis-collapsible__content,
+    .aegis-shipments-page .aegis-mobile-collapsible .aegis-collapsible__content {
+        display: block;
+    }
+
+    .aegis-inbound-page .aegis-collapsible__toggle::after,
+    .aegis-shipments-page .aegis-collapsible__toggle::after {
+        content: '';
+    }
 }
 
 .aegis-dealer-table .col-phone {
