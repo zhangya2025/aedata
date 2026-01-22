@@ -590,6 +590,7 @@ body.aegis-scan-open {
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
     background: #000;
     border-radius: 12px;
     overflow: hidden;
