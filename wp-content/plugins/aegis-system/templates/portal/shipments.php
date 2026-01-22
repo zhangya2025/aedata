@@ -110,9 +110,9 @@ $is_list_view = 'list' === $view;
                 <input type="hidden" name="shipments_action" value="add" />
                 <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                <button type="button" class="button button-primary aegis-scan-trigger" data-aegis-scan="1" data-target-input="#aegis-shipments-scan-input" data-target-submit="#aegis-shipments-add-submit">相机扫码</button>
                 <input type="text" name="code" id="aegis-shipments-scan-input" class="regular-text aegis-scan-input" placeholder="扫码或输入防伪码" required />
-                <button type="submit" class="button button-secondary" id="aegis-shipments-add-submit">加入出库单</button>
+                <button type="button" class="button" data-aegis-scan="1" data-target-input="#aegis-shipments-scan-input" data-target-submit="#aegis-shipments-add-submit">相机扫码</button>
+                <button type="submit" class="button button-primary" id="aegis-shipments-add-submit">加入出库单</button>
             </form>
         </div>
         <div class="aegis-scan-overlay" hidden>
@@ -120,9 +120,7 @@ $is_list_view = 'list' === $view;
                 <span>相机扫码</span>
                 <button type="button" class="aegis-scan-close" aria-label="关闭">×</button>
             </div>
-            <div class="aegis-scan-video-wrap">
-                <video class="aegis-scan-video" playsinline></video>
-            </div>
+            <video class="aegis-scan-video" playsinline></video>
             <div class="aegis-scan-frame"></div>
             <div class="aegis-scan-hint">对准条码，自动识别</div>
             <div class="aegis-scan-status" role="status" aria-live="polite"></div>
