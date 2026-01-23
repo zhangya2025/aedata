@@ -32,7 +32,7 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
             <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
             <div class="aegis-start-actions" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
                 <label class="aegis-t-a6">经销商：
-                    <select name="dealer_id" required>
+                    <select name="dealer_id" required class="aegis-action-select">
                         <option value="">请选择经销商</option>
                         <?php foreach ($dealers as $dealer) : ?>
                             <option value="<?php echo esc_attr($dealer->id); ?>"><?php echo esc_html($dealer->dealer_name . '（' . $dealer->auth_code . '）'); ?></option>
