@@ -44,10 +44,12 @@ class AEGIS_Shipments {
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $whitelist = ['shipments_action', 'dealer_id', 'note', 'shipment_id', 'code', '_wp_http_referer', 'aegis_shipments_nonce', '_aegis_idempotency'];
+            $action = isset($_POST['shipments_action']) ? sanitize_key(wp_unslash($_POST['shipments_action'])) : '';
+            $capability = 'delete_shipment' === $action ? AEGIS_System::CAP_MANAGE_SYSTEM : AEGIS_System::CAP_USE_WAREHOUSE;
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => AEGIS_System::CAP_USE_WAREHOUSE,
+                    'capability'      => $capability,
                     'nonce_field'     => 'aegis_shipments_nonce',
                     'nonce_action'    => 'aegis_shipments_action',
                     'whitelist'       => $whitelist,
@@ -58,7 +60,6 @@ class AEGIS_Shipments {
             if (!$validation['success']) {
                 $errors[] = $validation['message'];
             } else {
-                $action = isset($_POST['shipments_action']) ? sanitize_key(wp_unslash($_POST['shipments_action'])) : '';
                 if ('start' === $action) {
                     $dealer_id = isset($_POST['dealer_id']) ? (int) $_POST['dealer_id'] : 0;
                     $note = isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '';
@@ -81,6 +82,14 @@ class AEGIS_Shipments {
                 } elseif ('complete' === $action) {
                     $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
                     $result = self::handle_portal_complete($shipment_id);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                    }
+                } elseif ('delete_shipment' === $action) {
+                    $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
+                    $result = self::handle_delete_shipment($shipment_id);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
@@ -317,6 +326,42 @@ class AEGIS_Shipments {
             ]
         );
         return ['message' => '出库完成，共 ' . $count . ' 条。'];
+    }
+
+    protected static function handle_delete_shipment($shipment_id) {
+        global $wpdb;
+        if (!AEGIS_System_Roles::user_can_manage_system()) {
+            return new WP_Error('forbidden', '当前账号无权删除出库单。');
+        }
+        if ($shipment_id <= 0) {
+            return new WP_Error('invalid_shipment', '出库单不存在。');
+        }
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('shipment_missing', '出库单不存在。');
+        }
+        if ('draft' !== $shipment->status) {
+            return new WP_Error('not_draft', '该出库单已非草稿状态，禁止删除。');
+        }
+        $item_table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
+        $item_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(1) FROM {$item_table} WHERE shipment_id = %d", $shipment_id));
+        if ($item_count > 0) {
+            return new WP_Error('not_empty', '该出库单已有明细，禁止删除。');
+        }
+        $shipment_table = $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE;
+        $deleted = $wpdb->delete($shipment_table, ['id' => $shipment_id], ['%d']);
+        if (!$deleted) {
+            return new WP_Error('delete_failed', '删除出库单失败，请重试。');
+        }
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_SHIPMENT_DELETE,
+            'SUCCESS',
+            [
+                'shipment_id' => $shipment_id,
+                'shipment_no' => $shipment->shipment_no,
+            ]
+        );
+        return ['message' => '出库单已删除。'];
     }
 
     protected static function handle_export_summary($shipment_id) {
