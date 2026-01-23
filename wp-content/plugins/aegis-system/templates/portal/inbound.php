@@ -11,10 +11,11 @@ $filters = $context['filters'];
 $receipts = $context['receipts'];
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
 $is_list_view = 'list' === $view;
+$can_manage_system = AEGIS_System_Roles::user_can_manage_system();
 ?>
 <div class="aegis-t-a4 aegis-inbound-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码入库</div>
-    <p class="aegis-t-a6">逐码扫码/手输入库，完成后可导出单据明细（仅本单，最多 300 条）。</p>
+    <p class="aegis-t-a6 aegis-helptext">逐码扫码/手输入库，完成后可导出单据明细（仅本单，最多 300 条）。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -29,8 +30,17 @@ $is_list_view = 'list' === $view;
             <input type="hidden" name="inbound_action" value="start" />
             <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
             <div class="aegis-start-actions" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-                <button type="submit" class="button button-primary">开始入库</button>
-                <button type="button" class="button aegis-note-toggle" id="aegis-inbound-note-toggle" aria-expanded="false" aria-controls="aegis-inbound-note-field">备注</button>
+                <button type="submit" class="button button-primary aegis-action-start">
+                    <svg class="aegis-btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="3" y="4" width="2" height="16"></rect>
+                        <rect x="7" y="4" width="1" height="16"></rect>
+                        <rect x="10" y="4" width="2" height="16"></rect>
+                        <rect x="14" y="4" width="1" height="16"></rect>
+                        <rect x="17" y="4" width="2" height="16"></rect>
+                    </svg>
+                    <span class="aegis-btn-label">开始入库</span>
+                </button>
+                <button type="button" class="button aegis-note-toggle aegis-action-note" id="aegis-inbound-note-toggle" aria-expanded="false" aria-controls="aegis-inbound-note-field">备注</button>
                 <div id="aegis-inbound-note-field" class="aegis-note-field" style="display:none; min-width:240px;">
                     <label class="aegis-t-a6" style="display:block;">备注（可选）：<input type="text" name="note" class="regular-text" /></label>
                 </div>
@@ -171,7 +181,18 @@ $is_list_view = 'list' === $view;
                                     <td><?php echo esc_html((int) $row->qty); ?></td>
                                     <td><?php echo esc_html($user ? $user->user_login : '-'); ?></td>
                                     <td><?php echo esc_html($row->created_at); ?></td>
-                                    <td><a class="button" href="<?php echo esc_url(add_query_arg('receipt', $row->id, $base_url)); ?>">查看</a></td>
+                                    <td>
+                                        <a class="button" href="<?php echo esc_url(add_query_arg('receipt', $row->id, $base_url)); ?>">查看</a>
+                                        <?php if ($can_manage_system) : ?>
+                                            <form method="post" style="display:inline-block; margin-left:6px;">
+                                                <?php wp_nonce_field('aegis_inbound_action', 'aegis_inbound_nonce'); ?>
+                                                <input type="hidden" name="inbound_action" value="delete_receipt" />
+                                                <input type="hidden" name="receipt_id" value="<?php echo esc_attr($row->id); ?>" />
+                                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                <button type="submit" class="button" onclick="return confirm('确认删除该入库单？仅空单可删除。');">删除</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
