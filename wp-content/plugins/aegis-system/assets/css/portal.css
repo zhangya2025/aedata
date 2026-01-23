@@ -1135,6 +1135,27 @@ body.aegis-scan-open {
     align-items: end;
 }
 
+@media (min-width: 769px) {
+    .aegis-codes-form {
+        max-width: 980px;
+        margin-left: 0;
+    }
+
+    .aegis-codes-form .aegis-code-row {
+        grid-template-columns: minmax(520px, 1fr) 140px 72px;
+        align-items: end;
+    }
+
+    .aegis-codes-form .aegis-code-row .aegis-portal-field {
+        min-width: 0;
+    }
+
+    .aegis-codes-form .aegis-code-row .aegis-code-remove {
+        width: 72px;
+        justify-self: end;
+    }
+}
+
 .aegis-codes-form .aegis-code-row .aegis-code-remove {
     align-self: flex-end;
     padding: 8px 10px;
