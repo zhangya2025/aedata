@@ -11,6 +11,7 @@ $filters = $context['filters'];
 $receipts = $context['receipts'];
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
 $is_list_view = 'list' === $view;
+$can_manage_system = AEGIS_System_Roles::user_can_manage_system();
 ?>
 <div class="aegis-t-a4 aegis-inbound-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码入库</div>
@@ -171,7 +172,18 @@ $is_list_view = 'list' === $view;
                                     <td><?php echo esc_html((int) $row->qty); ?></td>
                                     <td><?php echo esc_html($user ? $user->user_login : '-'); ?></td>
                                     <td><?php echo esc_html($row->created_at); ?></td>
-                                    <td><a class="button" href="<?php echo esc_url(add_query_arg('receipt', $row->id, $base_url)); ?>">查看</a></td>
+                                    <td>
+                                        <a class="button" href="<?php echo esc_url(add_query_arg('receipt', $row->id, $base_url)); ?>">查看</a>
+                                        <?php if ($can_manage_system) : ?>
+                                            <form method="post" style="display:inline-block; margin-left:6px;">
+                                                <?php wp_nonce_field('aegis_inbound_action', 'aegis_inbound_nonce'); ?>
+                                                <input type="hidden" name="inbound_action" value="delete_receipt" />
+                                                <input type="hidden" name="receipt_id" value="<?php echo esc_attr($row->id); ?>" />
+                                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                <button type="submit" class="button" onclick="return confirm('确认删除该入库单？仅空单可删除。');">删除</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
