@@ -675,7 +675,9 @@ class AEGIS_Portal {
 
         if (AEGIS_System_Roles::is_hq_admin($user)) {
             $allowed = $all_modules;
-        } elseif (in_array('aegis_sales', $roles, true) || in_array('aegis_finance', $roles, true)) {
+        } elseif (in_array('aegis_sales', $roles, true)) {
+            $allowed = ['orders', 'sku', 'access_audit'];
+        } elseif (in_array('aegis_finance', $roles, true)) {
             $allowed = ['orders', 'access_audit'];
         } elseif (AEGIS_System_Roles::is_warehouse_user($user)) {
             $allowed = ['inbound', 'shipments'];
