@@ -2,14 +2,6 @@
     const DETECT_INTERVAL = 260;
     const COOLDOWN_MS = 1200;
     const FORMATS = ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39'];
-    const QUAGGA_READERS = [
-        'code_128_reader',
-        'ean_reader',
-        'ean_8_reader',
-        'upc_reader',
-        'upc_e_reader',
-        'code_39_reader',
-    ];
     let activeSession = null;
 
     const lockBody = () => document.body.classList.add('aegis-scan-open');
@@ -63,26 +55,9 @@
         if (!activeSession) {
             return;
         }
-        const { overlay, stream, intervalId, video, quaggaActive, quaggaHandler, overlayPlacement } = activeSession;
+        const { overlay, stream, intervalId, video, overlayPlacement } = activeSession;
         if (intervalId) {
             clearInterval(intervalId);
-        }
-        if (quaggaActive && window.Quagga) {
-            if (quaggaHandler) {
-                window.Quagga.offDetected(quaggaHandler);
-            }
-            window.Quagga.stop();
-        }
-        if (overlay) {
-            const wrap = overlay.querySelector('.aegis-scan-video-wrap');
-            if (wrap) {
-                wrap.querySelectorAll('video, canvas').forEach((node) => {
-                    if (node.classList.contains('aegis-scan-video')) {
-                        return;
-                    }
-                    node.remove();
-                });
-            }
         }
         if (stream) {
             stream.getTracks().forEach((track) => track.stop());
@@ -178,77 +153,10 @@
             intervalId: null,
             video,
             overlayPlacement,
-            quaggaActive: false,
-            quaggaHandler: null,
-        };
-
-        const startQuagga = () => {
-            if (!window.Quagga) {
-                setStatus(overlay, '当前浏览器不支持相机扫码，请手动输入。');
-                return;
-            }
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                setStatus(overlay, '当前浏览器不支持相机扫码，请手动输入。');
-                return;
-            }
-            if (video) {
-                video.hidden = true;
-            }
-            const target = overlay.querySelector('.aegis-scan-video-wrap');
-            if (!target) {
-                setStatus(overlay, '相机容器加载失败，请手动输入。');
-                return;
-            }
-            const preservedVideo = target.querySelector('.aegis-scan-video');
-            target.innerHTML = '';
-            if (preservedVideo) {
-                target.appendChild(preservedVideo);
-            }
-
-            const quaggaHandler = (result) => {
-                const code = result && result.codeResult ? result.codeResult.code : '';
-                handleDetected(code);
-            };
-
-            window.Quagga.init(
-                {
-                    inputStream: {
-                        name: 'Live',
-                        type: 'LiveStream',
-                        target,
-                        constraints: {
-                            facingMode: { ideal: 'environment' },
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 },
-                        },
-                    },
-                    decoder: {
-                        readers: QUAGGA_READERS,
-                    },
-                    locate: true,
-                },
-                (err) => {
-                    if (err) {
-                        setStatus(overlay, getCameraErrorMessage(err));
-                        return;
-                    }
-                    window.Quagga.onDetected(quaggaHandler);
-                    window.Quagga.start();
-                    const quaggaVideo = target.querySelector('video');
-                    ensureVideoAttributes(quaggaVideo);
-                    setStatus(overlay, '对准条码，自动识别。');
-
-                    activeSession = {
-                        ...activeSession,
-                        quaggaActive: true,
-                        quaggaHandler,
-                    };
-                }
-            );
         };
 
         if (!('BarcodeDetector' in window)) {
-            startQuagga();
+            setStatus(overlay, '当前浏览器不支持相机扫码，请手动输入。');
             return;
         }
 
@@ -261,7 +169,7 @@
         try {
             detector = new BarcodeDetector({ formats: FORMATS });
         } catch (error) {
-            startQuagga();
+            setStatus(overlay, '当前浏览器不支持相机扫码，请手动输入。');
             return;
         }
 
