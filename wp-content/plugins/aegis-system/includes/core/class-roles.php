@@ -21,11 +21,21 @@ class AEGIS_System_Roles {
             }
 
             foreach ($def['caps'] as $cap => $grant) {
-            if ($grant) {
-                $role->add_cap($cap);
+                if ($grant) {
+                    $role->add_cap($cap);
+                }
+            }
+
+            if ('aegis_sales' === $role_key) {
+                $role->remove_cap(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW);
+                $role->remove_cap(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW);
+                $role->remove_cap(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
+                $role->remove_cap(AEGIS_System::CAP_MANAGE_SYSTEM);
+                $role->remove_cap(AEGIS_System::CAP_MANAGE_WAREHOUSE);
+                $role->remove_cap(AEGIS_System::CAP_USE_WAREHOUSE);
+                $role->remove_cap(AEGIS_System::CAP_RESET_B);
             }
         }
-    }
 
         $admin_role = get_role('administrator');
         if ($admin_role) {
@@ -229,7 +239,6 @@ class AEGIS_System_Roles {
                     'read'                                   => true,
                     AEGIS_System::CAP_ACCESS_ROOT            => true,
                     AEGIS_System::CAP_ORDERS_VIEW_ALL        => true,
-                    AEGIS_System::CAP_ORDERS_INITIAL_REVIEW  => true,
                 ],
             ],
             'aegis_finance'          => [

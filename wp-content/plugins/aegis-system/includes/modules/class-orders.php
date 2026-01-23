@@ -797,10 +797,15 @@ class AEGIS_Orders {
 
         $where = ['o.created_at BETWEEN %s AND %s'];
         $params = [$args['start'], $args['end']];
+        $sales_user_id = !empty($args['sales_user_id']) ? (int) $args['sales_user_id'] : 0;
 
         if (!empty($args['dealer_id'])) {
             $where[] = 'o.dealer_id = %d';
             $params[] = (int) $args['dealer_id'];
+        }
+        if ($sales_user_id > 0) {
+            $where[] = 'd.sales_user_id = %d';
+            $params[] = $sales_user_id;
         }
         if (!empty($args['order_no'])) {
             $where[] = 'o.order_no LIKE %s';
@@ -817,7 +822,12 @@ class AEGIS_Orders {
         $paged = $args['paged'];
         $offset = ($paged - 1) * $per_page;
 
-        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$order_table} o WHERE {$where_sql}", $params));
+        $total_sql = "SELECT COUNT(*) FROM {$order_table} o";
+        if ($sales_user_id > 0) {
+            $total_sql .= " LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id";
+        }
+        $total_sql .= " WHERE {$where_sql}";
+        $total = (int) $wpdb->get_var($wpdb->prepare($total_sql, $params));
 
         $params[] = $per_page;
         $params[] = $offset;
@@ -877,6 +887,8 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $user = wp_get_current_user();
         $roles = (array) ($user ? $user->roles : []);
         $is_dealer = in_array('aegis_dealer', $roles, true);
+        $is_sales = in_array('aegis_sales', $roles, true);
+        $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
         $can_manage_all = current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
         $can_initial_review = $can_manage_all || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW);
         $can_payment_review = $can_manage_all || current_user_can(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW);
@@ -885,8 +897,13 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             || $can_initial_review
             || $can_payment_review
             || AEGIS_System_Roles::user_can_manage_warehouse();
-        $can_manage = AEGIS_System_Roles::user_can_manage_warehouse() || $can_manage_all;
+        $can_manage_warehouse = AEGIS_System_Roles::user_can_manage_warehouse();
+        $can_manage = $can_manage_warehouse || $can_manage_all;
         $is_staff_readonly = in_array('aegis_warehouse_staff', $roles, true) && !$can_manage;
+        $sales_user_filter = 0;
+        if ($is_sales && !$can_manage_system && !$can_manage_warehouse && !$can_manage_all) {
+            $sales_user_filter = get_current_user_id();
+        }
 
         $dealer_state = $is_dealer ? AEGIS_Dealer::evaluate_dealer_access($user) : null;
         $dealer = $dealer_state['dealer'] ?? null;
@@ -1186,6 +1203,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 'end'       => $end_datetime,
                 'order_no'  => $search_no,
                 'dealer_id' => $dealer_filter,
+                'sales_user_id' => $sales_user_filter,
                 'statuses'  => $statuses_filter,
                 'per_page'  => $per_page,
                 'paged'     => $paged,
@@ -1197,6 +1215,20 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         if ($order && $is_dealer && (int) $order->dealer_id !== $dealer_id) {
             $order = null;
             $errors[] = '无权查看该订单。';
+        }
+        if ($order && $sales_user_filter > 0) {
+            global $wpdb;
+            $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+            $order_sales_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT sales_user_id FROM {$dealer_table} WHERE id = %d",
+                    (int) $order->dealer_id
+                )
+            );
+            if ($order_sales_id !== $sales_user_filter) {
+                $order = null;
+                $errors[] = '无权查看该订单。';
+            }
         }
         $items = $order ? self::get_items($order->id) : [];
         $payment = $order ? self::get_payment_record($order->id) : null;

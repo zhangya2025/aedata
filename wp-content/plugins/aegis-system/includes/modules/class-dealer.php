@@ -601,11 +601,11 @@ class AEGIS_Dealer {
      * @return array
      */
     protected static function get_sales_user_options() {
-        $roles = ['aegis_hq_admin', 'aegis_warehouse_manager', 'aegis_warehouse_staff', 'administrator'];
+        $roles = ['aegis_sales'];
         $query = new WP_User_Query([
             'role__in' => $roles,
             'orderby'  => 'display_name',
-            'number'   => 200,
+            'number'   => 500,
         ]);
 
         return $query->get_results();
@@ -1366,4 +1366,3 @@ class AEGIS_Dealer {
     }
 
 }
-

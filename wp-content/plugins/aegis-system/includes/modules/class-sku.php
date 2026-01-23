@@ -554,7 +554,10 @@ class AEGIS_SKU {
             return '<div class="aegis-t-a5">SKU 模块未启用，请在系统设置中启用。</div>';
         }
 
-        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
+        $user = wp_get_current_user();
+        $roles = $user ? (array) $user->roles : [];
+        $is_sales = in_array('aegis_sales', $roles, true);
+        if (!AEGIS_System_Roles::user_can_use_warehouse() && !$is_sales) {
             return '<div class="aegis-t-a5">当前账号无权访问 SKU 模块。</div>';
         }
 
@@ -708,4 +711,3 @@ class AEGIS_SKU {
         return AEGIS_Assets_Media::get_media_gateway_url($media_id);
     }
 }
-
