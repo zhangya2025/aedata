@@ -96,9 +96,7 @@ $is_list_view = 'list' === $view;
                 <span>相机扫码</span>
                 <button type="button" class="aegis-scan-close" aria-label="关闭">×</button>
             </div>
-            <div class="aegis-scan-video-wrap">
-                <video class="aegis-scan-video" playsinline></video>
-            </div>
+            <video class="aegis-scan-video" playsinline></video>
             <div class="aegis-scan-frame"></div>
             <div class="aegis-scan-hint">对准条码，自动识别</div>
             <div class="aegis-scan-status" role="status" aria-live="polite"></div>
