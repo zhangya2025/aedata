@@ -730,6 +730,24 @@ body.aegis-scan-open {
     transform: rotate(180deg);
 }
 
+@media (min-width: 769px) {
+    /* PC：扫码入库/出库的“开始xx/备注/经销商选择”操作行增加留白并居中 */
+    .aegis-inbound-page .aegis-start-actions,
+    .aegis-shipments-page .aegis-start-actions {
+        width: 100%;
+        justify-content: center;
+        padding: 24px 0 28px;
+        margin: 18px 0 30px;
+        box-sizing: border-box;
+    }
+
+    /* PC：备注输入区展开时单独占一行，避免挤压按钮/下拉 */
+    .aegis-inbound-page .aegis-start-actions .aegis-note-field,
+    .aegis-shipments-page .aegis-start-actions .aegis-note-field {
+        flex-basis: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .aegis-inbound-page .button,
     .aegis-shipments-page .button,
