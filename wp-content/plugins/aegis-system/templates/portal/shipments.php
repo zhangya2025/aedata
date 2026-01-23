@@ -12,10 +12,11 @@ $filters = $context['filters'];
 $shipments = $context['shipments'];
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
 $is_list_view = 'list' === $view;
+$can_manage_system = AEGIS_System_Roles::user_can_manage_system();
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
-    <p class="aegis-t-a6">逐码扫码/手输，仅允许已入库码出库；经销商停用则不可选择。导出汇总/明细仅限仓库与 HQ。</p>
+    <p class="aegis-t-a6 aegis-helptext">逐码扫码/手输，仅允许已入库码出库；经销商停用则不可选择。导出汇总/明细仅限仓库与 HQ。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -31,18 +32,27 @@ $is_list_view = 'list' === $view;
             <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
             <div class="aegis-start-actions" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
                 <label class="aegis-t-a6">经销商：
-                    <select name="dealer_id" required>
+                    <select name="dealer_id" required class="aegis-action-select">
                         <option value="">请选择经销商</option>
                         <?php foreach ($dealers as $dealer) : ?>
                             <option value="<?php echo esc_attr($dealer->id); ?>"><?php echo esc_html($dealer->dealer_name . '（' . $dealer->auth_code . '）'); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <button type="button" class="button aegis-note-toggle" id="aegis-shipments-note-toggle" aria-expanded="false" aria-controls="aegis-shipments-note-field">备注</button>
+                <button type="button" class="button aegis-note-toggle aegis-action-note" id="aegis-shipments-note-toggle" aria-expanded="false" aria-controls="aegis-shipments-note-field">备注</button>
                 <div id="aegis-shipments-note-field" class="aegis-note-field" style="display:none; min-width:240px;">
                     <label class="aegis-t-a6" style="display:block;">备注（可选）：<input type="text" name="note" /></label>
                 </div>
-                <button type="submit" class="button button-primary">开始出库</button>
+                <button type="submit" class="button button-primary aegis-action-start">
+                    <svg class="aegis-btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">
+                        <rect x="3" y="4" width="2" height="16"></rect>
+                        <rect x="7" y="4" width="1" height="16"></rect>
+                        <rect x="10" y="4" width="2" height="16"></rect>
+                        <rect x="14" y="4" width="1" height="16"></rect>
+                        <rect x="17" y="4" width="2" height="16"></rect>
+                    </svg>
+                    <span class="aegis-btn-label">开始出库</span>
+                </button>
             </div>
         </form>
         <script>
@@ -215,7 +225,18 @@ $is_list_view = 'list' === $view;
                                     <td><?php echo esc_html((int) ($row->qty ?? $row->item_count)); ?></td>
                                     <td><?php echo esc_html($user ? $user->user_login : '-'); ?></td>
                                     <td><?php echo esc_html($row->created_at); ?></td>
-                                    <td><a class="button" href="<?php echo esc_url(add_query_arg('shipment', $row->id, $base_url)); ?>">查看</a></td>
+                                    <td>
+                                        <a class="button" href="<?php echo esc_url(add_query_arg('shipment', $row->id, $base_url)); ?>">查看</a>
+                                        <?php if ($can_manage_system) : ?>
+                                            <form method="post" style="display:inline-block; margin-left:6px;">
+                                                <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+                                                <input type="hidden" name="shipments_action" value="delete_shipment" />
+                                                <input type="hidden" name="shipment_id" value="<?php echo esc_attr($row->id); ?>" />
+                                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                <button type="submit" class="button" onclick="return confirm('确认删除该出库单？仅空单/草稿可删除。');">删除</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
