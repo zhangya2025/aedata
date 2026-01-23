@@ -37,10 +37,12 @@ class AEGIS_Inbound {
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $whitelist = ['inbound_action', 'code', 'note', 'receipt_id', '_wp_http_referer', 'aegis_inbound_nonce', '_aegis_idempotency'];
+            $action = isset($_POST['inbound_action']) ? sanitize_key(wp_unslash($_POST['inbound_action'])) : '';
+            $capability = 'delete_receipt' === $action ? AEGIS_System::CAP_MANAGE_SYSTEM : AEGIS_System::CAP_USE_WAREHOUSE;
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => AEGIS_System::CAP_USE_WAREHOUSE,
+                    'capability'      => $capability,
                     'nonce_field'     => 'aegis_inbound_nonce',
                     'nonce_action'    => 'aegis_inbound_action',
                     'whitelist'       => $whitelist,
@@ -51,7 +53,6 @@ class AEGIS_Inbound {
             if (!$validation['success']) {
                 $errors[] = $validation['message'];
             } else {
-                $action = isset($_POST['inbound_action']) ? sanitize_key(wp_unslash($_POST['inbound_action'])) : '';
                 if ('start' === $action) {
                     $result = self::handle_start(isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '');
                     if (is_wp_error($result)) {
@@ -72,6 +73,14 @@ class AEGIS_Inbound {
                 } elseif ('complete' === $action) {
                     $receipt_id = isset($_POST['receipt_id']) ? (int) $_POST['receipt_id'] : 0;
                     $result = self::handle_complete($receipt_id);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                    }
+                } elseif ('delete_receipt' === $action) {
+                    $receipt_id = isset($_POST['receipt_id']) ? (int) $_POST['receipt_id'] : 0;
+                    $result = self::handle_delete_receipt($receipt_id);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
@@ -262,6 +271,39 @@ class AEGIS_Inbound {
         );
         AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RECEIPT_COMPLETE, 'SUCCESS', ['receipt_id' => $receipt_id, 'qty' => $count]);
         return ['message' => '入库完成，共 ' . $count . ' 条。'];
+    }
+
+    protected static function handle_delete_receipt($receipt_id) {
+        global $wpdb;
+        if (!AEGIS_System_Roles::user_can_manage_system()) {
+            return new WP_Error('forbidden', '当前账号无权删除入库单。');
+        }
+        if ($receipt_id <= 0) {
+            return new WP_Error('invalid_receipt', '入库单不存在。');
+        }
+        $receipt = self::get_receipt($receipt_id);
+        if (!$receipt) {
+            return new WP_Error('receipt_missing', '入库单不存在。');
+        }
+        $item_table = $wpdb->prefix . AEGIS_System::RECEIPT_ITEM_TABLE;
+        $item_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(1) FROM {$item_table} WHERE receipt_id = %d", $receipt_id));
+        if ($item_count > 0) {
+            return new WP_Error('not_empty', '该入库单已有明细，禁止删除。');
+        }
+        $receipt_table = $wpdb->prefix . AEGIS_System::RECEIPT_TABLE;
+        $deleted = $wpdb->delete($receipt_table, ['id' => $receipt_id], ['%d']);
+        if (!$deleted) {
+            return new WP_Error('delete_failed', '删除入库单失败，请重试。');
+        }
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_RECEIPT_DELETE,
+            'SUCCESS',
+            [
+                'receipt_id' => $receipt_id,
+                'receipt_no' => $receipt->receipt_no,
+            ]
+        );
+        return ['message' => '入库单已删除。'];
     }
 
     protected static function handle_export($receipt_id) {
