@@ -67,37 +67,37 @@ $list_url = add_query_arg('m', 'sku', $base_url);
         <input type="hidden" name="sku_action" value="save" />
         <input type="hidden" name="sku_id" value="<?php echo esc_attr($editing_id); ?>" />
         <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-        <div class="aegis-portal-form-grid">
-            <label class="aegis-portal-field">
+        <div class="aegis-portal-form-grid sku-form-grid sku-form-grid--main">
+            <label class="aegis-portal-field sku-field sku-field--ean">
                 <span>EAN</span>
                 <input class="aegis-portal-input" type="text" name="ean" value="<?php echo esc_attr($ean_value); ?>" <?php echo $ean_readonly ? 'readonly' : ''; ?> required />
             </label>
-            <label class="aegis-portal-field">
+            <label class="aegis-portal-field sku-field sku-field--name">
                 <span>产品名称</span>
                 <input class="aegis-portal-input" type="text" name="product_name" value="<?php echo esc_attr($product_name); ?>" required <?php disabled(!$can_edit); ?> />
             </label>
-            <label class="aegis-portal-field">
+            <label class="aegis-portal-field sku-field sku-field--size">
                 <span>尺码</span>
                 <input class="aegis-portal-input" type="text" name="size_label" value="<?php echo esc_attr($size_label); ?>" <?php disabled(!$can_edit); ?> />
             </label>
-            <label class="aegis-portal-field">
+            <label class="aegis-portal-field sku-field sku-field--color">
                 <span>颜色</span>
                 <input class="aegis-portal-input" type="text" name="color_label" value="<?php echo esc_attr($color_label); ?>" <?php disabled(!$can_edit); ?> />
             </label>
-            <label class="aegis-portal-field">
+            <label class="aegis-portal-field sku-field sku-field--price-agent">
                 <span>一级代理商价</span>
                 <input class="aegis-portal-input" type="number" step="0.01" min="0" name="price_tier_agent" value="<?php echo esc_attr($price_agent); ?>" <?php disabled(!$can_edit_pricing); ?> />
                 <span class="aegis-t-a6" style="color:#666;">仅 HQ 可编辑，留空表示不可下单。</span>
             </label>
-            <label class="aegis-portal-field">
+            <label class="aegis-portal-field sku-field sku-field--price-dealer">
                 <span>一级经销商价</span>
                 <input class="aegis-portal-input" type="number" step="0.01" min="0" name="price_tier_dealer" value="<?php echo esc_attr($price_dealer); ?>" <?php disabled(!$can_edit_pricing); ?> />
             </label>
-            <label class="aegis-portal-field">
+            <label class="aegis-portal-field sku-field sku-field--price-core">
                 <span>核心合作商价</span>
                 <input class="aegis-portal-input" type="number" step="0.01" min="0" name="price_tier_core" value="<?php echo esc_attr($price_core); ?>" <?php disabled(!$can_edit_pricing); ?> />
             </label>
-            <label class="aegis-portal-field">
+            <label class="aegis-portal-field sku-field sku-field--status">
                 <span>状态</span>
                 <select class="aegis-portal-select" name="status" <?php disabled(!$can_edit); ?>>
                     <?php foreach ($status_labels as $value => $label) : ?>
