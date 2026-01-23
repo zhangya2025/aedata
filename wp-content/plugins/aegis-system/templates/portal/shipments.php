@@ -16,7 +16,7 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
-    <p class="aegis-t-a6">逐码扫码/手输，仅允许已入库码出库；经销商停用则不可选择。导出汇总/明细仅限仓库与 HQ。</p>
+    <p class="aegis-t-a6 aegis-helptext">逐码扫码/手输，仅允许已入库码出库；经销商停用则不可选择。导出汇总/明细仅限仓库与 HQ。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -39,11 +39,20 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <button type="button" class="button aegis-note-toggle" id="aegis-shipments-note-toggle" aria-expanded="false" aria-controls="aegis-shipments-note-field">备注</button>
+                <button type="button" class="button aegis-note-toggle aegis-action-note" id="aegis-shipments-note-toggle" aria-expanded="false" aria-controls="aegis-shipments-note-field">备注</button>
                 <div id="aegis-shipments-note-field" class="aegis-note-field" style="display:none; min-width:240px;">
                     <label class="aegis-t-a6" style="display:block;">备注（可选）：<input type="text" name="note" /></label>
                 </div>
-                <button type="submit" class="button button-primary">开始出库</button>
+                <button type="submit" class="button button-primary aegis-action-start">
+                    <svg class="aegis-btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">
+                        <rect x="3" y="4" width="2" height="16"></rect>
+                        <rect x="7" y="4" width="1" height="16"></rect>
+                        <rect x="10" y="4" width="2" height="16"></rect>
+                        <rect x="14" y="4" width="1" height="16"></rect>
+                        <rect x="17" y="4" width="2" height="16"></rect>
+                    </svg>
+                    <span class="aegis-btn-label">开始出库</span>
+                </button>
             </div>
         </form>
         <script>
