@@ -237,6 +237,47 @@ html {
     color: #667085;
 }
 
+@media (min-width: 769px) {
+    /* SKU 表单主网格：PC 端改为更可控的 flex，便于字段“长短不一” */
+    .sku-form-card .sku-form-grid--main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .sku-form-card .sku-form-grid--main .sku-field {
+        min-width: 0;
+    }
+
+    /* 宽度设计（按你截图目标：EAN 合适、名称略短、尺码很短、颜色/价格更短） */
+    .sku-form-card .sku-form-grid--main .sku-field--ean {
+        flex: 0 0 260px;
+    }
+
+    .sku-form-card .sku-form-grid--main .sku-field--name {
+        flex: 0 0 220px;
+    }
+
+    .sku-form-card .sku-form-grid--main .sku-field--size {
+        flex: 0 0 120px;
+    }
+
+    .sku-form-card .sku-form-grid--main .sku-field--color {
+        flex: 0 0 140px;
+    }
+
+    .sku-form-card .sku-form-grid--main .sku-field--price-agent,
+    .sku-form-card .sku-form-grid--main .sku-field--price-dealer,
+    .sku-form-card .sku-form-grid--main .sku-field--price-core {
+        flex: 0 0 160px;
+    }
+
+    .sku-form-card .sku-form-grid--main .sku-field--status {
+        flex: 0 0 140px;
+    }
+}
+
 @media (max-width: 768px) {
     .aegis-portal-topbar {
         grid-template-columns: auto 1fr auto;
