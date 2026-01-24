@@ -126,6 +126,31 @@ class AEGIS_System {
     }
 
     /**
+     * 规范化防伪码：去除非字母数字字符并转大写。
+     *
+     * @param mixed $raw
+     * @return string
+     */
+    public static function normalize_code_value($raw): string {
+        $raw = strtoupper((string) $raw);
+        return preg_replace('/[^A-Z0-9]/', '', $raw) ?? '';
+    }
+
+    /**
+     * 格式化展示用防伪码：20 位按每 4 位插入短横线。
+     *
+     * @param mixed $code
+     * @return string
+     */
+    public static function format_code_display($code): string {
+        $normalized = self::normalize_code_value($code);
+        if (20 !== strlen($normalized)) {
+            return $normalized;
+        }
+        return implode('-', str_split($normalized, 4));
+    }
+
+    /**
      * 初始化钩子。
      */
     public function __construct() {

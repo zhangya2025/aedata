@@ -257,7 +257,7 @@ class AEGIS_Codes {
         foreach ($codes as $code) {
             echo '<tr>';
             echo '<td>' . esc_html($code->id) . '</td>';
-            echo '<td>' . esc_html($code->code) . '</td>';
+            echo '<td>' . esc_html(AEGIS_System::format_code_display($code->code)) . '</td>';
             echo '<td>' . esc_html($code->status) . '</td>';
             echo '<td>' . esc_html($code->created_at) . '</td>';
             echo '</tr>';
@@ -569,8 +569,20 @@ class AEGIS_Codes {
      * @return string
      */
     protected static function generate_secure_code_value() {
-        $bytes = random_bytes(10);
-        return strtoupper(substr(bin2hex($bytes), 0, 20));
+        $brand = 'AM';
+        $version = 'A';
+        $year_alphabet = ['A','B','C','D','E','F','G','H','J','K','M','N','P','Q','R','S','T','V','W','X'];
+        $year = (int) gmdate('Y', current_time('timestamp'));
+        $year_index = (($year - 2026) % 20 + 20) % 20;
+        $year_code = $year_alphabet[$year_index];
+        $charset = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+        $random = '';
+        $max_index = strlen($charset) - 1;
+        for ($i = 0; $i < 16; $i++) {
+            $random .= $charset[random_int(0, $max_index)];
+        }
+
+        return $brand . $version . $year_code . $random;
     }
 
     /**
@@ -876,7 +888,7 @@ class AEGIS_Codes {
         echo '<table><thead><tr><th>ID</th><th>Code</th><th>EAN</th><th>产品</th></tr></thead><tbody>';
         foreach ($codes as $code) {
             $product = isset($code->product_name) ? $code->product_name : '';
-            echo '<tr><td>' . esc_html($code->id) . '</td><td>' . esc_html($code->code) . '</td><td>' . esc_html($code->ean) . '</td><td>' . esc_html($product) . '</td></tr>';
+            echo '<tr><td>' . esc_html($code->id) . '</td><td>' . esc_html(AEGIS_System::format_code_display($code->code)) . '</td><td>' . esc_html($code->ean) . '</td><td>' . esc_html($product) . '</td></tr>';
         }
         echo '</tbody></table>';
         echo '</body></html>';

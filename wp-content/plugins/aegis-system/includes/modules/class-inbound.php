@@ -64,6 +64,7 @@ class AEGIS_Inbound {
                 } elseif ('add' === $action) {
                     $receipt_id = isset($_POST['receipt_id']) ? (int) $_POST['receipt_id'] : 0;
                     $code_value = isset($_POST['code']) ? sanitize_text_field(wp_unslash($_POST['code'])) : '';
+                    $code_value = AEGIS_System::normalize_code_value($code_value);
                     $result = self::handle_add_code($receipt_id, $code_value);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
@@ -183,6 +184,8 @@ class AEGIS_Inbound {
 
     protected static function handle_add_code($receipt_id, $code_value) {
         global $wpdb;
+        $code_value = AEGIS_System::normalize_code_value($code_value);
+        $formatted_code = AEGIS_System::format_code_display($code_value);
         if ($receipt_id <= 0 || '' === $code_value) {
             return new WP_Error('invalid_input', '入库单或防伪码无效。');
         }
@@ -200,18 +203,18 @@ class AEGIS_Inbound {
 
         $code = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$code_table} WHERE code = %s", $code_value));
         if (!$code) {
-            return new WP_Error('code_missing', '防伪码不存在。');
+            return new WP_Error('code_missing', '防伪码不存在：' . $formatted_code . '。');
         }
         if ('generated' !== $code->stock_status) {
             if ('in_stock' === $code->stock_status) {
-                return new WP_Error('code_in_stock', '该防伪码已入库。');
+                return new WP_Error('code_in_stock', '该防伪码已入库：' . $formatted_code . '。');
             }
-            return new WP_Error('code_shipped', '该防伪码已出库。');
+            return new WP_Error('code_shipped', '该防伪码已出库：' . $formatted_code . '。');
         }
 
         $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(1) FROM {$receipt_item_table} WHERE code_id = %d", (int) $code->id));
         if ($exists) {
-            return new WP_Error('duplicate', '该防伪码已在其他入库单中。');
+            return new WP_Error('duplicate', '该防伪码已在其他入库单中：' . $formatted_code . '。');
         }
 
         $wpdb->query('START TRANSACTION');
@@ -250,7 +253,7 @@ class AEGIS_Inbound {
 
         $wpdb->query('COMMIT');
         AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RECEIPT_ITEM_ADD, 'SUCCESS', ['receipt_id' => $receipt_id, 'code' => $code_value]);
-        return ['message' => '已入库：' . $code_value];
+        return ['message' => '已入库：' . $formatted_code];
     }
 
     protected static function handle_complete($receipt_id) {
