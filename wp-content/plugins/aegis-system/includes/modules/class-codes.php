@@ -190,7 +190,6 @@ class AEGIS_Codes {
         foreach ($batches as $batch) {
             $user = $batch->created_by ? get_userdata($batch->created_by) : null;
             $user_label = $user ? $user->user_login : '-';
-            $can_delete_batch = self::current_user_can_delete_batches();
             $view_url = esc_url(add_query_arg([
                 'page'       => 'aegis-system-codes',
                 'view'       => $batch->id,
@@ -688,13 +687,13 @@ class AEGIS_Codes {
     }
 
     /**
-     * 获取批次列表上下文参数。
+     * 获取 Portal 批次列表上下文参数。
      *
      * @return array
      */
-    protected static function get_batches_list_args() {
+    protected static function get_portal_list_args() {
         $args = [
-            'page' => 'aegis-system-codes',
+            'm' => 'codes',
         ];
 
         if (isset($_GET['start_date'])) {
@@ -714,14 +713,15 @@ class AEGIS_Codes {
     }
 
     /**
-     * 重定向回批次列表。
+     * 重定向回 Portal 批次列表。
      *
+     * @param string $base_url
      * @param array $extra_args
      * @return void
      */
-    protected static function redirect_to_batches_list($extra_args = []) {
-        $args = array_merge(self::get_batches_list_args(), $extra_args);
-        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+    protected static function redirect_to_portal_list($base_url, $extra_args = []) {
+        $args = array_merge(self::get_portal_list_args(), $extra_args);
+        wp_safe_redirect(add_query_arg($args, $base_url));
         exit;
     }
 
@@ -1019,9 +1019,16 @@ class AEGIS_Codes {
      * 删除批次及其下所有防伪码（仅总部管理员）。
      *
      * @param int $batch_id
+     * @param array $options
      * @return true|WP_Error
      */
-    protected static function handle_delete_batch($batch_id) {
+    protected static function handle_delete_batch($batch_id, $options = []) {
+        $defaults = [
+            'nonce_action' => 'aegis_portal_codes_delete_batch_' . $batch_id,
+            'redirect_url' => '',
+        ];
+        $options = wp_parse_args($options, $defaults);
+
         if (!self::current_user_can_delete_batches()) {
             AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'capability']);
             return new WP_Error('forbidden', '仅总部管理员可删除批次。');
@@ -1037,7 +1044,8 @@ class AEGIS_Codes {
             return new WP_Error('module_disabled', '模块未启用');
         }
 
-        if (!wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'aegis_codes_delete_batch_' . $batch_id)) {
+        $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
+        if (!wp_verify_nonce($nonce, $options['nonce_action'])) {
             AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'nonce']);
             return new WP_Error('nonce', '安全校验失败');
         }
@@ -1087,7 +1095,9 @@ class AEGIS_Codes {
             ]
         );
 
-        self::redirect_to_batches_list(['aegis_codes_message' => '批次 #' . $batch_id . ' 已删除。']);
+        if (!empty($options['redirect_url'])) {
+            self::redirect_to_portal_list($options['redirect_url'], ['aegis_codes_message' => '批次 #' . $batch_id . ' 已删除。']);
+        }
         return true;
     }
 
@@ -1109,6 +1119,13 @@ class AEGIS_Codes {
         $messages = [];
         $errors = [];
 
+        if (isset($_GET['aegis_codes_message'])) {
+            $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_codes_message']));
+        }
+        if (isset($_GET['aegis_codes_error'])) {
+            $errors[] = sanitize_text_field(wp_unslash($_GET['aegis_codes_error']));
+        }
+
         wp_enqueue_script(
             'aegis-system-portal-codes',
             AEGIS_SYSTEM_URL . 'assets/js/portal-codes.js',
@@ -1128,6 +1145,17 @@ class AEGIS_Codes {
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     }
+                }
+            } elseif ('delete_batch' === $requested_action) {
+                $result = self::handle_delete_batch(
+                    $action_batch_id,
+                    [
+                        'nonce_action' => 'aegis_portal_codes_delete_batch_' . $action_batch_id,
+                        'redirect_url' => $base_url,
+                    ]
+                );
+                if (is_wp_error($result)) {
+                    self::redirect_to_portal_list($base_url, ['aegis_codes_error' => $result->get_error_message()]);
                 }
             }
         }
@@ -1200,6 +1228,7 @@ class AEGIS_Codes {
             'base_url'       => $base_url,
             'can_generate'   => $can_generate,
             'can_export'     => $can_export,
+            'can_delete_batch' => self::current_user_can_delete_batches(),
             'messages'       => $messages,
             'errors'         => $errors,
             'sku_options'    => $sku_options,

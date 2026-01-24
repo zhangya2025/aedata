@@ -144,11 +144,21 @@ if (empty($prefill_items)) {
                         'codes_action' => 'export',
                         'batch_id'     => $batch->id,
                     ], $base_url), 'aegis_codes_export_' . $batch->id);
-                    $print_url = wp_nonce_url(add_query_arg([
+                $print_url = wp_nonce_url(add_query_arg([
                         'm'            => 'codes',
                         'codes_action' => 'print',
                         'batch_id'     => $batch->id,
                     ], $base_url), 'aegis_codes_print_' . $batch->id);
+                    $delete_url = $can_delete_batch ? wp_nonce_url(add_query_arg([
+                        'm'            => 'codes',
+                        'codes_action' => 'delete_batch',
+                        'batch_id'     => $batch->id,
+                        'paged'        => $paged,
+                        'per_page'     => $per_page,
+                        'start_date'   => $start_date,
+                        'end_date'     => $end_date,
+                    ], $base_url), 'aegis_portal_codes_delete_batch_' . $batch->id) : '';
+                    $confirm_message = '确认删除该防伪码批次？此操作将删除该批次下所有防伪码，且不可恢复。';
                 ?>
                     <tr>
                         <td><?php echo esc_html($batch->id); ?></td>
@@ -161,6 +171,9 @@ if (empty($prefill_items)) {
                             <?php if ($can_export) : ?>
                                 <a class="aegis-portal-button is-ghost" href="<?php echo esc_url($export_url); ?>">导出</a>
                                 <a class="aegis-portal-button is-ghost" href="<?php echo esc_url($print_url); ?>" target="_blank" rel="noreferrer">打印</a>
+                            <?php endif; ?>
+                            <?php if ($can_delete_batch && $delete_url) : ?>
+                                <a class="aegis-portal-button is-ghost" href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('<?php echo esc_js($confirm_message); ?>');">删除</a>
                             <?php endif; ?>
                         </td>
                     </tr>
