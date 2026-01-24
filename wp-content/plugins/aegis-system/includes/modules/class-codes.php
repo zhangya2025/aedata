@@ -891,16 +891,26 @@ class AEGIS_Codes {
 
         $ttf = AEGIS_SYSTEM_PATH . 'assets/fonts/NotoSansSC-Regular.ttf';
         $fontFamily = '';
-        if (file_exists($ttf) && is_readable($ttf) && class_exists('TCPDF_FONTS')) {
+        $canRegisterTtf = class_exists('TCPDF_FONTS') && method_exists('TCPDF_FONTS', 'addTTFfont');
+        if ($canRegisterTtf && file_exists($ttf) && is_readable($ttf)) {
             $upload = wp_upload_dir();
             $fontDir = trailingslashit($upload['basedir']) . 'aegis-system/tcpdf-fonts/';
             if (!is_dir($fontDir)) {
                 wp_mkdir_p($fontDir);
             }
 
-            $fontFamily = TCPDF_FONTS::addTTFfont($ttf, 'TrueTypeUnicode', '', 96, $fontDir);
-            if ($fontFamily && method_exists($pdf, 'setFontPath')) {
-                $pdf->setFontPath($fontDir);
+            if (!is_dir($fontDir) || !is_writable($fontDir)) {
+                $fontDir = trailingslashit(sys_get_temp_dir()) . 'aegis-system/tcpdf-fonts/';
+                if (!is_dir($fontDir)) {
+                    wp_mkdir_p($fontDir);
+                }
+            }
+
+            if (is_dir($fontDir) && is_writable($fontDir)) {
+                $fontFamily = TCPDF_FONTS::addTTFfont($ttf, 'TrueTypeUnicode', '', 96, $fontDir);
+                if ($fontFamily && method_exists($pdf, 'setFontPath')) {
+                    $pdf->setFontPath($fontDir);
+                }
             }
         }
 
