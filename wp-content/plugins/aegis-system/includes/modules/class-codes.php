@@ -922,7 +922,7 @@ class AEGIS_Codes {
                 'fontsize' => 8,
                 'stretchtext' => 4,
             ];
-            $pdf->write1DBarcode($canonical_code, 'C128', 2, 6, 56, 18, 0.4, $barcode_style, 'N');
+            $pdf->write1DBarcode($canonical_code, 'C128', 4, 6, 52, 18, 0.4, $barcode_style, 'N');
 
             $pdf->SetFont('helvetica', '', 8.5);
             $pdf->SetXY(0, 24.5);
