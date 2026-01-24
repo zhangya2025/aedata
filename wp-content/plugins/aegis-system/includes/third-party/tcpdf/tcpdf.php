@@ -113,6 +113,36 @@ class TCPDF {
         echo $pdf;
     }
 
+    public function Image($file, $x = null, $y = null, $w = 0, $h = 0, $type = '', $link = '', $align = '', $resize = false, $dpi = 300, $palign = '', $ismask = false, $imgmask = false, $border = 0, $fitbox = false, $hidden = false, $fitonpage = false, $alt = false, $altimgs = []) {
+        if (!is_string($file) || '' === $file || !file_exists($file) || !is_readable($file)) {
+            return false;
+        }
+
+        $img = @imagecreatefrompng($file);
+        if (false === $img) {
+            return false;
+        }
+
+        $px_w = imagesx($img);
+        $px_h = imagesy($img);
+        if ($px_w <= 0 || $px_h <= 0) {
+            imagedestroy($img);
+            return false;
+        }
+
+        $target_w_mm = ($w > 0) ? (float) $w : ($px_w * 25.4 / max(1, (float) $dpi));
+        $target_h_mm = ($h > 0) ? (float) $h : ($px_h * 25.4 / max(1, (float) $dpi));
+
+        $x_pt = $this->mmToPt((null === $x) ? ($this->cursor_x_pt / $this->unit_scale) : (float) $x);
+        $y_pt_top = $this->mmToPt((null === $y) ? ($this->cursor_y_pt / $this->unit_scale) : (float) $y);
+        $w_pt = $this->mmToPt($target_w_mm);
+        $h_pt = $this->mmToPt($target_h_mm);
+
+        $this->renderRasterImage($img, $x_pt, $y_pt_top, $w_pt, $h_pt);
+        imagedestroy($img);
+        return true;
+    }
+
     protected function pseudoBarcodePattern($code) {
         // Deterministic visual barcode-like pattern; not a full Code128 implementation.
         $bits = '';
@@ -162,6 +192,37 @@ class TCPDF {
 
     protected function mmToPt($mm) {
         return (float) $mm * $this->unit_scale;
+    }
+
+    protected function renderRasterImage($img, $x_pt, $y_pt_top, $w_pt, $h_pt) {
+        $px_w = imagesx($img);
+        $px_h = imagesy($img);
+        if ($px_w <= 0 || $px_h <= 0 || $w_pt <= 0 || $h_pt <= 0) {
+            return;
+        }
+
+        $step_x = max(1, (int) ceil($px_w / 240));
+        $step_y = max(1, (int) ceil($px_h / 80));
+        $cell_w = $w_pt / max(1, (int) ceil($px_w / $step_x));
+        $cell_h = $h_pt / max(1, (int) ceil($px_h / $step_y));
+
+        for ($py = 0, $row = 0; $py < $px_h; $py += $step_y, $row++) {
+            for ($px = 0, $col = 0; $px < $px_w; $px += $step_x, $col++) {
+                $rgb = imagecolorat($img, $px, $py);
+                $r = ($rgb >> 16) & 0xFF;
+                $g = ($rgb >> 8) & 0xFF;
+                $b = $rgb & 0xFF;
+                $lum = (0.299 * $r) + (0.587 * $g) + (0.114 * $b);
+                if ($lum < 128) {
+                    $this->drawRect(
+                        $x_pt + ($col * $cell_w),
+                        $y_pt_top + ($row * $cell_h),
+                        $cell_w,
+                        $cell_h
+                    );
+                }
+            }
+        }
     }
 
     protected function buildPdf() {
