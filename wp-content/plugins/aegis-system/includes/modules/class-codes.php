@@ -887,6 +887,22 @@ class AEGIS_Codes {
         $pdf->SetPrintFooter(false);
         $pdf->SetMargins(0, 0, 0, true);
         $pdf->SetAutoPageBreak(false, 0);
+        $pdf->setFontSubsetting(true);
+
+        $ttf = AEGIS_SYSTEM_PATH . 'assets/fonts/NotoSansSC-Regular.ttf';
+        $fontFamily = '';
+        if (file_exists($ttf) && is_readable($ttf) && class_exists('TCPDF_FONTS')) {
+            $upload = wp_upload_dir();
+            $fontDir = trailingslashit($upload['basedir']) . 'aegis-system/tcpdf-fonts/';
+            if (!is_dir($fontDir)) {
+                wp_mkdir_p($fontDir);
+            }
+
+            $fontFamily = TCPDF_FONTS::addTTFfont($ttf, 'TrueTypeUnicode', '', 96, $fontDir);
+            if ($fontFamily && method_exists($pdf, 'setFontPath')) {
+                $pdf->setFontPath($fontDir);
+            }
+        }
 
         foreach ($codes as $code) {
             $canonical_code = strtoupper(preg_replace('/[^A-Z0-9]/', '', (string) $code->code));
@@ -895,11 +911,36 @@ class AEGIS_Codes {
 
             $pdf->AddPage('L', [60, 30]);
 
-            $upload = wp_upload_dir();
-            $title_img = trailingslashit($upload['basedir']) . 'aegis-system/label-assets/label-title.png';
-            if (method_exists($pdf, 'Image') && file_exists($title_img) && is_readable($title_img)) {
-                $pdf->Image($title_img, 0, 1.5, 60, 4, 'PNG');
-            } else {
+            $titleRendered = false;
+            if ($fontFamily) {
+                $pdf->SetFont($fontFamily, '', 6.5);
+                $pdf->SetXY(0, 1.5);
+                $pdf->Cell(60, 4, $title, 0, 1, 'C');
+                $titleRendered = true;
+            }
+
+            if (!$titleRendered) {
+                $upload = wp_upload_dir();
+                $title_candidates = [
+                    trailingslashit($upload['basedir']) . 'aegis-system/label-assets/label-title.png',
+                    AEGIS_SYSTEM_PATH . 'label-assets/label-title.png',
+                    AEGIS_SYSTEM_PATH . 'assets/img/label-title.png',
+                ];
+                $title_img = '';
+                foreach ($title_candidates as $candidate) {
+                    if (file_exists($candidate) && is_readable($candidate)) {
+                        $title_img = $candidate;
+                        break;
+                    }
+                }
+
+                if ($title_img && method_exists($pdf, 'Image')) {
+                    $pdf->Image($title_img, 0, 1.5, 60, 4, 'PNG');
+                    $titleRendered = true;
+                }
+            }
+
+            if (!$titleRendered) {
                 $pdf->SetFont('helvetica', '', 6.5);
                 $pdf->SetXY(0, 1.5);
                 $pdf->Cell(60, 4, 'Anti-counterfeit code', 0, 1, 'C');
