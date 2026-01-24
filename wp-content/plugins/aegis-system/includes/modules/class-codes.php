@@ -895,16 +895,15 @@ class AEGIS_Codes {
 
             $pdf->AddPage('L', [60, 30]);
 
-            $fontPath = AEGIS_SYSTEM_PATH . 'assets/fonts/NotoSansSC-Regular.ttf';
-            if (file_exists($fontPath) && is_readable($fontPath)) {
-                error_log('[AEGIS PDF] using fontPath: ' . $fontPath);
-                $pdf->SetFont($fontPath, '', 6.5);
+            $upload = wp_upload_dir();
+            $title_img = trailingslashit($upload['basedir']) . 'aegis-system/label-assets/label-title.png';
+            if (method_exists($pdf, 'Image') && file_exists($title_img) && is_readable($title_img)) {
+                $pdf->Image($title_img, 0, 1.5, 60, 4, 'PNG');
             } else {
-                error_log('[AEGIS PDF] missing/unreadable font: ' . $fontPath);
                 $pdf->SetFont('helvetica', '', 6.5);
+                $pdf->SetXY(0, 1.5);
+                $pdf->Cell(60, 4, 'Anti-counterfeit code', 0, 1, 'C');
             }
-            $pdf->SetXY(0, 1.5);
-            $pdf->Cell(60, 4, $title, 0, 1, 'C');
             $pdf->SetFont('helvetica', '', 8.5);
 
             $barcode_style = [
