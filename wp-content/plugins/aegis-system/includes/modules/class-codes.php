@@ -880,18 +880,51 @@ class AEGIS_Codes {
             ]
         );
 
-        echo '<html><head><meta charset="utf-8"><title>批次打印</title>';
-        echo '<style>.aegis-print{font-family:Arial;margin:20px;} .aegis-print h1{font-size:20px;} .aegis-print table{width:100%;border-collapse:collapse;} .aegis-print th,.aegis-print td{border:1px solid #ddd;padding:6px;text-align:left;}</style>';
-        echo '</head><body class="aegis-print">';
-        echo '<h1>批次 #' . esc_html($batch->id) . ' 防伪码</h1>';
-        echo '<p>创建时间：' . esc_html($batch->created_at) . ' · 总量：' . esc_html($batch->quantity) . '</p>';
-        echo '<table><thead><tr><th>ID</th><th>Code</th><th>EAN</th><th>产品</th></tr></thead><tbody>';
+        require_once AEGIS_SYSTEM_PATH . 'includes/third-party/tcpdf/tcpdf.php';
+
+        $pdf = new TCPDF('L', 'mm', [60, 30], true, 'UTF-8', false);
+        $pdf->SetPrintHeader(false);
+        $pdf->SetPrintFooter(false);
+        $pdf->SetMargins(0, 0, 0, true);
+        $pdf->SetAutoPageBreak(false, 0);
+
         foreach ($codes as $code) {
-            $product = isset($code->product_name) ? $code->product_name : '';
-            echo '<tr><td>' . esc_html($code->id) . '</td><td>' . esc_html(AEGIS_System::format_code_display($code->code)) . '</td><td>' . esc_html($code->ean) . '</td><td>' . esc_html($product) . '</td></tr>';
+            $canonical_code = strtoupper(preg_replace('/[^A-Z0-9]/', '', (string) $code->code));
+            $display_code = trim(chunk_split($canonical_code, 4, '-'), '-');
+
+            $pdf->AddPage('L', [60, 30]);
+
+            $pdf->SetFont('cid0cs', '', 6.5);
+            $pdf->SetXY(0, 1.5);
+            $pdf->Cell(60, 4, '防伪码  Anti-counterfeit code', 0, 0, 'C');
+
+            $barcode_style = [
+                'position' => '',
+                'align'    => 'C',
+                'stretch'  => false,
+                'fitwidth' => true,
+                'cellfitalign' => '',
+                'border'   => false,
+                'hpadding' => 0,
+                'vpadding' => 0,
+                'fgcolor'  => [0, 0, 0],
+                'bgcolor'  => false,
+                'text'     => false,
+                'font'     => 'helvetica',
+                'fontsize' => 8,
+                'stretchtext' => 4,
+            ];
+            $pdf->write1DBarcode($canonical_code, 'C128', 2, 6, 56, 18, 0.4, $barcode_style, 'N');
+
+            $pdf->SetFont('helvetica', '', 8.5);
+            $pdf->SetXY(0, 24.5);
+            $pdf->Cell(60, 4, $display_code, 0, 0, 'C');
         }
-        echo '</tbody></table>';
-        echo '</body></html>';
+
+        $filename = 'aegis-labels-batch-' . $batch_id . '.pdf';
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $filename . '"');
+        $pdf->Output($filename, 'I');
         exit;
     }
 
@@ -1078,4 +1111,3 @@ class AEGIS_Codes {
         return gmdate('Y-m-d 00:00:00', $timestamp + (get_option('gmt_offset') * HOUR_IN_SECONDS));
     }
 }
-
