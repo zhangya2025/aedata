@@ -247,7 +247,7 @@ if (empty($prefill_items)) {
                     <?php endif; ?>
                     <?php foreach ($view_codes as $code) : ?>
                         <tr>
-                            <td style="font-family:monospace;"><?php echo esc_html($code->code); ?></td>
+                            <td style="font-family:monospace;"><?php echo esc_html(AEGIS_System::format_code_display($code->code)); ?></td>
                             <td><?php echo esc_html($code->ean); ?></td>
                             <td><?php echo esc_html($code->product_name ?? ''); ?></td>
                             <td><?php echo esc_html($code->created_at); ?></td>

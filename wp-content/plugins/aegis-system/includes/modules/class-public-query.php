@@ -244,7 +244,7 @@ class AEGIS_Public_Query {
             echo '<div class="aegis-t-a5" style="margin-top:4px;">已查询到产品</div>';
             echo '<div class="aegis-query-meta aegis-t-a6">';
             echo '<div><span class="aegis-label">产品名称：</span>' . esc_html($result['product_label']) . '</div>';
-            echo '<div><span class="aegis-label">防伪码：</span>' . esc_html($result['code']) . '</div>';
+            echo '<div><span class="aegis-label">防伪码：</span>' . esc_html(AEGIS_System::format_code_display($result['code'])) . '</div>';
             echo '<div><span class="aegis-label">SKU：</span>' . esc_html($result['ean']) . '</div>';
             echo '<div><span class="aegis-label">查询次数：</span>' . esc_html($display_value) . '</div>';
             echo '<div><span class="aegis-label">经销商：</span>' . esc_html($result['dealer_label']) . '</div>';
@@ -259,7 +259,7 @@ class AEGIS_Public_Query {
         $status_class = !empty($result['status_class']) ? $result['status_class'] : 'status-warn';
         echo '<div class="aegis-query-result">';
         echo '<div class="aegis-status-badge ' . esc_attr($status_class) . ' aegis-t-a6">' . esc_html($result['status_label']) . '</div>';
-        echo '<div class="aegis-t-a5" style="margin-top:8px;">防伪码：' . esc_html($result['code']) . '</div>';
+        echo '<div class="aegis-t-a5" style="margin-top:8px;">防伪码：' . esc_html(AEGIS_System::format_code_display($result['code'])) . '</div>';
         echo '<div class="aegis-query-meta aegis-t-a6">';
         echo '<div><span class="aegis-label">产品：</span>' . esc_html($result['product']);
         if (!empty($result['sku_meta'])) {
@@ -281,7 +281,8 @@ class AEGIS_Public_Query {
      * 查询处理。
      */
     protected static function handle_query($code_value, $context, $enforce_rate_limit) {
-        $code_value = trim((string) $code_value);
+        $code_value = AEGIS_System::normalize_code_value($code_value);
+        $formatted_code = AEGIS_System::format_code_display($code_value);
         if ('' === $code_value) {
             return new WP_Error('empty_code', '请输入防伪码。');
         }
@@ -302,7 +303,7 @@ class AEGIS_Public_Query {
                 'FAIL',
                 ['code' => $code_value, 'reason' => 'not_found', 'context' => $context]
             );
-            return new WP_Error('code_not_found', '未查询到该防伪码。');
+            return new WP_Error('code_not_found', '未查询到该防伪码：' . $formatted_code . '。');
         }
 
         $counts = self::increment_counters((int) $record->id, $record->code, $context);
@@ -344,7 +345,7 @@ class AEGIS_Public_Query {
         $message = 'shipped' === $stock_status ? '该防伪码已出库。' : '该防伪码已生成但未出库。';
 
         $result = [
-            'code'         => $record->code,
+            'code'         => AEGIS_System::format_code_display($record->code),
             'ean'          => $record->ean,
             'product'      => $product_name,
             'sku_meta'     => implode(' / ', $sku_meta_parts),

@@ -73,6 +73,7 @@ class AEGIS_Shipments {
                 } elseif ('add' === $action) {
                     $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
                     $code_value = isset($_POST['code']) ? sanitize_text_field(wp_unslash($_POST['code'])) : '';
+                    $code_value = AEGIS_System::normalize_code_value($code_value);
                     $result = self::handle_portal_add_code($shipment_id, $code_value);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
@@ -213,6 +214,8 @@ class AEGIS_Shipments {
 
     protected static function handle_portal_add_code($shipment_id, $code_value) {
         global $wpdb;
+        $code_value = AEGIS_System::normalize_code_value($code_value);
+        $formatted_code = AEGIS_System::format_code_display($code_value);
         if ($shipment_id <= 0 || '' === $code_value) {
             return new WP_Error('invalid_input', '出库单或防伪码无效。');
         }
@@ -240,21 +243,21 @@ class AEGIS_Shipments {
 
         $code = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$code_table} WHERE code = %s", $code_value));
         if (!$code) {
-            return new WP_Error('code_missing', '防伪码不存在。');
+            return new WP_Error('code_missing', '防伪码不存在：' . $formatted_code . '。');
         }
         if ('in_stock' !== $code->stock_status) {
             if ('generated' === $code->stock_status || !$code->stock_status) {
-                return new WP_Error('code_not_stocked', '未入库，不可出库。');
+                return new WP_Error('code_not_stocked', '未入库，不可出库：' . $formatted_code . '。');
             }
             if ('shipped' === $code->stock_status) {
-                return new WP_Error('code_shipped', '该防伪码已出库。');
+                return new WP_Error('code_shipped', '该防伪码已出库：' . $formatted_code . '。');
             }
-            return new WP_Error('code_invalid', '该防伪码状态异常。');
+            return new WP_Error('code_invalid', '该防伪码状态异常：' . $formatted_code . '。');
         }
 
         $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(1) FROM {$shipment_item_table} WHERE code_id = %d", (int) $code->id));
         if ($exists) {
-            return new WP_Error('duplicate_code', '该防伪码已在出库单中。');
+            return new WP_Error('duplicate_code', '该防伪码已在出库单中：' . $formatted_code . '。');
         }
 
         $now = current_time('mysql');
@@ -292,7 +295,7 @@ class AEGIS_Shipments {
         }
 
         $wpdb->query('COMMIT');
-        return ['message' => '已出库：' . $code_value];
+        return ['message' => '已出库：' . $formatted_code];
     }
 
     protected static function handle_portal_complete($shipment_id) {
@@ -882,7 +885,7 @@ class AEGIS_Shipments {
         foreach ($items as $item) {
             echo '<tr>';
             echo '<td>' . esc_html($item->id) . '</td>';
-            echo '<td>' . esc_html($item->code_value) . '</td>';
+            echo '<td>' . esc_html(AEGIS_System::format_code_display($item->code_value)) . '</td>';
             echo '<td>' . esc_html($item->ean) . '</td>';
             echo '<td>' . esc_html($item->scanned_at) . '</td>';
             echo '</tr>';

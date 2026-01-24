@@ -53,6 +53,7 @@ class AEGIS_Reset_B {
             } else {
                 $action = isset($_POST['reset_b_action']) ? sanitize_key(wp_unslash($_POST['reset_b_action'])) : '';
                 $code_value = isset($_POST['code_value']) ? sanitize_text_field(wp_unslash($_POST['code_value'])) : '';
+                $code_value = AEGIS_System::normalize_code_value($code_value);
                 $reason = isset($_POST['reason']) ? sanitize_text_field(wp_unslash($_POST['reason'])) : '';
 
                 if ('query' === $action) {
@@ -152,14 +153,15 @@ class AEGIS_Reset_B {
      * @return array|WP_Error
      */
     protected static function handle_portal_query($code_value, $actor) {
-        $code_value = trim((string) $code_value);
+        $code_value = AEGIS_System::normalize_code_value($code_value);
+        $formatted_code = AEGIS_System::format_code_display($code_value);
         if ('' === $code_value) {
             return new WP_Error('empty_code', '请输入防伪码。');
         }
 
         $record = self::get_code_record($code_value);
         if (!$record) {
-            return new WP_Error('code_not_found', '未找到对应防伪码。');
+            return new WP_Error('code_not_found', '未找到对应防伪码：' . $formatted_code . '。');
         }
 
         $counts = self::calculate_b_display($record);
@@ -172,7 +174,7 @@ class AEGIS_Reset_B {
         }
 
         return [
-            'code'             => $record->code,
+            'code'             => AEGIS_System::format_code_display($record->code),
             'ean'              => $record->ean,
             'b_display'        => $counts['b_display'],
             'dealer_label'     => $dealer_label,
@@ -199,7 +201,8 @@ class AEGIS_Reset_B {
             return new WP_Error('confirm_required', '请确认后再执行清零。');
         }
 
-        $code_value = trim((string) $code_value);
+        $code_value = AEGIS_System::normalize_code_value($code_value);
+        $formatted_code = AEGIS_System::format_code_display($code_value);
         if ('' === $code_value) {
             return new WP_Error('empty_code', '请输入防伪码。');
         }
@@ -215,7 +218,7 @@ class AEGIS_Reset_B {
                     'message'     => 'not_found',
                 ]
             );
-            return new WP_Error('code_not_found', '未找到对应防伪码。');
+            return new WP_Error('code_not_found', '未找到对应防伪码：' . $formatted_code . '。');
         }
 
         $shipment = self::get_latest_shipment((int) $record->id);

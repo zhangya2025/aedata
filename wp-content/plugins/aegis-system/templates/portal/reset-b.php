@@ -60,7 +60,7 @@ $idempotency = $context['idempotency'];
         <div class="aegis-card" style="margin-top:16px;">
             <div class="aegis-t-a4" style="margin-bottom:8px;">查询结果</div>
             <div class="aegis-t-a6 aegis-reset-grid">
-                <div><span class="aegis-label">防伪码：</span><?php echo esc_html($query_result['code']); ?></div>
+                <div><span class="aegis-label">防伪码：</span><?php echo esc_html(AEGIS_System::format_code_display($query_result['code'])); ?></div>
                 <div><span class="aegis-label">查询次数：</span><?php echo esc_html((int) $query_result['b_display']); ?></div>
                 <div><span class="aegis-label">经销商：</span><?php echo esc_html($query_result['dealer_label']); ?></div>
                 <?php if ($actor['is_hq'] || $actor['is_warehouse']) : ?>
@@ -77,7 +77,7 @@ $idempotency = $context['idempotency'];
     <?php if ($reset_result) : ?>
         <div class="aegis-card" style="margin-top:12px; border-color:#58bd7d;">
             <div class="aegis-t-a5" style="color:#207245;">已清零</div>
-            <div class="aegis-t-a6">防伪码：<?php echo esc_html($reset_result['code']); ?></div>
+            <div class="aegis-t-a6">防伪码：<?php echo esc_html(AEGIS_System::format_code_display($reset_result['code'])); ?></div>
             <div class="aegis-t-a6">清零前：<?php echo esc_html((int) $reset_result['before_b']); ?>，清零后：<?php echo esc_html((int) $reset_result['after_b']); ?></div>
             <?php if (!empty($reset_result['dealer_label'])) : ?>
                 <div class="aegis-t-a6">归属：<?php echo esc_html($reset_result['dealer_label']); ?></div>
@@ -100,7 +100,7 @@ $idempotency = $context['idempotency'];
                     <?php foreach ($logs as $row) : ?>
                         <div class="aegis-reset-row aegis-t-a6">
                             <div><?php echo esc_html($row->reset_at); ?></div>
-                            <div><?php echo esc_html($row->code_value); ?></div>
+                            <div><?php echo esc_html(AEGIS_System::format_code_display($row->code_value)); ?></div>
                             <div><?php echo esc_html((int) $row->before_b); ?> → <?php echo esc_html((int) $row->after_b); ?></div>
                             <div><?php echo esc_html($row->dealer_name ? $row->dealer_name : ''); ?></div>
                             <div><?php echo esc_html($row->actor_role); ?></div>

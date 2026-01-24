@@ -125,7 +125,7 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                                 <?php foreach ($items as $index => $item) : ?>
                                     <tr>
                                         <td><?php echo esc_html($index + 1); ?></td>
-                                        <td><?php echo esc_html($item->code); ?></td>
+                                        <td><?php echo esc_html(AEGIS_System::format_code_display($item->code)); ?></td>
                                         <td><?php echo esc_html($item->ean); ?></td>
                                         <td><?php echo esc_html($item->product_name); ?></td>
                                         <td><?php echo esc_html($item->created_at); ?></td>
