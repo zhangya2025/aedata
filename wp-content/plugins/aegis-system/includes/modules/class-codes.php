@@ -23,6 +23,13 @@ class AEGIS_Codes {
         $messages = [];
         $errors = [];
 
+        if (isset($_GET['aegis_codes_message'])) {
+            $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_codes_message']));
+        }
+        if (isset($_GET['aegis_codes_error'])) {
+            $errors[] = sanitize_text_field(wp_unslash($_GET['aegis_codes_error']));
+        }
+
         if (isset($_GET['codes_action'])) {
             $action = sanitize_key(wp_unslash($_GET['codes_action']));
             $batch_id = isset($_GET['batch_id']) ? (int) $_GET['batch_id'] : 0;
@@ -35,6 +42,11 @@ class AEGIS_Codes {
                 $result = self::handle_print($batch_id);
                 if (is_wp_error($result)) {
                     $errors[] = $result->get_error_message();
+                }
+            } elseif ('delete_batch' === $action) {
+                $result = self::handle_delete_batch($batch_id);
+                if (is_wp_error($result)) {
+                    self::redirect_to_batches_list(['aegis_codes_error' => $result->get_error_message()]);
                 }
             }
         }
@@ -178,8 +190,7 @@ class AEGIS_Codes {
         foreach ($batches as $batch) {
             $user = $batch->created_by ? get_userdata($batch->created_by) : null;
             $user_label = $user ? $user->user_login : '-';
-            $export_nonce = wp_create_nonce('aegis_codes_export_' . $batch->id);
-            $print_nonce = wp_create_nonce('aegis_codes_print_' . $batch->id);
+            $can_delete_batch = self::current_user_can_delete_batches();
             $view_url = esc_url(add_query_arg([
                 'page'       => 'aegis-system-codes',
                 'view'       => $batch->id,
@@ -197,6 +208,22 @@ class AEGIS_Codes {
                 'codes_action'=> 'print',
                 'batch_id'    => $batch->id,
             ], admin_url('admin.php')), 'aegis_codes_print_' . $batch->id));
+            $delete_url = '';
+            if ($can_delete_batch) {
+                $delete_args = array_merge(
+                    self::get_batches_list_args(),
+                    [
+                        'codes_action' => 'delete_batch',
+                        'batch_id'     => $batch->id,
+                    ]
+                );
+                $delete_url = esc_url(
+                    wp_nonce_url(
+                        add_query_arg($delete_args, admin_url('admin.php')),
+                        'aegis_codes_delete_batch_' . $batch->id
+                    )
+                );
+            }
 
             echo '<tr>';
             echo '<td>' . esc_html($batch->id) . '</td>';
@@ -208,6 +235,10 @@ class AEGIS_Codes {
             echo '<a class="button button-small" href="' . $view_url . '">查看</a> ';
             echo '<a class="button button-small" href="' . $export_url . '">导出 CSV</a> ';
             echo '<a class="button button-small" href="' . $print_url . '" target="_blank">打印</a>';
+            if ($can_delete_batch && $delete_url) {
+                $confirm_message = '确认删除该防伪码批次？此操作将删除该批次下所有防伪码，且不可恢复。';
+                echo ' <a class="button button-small button-link-delete" href="' . $delete_url . '" onclick="return confirm(\'' . esc_js($confirm_message) . '\');">删除</a>';
+            }
             echo '</td>';
             echo '</tr>';
         }
@@ -647,6 +678,54 @@ class AEGIS_Codes {
     }
 
     /**
+     * 当前用户是否可以删除批次（仅总部管理员）。
+     *
+     * @return bool
+     */
+    protected static function current_user_can_delete_batches() {
+        return current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
+            || AEGIS_System_Roles::is_hq_admin();
+    }
+
+    /**
+     * 获取批次列表上下文参数。
+     *
+     * @return array
+     */
+    protected static function get_batches_list_args() {
+        $args = [
+            'page' => 'aegis-system-codes',
+        ];
+
+        if (isset($_GET['start_date'])) {
+            $args['start_date'] = sanitize_text_field(wp_unslash($_GET['start_date']));
+        }
+        if (isset($_GET['end_date'])) {
+            $args['end_date'] = sanitize_text_field(wp_unslash($_GET['end_date']));
+        }
+        if (isset($_GET['per_page'])) {
+            $args['per_page'] = (int) $_GET['per_page'];
+        }
+        if (isset($_GET['paged'])) {
+            $args['paged'] = max(1, (int) $_GET['paged']);
+        }
+
+        return $args;
+    }
+
+    /**
+     * 重定向回批次列表。
+     *
+     * @param array $extra_args
+     * @return void
+     */
+    protected static function redirect_to_batches_list($extra_args = []) {
+        $args = array_merge(self::get_batches_list_args(), $extra_args);
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    /**
      * 解析批次 meta，补充 SKU 行数和 items 数据。
      *
      * @param object $batch
@@ -934,6 +1013,82 @@ class AEGIS_Codes {
         header('Content-Disposition: inline; filename="' . $filename . '"');
         $pdf->Output($filename, 'I');
         exit;
+    }
+
+    /**
+     * 删除批次及其下所有防伪码（仅总部管理员）。
+     *
+     * @param int $batch_id
+     * @return true|WP_Error
+     */
+    protected static function handle_delete_batch($batch_id) {
+        if (!self::current_user_can_delete_batches()) {
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'capability']);
+            return new WP_Error('forbidden', '仅总部管理员可删除批次。');
+        }
+
+        if ($batch_id < 1) {
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'invalid_batch']);
+            return new WP_Error('invalid_batch', '批次不存在');
+        }
+
+        if (!AEGIS_System::is_module_enabled('codes')) {
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'module_disabled']);
+            return new WP_Error('module_disabled', '模块未启用');
+        }
+
+        if (!wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'aegis_codes_delete_batch_' . $batch_id)) {
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'nonce']);
+            return new WP_Error('nonce', '安全校验失败');
+        }
+
+        $batch = self::get_batch($batch_id);
+        if (!$batch) {
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'not_found']);
+            return new WP_Error('not_found', '批次不存在');
+        }
+
+        global $wpdb;
+        $batch_table = $wpdb->prefix . AEGIS_System::CODE_BATCH_TABLE;
+        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+
+        $transaction_started = $wpdb->query('START TRANSACTION');
+        if (false === $transaction_started) {
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'transaction_start', 'message' => $wpdb->last_error]);
+            return new WP_Error('transaction_fail', '删除批次失败，请稍后重试。');
+        }
+
+        $codes_deleted = $wpdb->delete($code_table, ['batch_id' => $batch_id], ['%d']);
+        if (false === $codes_deleted) {
+            $wpdb->query('ROLLBACK');
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'codes_delete', 'message' => $wpdb->last_error]);
+            return new WP_Error('codes_delete_fail', '删除批次防伪码失败，请重试。');
+        }
+
+        $batch_deleted = $wpdb->delete($batch_table, ['id' => $batch_id], ['%d']);
+        if (false === $batch_deleted || 0 === (int) $batch_deleted) {
+            $wpdb->query('ROLLBACK');
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'batch_delete', 'message' => $wpdb->last_error]);
+            return new WP_Error('batch_delete_fail', '删除批次失败，请重试。');
+        }
+
+        if (false === $wpdb->query('COMMIT')) {
+            $wpdb->query('ROLLBACK');
+            AEGIS_Access_Audit::record_event('CODE_BATCH_DELETE', 'FAIL', ['batch_id' => $batch_id, 'reason' => 'transaction_commit', 'message' => $wpdb->last_error]);
+            return new WP_Error('transaction_commit_fail', '删除批次失败，请重试。');
+        }
+
+        AEGIS_Access_Audit::record_event(
+            'CODE_BATCH_DELETE',
+            'SUCCESS',
+            [
+                'batch_id'      => $batch_id,
+                'codes_deleted' => (int) $codes_deleted,
+            ]
+        );
+
+        self::redirect_to_batches_list(['aegis_codes_message' => '批次 #' . $batch_id . ' 已删除。']);
+        return true;
     }
 
     /**
