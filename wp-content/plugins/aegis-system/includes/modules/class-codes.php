@@ -23,6 +23,13 @@ class AEGIS_Codes {
         $messages = [];
         $errors = [];
 
+        if (isset($_GET['aegis_codes_message'])) {
+            $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_codes_message']));
+        }
+        if (isset($_GET['aegis_codes_error'])) {
+            $errors[] = sanitize_text_field(wp_unslash($_GET['aegis_codes_error']));
+        }
+
         if (isset($_GET['codes_action'])) {
             $action = sanitize_key(wp_unslash($_GET['codes_action']));
             $batch_id = isset($_GET['batch_id']) ? (int) $_GET['batch_id'] : 0;
@@ -35,6 +42,11 @@ class AEGIS_Codes {
                 $result = self::handle_print($batch_id);
                 if (is_wp_error($result)) {
                     $errors[] = $result->get_error_message();
+                }
+            } elseif ('delete_batch' === $action) {
+                $result = self::handle_delete_batch($batch_id);
+                if (is_wp_error($result)) {
+                    self::redirect_to_batches_list(['aegis_codes_error' => $result->get_error_message()]);
                 }
             }
         }
@@ -195,6 +207,22 @@ class AEGIS_Codes {
                 'codes_action'=> 'print',
                 'batch_id'    => $batch->id,
             ], admin_url('admin.php')), 'aegis_codes_print_' . $batch->id));
+            $delete_url = '';
+            if ($can_delete_batch) {
+                $delete_args = array_merge(
+                    self::get_batches_list_args(),
+                    [
+                        'codes_action' => 'delete_batch',
+                        'batch_id'     => $batch->id,
+                    ]
+                );
+                $delete_url = esc_url(
+                    wp_nonce_url(
+                        add_query_arg($delete_args, admin_url('admin.php')),
+                        'aegis_codes_delete_batch_' . $batch->id
+                    )
+                );
+            }
 
             echo '<tr>';
             echo '<td>' . esc_html($batch->id) . '</td>';
@@ -206,6 +234,10 @@ class AEGIS_Codes {
             echo '<a class="button button-small" href="' . $view_url . '">查看</a> ';
             echo '<a class="button button-small" href="' . $export_url . '">导出 CSV</a> ';
             echo '<a class="button button-small" href="' . $print_url . '" target="_blank">打印</a>';
+            if ($can_delete_batch && $delete_url) {
+                $confirm_message = '确认删除该防伪码批次？此操作将删除该批次下所有防伪码，且不可恢复。';
+                echo ' <a class="button button-small button-link-delete" href="' . $delete_url . '" onclick="return confirm(\'' . esc_js($confirm_message) . '\');">删除</a>';
+            }
             echo '</td>';
             echo '</tr>';
         }
