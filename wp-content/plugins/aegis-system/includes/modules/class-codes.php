@@ -891,13 +891,20 @@ class AEGIS_Codes {
         foreach ($codes as $code) {
             $canonical_code = strtoupper(preg_replace('/[^A-Z0-9]/', '', (string) $code->code));
             $display_code = trim(chunk_split($canonical_code, 4, '-'), '-');
-            $title = "\u{9632}\u{4F2A}\u{7801}  Anti-counterfeit code";
+            $title = '防伪码  Anti-counterfeit code';
 
             $pdf->AddPage('L', [60, 30]);
 
-            $pdf->SetFont('stsongstdlight', '', 6.5);
+            $fontPath = AEGIS_SYSTEM_PATH . 'assets/fonts/NotoSansSC-Regular.ttf';
+            if (file_exists($fontPath) && is_readable($fontPath)) {
+                error_log('[AEGIS PDF] using fontPath: ' . $fontPath);
+                $pdf->SetFont($fontPath, '', 6.5);
+            } else {
+                error_log('[AEGIS PDF] missing/unreadable font: ' . $fontPath);
+                $pdf->SetFont('helvetica', '', 6.5);
+            }
             $pdf->SetXY(0, 1.5);
-            $pdf->Cell(60, 4, $title, 0, 1, 'C', false, '', 0, false, 'T', 'M');
+            $pdf->Cell(60, 4, $title, 0, 1, 'C');
             $pdf->SetFont('helvetica', '', 8.5);
 
             $barcode_style = [
