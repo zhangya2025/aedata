@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the WordPress - 6.9.x - Development package.
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-28 11:59:02+0000\n"
+"PO-Revision-Date: 2026-01-23 14:37:58+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19587,7 +19587,7 @@ msgstr "検索結果: %s"
 #: wp-includes/js/dist/block-library.js:8807
 #: wp-includes/js/dist/block-library.js:10613
 msgid "One response to %s"
-msgstr "%s への1件のコメント"
+msgstr "%s への1件のフィードバック"
 
 #: wp-includes/admin-bar.php:1107
 #: wp-includes/class-wp-customize-nav-menus.php:681
