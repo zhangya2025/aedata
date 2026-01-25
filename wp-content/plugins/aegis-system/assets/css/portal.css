@@ -511,6 +511,42 @@ body.aegis-scan-open {
     align-items: flex-start;
 }
 
+.aegis-public-query-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.aegis-public-query-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.aegis-public-query-item .label {
+    color: #5b6675;
+    margin-right: 8px;
+}
+
+.aegis-public-query-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.aegis-public-query-subtitle {
+    color: #6c7787;
+}
+
+.aegis-public-query-card {
+    margin-bottom: 16px;
+}
+
+.aegis-public-query-card.is-result {
+    background: #fbfbfc;
+}
+
 .aegis-portal-field span {
     display: block;
     margin-bottom: 6px;
