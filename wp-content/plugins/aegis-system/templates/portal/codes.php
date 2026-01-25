@@ -6,6 +6,11 @@ if (!defined('ABSPATH')) {
 $base_url     = $context_data['base_url'] ?? '';
 $can_generate = !empty($context_data['can_generate']);
 $can_export   = !empty($context_data['can_export']);
+$can_delete_batch = (
+    current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+    || current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
+    || (class_exists('AEGIS_System_Roles') && method_exists('AEGIS_System_Roles', 'is_hq_admin') && AEGIS_System_Roles::is_hq_admin())
+);
 $messages     = $context_data['messages'] ?? [];
 $errors       = $context_data['errors'] ?? [];
 $sku_options  = $context_data['sku_options'] ?? [];
@@ -27,6 +32,8 @@ $codes_page   = $view['page'] ?? 1;
 $codes_per    = $view['per_page'] ?? 20;
 $codes_total  = $view['total'] ?? 0;
 $codes_pages  = $view['total_pages'] ?? 1;
+
+$base_url = $base_url ?: add_query_arg('m', 'codes', home_url('/aegis-system/'));
 
 $prefill_items = [];
 if (!empty($_POST['items']) && is_array($_POST['items'])) {
@@ -149,11 +156,22 @@ if (empty($prefill_items)) {
                         'codes_action' => 'print',
                         'batch_id'     => $batch->id,
                     ], $base_url), 'aegis_codes_print_' . $batch->id);
-                    $delete_url = $can_delete_batch ? wp_nonce_url(add_query_arg([
+                    $delete_args = [
                         'm'            => 'codes',
                         'codes_action' => 'delete_batch',
                         'batch_id'     => $batch->id,
-                    ], $base_url), 'aegis_codes_delete_batch_' . $batch->id) : '';
+                        'start_date'   => $start_date,
+                        'end_date'     => $end_date,
+                        'per_page'     => $per_page,
+                        'paged'        => $paged,
+                    ];
+                    if (!empty($view_batch)) {
+                        $delete_args['view'] = $view_batch;
+                    }
+                    $delete_url = $can_delete_batch ? wp_nonce_url(
+                        add_query_arg($delete_args, $base_url),
+                        'aegis_codes_delete_batch_' . $batch->id
+                    ) : '';
                     $confirm_message = '确认删除该防伪码批次？此操作将删除该批次下所有防伪码，且不可恢复。';
                 ?>
                     <tr>
