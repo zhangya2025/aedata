@@ -71,6 +71,37 @@ class AEGIS_Public_Query {
     }
 
     /**
+     * Portal 查询面板。
+     *
+     * @param string $portal_url
+     * @return string
+     */
+    public static function render_portal_panel($portal_url) {
+        if (!AEGIS_System::is_module_enabled('public_query')) {
+            return '<div class="aegis-t-a5">公共查询模块未启用，请联系管理员。</div>';
+        }
+
+        $base_url = add_query_arg('m', 'public_query', $portal_url);
+        $public_url = self::get_public_page_url();
+        $raw_code = isset($_GET['code']) ? sanitize_text_field(wp_unslash($_GET['code'])) : '';
+        $normalized_code = self::normalize_code_value($raw_code);
+        $result = null;
+
+        if ('' !== $raw_code) {
+            $result = self::handle_portal_query($normalized_code);
+        }
+
+        $context = [
+            'base_url'   => $base_url,
+            'public_url' => $public_url,
+            'query_code' => $raw_code,
+            'result'     => $result,
+        ];
+
+        return AEGIS_Portal::render_portal_template('public-query', $context);
+    }
+
+    /**
      * 后台内部查询页面。
      */
     public static function render_admin_page() {
@@ -281,32 +312,61 @@ class AEGIS_Public_Query {
      * 查询处理。
      */
     protected static function handle_query($code_value, $context, $enforce_rate_limit) {
-        $code_value = AEGIS_System::normalize_code_value($code_value);
+        return self::query_code($code_value, $context, $enforce_rate_limit, false);
+    }
+
+    /**
+     * Portal 只读查询。
+     *
+     * @param string $code_value
+     * @return array|WP_Error
+     */
+    public static function handle_portal_query($code_value) {
+        return self::query_code($code_value, self::CONTEXT_INTERNAL, false, true);
+    }
+
+    /**
+     * 查询处理核心逻辑。
+     *
+     * @param string $code_value
+     * @param string $context
+     * @param bool   $enforce_rate_limit
+     * @param bool   $read_only
+     * @return array|WP_Error
+     */
+    protected static function query_code($code_value, $context, $enforce_rate_limit, $read_only) {
+        $code_value = self::normalize_code_value($code_value);
         $formatted_code = AEGIS_System::format_code_display($code_value);
         if ('' === $code_value) {
             return new WP_Error('empty_code', '请输入防伪码。');
         }
 
         if ($enforce_rate_limit && !self::check_rate_limit()) {
-            AEGIS_Access_Audit::record_event(
-                AEGIS_System::ACTION_PUBLIC_QUERY_RATE_LIMIT,
-                'FAIL',
-                ['ip' => self::get_client_ip()]
-            );
+            if (!$read_only) {
+                AEGIS_Access_Audit::record_event(
+                    AEGIS_System::ACTION_PUBLIC_QUERY_RATE_LIMIT,
+                    'FAIL',
+                    ['ip' => self::get_client_ip()]
+                );
+            }
             return new WP_Error('rate_limited', '请求过于频繁，请稍后再试。');
         }
 
         $record = self::get_code_record($code_value);
         if (!$record) {
-            AEGIS_Access_Audit::record_event(
-                AEGIS_System::ACTION_PUBLIC_QUERY,
-                'FAIL',
-                ['code' => $code_value, 'reason' => 'not_found', 'context' => $context]
-            );
+            if (!$read_only) {
+                AEGIS_Access_Audit::record_event(
+                    AEGIS_System::ACTION_PUBLIC_QUERY,
+                    'FAIL',
+                    ['code' => $code_value, 'reason' => 'not_found', 'context' => $context]
+                );
+            }
             return new WP_Error('code_not_found', '未查询到该防伪码：' . $formatted_code . '。');
         }
 
-        $counts = self::increment_counters((int) $record->id, $record->code, $context);
+        $counts = $read_only
+            ? self::build_counts_from_record($record)
+            : self::increment_counters((int) $record->id, $record->code, $context);
         $sku = self::get_sku($record->ean);
         $certificate = self::get_public_certificate($sku ? $sku->certificate_id : 0);
 
@@ -314,11 +374,19 @@ class AEGIS_Public_Query {
         $result_type = 'not_shipped';
         $dealer_label = self::get_hq_label();
         $shipment = null;
+        $shipment_info = null;
 
         if ('shipped' === $stock_status) {
             $shipment = self::get_latest_shipment((int) $record->id);
             if ($shipment && $shipment->dealer_name) {
                 $dealer_label = $shipment->dealer_name;
+            }
+            if ($shipment) {
+                $shipment_info = [
+                    'scanned_at'  => $shipment->scanned_at,
+                    'shipment_no' => $shipment->shipment_no,
+                    'dealer_name' => $shipment->dealer_name,
+                ];
             }
             $result_type = 'shipped';
         }
@@ -336,14 +404,6 @@ class AEGIS_Public_Query {
         $status_class = 'shipped' === $stock_status ? 'status-safe' : 'status-warn';
         $message = 'shipped' === $stock_status ? '该防伪码已出库。' : '该防伪码已生成但未出库。';
 
-        $status_label = 'shipped' === $stock_status ? '已出库' : '未出库';
-        $status_class = 'shipped' === $stock_status ? 'status-safe' : 'status-warn';
-        $message = 'shipped' === $stock_status ? '该防伪码已出库。' : '该防伪码已生成但未出库。';
-
-        $status_label = 'shipped' === $stock_status ? '已出库' : '未出库';
-        $status_class = 'shipped' === $stock_status ? 'status-safe' : 'status-warn';
-        $message = 'shipped' === $stock_status ? '该防伪码已出库。' : '该防伪码已生成但未出库。';
-
         $result = [
             'code'         => AEGIS_System::format_code_display($record->code),
             'ean'          => $record->ean,
@@ -356,20 +416,24 @@ class AEGIS_Public_Query {
             'certificate'  => $certificate,
             'message'      => $message,
             'result_type'  => $result_type,
+            'shipment'     => $shipment_info,
+            'stock_status' => $stock_status,
         ];
 
-        AEGIS_Access_Audit::record_event(
-            AEGIS_System::ACTION_PUBLIC_QUERY,
-            'SUCCESS',
-            [
-                'code_id'     => (int) $record->id,
-                'context'     => $context,
-                'ean'         => $record->ean,
-                'dealer'      => $shipment ? $shipment->dealer_id : null,
-                'counts'      => $counts,
-                'result_type' => $result_type,
-            ]
-        );
+        if (!$read_only) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_PUBLIC_QUERY,
+                'SUCCESS',
+                [
+                    'code_id'     => (int) $record->id,
+                    'context'     => $context,
+                    'ean'         => $record->ean,
+                    'dealer'      => $shipment ? $shipment->dealer_id : null,
+                    'counts'      => $counts,
+                    'result_type' => $result_type,
+                ]
+            );
+        }
 
         return $result;
     }
@@ -482,6 +546,40 @@ class AEGIS_Public_Query {
     }
 
     /**
+     * 只读计数读取。
+     *
+     * @param object $record
+     * @return array
+     */
+    protected static function build_counts_from_record($record) {
+        $raw_b = isset($record->query_b_count) ? (int) $record->query_b_count : 0;
+        $offset = isset($record->query_b_offset) ? (int) $record->query_b_offset : 0;
+        $b_effective = max(0, $raw_b - $offset);
+
+        return [
+            'a'             => isset($record->query_a_count) ? (int) $record->query_a_count : 0,
+            'b'             => $b_effective,
+            'raw_b'         => $raw_b,
+            'last_query_at' => isset($record->last_query_at) ? $record->last_query_at : '',
+        ];
+    }
+
+    /**
+     * 防伪码统一规范化。
+     *
+     * @param string $code_value
+     * @return string
+     */
+    protected static function normalize_code_value($code_value) {
+        if (method_exists('AEGIS_System', 'normalize_code_value')) {
+            return AEGIS_System::normalize_code_value($code_value);
+        }
+
+        $code_value = preg_replace('/[^a-zA-Z0-9]/', '', (string) $code_value);
+        return strtoupper((string) $code_value);
+    }
+
+    /**
      * 写入查询日志。
      */
     protected static function insert_query_log($code_id, $code_value, $channel, $context) {
@@ -586,4 +684,3 @@ class AEGIS_Public_Query {
         return !AEGIS_System_Roles::is_business_user($user);
     }
 }
-
