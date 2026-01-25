@@ -352,9 +352,12 @@ class AEGIS_Inbound {
         echo '.aegis-print-table{width:100%;border-collapse:collapse;margin-top:10px;}';
         echo '.aegis-print-table th,.aegis-print-table td{border:1px solid #444;padding:10px 8px;vertical-align:middle;}';
         echo '.aegis-print-table th{background:#f2f2f2;font-weight:600;}';
+        echo '.aegis-print-table .col-ean{width:220px;}';
+        echo '.aegis-print-table .col-name{width:auto;}';
+        echo '.aegis-print-table .col-qty{width:80px;}';
         echo '.aegis-print-table td:nth-child(1),.aegis-print-table th:nth-child(1){text-align:left;}';
-        echo '.aegis-print-table td:nth-child(2),.aegis-print-table th:nth-child(2){text-align:left;}';
-        echo '.aegis-print-table td:nth-child(3),.aegis-print-table th:nth-child(3){text-align:right;}';
+        echo '.aegis-print-table td:nth-child(2),.aegis-print-table th:nth-child(2){text-align:left;word-break:break-word;}';
+        echo '.aegis-print-table td:nth-child(3),.aegis-print-table th:nth-child(3){text-align:right;white-space:nowrap;}';
         echo '</style></head><body class="aegis-t-a5">';
         echo '<div class="aegis-print-wrap">';
         echo '<h1 class="aegis-print-title">南京翼马入库单汇总</h1>';
@@ -364,6 +367,7 @@ class AEGIS_Inbound {
         echo '<div>入库人：' . esc_html($operator) . '</div>';
         echo '</div>';
         echo '<table class="aegis-print-table">';
+        echo '<colgroup><col class="col-ean" /><col class="col-name" /><col class="col-qty" /></colgroup>';
         echo '<thead><tr><th>EAN</th><th>产品名</th><th>数量</th></tr></thead><tbody>';
         foreach ($sku_summary as $row) {
             echo '<tr><td>' . esc_html($row['ean']) . '</td><td>' . esc_html($row['product_name']) . '</td><td>' . esc_html($row['count']) . '</td></tr>';
