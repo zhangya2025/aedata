@@ -339,18 +339,41 @@ class AEGIS_Inbound {
         if (!$receipt) {
             return new WP_Error('missing_receipt', '入库单不存在。');
         }
+        $user = get_userdata($receipt->created_by);
+        $operator = $user ? $user->user_login : '-';
         $items = self::get_items($receipt_id);
         $sku_summary = self::group_by_sku($items);
         AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RECEIPT_PRINT, 'SUCCESS', ['receipt_id' => $receipt_id]);
-        echo '<html><head><title>入库单打印</title></head><body class="aegis-t-a5">';
-        echo '<h2 class="aegis-t-a3">入库单汇总</h2>';
-        echo '<p class="aegis-t-a6">入库单号：' . esc_html($receipt->receipt_no) . ' 入库时间：' . esc_html($receipt->created_at) . '</p>';
-        echo '<table class="aegis-table" style="width:100%; border:1px solid #ccc;" cellspacing="0" cellpadding="6">';
+        echo '<html><head><title>入库单打印</title>';
+        echo '<style>@page{margin:12mm;}body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:0;}';
+        echo '.aegis-print-wrap{padding:12px 8px;}';
+        echo '.aegis-print-title{text-align:center;font-size:18px;font-weight:700;margin:0 0 12px;}';
+        echo '.aegis-print-info{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-bottom:12px;}';
+        echo '.aegis-print-table{width:100%;border-collapse:collapse;margin-top:10px;}';
+        echo '.aegis-print-table th,.aegis-print-table td{border:1px solid #444;padding:10px 8px;vertical-align:middle;}';
+        echo '.aegis-print-table th{background:#f2f2f2;font-weight:600;}';
+        echo '.aegis-print-table .col-ean{width:220px;}';
+        echo '.aegis-print-table .col-name{width:auto;}';
+        echo '.aegis-print-table .col-qty{width:80px;}';
+        echo '.aegis-print-table td:nth-child(1),.aegis-print-table th:nth-child(1){text-align:left;}';
+        echo '.aegis-print-table td:nth-child(2),.aegis-print-table th:nth-child(2){text-align:left;word-break:break-word;}';
+        echo '.aegis-print-table td:nth-child(3),.aegis-print-table th:nth-child(3){text-align:right;white-space:nowrap;}';
+        echo '</style></head><body class="aegis-t-a5">';
+        echo '<div class="aegis-print-wrap">';
+        echo '<h1 class="aegis-print-title">南京翼马入库单汇总</h1>';
+        echo '<div class="aegis-print-info">';
+        echo '<div>入库单号：' . esc_html($receipt->receipt_no) . '</div>';
+        echo '<div>入库时间：' . esc_html($receipt->created_at) . '</div>';
+        echo '<div>入库人：' . esc_html($operator) . '</div>';
+        echo '</div>';
+        echo '<table class="aegis-print-table">';
+        echo '<colgroup><col class="col-ean" /><col class="col-name" /><col class="col-qty" /></colgroup>';
         echo '<thead><tr><th>EAN</th><th>产品名</th><th>数量</th></tr></thead><tbody>';
         foreach ($sku_summary as $row) {
             echo '<tr><td>' . esc_html($row['ean']) . '</td><td>' . esc_html($row['product_name']) . '</td><td>' . esc_html($row['count']) . '</td></tr>';
         }
         echo '</tbody></table>';
+        echo '</div>';
         echo '</body></html>';
         exit;
     }

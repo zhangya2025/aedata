@@ -1,6 +1,7 @@
 .aegis-portal-shell {
     min-height: 100vh;
-    background: #f7f8fa;
+    background: #ffffff;
+    color: #000;
 }
 
 html {
@@ -17,8 +18,9 @@ html {
 }
 
 .aegis-portal-topbar {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
@@ -31,13 +33,16 @@ html {
 }
 
 .aegis-portal-title {
-    text-align: center;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     white-space: nowrap;
 }
 
 .aegis-portal-title-line + .aegis-portal-title-line::before {
-    content: '·';
-    margin: 0 6px;
+    content: '';
+    margin: 0;
 }
 
 .aegis-portal-actions {
@@ -45,15 +50,94 @@ html {
     justify-content: flex-end;
 }
 
+.aegis-portal-shell a {
+    color: #000;
+    text-decoration: none;
+}
+
+.aegis-portal-shell a:hover {
+    text-decoration: underline;
+}
+
+.aegis-portal-shell .button,
+.aegis-portal-shell .button-secondary,
+.aegis-portal-shell .button-primary {
+    border-radius: 6px;
+    border: 1px solid #000;
+    background: #fff;
+    color: #000;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+.aegis-portal-shell .button-primary {
+    background: #000;
+    color: #fff;
+}
+
+.aegis-portal-shell .button-primary:hover,
+.aegis-portal-shell .button-primary:focus {
+    background: #111;
+    border-color: #111;
+    color: #fff;
+}
+
+.aegis-portal-shell .button:hover,
+.aegis-portal-shell .button-secondary:hover,
+.aegis-portal-shell .button:focus,
+.aegis-portal-shell .button-secondary:focus {
+    background: #f5f5f5;
+    border-color: #000;
+    color: #000;
+}
+
+.aegis-portal-shell .button:disabled,
+.aegis-portal-shell .button-primary:disabled,
+.aegis-portal-shell .button-secondary:disabled {
+    background: #f5f5f5;
+    border-color: #e5e5e5;
+    color: #9a9a9a;
+}
+
+.aegis-portal-branding {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.aegis-portal-brand {
+    height: 32px;
+    width: auto;
+    display: block;
+}
+
+.aegis-portal-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+}
+
+.aegis-portal-title-main {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.aegis-portal-title-sub {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+}
+
 .aegis-portal-menu-toggle {
     display: none;
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    border: 1px solid #d9dce3;
+    border: 1px solid #000;
     border-radius: 6px;
-    background: #f7f9fc;
-    color: inherit;
+    background: #fff;
+    color: #000;
     cursor: pointer;
     touch-action: manipulation;
 }
@@ -73,10 +157,10 @@ html {
 
 .aegis-portal-logout {
     padding: 8px 14px;
-    border: 1px solid #c00;
+    border: 1px solid #000;
     border-radius: 6px;
-    background: linear-gradient(135deg, #fff5f5, #ffeaea);
-    color: #c00;
+    background: #fff;
+    color: #000;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -132,32 +216,32 @@ html {
 
 .portal-nav-list .nav-item {
     padding: 10px 12px;
-    border: 1px solid #d9dce3;
+    border: 1px solid #e5e5e5;
     border-radius: 6px;
     display: flex;
     gap: 6px;
     text-decoration: none;
-    color: inherit;
+    color: #000;
     align-items: center;
     justify-content: space-between;
-    background: #f8f9fb;
+    background: #fff;
     transition: all 0.15s ease;
 }
 
 .portal-nav-list .nav-item:hover {
-    background: #eef5ff;
-    border-color: #b7cff9;
+    background: #f5f5f5;
+    border-color: #e5e5e5;
 }
 
 .portal-nav-list .nav-item.is-active {
-    background: #1f6feb;
-    border-color: #1f6feb;
+    background: #000;
+    border-color: #000;
     color: #fff;
-    box-shadow: 0 6px 12px rgba(31, 111, 235, 0.18);
+    box-shadow: none;
 }
 
 .portal-nav-list .nav-item.is-active .nav-status {
-    color: #e9efff;
+    color: #fff;
 }
 
 .portal-nav-list .nav-item.is-disabled {
@@ -199,8 +283,8 @@ html {
     gap: 6px;
     padding: 18px 16px;
     border-radius: 18px;
-    border: 1px solid #e3e7f0;
-    background: linear-gradient(180deg, #f8faff, #ffffff);
+    border: 1px solid #e5e5e5;
+    background: #ffffff;
     text-decoration: none;
     color: inherit;
     min-height: 140px;
@@ -209,12 +293,12 @@ html {
 
 .aegis-workbench-tile:hover {
     transform: translateY(-2px);
-    border-color: #bcd1fb;
-    box-shadow: 0 8px 16px rgba(31, 111, 235, 0.12);
+    border-color: #000;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
 }
 
 .aegis-workbench-tile:focus-visible {
-    outline: 2px solid #1f6feb;
+    outline: 2px solid #000;
     outline-offset: 2px;
 }
 
@@ -280,7 +364,8 @@ html {
 
 @media (max-width: 768px) {
     .aegis-portal-topbar {
-        grid-template-columns: auto 1fr auto;
+        flex-wrap: wrap;
+        align-items: flex-start;
     }
 
     .aegis-portal-title {
@@ -290,6 +375,7 @@ html {
         white-space: normal;
         text-align: left;
         max-width: min(70vw, 240px);
+        align-items: flex-start;
     }
 
     .aegis-portal-title-line {
@@ -299,6 +385,17 @@ html {
     .aegis-portal-title-line + .aegis-portal-title-line::before {
         content: '';
         margin: 0;
+    }
+
+    .aegis-portal-topbar-right {
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .aegis-portal-brand {
+        height: 28px;
     }
 
     .aegis-portal-menu-toggle {
@@ -1374,4 +1471,71 @@ body.aegis-scan-open {
     background: #fff2f0;
     border: 1px solid #f2c5bf;
     color: #b63c2c;
+}
+
+@media (min-width: 769px) {
+    .aegis-inbound-page .aegis-scan-actions-band,
+    .aegis-shipments-page .aegis-scan-actions-band {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 24px 0 28px;
+        margin: 18px 0 30px;
+        box-sizing: border-box;
+    }
+
+    .aegis-inbound-page .aegis-scan-actions,
+    .aegis-shipments-page .aegis-scan-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: nowrap;
+    }
+
+    .aegis-inbound-page .aegis-scan-actions .aegis-scan-input,
+    .aegis-shipments-page .aegis-scan-actions .aegis-scan-input {
+        width: min(560px, 60vw);
+        height: 44px;
+        box-sizing: border-box;
+    }
+
+    .aegis-inbound-page .aegis-action-scan,
+    .aegis-shipments-page .aegis-action-scan,
+    .aegis-inbound-page .aegis-action-add,
+    .aegis-shipments-page .aegis-action-add {
+        min-height: 44px;
+        height: 44px;
+        padding: 0 16px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        line-height: 1;
+        box-sizing: border-box;
+    }
+
+    .aegis-inbound-page .aegis-action-scan,
+    .aegis-shipments-page .aegis-action-scan {
+        background: #000;
+        border: 1px solid #000;
+        color: #fff;
+    }
+
+    .aegis-inbound-page .aegis-action-add,
+    .aegis-shipments-page .aegis-action-add {
+        background: #fff;
+        border: 1px solid #000;
+        color: #000;
+    }
+}
+
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+    .aegis-inbound-page .aegis-action-scan,
+    .aegis-shipments-page .aegis-action-scan {
+        display: none;
+    }
 }
