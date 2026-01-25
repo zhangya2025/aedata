@@ -339,12 +339,14 @@ class AEGIS_Inbound {
         if (!$receipt) {
             return new WP_Error('missing_receipt', '入库单不存在。');
         }
+        $user = get_userdata($receipt->created_by);
+        $operator = $user ? $user->user_login : '-';
         $items = self::get_items($receipt_id);
         $sku_summary = self::group_by_sku($items);
         AEGIS_Access_Audit::record_event(AEGIS_System::ACTION_RECEIPT_PRINT, 'SUCCESS', ['receipt_id' => $receipt_id]);
         echo '<html><head><title>入库单打印</title></head><body class="aegis-t-a5">';
         echo '<h2 class="aegis-t-a3">入库单汇总</h2>';
-        echo '<p class="aegis-t-a6">入库单号：' . esc_html($receipt->receipt_no) . ' 入库时间：' . esc_html($receipt->created_at) . '</p>';
+        echo '<p class="aegis-t-a6">入库单号：' . esc_html($receipt->receipt_no) . ' 入库时间：' . esc_html($receipt->created_at) . ' 入库人：' . esc_html($operator) . '</p>';
         echo '<table class="aegis-table" style="width:100%; border:1px solid #ccc;" cellspacing="0" cellpadding="6">';
         echo '<thead><tr><th>EAN</th><th>产品名</th><th>数量</th></tr></thead><tbody>';
         foreach ($sku_summary as $row) {
