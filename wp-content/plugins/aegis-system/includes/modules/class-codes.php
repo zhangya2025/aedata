@@ -1024,7 +1024,7 @@ class AEGIS_Codes {
      */
     protected static function handle_delete_batch($batch_id, $options = []) {
         $defaults = [
-            'nonce_action' => 'aegis_portal_codes_delete_batch_' . $batch_id,
+            'nonce_action' => 'aegis_codes_delete_batch_' . $batch_id,
             'redirect_url' => '',
         ];
         $options = wp_parse_args($options, $defaults);
@@ -1147,16 +1147,11 @@ class AEGIS_Codes {
                     }
                 }
             } elseif ('delete_batch' === $requested_action) {
-                $result = self::handle_delete_batch(
-                    $action_batch_id,
-                    [
-                        'nonce_action' => 'aegis_portal_codes_delete_batch_' . $action_batch_id,
-                        'redirect_url' => $base_url,
-                    ]
-                );
+                $result = self::handle_delete_batch($action_batch_id);
                 if (is_wp_error($result)) {
                     self::redirect_to_portal_list($base_url, ['aegis_codes_error' => $result->get_error_message()]);
                 }
+                self::redirect_to_portal_list($base_url, ['aegis_codes_message' => '批次 #' . $action_batch_id . ' 已删除。']);
             }
         }
 
