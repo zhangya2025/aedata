@@ -153,11 +153,7 @@ if (empty($prefill_items)) {
                         'm'            => 'codes',
                         'codes_action' => 'delete_batch',
                         'batch_id'     => $batch->id,
-                        'paged'        => $paged,
-                        'per_page'     => $per_page,
-                        'start_date'   => $start_date,
-                        'end_date'     => $end_date,
-                    ], $base_url), 'aegis_portal_codes_delete_batch_' . $batch->id) : '';
+                    ], $base_url), 'aegis_codes_delete_batch_' . $batch->id) : '';
                     $confirm_message = '确认删除该防伪码批次？此操作将删除该批次下所有防伪码，且不可恢复。';
                 ?>
                     <tr>
@@ -173,7 +169,7 @@ if (empty($prefill_items)) {
                                 <a class="aegis-portal-button is-ghost" href="<?php echo esc_url($print_url); ?>" target="_blank" rel="noreferrer">打印</a>
                             <?php endif; ?>
                             <?php if ($can_delete_batch && $delete_url) : ?>
-                                <a class="aegis-portal-button is-ghost" href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('<?php echo esc_js($confirm_message); ?>');">删除</a>
+                                <a class="button button-small button-link-delete" href="<?php echo esc_url($delete_url); ?>" onclick="return confirm('<?php echo esc_js($confirm_message); ?>');">删除</a>
                             <?php endif; ?>
                         </td>
                     </tr>
