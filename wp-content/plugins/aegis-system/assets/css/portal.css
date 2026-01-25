@@ -515,14 +515,6 @@ body.aegis-scan-open {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 16px;
-}
-
-.aegis-public-query-field {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
 }
 
 .aegis-public-query-grid {
@@ -533,6 +525,26 @@ body.aegis-scan-open {
 .aegis-public-query-item .label {
     color: #5b6675;
     margin-right: 8px;
+}
+
+.aegis-public-query-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.aegis-public-query-subtitle {
+    color: #6c7787;
+}
+
+.aegis-public-query-card {
+    margin-bottom: 16px;
+}
+
+.aegis-public-query-card.is-result {
+    background: #fbfbfc;
 }
 
 .aegis-portal-field span {
