@@ -33,11 +33,9 @@ if (is_array($result)) {
     </div>
 
     <div class="aegis-portal-card aegis-public-query-card">
-        <div class="aegis-t-a5" style="margin-bottom:8px;">请输入防伪码</div>
         <form method="get" action="<?php echo esc_url($base_url); ?>" class="aegis-public-query-form">
             <input type="text" name="code" value="<?php echo esc_attr($query_code); ?>" placeholder="输入防伪码（支持 AMAA-XXXX… 或不带短横）" class="aegis-portal-input" />
             <button type="submit" class="aegis-portal-button is-primary">查询</button>
-            <div class="aegis-portal-hint aegis-t-a6">支持带短横/不带短横；系统会自动规范化。</div>
         </form>
     </div>
 
