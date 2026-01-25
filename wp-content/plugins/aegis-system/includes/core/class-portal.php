@@ -732,11 +732,7 @@ class AEGIS_Portal {
             case 'assets_media':
                 return AEGIS_Assets_Media::render_portal_panel(self::get_portal_url());
             case 'public_query':
-                $public_url = AEGIS_Public_Query::get_public_page_url();
-                if ($public_url) {
-                    return '<div class="aegis-t-a5">公共查询入口：<a class="aegis-t-a6" href="' . esc_url($public_url) . '" target="_blank" rel="noopener">访问防伪码公共查询</a></div>';
-                }
-                return '<div class="aegis-t-a5">公共查询页面未就绪。</div>';
+                return AEGIS_Public_Query::render_portal_panel(self::get_portal_url());
             case 'reset_b':
                 return AEGIS_Reset_B::render_portal_panel(self::get_portal_url());
             case 'orders':
