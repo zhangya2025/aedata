@@ -467,8 +467,6 @@ class AEGIS_Dealer {
         $price_level_input = isset($post['price_level']) ? sanitize_key($post['price_level']) : '';
         $sales_user_id_input = isset($post['sales_user_id']) ? (int) $post['sales_user_id'] : 0;
         $status_raw = isset($post['status']) ? sanitize_key($post['status']) : '';
-        $price_level_input = isset($post['price_level']) ? sanitize_key($post['price_level']) : '';
-        $sales_user_id_input = isset($post['sales_user_id']) ? (int) $post['sales_user_id'] : 0;
 
         $is_new = $dealer_id === 0;
         $existing = $is_new ? null : self::get_dealer($dealer_id);
@@ -604,6 +602,14 @@ class AEGIS_Dealer {
         }
 
         $dealer = self::get_dealer($dealer_id);
+        $sales_user_display = '未分配';
+        if ($dealer && !empty($dealer->sales_user_id)) {
+            $sales_user = get_user_by('id', (int) $dealer->sales_user_id);
+            if ($sales_user) {
+                $sales_user_display = $sales_user->display_name ? $sales_user->display_name : $sales_user->user_login;
+            }
+        }
+        $messages[] = sprintf('所属销售人员：%s', $sales_user_display);
 
         return [
             'dealer'   => $dealer,
@@ -1420,6 +1426,8 @@ class AEGIS_Dealer {
         $address = isset($post['address']) ? sanitize_text_field(wp_unslash($post['address'])) : '';
         $auth_start_raw = isset($post['auth_start_date']) ? sanitize_text_field(wp_unslash($post['auth_start_date'])) : '';
         $auth_end_raw = isset($post['auth_end_date']) ? sanitize_text_field(wp_unslash($post['auth_end_date'])) : '';
+        $price_level_input = isset($post['price_level']) ? sanitize_key($post['price_level']) : '';
+        $sales_user_id_input = isset($post['sales_user_id']) ? (int) $post['sales_user_id'] : 0;
 
         $is_new = $dealer_id === 0;
         $existing = $is_new ? null : self::get_dealer($dealer_id);
@@ -1551,6 +1559,14 @@ class AEGIS_Dealer {
         }
 
         $dealer = self::get_dealer($dealer_id);
+        $sales_user_display = '未分配';
+        if ($dealer && !empty($dealer->sales_user_id)) {
+            $sales_user = get_user_by('id', (int) $dealer->sales_user_id);
+            if ($sales_user) {
+                $sales_user_display = $sales_user->display_name ? $sales_user->display_name : $sales_user->user_login;
+            }
+        }
+        $messages[] = sprintf('所属销售人员：%s', $sales_user_display);
 
         return [
             'dealer'   => $dealer,
