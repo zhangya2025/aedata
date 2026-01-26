@@ -26,7 +26,7 @@ $status_labels = $context_data['status_labels'] ?? [];
         <tbody>
             <?php if (empty($dealers)) : ?>
                 <tr>
-                    <td colspan="6">暂无经销商记录。</td>
+                    <td colspan="6">你名下暂无经销商。</td>
                 </tr>
             <?php else : ?>
                 <?php foreach ($dealers as $dealer) : ?>

@@ -691,12 +691,15 @@ class AEGIS_Portal {
      */
     protected static function get_visible_modules_for_user($user, $states) {
         $roles = (array) $user->roles;
+        $can_access_audit = AEGIS_System_Roles::is_hq_admin($user)
+            || user_can($user, AEGIS_System::CAP_MANAGE_SYSTEM)
+            || user_can($user, AEGIS_System::CAP_ACCESS_ROOT);
         $all_modules = array_keys(AEGIS_System::get_registered_modules());
 
         if (AEGIS_System_Roles::is_hq_admin($user)) {
             $allowed = $all_modules;
         } elseif (in_array('aegis_sales', $roles, true)) {
-            $allowed = ['my_dealers', 'orders', 'sku', 'access_audit'];
+            $allowed = ['my_dealers', 'orders', 'sku'];
         } elseif (in_array('aegis_finance', $roles, true)) {
             $allowed = ['orders', 'access_audit'];
         } elseif (AEGIS_System_Roles::is_warehouse_user($user)) {
@@ -712,6 +715,10 @@ class AEGIS_Portal {
 
         if (!in_array('aegis_sales', $roles, true)) {
             $allowed = array_values(array_diff($allowed, ['my_dealers']));
+        }
+
+        if ($can_access_audit && !in_array('access_audit', $allowed, true)) {
+            $allowed[] = 'access_audit';
         }
 
         $visible = [];
