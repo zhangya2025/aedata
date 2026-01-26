@@ -1190,6 +1190,13 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
 
         $dealer_filter = $is_dealer ? ($dealer_id > 0 ? $dealer_id : -1) : null;
+        if (!$is_dealer && isset($_GET['dealer_id'])) {
+            $dealer_filter = absint(wp_unslash($_GET['dealer_id']));
+            if ($dealer_filter <= 0) {
+                $dealer_filter = null;
+            }
+        }
+        $dealer_filter_param = (!$is_dealer && !empty($dealer_filter)) ? $dealer_filter : 0;
         $statuses_filter = [];
         if ($review_queue) {
             $statuses_filter = [self::STATUS_PENDING_INITIAL_REVIEW];
@@ -1256,6 +1263,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 'start_date'  => $start_date,
                 'end_date'    => $end_date,
                 'order_no'    => $search_no,
+                'dealer_id'   => $dealer_filter_param,
                 'per_page'    => $per_page,
                 'per_options' => $per_page_options,
                 'paged'       => $paged,
