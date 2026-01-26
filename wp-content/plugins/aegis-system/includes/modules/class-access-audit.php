@@ -6,8 +6,13 @@ if (!defined('ABSPATH')) {
 class AEGIS_Access_Audit_Module {
     public static function render_portal_panel($portal_url) {
         $user = wp_get_current_user();
-        if (!$user || !AEGIS_System_Roles::user_can_access_root()) {
-            return '<div class="aegis-t-a5">当前账号无权访问审计日志。</div>';
+        $can_access_audit = $user
+            && (AEGIS_System_Roles::is_hq_admin($user)
+                || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+                || current_user_can(AEGIS_System::CAP_ACCESS_ROOT));
+
+        if (!$can_access_audit) {
+            return '<div class="aegis-t-a5">当前账号无权访问访问审计。</div>';
         }
 
         $filters = self::read_filters();
