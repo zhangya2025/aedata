@@ -158,19 +158,25 @@ class AEGIS_Orders {
             'removed' => [],
             'qty'     => [],
         ];
+        $seen = [];
 
         foreach ($posted_items as $item) {
             $ean = $item['ean'];
+            $seen[$ean] = true;
             $qty = (int) $item['qty'];
             if (!isset($existing[$ean])) {
                 return new WP_Error('invalid_item', '初审不允许新增 SKU：' . esc_html($ean));
             }
             $orig_qty = (int) $existing[$ean]->qty;
-            if ($qty < 1) {
-                return new WP_Error('invalid_qty', '数量必须大于0。');
+            if ($qty < 0) {
+                return new WP_Error('invalid_qty', '数量不能小于0。');
             }
             if ($qty > $orig_qty) {
                 return new WP_Error('qty_increase_blocked', '初审阶段仅允许删减数量：' . esc_html($ean));
+            }
+            if (0 === $qty) {
+                $changes['removed'][] = $ean;
+                continue;
             }
 
             $prepared[] = [
@@ -192,14 +198,7 @@ class AEGIS_Orders {
         }
 
         foreach ($existing as $ean => $item) {
-            $found = false;
-            foreach ($posted_items as $p) {
-                if ($p['ean'] === $ean) {
-                    $found = true;
-                    break;
-                }
-            }
-            if (!$found) {
+            if (empty($seen[$ean])) {
                 $changes['removed'][] = $ean;
             }
         }
@@ -409,6 +408,18 @@ class AEGIS_Orders {
         }
 
         self::persist_items((int) $order->id, $prepared['items'], $now);
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+            'SUCCESS',
+            [
+                'order_id' => (int) $order->id,
+                'order_no' => $order->order_no,
+                'removed'  => $prepared['changes']['removed'],
+                'qty'      => $prepared['changes']['qty'],
+                'status_to' => self::STATUS_PENDING_DEALER_CONFIRM,
+            ]
+        );
 
         if (!empty($prepared['changes']['removed']) || !empty($prepared['changes']['qty'])) {
             AEGIS_Access_Audit::record_event(
@@ -943,7 +954,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
-                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'capability'      => AEGIS_System::CAP_ORDERS_INITIAL_REVIEW,
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
                         'whitelist'       => ['order_action', 'note', 'order_item_ean', 'order_item_qty', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
@@ -1019,7 +1030,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                         $view_id = (int) $order_id;
                     }
                 }
-            } elseif ('review_order' === $action) {
+            } elseif (in_array($action, ['review_order', 'initial_review_submit'], true)) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
@@ -1034,18 +1045,67 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    AEGIS_Access_Audit::record_event(
+                        AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                        'FAIL',
+                        [
+                            'order_id' => $order_id,
+                            'reason'   => $validation['message'],
+                        ]
+                    );
                 } elseif (!$can_initial_review || !$order) {
                     $errors[] = '无效的订单。';
+                    AEGIS_Access_Audit::record_event(
+                        AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                        'FAIL',
+                        [
+                            'order_id' => $order_id,
+                            'reason'   => 'invalid_order',
+                        ]
+                    );
                 } else {
-                    $items = self::parse_item_post($_POST);
-                    $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
-                    $result = self::review_order_by_hq($order, $items, $note);
-                    if (is_wp_error($result)) {
-                        $errors[] = $result->get_error_message();
-                    } else {
-                        $messages[] = $result['message'];
-                        $view_id = (int) $order_id;
-                        $view_mode = 'list';
+                    $sales_scope_ok = true;
+                    global $wpdb;
+                    if ($sales_user_filter > 0) {
+                        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+                        $order_sales_id = (int) $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT sales_user_id FROM {$dealer_table} WHERE id = %d",
+                                (int) $order->dealer_id
+                            )
+                        );
+                        if ($order_sales_id !== $sales_user_filter) {
+                            $sales_scope_ok = false;
+                            $errors[] = '无权审核该订单。';
+                            AEGIS_Access_Audit::record_event(
+                                AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                                'FAIL',
+                                [
+                                    'order_id' => $order_id,
+                                    'reason'   => 'forbidden_sales_scope',
+                                ]
+                            );
+                        }
+                    }
+                    if ($sales_scope_ok) {
+                        $items = self::parse_item_post($_POST);
+                        $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
+                        $result = self::review_order_by_hq($order, $items, $note);
+                        if (is_wp_error($result)) {
+                            $errors[] = $result->get_error_message();
+                            AEGIS_Access_Audit::record_event(
+                                AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                                'FAIL',
+                                [
+                                    'order_id' => $order_id,
+                                    'reason'   => $result->get_error_message(),
+                                ]
+                            );
+                        } else {
+                            $messages[] = $result['message'];
+                            $view_id = (int) $order_id;
+                            $view_mode = 'list';
+                        }
                     }
                 }
             } elseif ('void_order' === $action) {

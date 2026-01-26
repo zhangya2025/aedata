@@ -294,10 +294,10 @@ $payment_status_labels = [
 
             <?php if ($role_flags['can_initial_review'] && $order->status === 'pending_initial_review') : ?>
                 <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
-                    <div class="aegis-t-a5" style="margin-bottom:8px;">HQ 初审（可删减/下调数量，不改价）</div>
-                    <form method="post" id="aegis-order-review-form">
+                    <div class="aegis-t-a5" style="margin-bottom:8px;">初审（可删减/下调数量，不改价）</div>
+                    <form method="post" id="aegis-order-review-form" onsubmit="return confirm('确认提交初审并通知经销商确认吗？');">
                         <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                        <input type="hidden" name="order_action" value="review_order" />
+                        <input type="hidden" name="order_action" value="initial_review_submit" />
                         <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                         <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                         <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">初审备注（可选）<br />
@@ -305,24 +305,24 @@ $payment_status_labels = [
                         </label>
                         <div id="aegis-order-review-items" class="aegis-t-a6" style="display:flex; flex-direction:column; gap:8px;">
                             <?php foreach ($items as $line) : ?>
-                                <div class="order-review-row" style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; align-items:end;">
+                                <div class="order-review-row" style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;">
                                     <label class="aegis-t-a6">SKU
                                         <input type="text" name="order_item_ean[]" value="<?php echo esc_attr($line->ean); ?>" readonly />
                                     </label>
-                                    <label class="aegis-t-a6">数量（可下调）
-                                        <input type="number" name="order_item_qty[]" min="1" max="<?php echo esc_attr((int) $line->qty); ?>" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required />
+                                    <label class="aegis-t-a6">数量（可下调/删减）
+                                        <input type="number" name="order_item_qty[]" min="0" max="<?php echo esc_attr((int) $line->qty); ?>" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required />
                                         <span class="aegis-t-a6" style="display:block; color:#6b7280;">当前最大：<?php echo esc_html((int) $line->qty); ?></span>
                                     </label>
                                     <div class="aegis-t-a6">单价快照
                                         <div class="aegis-t-a6" style="font-weight:bold;">¥<?php echo esc_html(number_format((float) $line->unit_price_snapshot, 2)); ?></div>
                                     </div>
+                                    <div>
+                                        <button type="button" class="button order-review-remove">删除</button>
+                                    </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
-                        <div style="margin:8px 0; display:flex; gap:8px;">
-                            <button type="button" class="button" id="review-remove-order-item">删除末行</button>
-                        </div>
-                        <button type="submit" class="button button-primary">匹配通过（待确认）</button>
+                        <button type="submit" class="button button-primary">提交初审并通知经销商确认</button>
                     </form>
                     <form method="post" style="margin-top:8px;" onsubmit="return confirm('确认作废该订单吗？作废后不可恢复。');">
                         <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
@@ -478,14 +478,16 @@ $payment_status_labels = [
 (function() {
     const reviewContainer = document.getElementById('aegis-order-review-items');
     if (reviewContainer) {
-        const removeBtn = document.getElementById('review-remove-order-item');
-        if (removeBtn) {
-            removeBtn.addEventListener('click', function() {
-                if (reviewContainer.children.length > 1) {
-                    reviewContainer.removeChild(reviewContainer.lastElementChild);
-                }
-            });
-        }
+        reviewContainer.querySelectorAll('.order-review-row').forEach(function(row) {
+            const removeBtn = row.querySelector('.order-review-remove');
+            const qtyInput = row.querySelector('input[name="order_item_qty[]"]');
+            if (removeBtn && qtyInput) {
+                removeBtn.addEventListener('click', function() {
+                    qtyInput.value = '0';
+                    row.style.opacity = '0.5';
+                });
+            }
+        });
     }
 })();
 </script>
