@@ -47,14 +47,20 @@ class AEGIS_Dealer {
                 'sales_user_id',
                 'status',
                 'target_status',
+                'bind_user_login',
+                'bind_user_email',
                 '_wp_http_referer',
                 '_aegis_idempotency',
                 'aegis_dealer_nonce',
             ];
+            $capability = AEGIS_System::CAP_MANAGE_WAREHOUSE;
+            if ('bind_user' === $action) {
+                $capability = AEGIS_System::CAP_MANAGE_SYSTEM;
+            }
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
+                    'capability'      => $capability,
                     'nonce_field'     => 'aegis_dealer_nonce',
                     'nonce_action'    => 'aegis_dealer_action',
                     'whitelist'       => $whitelist,
@@ -79,6 +85,14 @@ class AEGIS_Dealer {
                 } else {
                     $messages[] = $result['message'];
                 }
+            } elseif ('bind_user' === $action) {
+                $result = self::handle_bind_user($_POST);
+                if (is_wp_error($result)) {
+                    $errors[] = $result->get_error_message();
+                } else {
+                    wp_safe_redirect($result['redirect']);
+                    exit;
+                }
             }
         }
 
@@ -87,6 +101,16 @@ class AEGIS_Dealer {
         echo '<div class="wrap aegis-system-root">';
         echo '<h1 class="aegis-t-a2">经销商管理</h1>';
         echo '<p class="aegis-t-a6">维护经销商主数据，营业执照附件默认敏感仅内部可见。</p>';
+
+        $password_notice = self::get_password_notice($current_edit);
+        if ($password_notice) {
+            $notice_text = sprintf(
+                '账号已创建：用户名 %s，初始密码：%s（请立即复制保存，仅显示一次）。',
+                $password_notice['login'],
+                $password_notice['password']
+            );
+            echo '<div class="notice notice-success"><p>' . esc_html($notice_text) . '</p></div>';
+        }
 
         foreach ($messages as $msg) {
             echo '<div class="updated"><p>' . esc_html($msg) . '</p></div>';
@@ -126,6 +150,7 @@ class AEGIS_Dealer {
         $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
         $status = $dealer ? $dealer->status : self::STATUS_ACTIVE;
         $idempotency_key = wp_generate_uuid4();
+        $can_manage_system = AEGIS_System_Roles::is_hq_admin() || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM);
 
         echo '<div class="aegis-t-a5" style="margin-top:20px;">';
         echo '<h2 class="aegis-t-a3">' . ($dealer ? '编辑经销商' : '新增经销商') . '</h2>';
@@ -183,7 +208,240 @@ class AEGIS_Dealer {
         echo '</table>';
         submit_button($dealer ? '保存经销商' : '新增经销商');
         echo '</form>';
+
+        if ($can_manage_system) {
+            echo '<div style="margin-top:16px; padding:16px; border:1px solid #ccd0d4; background:#fff;">';
+            echo '<h3 class="aegis-t-a4" style="margin-top:0;">账号绑定</h3>';
+            if (!$dealer) {
+                echo '<p class="aegis-t-a6">请先保存经销商后再创建账号并绑定。</p>';
+            } else {
+                $bound_user = null;
+                if (!empty($dealer->user_id)) {
+                    $bound_user = get_user_by('id', (int) $dealer->user_id);
+                }
+
+                if ($bound_user) {
+                    echo '<p class="aegis-t-a6">当前绑定状态：已绑定（' . esc_html($bound_user->user_login) . ' / ' . esc_html($bound_user->user_email) . '）</p>';
+                } elseif (!empty($dealer->user_id)) {
+                    echo '<p class="aegis-t-a6">当前绑定状态：已绑定（用户不存在，ID：' . esc_html($dealer->user_id) . '）</p>';
+                } else {
+                    $bind_idempotency = wp_generate_uuid4();
+                    echo '<p class="aegis-t-a6">当前绑定状态：未绑定</p>';
+                    echo '<form method="post">';
+                    wp_nonce_field('aegis_dealer_action', 'aegis_dealer_nonce');
+                    echo '<input type="hidden" name="dealer_action" value="bind_user" />';
+                    echo '<input type="hidden" name="dealer_id" value="' . esc_attr($id) . '" />';
+                    echo '<input type="hidden" name="_aegis_idempotency" value="' . esc_attr($bind_idempotency) . '" />';
+                    echo '<table class="form-table">';
+                    echo '<tr><th><label for="aegis-bind-user-login">用户名</label></th><td><input type="text" id="aegis-bind-user-login" name="bind_user_login" class="regular-text" required /></td></tr>';
+                    echo '<tr><th><label for="aegis-bind-user-email">邮箱</label></th><td><input type="email" id="aegis-bind-user-email" name="bind_user_email" class="regular-text" required /></td></tr>';
+                    echo '</table>';
+                    echo '<p><button type="submit" class="button button-primary" onclick="return confirm(\'确认创建经销商账号并绑定？创建后将生成初始密码（仅显示一次）。\')">创建账号并绑定</button></p>';
+                    echo '</form>';
+                }
+            }
+            echo '</div>';
+        }
+
         echo '</div>';
+    }
+
+    /**
+     * 获取一次性密码提示。
+     *
+     * @param object|null $dealer
+     * @return array|null
+     */
+    protected static function get_password_notice($dealer) {
+        if (!$dealer || empty($dealer->id)) {
+            return null;
+        }
+
+        if (!isset($_GET['aegis_show_pw'])) {
+            return null;
+        }
+
+        $token = sanitize_text_field(wp_unslash($_GET['aegis_show_pw']));
+        if ('' === $token) {
+            return null;
+        }
+
+        $actor_id = get_current_user_id();
+        $key = self::get_password_transient_key((int) $dealer->id, $actor_id, $token);
+        $payload = get_transient($key);
+        if (!is_array($payload) || empty($payload['password']) || empty($payload['login'])) {
+            return null;
+        }
+
+        delete_transient($key);
+
+        return $payload;
+    }
+
+    /**
+     * 生成一次性密码缓存 Key。
+     *
+     * @param int    $dealer_id
+     * @param int    $actor_id
+     * @param string $token
+     * @return string
+     */
+    protected static function get_password_transient_key($dealer_id, $actor_id, $token) {
+        return 'aegis_dealer_pw_' . md5($dealer_id . '|' . $actor_id . '|' . $token);
+    }
+
+    /**
+     * 处理创建账号并绑定。
+     *
+     * @param array $post
+     * @return array|WP_Error
+     */
+    protected static function handle_bind_user($post) {
+        if (!AEGIS_System_Roles::is_hq_admin() && !current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)) {
+            return new WP_Error('forbidden', '当前账号无权创建经销商账号。');
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
+        $dealer = $dealer_id ? self::get_dealer($dealer_id) : null;
+
+        if (!$dealer) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_DEALER_USER_CREATE_BIND,
+                'FAIL',
+                [
+                    'dealer_id' => $dealer_id,
+                    'reason'    => 'dealer_missing',
+                ]
+            );
+            return new WP_Error('dealer_missing', '未找到对应经销商。');
+        }
+
+        if (!empty($dealer->user_id)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_DEALER_USER_CREATE_BIND,
+                'FAIL',
+                [
+                    'dealer_id' => $dealer_id,
+                    'reason'    => 'already_bound',
+                ]
+            );
+            return new WP_Error('already_bound', '经销商已绑定账号，无法重复创建。');
+        }
+
+        $login = isset($post['bind_user_login']) ? sanitize_user(wp_unslash($post['bind_user_login']), true) : '';
+        $email = isset($post['bind_user_email']) ? sanitize_email(wp_unslash($post['bind_user_email'])) : '';
+
+        if ('' === $login) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'login_required');
+            return new WP_Error('login_required', '请填写用户名。');
+        }
+
+        if ('' === $email) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'email_required');
+            return new WP_Error('email_required', '请填写邮箱。');
+        }
+
+        if (!is_email($email)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'email_invalid');
+            return new WP_Error('email_invalid', '邮箱格式不正确。');
+        }
+
+        if (username_exists($login)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'login_exists');
+            return new WP_Error('login_exists', '用户名已存在，请更换。');
+        }
+
+        if (email_exists($email)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'email_exists');
+            return new WP_Error('email_exists', '邮箱已存在，请更换。');
+        }
+
+        $password = wp_generate_password(20, true, true);
+        $user_id = wp_insert_user(
+            [
+                'user_login' => $login,
+                'user_email' => $email,
+                'user_pass'  => $password,
+                'role'       => 'aegis_dealer',
+            ]
+        );
+
+        if (is_wp_error($user_id)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, $user_id->get_error_message());
+            return $user_id;
+        }
+
+        $wpdb->update(
+            $table,
+            [
+                'user_id'    => (int) $user_id,
+                'updated_at' => current_time('mysql'),
+            ],
+            ['id' => $dealer_id],
+            ['%d', '%s'],
+            ['%d']
+        );
+        update_user_meta((int) $user_id, self::USER_META_KEY, $dealer_id);
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_DEALER_USER_CREATE_BIND,
+            'SUCCESS',
+            [
+                'dealer_id'  => $dealer_id,
+                'user_id'    => (int) $user_id,
+                'user_login' => $login,
+                'email'      => $email,
+            ]
+        );
+
+        $token = wp_generate_uuid4();
+        $key = self::get_password_transient_key($dealer_id, get_current_user_id(), $token);
+        set_transient(
+            $key,
+            [
+                'login'    => $login,
+                'email'    => $email,
+                'password' => $password,
+            ],
+            10 * MINUTE_IN_SECONDS
+        );
+
+        $redirect = add_query_arg(
+            [
+                'page'          => 'aegis-system-dealer',
+                'edit'          => $dealer_id,
+                'aegis_show_pw' => $token,
+            ],
+            admin_url('admin.php')
+        );
+
+        return [
+            'redirect' => $redirect,
+            'user_id'  => (int) $user_id,
+        ];
+    }
+
+    /**
+     * 记录创建绑定失败审计。
+     *
+     * @param int    $dealer_id
+     * @param string $login
+     * @param string $email
+     * @param string $reason
+     */
+    protected static function record_bind_user_failure($dealer_id, $login, $email, $reason) {
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_DEALER_USER_CREATE_BIND,
+            'FAIL',
+            [
+                'dealer_id'  => $dealer_id,
+                'user_login' => $login,
+                'email'      => $email,
+                'reason'     => $reason,
+            ]
+        );
     }
 
     /**
@@ -1279,12 +1537,23 @@ class AEGIS_Dealer {
             return null;
         }
 
-        $dealer_id = (int) get_user_meta($user->ID, self::USER_META_KEY, true);
-        if ($dealer_id <= 0) {
+        return self::get_dealer_by_user_id((int) $user->ID);
+    }
+
+    /**
+     * 通过绑定账号获取经销商。
+     *
+     * @param int $user_id
+     * @return object|null
+     */
+    protected static function get_dealer_by_user_id($user_id) {
+        if ($user_id <= 0) {
             return null;
         }
 
-        return self::get_dealer($dealer_id);
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE user_id = %d", $user_id));
     }
 
     /**
@@ -1299,7 +1568,7 @@ class AEGIS_Dealer {
         if (!$dealer) {
             return [
                 'allowed' => false,
-                'reason'  => 'dealer_missing',
+                'reason'  => 'dealer_unbound',
                 'dealer'  => null,
             ];
         }
