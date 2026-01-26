@@ -103,6 +103,9 @@ $payment_status_labels = [
     </div>
     <form method="get" class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
         <input type="hidden" name="m" value="orders" />
+        <?php if (!empty($filters['dealer_id'])) : ?>
+            <input type="hidden" name="dealer_id" value="<?php echo esc_attr($filters['dealer_id']); ?>" />
+        <?php endif; ?>
         <label>开始 <input type="date" name="start_date" value="<?php echo esc_attr($filters['start_date']); ?>" /></label>
         <label>结束 <input type="date" name="end_date" value="<?php echo esc_attr($filters['end_date']); ?>" /></label>
         <label>订单号 <input type="text" name="order_no" value="<?php echo esc_attr($filters['order_no']); ?>" /></label>

@@ -1291,6 +1291,37 @@ class AEGIS_Dealer {
     }
 
     /**
+     * Portal 销售人员“我的经销商”面板。
+     *
+     * @param string $portal_url
+     * @return string
+     */
+    public static function render_my_dealers_panel($portal_url) {
+        $user = wp_get_current_user();
+        $roles = (array) ($user ? $user->roles : []);
+        $is_sales = in_array('aegis_sales', $roles, true);
+
+        if (!AEGIS_System::is_module_enabled('my_dealers')) {
+            return '<div class="aegis-t-a5">我的经销商模块未启用，请联系管理员。</div>';
+        }
+
+        if (!$is_sales) {
+            return '<div class="aegis-t-a5">当前账号无权访问我的经销商。</div>';
+        }
+
+        $sales_user_id = get_current_user_id();
+        $dealers = self::list_sales_dealers($sales_user_id);
+
+        $context = [
+            'portal_url'    => $portal_url,
+            'dealers'       => $dealers,
+            'status_labels' => self::get_status_labels(),
+        ];
+
+        return AEGIS_Portal::render_portal_template('my-dealers', $context);
+    }
+
+    /**
      * Portal 创建经销商账号并绑定。
      *
      * @param array  $post
@@ -1673,6 +1704,28 @@ class AEGIS_Dealer {
         }
 
         return (int) $wpdb->get_var($sql);
+    }
+
+    /**
+     * 获取销售人员名下经销商列表。
+     *
+     * @param int $sales_user_id
+     * @return array
+     */
+    protected static function list_sales_dealers($sales_user_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+
+        if ($sales_user_id <= 0) {
+            return [];
+        }
+
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE sales_user_id = %d ORDER BY dealer_name ASC, id ASC",
+                $sales_user_id
+            )
+        );
     }
 
     /**

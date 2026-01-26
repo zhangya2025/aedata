@@ -597,9 +597,10 @@ class AEGIS_Portal {
         $modules = AEGIS_System::get_registered_modules();
         $states = [];
         foreach ($modules as $slug => $module) {
+            $stored_enabled = array_key_exists($slug, $stored) ? !empty($stored[$slug]) : !empty($module['default']);
             $states[$slug] = [
                 'label'   => $module['label'] ?? $slug,
-                'enabled' => ($slug === 'core_manager') ? true : !empty($stored[$slug]),
+                'enabled' => ($slug === 'core_manager') ? true : $stored_enabled,
             ];
         }
 
@@ -651,6 +652,7 @@ class AEGIS_Portal {
             'workbench'        => '工作台',
             'sku'              => 'SKU 管理',
             'dealer_master'    => '经销商管理',
+            'my_dealers'       => '我的经销商',
             'codes'            => '防伪码生成',
             'inbound'          => '扫码入库',
             'shipments'        => '扫码出库',
@@ -694,7 +696,7 @@ class AEGIS_Portal {
         if (AEGIS_System_Roles::is_hq_admin($user)) {
             $allowed = $all_modules;
         } elseif (in_array('aegis_sales', $roles, true)) {
-            $allowed = ['orders', 'sku', 'access_audit'];
+            $allowed = ['my_dealers', 'orders', 'sku', 'access_audit'];
         } elseif (in_array('aegis_finance', $roles, true)) {
             $allowed = ['orders', 'access_audit'];
         } elseif (AEGIS_System_Roles::is_warehouse_user($user)) {
@@ -706,6 +708,10 @@ class AEGIS_Portal {
             }
         } else {
             $allowed = [];
+        }
+
+        if (!in_array('aegis_sales', $roles, true)) {
+            $allowed = array_values(array_diff($allowed, ['my_dealers']));
         }
 
         $visible = [];
@@ -739,6 +745,8 @@ class AEGIS_Portal {
                 return AEGIS_SKU::render_portal_panel(self::get_portal_url());
             case 'dealer_master':
                 return AEGIS_Dealer::render_portal_panel(self::get_portal_url());
+            case 'my_dealers':
+                return AEGIS_Dealer::render_my_dealers_panel(self::get_portal_url());
             case 'codes':
                 return AEGIS_Codes::render_portal_panel(self::get_portal_url());
             case 'inbound':
