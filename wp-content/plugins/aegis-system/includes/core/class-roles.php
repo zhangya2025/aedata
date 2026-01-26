@@ -27,7 +27,6 @@ class AEGIS_System_Roles {
             }
 
             if ('aegis_sales' === $role_key) {
-                $role->remove_cap(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW);
                 $role->remove_cap(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW);
                 $role->remove_cap(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
                 $role->remove_cap(AEGIS_System::CAP_MANAGE_SYSTEM);
@@ -239,6 +238,7 @@ class AEGIS_System_Roles {
                     'read'                                   => true,
                     AEGIS_System::CAP_ACCESS_ROOT            => true,
                     AEGIS_System::CAP_ORDERS_VIEW_ALL        => true,
+                    AEGIS_System::CAP_ORDERS_INITIAL_REVIEW  => true,
                 ],
             ],
             'aegis_finance'          => [

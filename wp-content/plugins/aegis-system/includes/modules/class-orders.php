@@ -478,6 +478,25 @@ class AEGIS_Orders {
     }
 
     public static function current_user_can_view_order($order) {
+        $roles = AEGIS_System_Roles::get_user_roles();
+        $is_sales = in_array('aegis_sales', $roles, true);
+        $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
+        $can_manage_warehouse = AEGIS_System_Roles::user_can_manage_warehouse();
+        $can_manage_all = current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
+
+        if ($is_sales && !$can_manage_system && !$can_manage_warehouse && !$can_manage_all) {
+            global $wpdb;
+            $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+            $order_sales_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT sales_user_id FROM {$dealer_table} WHERE id = %d",
+                    (int) $order->dealer_id
+                )
+            );
+
+            return $order_sales_id === get_current_user_id();
+        }
+
         if (AEGIS_System_Roles::user_can_manage_warehouse()
             || current_user_can(AEGIS_System::CAP_ORDERS_VIEW_ALL)
             || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW)
