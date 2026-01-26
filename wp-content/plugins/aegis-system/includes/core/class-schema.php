@@ -148,10 +148,12 @@ class AEGIS_System_Schema {
             business_license_id BIGINT(20) UNSIGNED NULL,
             price_level VARCHAR(20) NULL,
             sales_user_id BIGINT(20) UNSIGNED NULL,
+            user_id BIGINT(20) UNSIGNED NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME NOT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY auth_code (auth_code),
+            UNIQUE KEY user_id (user_id),
             KEY status (status),
             KEY auth_start_date (auth_start_date),
             KEY auth_end_date (auth_end_date),
@@ -401,4 +403,3 @@ class AEGIS_System_Schema {
         return $executed;
     }
 }
-

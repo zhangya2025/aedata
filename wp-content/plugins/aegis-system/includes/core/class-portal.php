@@ -153,6 +153,7 @@ class AEGIS_Portal {
             'dealer_inactive' => '账号已停用，请联系管理员。',
             'dealer_expired'  => '授权已到期，请联系管理员续期后再登录。',
             'dealer_missing'  => '未找到经销商授权信息，请联系管理员。',
+            'dealer_unbound'  => '该账号尚未绑定经销商档案，请联系总部管理员。',
         ];
 
         if (!isset($map[$notice])) {
@@ -235,18 +236,28 @@ class AEGIS_Portal {
         if (in_array('aegis_dealer', (array) $user->roles, true)) {
             $dealer_state = AEGIS_Dealer::evaluate_dealer_access($user);
             if (empty($dealer_state['allowed'])) {
-                AEGIS_Access_Audit::record_event(
-                    AEGIS_System::ACTION_PORTAL_BLOCKED,
-                    'FAIL',
-                    [
-                        'reason' => $dealer_state['reason'],
-                    ]
-                );
+                if ('dealer_unbound' === $dealer_state['reason']) {
+                    AEGIS_Access_Audit::record_event(
+                        AEGIS_System::ACTION_PORTAL_BLOCKED,
+                        'FAIL',
+                        [
+                            'reason' => $dealer_state['reason'],
+                        ]
+                    );
+                } else {
+                    AEGIS_Access_Audit::record_event(
+                        AEGIS_System::ACTION_PORTAL_BLOCKED,
+                        'FAIL',
+                        [
+                            'reason' => $dealer_state['reason'],
+                        ]
+                    );
 
-                wp_logout();
-                $redirect = add_query_arg('aegis_notice', $dealer_state['reason'], self::get_login_url());
-                wp_safe_redirect($redirect);
-                exit;
+                    wp_logout();
+                    $redirect = add_query_arg('aegis_notice', $dealer_state['reason'], self::get_login_url());
+                    wp_safe_redirect($redirect);
+                    exit;
+                }
             }
         }
 
@@ -393,6 +404,13 @@ class AEGIS_Portal {
         $user = wp_get_current_user();
         if (!AEGIS_System_Roles::is_business_user($user)) {
             return '<div class="aegis-system-root aegis-t-a5">当前账号无权访问 AEGIS Portal。</div>';
+        }
+
+        if (in_array('aegis_dealer', (array) $user->roles, true)) {
+            $dealer_state = AEGIS_Dealer::evaluate_dealer_access($user);
+            if (empty($dealer_state['allowed']) && 'dealer_unbound' === ($dealer_state['reason'] ?? '')) {
+                return '<div class="aegis-system-root aegis-t-a5">该账号尚未绑定经销商档案，请联系总部管理员。</div>';
+            }
         }
 
         self::enqueue_portal_assets();

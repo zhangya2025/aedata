@@ -7,6 +7,7 @@ $base_url       = $context_data['base_url'] ?? '';
 $action         = $context_data['action'] ?? '';
 $can_edit       = !empty($context_data['can_edit']);
 $can_edit_pricing = !empty($context_data['can_edit_pricing']);
+$can_bind_user  = !empty($context_data['can_bind_user']);
 $assets_enabled = !empty($context_data['assets_enabled']);
 $messages       = $context_data['messages'] ?? [];
 $errors         = $context_data['errors'] ?? [];
@@ -20,6 +21,8 @@ $sales_user_map = $context_data['sales_user_map'] ?? [];
 $sku_choices    = $context_data['sku_choices'] ?? [];
 $sku_search     = $context_data['sku_search'] ?? '';
 $overrides      = $context_data['overrides'] ?? [];
+$dealer_user    = $context_data['dealer_user'] ?? null;
+$one_time_password = $context_data['one_time_password'] ?? '';
 $price_lookup   = $context_data['price_lookup'] ?? null;
 $list           = $context_data['list'] ?? [];
 $search         = $list['search'] ?? '';
@@ -152,6 +155,48 @@ $list_url = add_query_arg('m', 'dealer_master', $base_url);
     </form>
 </div>
 <?php endif; ?>
+
+<div class="aegis-portal-card" style="margin-top:16px;">
+    <div class="portal-action-bar">
+        <div>
+            <div class="aegis-t-a4" style="margin:0;">账号绑定</div>
+            <div class="aegis-t-a6" style="color:#555;">用于为该经销商创建登录账号并绑定（仅总部管理员）。</div>
+        </div>
+    </div>
+    <?php if ($can_bind_user) : ?>
+        <?php if ($one_time_password && $dealer_user) : ?>
+            <div class="aegis-portal-notice is-success aegis-t-a6">
+                <div>账号已创建：<?php echo esc_html($dealer_user->user_login); ?></div>
+                <div>初始密码：<?php echo esc_html($one_time_password); ?>（请立即复制保存，仅显示一次）</div>
+            </div>
+        <?php endif; ?>
+        <?php if ($dealer_user) : ?>
+            <div class="aegis-t-a6" style="margin-top:8px;">已绑定：<?php echo esc_html($dealer_user->user_login); ?> / <?php echo esc_html($dealer_user->user_email); ?></div>
+        <?php elseif (!$current_dealer) : ?>
+            <div class="aegis-t-a6" style="margin-top:8px;">请先保存经销商后再创建账号并绑定。</div>
+        <?php else : ?>
+            <form method="post" class="aegis-portal-form-grid" style="margin-top:12px;">
+                <?php wp_nonce_field('aegis_dealer_action', 'aegis_dealer_nonce'); ?>
+                <input type="hidden" name="dealer_action" value="create_dealer_user_bind" />
+                <input type="hidden" name="dealer_id" value="<?php echo esc_attr($editing_id); ?>" />
+                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                <label class="aegis-portal-field">
+                    <span>用户名</span>
+                    <input class="aegis-portal-input" type="text" name="dealer_user_login" required />
+                </label>
+                <label class="aegis-portal-field">
+                    <span>邮箱</span>
+                    <input class="aegis-portal-input" type="email" name="dealer_user_email" required />
+                </label>
+                <div class="aegis-portal-field" style="align-self:flex-end;">
+                    <button type="submit" class="aegis-portal-button is-primary" onclick="return confirm('确认创建经销商账号并绑定？创建后将生成初始密码（仅显示一次）。')">创建账号并绑定</button>
+                </div>
+            </form>
+        <?php endif; ?>
+    <?php else : ?>
+        <div class="aegis-t-a6" style="margin-top:8px;">仅总部管理员可创建/绑定账号。</div>
+    <?php endif; ?>
+</div>
 
 <?php if ($current_dealer) : ?>
 <div class="aegis-portal-card">
