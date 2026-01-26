@@ -1044,6 +1044,9 @@ class AEGIS_Dealer {
 
         $can_edit = AEGIS_System_Roles::user_can_manage_warehouse();
         $can_edit_pricing = AEGIS_System_Roles::user_can_manage_system();
+        $can_bind_user = AEGIS_System_Roles::is_hq_admin()
+            || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+            || current_user_can(AEGIS_System::CAP_ACCESS_ROOT);
         $assets_enabled = AEGIS_System::is_module_enabled('assets_media');
         $base_url = add_query_arg('m', 'dealer_master', $portal_url);
 
@@ -1068,12 +1071,14 @@ class AEGIS_Dealer {
             $sales_user_map[$user->ID] = $user->display_name ? $user->display_name : $user->user_login;
         }
 
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && $can_edit) {
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && ($can_edit || $can_bind_user)) {
             $request_action = isset($_POST['dealer_action']) ? sanitize_key(wp_unslash($_POST['dealer_action'])) : '';
             $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
             $whitelist = [
                 'dealer_action',
                 'dealer_id',
+                'dealer_user_login',
+                'dealer_user_email',
                 'auth_code',
                 'dealer_name',
                 'contact_name',
@@ -1093,10 +1098,16 @@ class AEGIS_Dealer {
                 'aegis_dealer_nonce',
             ];
 
+            $capability = AEGIS_System::CAP_MANAGE_WAREHOUSE;
+            if ('create_dealer_user_bind' === $request_action) {
+                $capability = current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
+                    ? AEGIS_System::CAP_ACCESS_ROOT
+                    : AEGIS_System::CAP_MANAGE_SYSTEM;
+            }
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
-                    'capability'      => AEGIS_System::CAP_MANAGE_WAREHOUSE,
+                    'capability'      => $capability,
                     'nonce_field'     => 'aegis_dealer_nonce',
                     'nonce_action'    => 'aegis_dealer_action',
                     'whitelist'       => $whitelist,
@@ -1106,58 +1117,75 @@ class AEGIS_Dealer {
 
             if (!$validation['success']) {
                 $errors[] = $validation['message'];
-            } elseif ('save' === $request_action) {
-                $result = self::handle_portal_save($_POST, $_FILES, $assets_enabled);
-                if (is_wp_error($result)) {
-                    $errors[] = $result->get_error_message();
+            } elseif ('create_dealer_user_bind' === $request_action) {
+                if (!$can_bind_user) {
+                    $errors[] = '当前账号无权创建或绑定经销商账号。';
+                    self::record_bind_user_failure($current_id, '', '', 'portal_permission');
                 } else {
-                    $messages = array_merge($messages, $result['messages']);
-                    $is_new = !empty($result['is_new']);
-                    $current_dealer = $is_new ? null : $result['dealer'];
-                    $current_id = $current_dealer ? (int) $current_dealer->id : 0;
-                    $action = $is_new ? '' : 'edit';
+                    $result = self::handle_portal_bind_user($_POST, $base_url);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        wp_safe_redirect($result['redirect']);
+                        exit;
+                    }
                 }
-            } elseif ('toggle_status' === $request_action) {
-                $result = self::handle_portal_status_toggle($_POST);
-                if (is_wp_error($result)) {
-                    $errors[] = $result->get_error_message();
-                } else {
-                    $messages[] = $result['message'];
-                }
-            } elseif (in_array($request_action, ['add_override', 'update_override'], true)) {
-                if (!$can_edit_pricing) {
-                    $errors[] = '当前账号无权维护专属价。';
-                } else {
-                    $result = self::handle_override_save($_POST);
+            } elseif (!$can_edit) {
+                $errors[] = '当前账号无权编辑经销商信息。';
+            } else {
+                if ('save' === $request_action) {
+                    $result = self::handle_portal_save($_POST, $_FILES, $assets_enabled);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages = array_merge($messages, $result['messages']);
+                        $is_new = !empty($result['is_new']);
+                        $current_dealer = $is_new ? null : $result['dealer'];
+                        $current_id = $current_dealer ? (int) $current_dealer->id : 0;
+                        $action = $is_new ? '' : 'edit';
+                    }
+                } elseif ('toggle_status' === $request_action) {
+                    $result = self::handle_portal_status_toggle($_POST);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
                         $messages[] = $result['message'];
-                        $current_dealer = self::get_dealer((int) $result['dealer_id']);
-                        $current_id = $current_dealer ? (int) $current_dealer->id : 0;
-                        $action = $current_dealer ? 'edit' : $action;
                     }
-                }
-            } elseif ('delete_override' === $request_action) {
-                if (!$can_edit_pricing) {
-                    $errors[] = '当前账号无权维护专属价。';
-                } else {
-                    $result = self::handle_override_delete($_POST);
+                } elseif (in_array($request_action, ['add_override', 'update_override'], true)) {
+                    if (!$can_edit_pricing) {
+                        $errors[] = '当前账号无权维护专属价。';
+                    } else {
+                        $result = self::handle_override_save($_POST);
+                        if (is_wp_error($result)) {
+                            $errors[] = $result->get_error_message();
+                        } else {
+                            $messages[] = $result['message'];
+                            $current_dealer = self::get_dealer((int) $result['dealer_id']);
+                            $current_id = $current_dealer ? (int) $current_dealer->id : 0;
+                            $action = $current_dealer ? 'edit' : $action;
+                        }
+                    }
+                } elseif ('delete_override' === $request_action) {
+                    if (!$can_edit_pricing) {
+                        $errors[] = '当前账号无权维护专属价。';
+                    } else {
+                        $result = self::handle_override_delete($_POST);
+                        if (is_wp_error($result)) {
+                            $errors[] = $result->get_error_message();
+                        } else {
+                            $messages[] = $result['message'];
+                            $current_dealer = self::get_dealer((int) $result['dealer_id']);
+                            $current_id = $current_dealer ? (int) $current_dealer->id : 0;
+                            $action = $current_dealer ? 'edit' : $action;
+                        }
+                    }
+                } elseif ('lookup_price' === $request_action) {
+                    $result = self::handle_price_lookup($_POST);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
-                        $messages[] = $result['message'];
-                        $current_dealer = self::get_dealer((int) $result['dealer_id']);
-                        $current_id = $current_dealer ? (int) $current_dealer->id : 0;
-                        $action = $current_dealer ? 'edit' : $action;
+                        $price_lookup_result = $result;
                     }
-                }
-            } elseif ('lookup_price' === $request_action) {
-                $result = self::handle_price_lookup($_POST);
-                if (is_wp_error($result)) {
-                    $errors[] = $result->get_error_message();
-                } else {
-                    $price_lookup_result = $result;
                 }
             }
         }
@@ -1204,12 +1232,29 @@ class AEGIS_Dealer {
         $sku_search = isset($_GET['sku_search']) ? sanitize_text_field(wp_unslash($_GET['sku_search'])) : '';
         $sku_choices = self::get_active_sku_choices($sku_search);
         $overrides = $current_dealer ? AEGIS_Pricing::list_overrides((int) $current_dealer->id) : [];
+        $dealer_user = null;
+        if ($current_dealer && !empty($current_dealer->user_id)) {
+            $dealer_user = get_userdata((int) $current_dealer->user_id);
+        }
+        $one_time_password = '';
+        if ($current_dealer && isset($_GET['show_pw_token'])) {
+            $token = sanitize_text_field(wp_unslash($_GET['show_pw_token']));
+            if ('' !== $token) {
+                $transient_key = 'aegis_dealer_pw_' . $current_dealer->id . '_' . $token;
+                $stored_password = get_transient($transient_key);
+                if (is_string($stored_password) && '' !== $stored_password) {
+                    $one_time_password = $stored_password;
+                    delete_transient($transient_key);
+                }
+            }
+        }
 
         $context = [
             'base_url'       => $base_url,
             'action'         => $action,
             'can_edit'       => $can_edit,
             'can_edit_pricing' => $can_edit_pricing,
+            'can_bind_user'  => $can_bind_user,
             'assets_enabled' => $assets_enabled,
             'messages'       => $messages,
             'errors'         => $errors,
@@ -1217,6 +1262,8 @@ class AEGIS_Dealer {
             'status_labels'  => self::get_status_labels(),
             'current_dealer' => $current_dealer,
             'current_media'  => $current_license_record,
+            'dealer_user'    => $dealer_user,
+            'one_time_password' => $one_time_password,
             'price_levels'   => $price_levels,
             'sales_users'    => $sales_users,
             'sales_user_map' => $sales_user_map,
@@ -1235,6 +1282,122 @@ class AEGIS_Dealer {
         ];
 
         return AEGIS_Portal::render_portal_template('dealer', $context);
+    }
+
+    /**
+     * Portal 创建经销商账号并绑定。
+     *
+     * @param array  $post
+     * @param string $base_url
+     * @return array|WP_Error
+     */
+    protected static function handle_portal_bind_user($post, $base_url) {
+        $can_bind_user = AEGIS_System_Roles::is_hq_admin()
+            || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+            || current_user_can(AEGIS_System::CAP_ACCESS_ROOT);
+        if (!$can_bind_user) {
+            return new WP_Error('forbidden', '当前账号无权创建或绑定经销商账号。');
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $dealer_id = isset($post['dealer_id']) ? (int) $post['dealer_id'] : 0;
+        $dealer = $dealer_id ? self::get_dealer($dealer_id) : null;
+
+        if (!$dealer) {
+            self::record_bind_user_failure($dealer_id, '', '', 'dealer_missing');
+            return new WP_Error('dealer_missing', '未找到对应经销商。');
+        }
+
+        if (!empty($dealer->user_id)) {
+            self::record_bind_user_failure($dealer_id, '', '', 'already_bound');
+            return new WP_Error('already_bound', '经销商已绑定账号，无法重复创建。');
+        }
+
+        $login = isset($post['dealer_user_login']) ? sanitize_user(wp_unslash($post['dealer_user_login']), true) : '';
+        $email = isset($post['dealer_user_email']) ? sanitize_email(wp_unslash($post['dealer_user_email'])) : '';
+
+        if ('' === $login) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'login_required');
+            return new WP_Error('login_required', '请填写用户名。');
+        }
+
+        if ('' === $email) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'email_required');
+            return new WP_Error('email_required', '请填写邮箱。');
+        }
+
+        if (!is_email($email)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'email_invalid');
+            return new WP_Error('email_invalid', '邮箱格式不正确。');
+        }
+
+        if (username_exists($login)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'login_exists');
+            return new WP_Error('login_exists', '用户名已存在，请更换。');
+        }
+
+        if (email_exists($email)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, 'email_exists');
+            return new WP_Error('email_exists', '邮箱已存在，请更换。');
+        }
+
+        $password = wp_generate_password(20, true, true);
+        $user_id = wp_insert_user(
+            [
+                'user_login' => $login,
+                'user_email' => $email,
+                'user_pass'  => $password,
+                'role'       => 'aegis_dealer',
+            ]
+        );
+
+        if (is_wp_error($user_id)) {
+            self::record_bind_user_failure($dealer_id, $login, $email, $user_id->get_error_message());
+            return $user_id;
+        }
+
+        $wpdb->update(
+            $table,
+            [
+                'user_id'    => (int) $user_id,
+                'updated_at' => current_time('mysql'),
+            ],
+            ['id' => $dealer_id],
+            ['%d', '%s'],
+            ['%d']
+        );
+        update_user_meta((int) $user_id, self::USER_META_KEY, $dealer_id);
+
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_DEALER_USER_CREATE_BIND,
+            'SUCCESS',
+            [
+                'dealer_id'  => $dealer_id,
+                'user_id'    => (int) $user_id,
+                'user_login' => $login,
+                'email'      => $email,
+            ]
+        );
+
+        $token = wp_generate_uuid4();
+        $transient_key = 'aegis_dealer_pw_' . $dealer_id . '_' . $token;
+        set_transient($transient_key, $password, 10 * MINUTE_IN_SECONDS);
+
+        $redirect = add_query_arg(
+            [
+                'm'             => 'dealer_master',
+                'action'        => 'edit',
+                'id'            => $dealer_id,
+                'show_pw_token' => $token,
+            ],
+            $base_url
+        );
+
+        return [
+            'redirect' => $redirect,
+            'user_id'  => (int) $user_id,
+        ];
     }
 
     /**
