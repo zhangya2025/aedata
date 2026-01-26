@@ -1301,10 +1301,6 @@ class AEGIS_Dealer {
         $roles = (array) ($user ? $user->roles : []);
         $is_sales = in_array('aegis_sales', $roles, true);
 
-        if (!AEGIS_System::is_module_enabled('my_dealers')) {
-            return '<div class="aegis-t-a5">我的经销商模块未启用，请联系管理员。</div>';
-        }
-
         if (!$is_sales) {
             return '<div class="aegis-t-a5">当前账号无权访问我的经销商。</div>';
         }
