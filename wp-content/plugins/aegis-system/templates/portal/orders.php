@@ -183,6 +183,29 @@ $payment_status_labels = [
             <div class="aegis-t-a6">订单号：<?php echo esc_html($order->order_no); ?> | 状态：<?php echo esc_html($status_text); ?></div>
             <div class="aegis-t-a6" style="margin-top:4px;">下单时间：<?php echo esc_html($order->created_at); ?></div>
             <div class="aegis-t-a6" style="margin-top:4px;">经销商：<?php echo esc_html($order->dealer_name_snapshot ?: $order->dealer_id); ?></div>
+            <?php
+            $is_hq = current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+                || current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
+                || AEGIS_System_Roles::is_hq_admin();
+            $rollback_to_status = $is_hq ? AEGIS_Orders::get_prev_status($order->status) : null;
+            ?>
+            <?php if ($is_hq && $rollback_to_status) : ?>
+                <form method="post" class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
+                    <?php wp_nonce_field('aegis_orders_rollback_' . $order->id, 'aegis_orders_nonce'); ?>
+                    <input type="hidden" name="order_action" value="rollback_step" />
+                    <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">退回原因（必填）<br />
+                        <textarea name="rollback_reason" required style="width:100%; min-height:72px;"></textarea>
+                    </label>
+                    <?php if ($order->status === 'shipped') : ?>
+                        <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">输入 ROLLBACK 以确认高风险退回<br />
+                            <input type="text" name="rollback_confirm" required style="width:100%;" />
+                        </label>
+                    <?php endif; ?>
+                    <button type="submit" class="button" onclick="return confirm('确认退回到上一环节？退回原因必须填写。');">退回上一环节</button>
+                    <span class="aegis-t-a6" style="margin-left:8px; color:#6b7280;">当前：<?php echo esc_html($order->status); ?> → 退回后：<?php echo esc_html($rollback_to_status); ?></span>
+                </form>
+            <?php endif; ?>
             <?php if (!empty($order->note)) : ?>
                 <div class="aegis-t-a6" style="margin-top:4px;">备注：<?php echo esc_html($order->note); ?></div>
             <?php endif; ?>
@@ -293,6 +316,8 @@ $payment_status_labels = [
                         <button type="submit" class="button" onclick="return confirm('确认驳回并退回经销商重新提交吗？');">驳回并退回经销商</button>
                     </form>
                 </div>
+            <?php elseif ($role_flags['can_payment_review']) : ?>
+                <p class="aegis-t-a6" style="margin-top:12px; color:#6b7280;">订单已进入其他环节，当前不可进行付款审核。</p>
             <?php endif; ?>
 
             <?php if ($role_flags['can_initial_review'] && $order->status === 'pending_initial_review') : ?>
@@ -338,6 +363,8 @@ $payment_status_labels = [
                         <button type="submit" class="button">作废订单</button>
                     </form>
                 </div>
+            <?php elseif ($role_flags['can_initial_review']) : ?>
+                <p class="aegis-t-a6" style="margin-top:12px; color:#6b7280;">订单已进入下一环节，当前不可编辑初审内容。</p>
             <?php endif; ?>
 
             <?php if ($role_flags['can_manage_all'] && in_array($order->status, ['pending_dealer_confirm', 'pending_hq_payment_review'], true)) : ?>
