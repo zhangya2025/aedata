@@ -17,6 +17,42 @@ class AEGIS_Orders {
     const PAYMENT_STATUS_REJECTED = 'rejected';
     const PAYMENT_STATUS_NEED_MORE = 'need_more';
 
+    /**
+     * HQ 逐级退回上一状态映射（仅规则，不触发任何流转）。
+     *
+     * 映射规则（基于当前系统真实状态值）：
+     * - approved_pending_fulfillment -> pending_hq_payment_review
+     * - pending_hq_payment_review -> pending_dealer_confirm
+     * - pending_dealer_confirm -> pending_initial_review
+     * - pending_initial_review -> null（系统未定义“已创建/created”订单状态）
+     *
+     * 说明：已撤销/已作废等终态不允许退回，因此未纳入映射表。
+     *
+     * @return array<string, string|null>
+     */
+    private static function get_prev_status_map(): array {
+        return [
+            self::STATUS_APPROVED_PENDING_FULFILLMENT => self::STATUS_PENDING_HQ_PAYMENT_REVIEW,
+            self::STATUS_PENDING_HQ_PAYMENT_REVIEW => self::STATUS_PENDING_DEALER_CONFIRM,
+            self::STATUS_PENDING_DEALER_CONFIRM => self::STATUS_PENDING_INITIAL_REVIEW,
+            self::STATUS_PENDING_INITIAL_REVIEW => null,
+        ];
+    }
+
+    /**
+     * 获取订单上一状态（用于 HQ 逐级退回）。
+     *
+     * @param string $status
+     * @return string|null
+     */
+    public static function get_prev_status(string $status): ?string {
+        $map = self::get_prev_status_map();
+        if (array_key_exists($status, $map)) {
+            return $map[$status];
+        }
+        return null;
+    }
+
     protected static function parse_item_post($post) {
         $eans = isset($post['order_item_ean']) ? (array) $post['order_item_ean'] : [];
         $qtys = isset($post['order_item_qty']) ? (array) $post['order_item_qty'] : [];
