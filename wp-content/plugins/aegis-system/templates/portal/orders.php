@@ -197,6 +197,11 @@ $payment_status_labels = [
                     <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">退回原因（必填）<br />
                         <textarea name="rollback_reason" required style="width:100%; min-height:72px;"></textarea>
                     </label>
+                    <?php if ($order->status === 'shipped') : ?>
+                        <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">输入 ROLLBACK 以确认高风险退回<br />
+                            <input type="text" name="rollback_confirm" required style="width:100%;" />
+                        </label>
+                    <?php endif; ?>
                     <button type="submit" class="button" onclick="return confirm('确认退回到上一环节？退回原因必须填写。');">退回上一环节</button>
                     <span class="aegis-t-a6" style="margin-left:8px; color:#6b7280;">当前：<?php echo esc_html($order->status); ?> → 退回后：<?php echo esc_html($rollback_to_status); ?></span>
                 </form>

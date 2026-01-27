@@ -543,7 +543,7 @@ class AEGIS_Orders {
                 [
                     'order_id'    => (int) $order->id,
                     'from'        => $order->status,
-                    'reason_code' => 'terminal_status',
+                    'reason_code' => 'terminal_state',
                 ]
             );
             return new WP_Error('bad_status', '该状态不可退回。');
@@ -1407,6 +1407,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 );
                 $order = $order_id ? self::get_order($order_id) : null;
                 $reason = isset($_POST['rollback_reason']) ? trim(sanitize_text_field(wp_unslash($_POST['rollback_reason']))) : '';
+                $rollback_confirm = isset($_POST['rollback_confirm']) ? trim(sanitize_text_field(wp_unslash($_POST['rollback_confirm']))) : '';
                 $is_hq = current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
                     || current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
                     || AEGIS_System_Roles::is_hq_admin();
@@ -1448,6 +1449,17 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                         ]
                     );
                     $redirect_url = add_query_arg('aegis_orders_error', '退回原因不能为空。', $redirect_url);
+                } elseif ($order && $order->status === 'shipped' && 'ROLLBACK' !== $rollback_confirm) {
+                    AEGIS_Access_Audit::record_event(
+                        'ORDER_ROLLBACK_STEP',
+                        'FAIL',
+                        [
+                            'order_id'    => (int) $order_id,
+                            'from'        => $order->status,
+                            'reason_code' => 'confirm_required',
+                        ]
+                    );
+                    $redirect_url = add_query_arg('aegis_orders_error', '已出库订单退回需要输入 ROLLBACK 确认。', $redirect_url);
                 } else {
                     $result = self::rollback_order_one_step($order, $reason);
                     if (is_wp_error($result)) {
