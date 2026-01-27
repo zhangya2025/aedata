@@ -1080,11 +1080,8 @@ class AEGIS_Orders {
         $roles = (array) ($user ? $user->roles : []);
 
         if (in_array('aegis_dealer', $roles, true)) {
-            $dealer = AEGIS_Dealer::get_dealer_for_user($user);
-            $derived_dealer_id = $dealer ? (int) $dealer->id : 0;
-            if ($derived_dealer_id > 0) {
-                $args['dealer_id'] = $derived_dealer_id;
-            } else {
+            $dealer_id = !empty($args['dealer_id']) ? (int) $args['dealer_id'] : 0;
+            if ($dealer_id <= 0) {
                 $total = 0;
                 return [];
             }
@@ -1223,6 +1220,15 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $dealer_state = $is_dealer ? AEGIS_Dealer::evaluate_dealer_access($user) : null;
         $dealer = $dealer_state['dealer'] ?? null;
         $dealer_id = $dealer ? (int) $dealer->id : 0;
+        if ($is_dealer && $dealer_id <= 0) {
+            global $wpdb;
+            $dealer_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}aegis_dealers WHERE user_id = %d LIMIT 1",
+                    (int) get_current_user_id()
+                )
+            );
+        }
         $dealer_blocked = $is_dealer && (!$dealer_state || empty($dealer_state['allowed']));
         $dealer_missing = $is_dealer && $dealer_id <= 0;
 
