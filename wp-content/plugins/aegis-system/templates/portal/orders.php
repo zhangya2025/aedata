@@ -16,6 +16,8 @@ $price_map = $context['price_map'];
 $view_mode = $context['view_mode'];
 $queue_mode = $context['queue_mode'];
 $status_labels = $context['status_labels'];
+$pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
+$debug_panel = $context['debug_panel'] ?? '';
 $payment_status_labels = [
     'none'      => '未提交',
     'submitted' => '已提交，待审核',
@@ -119,6 +121,7 @@ $payment_status_labels = [
         <button type="submit" class="button">筛选</button>
     </form>
 
+    <?php echo $debug_panel; ?>
     <?php $table_colspan = $role_flags['can_view_all'] ? ($queue_mode === 'payment_review' ? 10 : 9) : 6; ?>
     <table class="aegis-table" style="width:100%;">
         <thead><tr>
@@ -153,9 +156,9 @@ $payment_status_labels = [
                         <?php if ($role_flags['can_view_all']) : ?><td><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
                         <td>
                             <a class="button" href="<?php echo esc_url($row_link); ?>">查看</a>
-                            <?php if ($role_flags['is_dealer'] && $row->status === 'pending_initial_review') : ?>
+                            <?php if ($role_flags['is_dealer'] && $row->status === $pending_initial_status) : ?>
                                 <a class="button" href="<?php echo esc_url(add_query_arg('order_id', $row->id, $base_url)); ?>#order-edit">编辑</a>
-                            <?php elseif ($role_flags['can_initial_review'] && $row->status === 'pending_initial_review') : ?>
+                            <?php elseif ($role_flags['can_initial_review'] && $row->status === $pending_initial_status) : ?>
                                 <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'review', 'order_id' => $row->id], $base_url)); ?>">审核</a>
                             <?php elseif ($role_flags['can_payment_review'] && $row->status === 'pending_hq_payment_review') : ?>
                                 <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'payment_review', 'order_id' => $row->id], $base_url)); ?>">审核付款</a>
@@ -243,7 +246,7 @@ $payment_status_labels = [
                 <?php $has_payment = $payment && !empty($payment->media_id); ?>
                 <?php $payment_url = $has_payment ? AEGIS_Orders::get_media_gateway_url($payment->media_id) : ''; ?>
                 <?php $payment_status_text = $payment && isset($payment_status_labels[$payment->status]) ? $payment_status_labels[$payment->status] : ($has_payment ? '已上传' : '未上传'); ?>
-                <?php if ($order->status === 'pending_initial_review') : ?>
+                <?php if ($order->status === $pending_initial_status) : ?>
                     <p class="aegis-t-a6" style="color:#6b7280;">等待 HQ 初审通过后可上传付款凭证。</p>
                 <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_dealer_confirm') : ?>
                     <?php if ($dealer_blocked) : ?>
@@ -322,7 +325,7 @@ $payment_status_labels = [
                 <p class="aegis-t-a6" style="margin-top:12px; color:#6b7280;">订单已进入其他环节，当前不可进行付款审核。</p>
             <?php endif; ?>
 
-            <?php if ($role_flags['can_initial_review'] && $order->status === 'pending_initial_review') : ?>
+            <?php if ($role_flags['can_initial_review'] && $order->status === $pending_initial_status) : ?>
                 <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
                     <div class="aegis-t-a5" style="margin-bottom:8px;">初审（可删减/下调数量，不改价）</div>
                     <form method="post" id="aegis-order-review-form" onsubmit="return confirm('确认提交初审并通知经销商确认吗？');">
@@ -382,7 +385,7 @@ $payment_status_labels = [
                 </form>
             <?php endif; ?>
 
-            <?php if ($role_flags['is_dealer'] && $order->status === 'pending_initial_review') : ?>
+            <?php if ($role_flags['is_dealer'] && $order->status === $pending_initial_status) : ?>
                 <div id="order-edit" class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
                     <div class="aegis-t-a5" style="margin-bottom:8px;">编辑订单（待初审可编辑）</div>
                     <form method="post" id="aegis-order-edit-form">

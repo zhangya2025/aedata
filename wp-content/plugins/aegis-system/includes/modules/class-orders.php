@@ -1049,14 +1049,14 @@ class AEGIS_Orders {
         return AEGIS_System::is_module_enabled('orders') && (bool) get_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, false);
     }
 
-    protected static function query_portal_orders($args, &$total = 0) {
+    protected static function query_portal_orders($args, &$total = 0, &$debug_info = null) {
         global $wpdb;
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
         $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
         $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
 
-        $where = ['o.created_at BETWEEN %s AND %s'];
+        $where = ['o.created_at >= %s', 'o.created_at < %s'];
         $params = [$args['start'], $args['end']];
         $sales_user_id = !empty($args['sales_user_id']) ? (int) $args['sales_user_id'] : 0;
 
@@ -1088,18 +1088,23 @@ class AEGIS_Orders {
             $total_sql .= " LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id";
         }
         $total_sql .= " WHERE {$where_sql}";
-        $total = (int) $wpdb->get_var($wpdb->prepare($total_sql, $params));
+        $prepared_total_sql = $wpdb->prepare($total_sql, $params);
+        $total = (int) $wpdb->get_var($prepared_total_sql);
 
         $params[] = $per_page;
         $params[] = $offset;
 
-        return $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT o.*, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count, COALESCE(SUM(oi.qty * oi.unit_price_snapshot),0) AS total_amount, pay.status AS payment_status, pay.submitted_at AS payment_submitted_at, pay.review_note AS payment_review_note FROM {$order_table} o \
+        $query_sql = "SELECT o.*, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count, COALESCE(SUM(oi.qty * oi.unit_price_snapshot),0) AS total_amount, pay.status AS payment_status, pay.submitted_at AS payment_submitted_at, pay.review_note AS payment_review_note FROM {$order_table} o \
 LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id LEFT JOIN {$payment_table} pay ON pay.order_id = o.id WHERE {$where_sql} GROUP BY o.id ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
-                $params
-            )
-        );
+        $prepared_query_sql = $wpdb->prepare($query_sql, $params);
+
+        if (is_array($debug_info)) {
+            $debug_info['where_sql'] = $where_sql;
+            $debug_info['total_sql'] = $prepared_total_sql;
+            $debug_info['query_sql'] = $prepared_query_sql;
+        }
+
+        return $wpdb->get_results($prepared_query_sql);
     }
 
     protected static function list_active_skus() {
@@ -1129,15 +1134,34 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         return AEGIS_Dealer::get_dealer_for_user();
     }
 
-    protected static function normalize_date_boundary($date, $type) {
-        $timestamp = strtotime($date);
-        if (!$timestamp) {
-            $timestamp = current_time('timestamp');
+    protected static function is_datetime_input($value) {
+        return (bool) preg_match('/\d{2}:\d{2}(:\d{2})?/', (string) $value);
+    }
+
+    protected static function normalize_date_range($start_date, $end_date) {
+        $start_ts = strtotime((string) $start_date);
+        if (!$start_ts) {
+            $start_ts = current_time('timestamp');
         }
-        if ('end' === $type) {
-            return gmdate('Y-m-d 23:59:59', $timestamp + (get_option('gmt_offset') * HOUR_IN_SECONDS));
+        if (!self::is_datetime_input($start_date)) {
+            $start_ts = strtotime(wp_date('Y-m-d 00:00:00', $start_ts));
         }
-        return gmdate('Y-m-d 00:00:00', $timestamp + (get_option('gmt_offset') * HOUR_IN_SECONDS));
+
+        $end_ts = strtotime((string) $end_date);
+        if (!$end_ts) {
+            $end_ts = current_time('timestamp');
+        }
+
+        if (self::is_datetime_input($end_date)) {
+            $end_ts = strtotime(wp_date('Y-m-d H:i:s', $end_ts)) + 1;
+        } else {
+            $end_ts = strtotime(wp_date('Y-m-d 00:00:00', $end_ts)) + DAY_IN_SECONDS;
+        }
+
+        return [
+            'start' => wp_date('Y-m-d H:i:s', $start_ts),
+            'end'   => wp_date('Y-m-d H:i:s', $end_ts),
+        ];
     }
 
     public static function render_portal_panel($portal_url) {
@@ -1590,13 +1614,14 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $base_url = add_query_arg('view', 'list', $base_url);
         }
 
-        $default_start = gmdate('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
-        $default_end = gmdate('Y-m-d', current_time('timestamp'));
+        $default_start = wp_date('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
+        $default_end = wp_date('Y-m-d', current_time('timestamp'));
         $start_date = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : $default_start;
         $end_date = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : $default_end;
         $search_no = isset($_GET['order_no']) ? sanitize_text_field(wp_unslash($_GET['order_no'])) : '';
-        $start_datetime = self::normalize_date_boundary($start_date, 'start');
-        $end_datetime = self::normalize_date_boundary($end_date, 'end');
+        $normalized_range = self::normalize_date_range($start_date, $end_date);
+        $start_datetime = $normalized_range['start'];
+        $end_datetime = $normalized_range['end'];
         $per_page_options = [20, 50, 100];
         $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 20;
         if (!in_array($per_page, $per_page_options, true)) {
@@ -1619,6 +1644,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $statuses_filter = [self::STATUS_PENDING_HQ_PAYMENT_REVIEW];
         }
         $total = 0;
+        $debug_info = [];
         $orders = self::query_portal_orders(
             [
                 'start'     => $start_datetime,
@@ -1631,7 +1657,49 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 'paged'     => $paged,
             ],
             $total
+            ,
+            $debug_info
         );
+
+        $debug_panel = '';
+        $current_user = wp_get_current_user();
+        $is_hq_debug = current_user_can('manage_options') || in_array('aegis_hq_admin', (array) $current_user->roles, true);
+        if ($is_hq_debug) {
+            $debug_payload = [
+                'start_date'     => $start_date,
+                'end_date'       => $end_date,
+                'start_datetime' => $start_datetime,
+                'end_datetime'   => $end_datetime,
+                'dealer_id'      => $dealer_id,
+                'dealer_filter'  => $dealer_filter,
+                'statuses'       => $statuses_filter,
+                'order_no'       => $search_no,
+                'per_page'       => $per_page,
+                'paged'          => $paged,
+                'where_sql'      => $debug_info['where_sql'] ?? '',
+                'total_sql'      => $debug_info['total_sql'] ?? '',
+                'query_sql'      => $debug_info['query_sql'] ?? '',
+                'total'          => $total,
+                'rows'           => count($orders),
+            ];
+
+            AEGIS_Access_Audit::record_event(
+                'ORDERS_LIST_DEBUG',
+                'SUCCESS',
+                [
+                    'start_datetime' => $start_datetime,
+                    'end_datetime'   => $end_datetime,
+                    'dealer_filter'  => $dealer_filter,
+                    'where_sql'      => $debug_info['where_sql'] ?? '',
+                    'total'          => $total,
+                    'rows'           => count($orders),
+                ]
+            );
+
+            $debug_panel = '<div class="notice notice-info"><div class="aegis-t-a6"><strong>Orders Debug</strong><pre style="white-space:pre-wrap;">'
+                . esc_html(wp_json_encode($debug_payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
+                . '</pre></div></div>';
+        }
 
         $order = $view_id ? self::get_order($view_id) : null;
         if ($order && $is_dealer && (int) $order->dealer_id !== $dealer_id) {
@@ -1671,6 +1739,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             'messages'       => $messages,
             'errors'         => $errors,
             'orders'         => $orders,
+            'debug_panel'    => $debug_panel,
             'order'          => $order,
             'items'          => $items,
             'payment'        => $payment,
