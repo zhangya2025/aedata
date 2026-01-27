@@ -408,6 +408,16 @@ class AEGIS_Orders {
     protected static function review_order_by_hq($order, $items, $review_note = '') {
         global $wpdb;
         if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                'FAIL',
+                [
+                    'order_id'    => (int) $order->id,
+                    'order_no'    => $order->order_no,
+                    'status'      => $order->status,
+                    'reason_code' => 'bad_status',
+                ]
+            );
             return new WP_Error('bad_status', '仅待初审订单可审核。');
         }
 
@@ -685,21 +695,81 @@ class AEGIS_Orders {
         );
     }
 
-    protected static function guard_dealer_action($dealer_state, $order, $allowed_statuses, $message) {
+    protected static function guard_dealer_action($dealer_state, $order, $allowed_statuses, $message, $audit_event = null, $audit_meta = []) {
         if (!$dealer_state || empty($dealer_state['allowed'])) {
+            if ($audit_event) {
+                AEGIS_Access_Audit::record_event(
+                    $audit_event,
+                    'FAIL',
+                    array_merge(
+                        [
+                            'order_id'    => (int) $order->id,
+                            'order_no'    => $order->order_no,
+                            'status'      => $order->status,
+                            'reason_code' => 'dealer_blocked',
+                        ],
+                        $audit_meta
+                    )
+                );
+            }
             return new WP_Error('dealer_blocked', '经销商账号已停用或授权到期，无法操作订单。');
         }
 
         $dealer = $dealer_state['dealer'];
         if (!$dealer) {
+            if ($audit_event) {
+                AEGIS_Access_Audit::record_event(
+                    $audit_event,
+                    'FAIL',
+                    array_merge(
+                        [
+                            'order_id'    => (int) $order->id,
+                            'order_no'    => $order->order_no,
+                            'status'      => $order->status,
+                            'reason_code' => 'dealer_missing',
+                        ],
+                        $audit_meta
+                    )
+                );
+            }
             return new WP_Error('dealer_missing', '经销商未绑定，无法操作订单。');
         }
 
         if ((int) $order->dealer_id !== (int) $dealer->id) {
+            if ($audit_event) {
+                AEGIS_Access_Audit::record_event(
+                    $audit_event,
+                    'FAIL',
+                    array_merge(
+                        [
+                            'order_id'    => (int) $order->id,
+                            'order_no'    => $order->order_no,
+                            'status'      => $order->status,
+                            'reason_code' => 'forbidden',
+                        ],
+                        $audit_meta
+                    )
+                );
+            }
             return new WP_Error('forbidden', '无权操作该订单。');
         }
 
         if (!in_array($order->status, (array) $allowed_statuses, true)) {
+            if ($audit_event) {
+                AEGIS_Access_Audit::record_event(
+                    $audit_event,
+                    'FAIL',
+                    array_merge(
+                        [
+                            'order_id'    => (int) $order->id,
+                            'order_no'    => $order->order_no,
+                            'status'      => $order->status,
+                            'reason_code' => 'bad_status',
+                        ],
+                        $audit_meta
+                    )
+                );
+            }
             return new WP_Error('bad_status', $message);
         }
 
@@ -715,7 +785,13 @@ class AEGIS_Orders {
             return new WP_Error('media_disabled', '资产与媒体模块未启用，无法上传付款凭证。');
         }
 
-        $dealer = self::guard_dealer_action($dealer_state, $order, [self::STATUS_PENDING_DEALER_CONFIRM], '仅待确认订单可上传付款凭证。');
+        $dealer = self::guard_dealer_action(
+            $dealer_state,
+            $order,
+            [self::STATUS_PENDING_DEALER_CONFIRM],
+            '仅待确认订单可上传付款凭证。',
+            AEGIS_System::ACTION_PAYMENT_PROOF_UPLOAD
+        );
         if (is_wp_error($dealer)) {
             return $dealer;
         }
@@ -863,12 +939,33 @@ class AEGIS_Orders {
     }
 
     protected static function review_payment_by_hq($order, $decision, $note = '') {
+        $audit_action = ('reject' === $decision) ? AEGIS_System::ACTION_PAYMENT_REVIEW_REJECT : AEGIS_System::ACTION_PAYMENT_REVIEW_APPROVE;
         if (self::STATUS_PENDING_HQ_PAYMENT_REVIEW !== $order->status) {
+            AEGIS_Access_Audit::record_event(
+                $audit_action,
+                'FAIL',
+                [
+                    'order_id'    => (int) $order->id,
+                    'order_no'    => $order->order_no,
+                    'status'      => $order->status,
+                    'reason_code' => 'bad_status',
+                ]
+            );
             return new WP_Error('bad_status', '仅待审核订单可进行付款审核。');
         }
 
         $payment = self::get_payment_record($order->id);
         if (!$payment || self::PAYMENT_STATUS_SUBMITTED !== $payment->status) {
+            AEGIS_Access_Audit::record_event(
+                $audit_action,
+                'FAIL',
+                [
+                    'order_id'    => (int) $order->id,
+                    'order_no'    => $order->order_no,
+                    'status'      => $order->status,
+                    'reason_code' => 'payment_missing',
+                ]
+            );
             return new WP_Error('payment_missing', '未找到可审核的付款凭证。');
         }
 
@@ -1378,6 +1475,15 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
                 } elseif (!$is_dealer || !$order) {
+                    AEGIS_Access_Audit::record_event(
+                        AEGIS_System::ACTION_PAYMENT_PROOF_UPLOAD,
+                        'FAIL',
+                        [
+                            'order_id'    => (int) $order_id,
+                            'order_no'    => $order ? $order->order_no : null,
+                            'reason_code' => !$is_dealer ? 'forbidden' : 'invalid_order',
+                        ]
+                    );
                     $errors[] = '无效的订单。';
                 } else {
                     $result = self::upload_payment_proof($dealer_state, $order);
@@ -1433,6 +1539,16 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
                 } elseif (!$can_payment_review || !$order) {
+                    $audit_action = ('reject' === $decision) ? AEGIS_System::ACTION_PAYMENT_REVIEW_REJECT : AEGIS_System::ACTION_PAYMENT_REVIEW_APPROVE;
+                    AEGIS_Access_Audit::record_event(
+                        $audit_action,
+                        'FAIL',
+                        [
+                            'order_id'    => (int) $order_id,
+                            'order_no'    => $order ? $order->order_no : null,
+                            'reason_code' => !$can_payment_review ? 'forbidden' : 'invalid_order',
+                        ]
+                    );
                     $errors[] = '无效的订单。';
                 } else {
                     $result = self::review_payment_by_hq($order, $decision, $note);

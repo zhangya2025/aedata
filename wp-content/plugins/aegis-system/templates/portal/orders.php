@@ -311,6 +311,8 @@ $payment_status_labels = [
                         <button type="submit" class="button" onclick="return confirm('确认驳回并退回经销商重新提交吗？');">驳回并退回经销商</button>
                     </form>
                 </div>
+            <?php elseif ($role_flags['can_payment_review']) : ?>
+                <p class="aegis-t-a6" style="margin-top:12px; color:#6b7280;">订单已进入其他环节，当前不可进行付款审核。</p>
             <?php endif; ?>
 
             <?php if ($role_flags['can_initial_review'] && $order->status === 'pending_initial_review') : ?>
@@ -356,6 +358,8 @@ $payment_status_labels = [
                         <button type="submit" class="button">作废订单</button>
                     </form>
                 </div>
+            <?php elseif ($role_flags['can_initial_review']) : ?>
+                <p class="aegis-t-a6" style="margin-top:12px; color:#6b7280;">订单已进入下一环节，当前不可编辑初审内容。</p>
             <?php endif; ?>
 
             <?php if ($role_flags['can_manage_all'] && in_array($order->status, ['pending_dealer_confirm', 'pending_hq_payment_review'], true)) : ?>
