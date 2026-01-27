@@ -1056,7 +1056,7 @@ class AEGIS_Orders {
         $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
         $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
 
-        $where = ['o.created_at BETWEEN %s AND %s'];
+        $where = ['o.created_at >= %s', 'o.created_at < %s'];
         $params = [$args['start'], $args['end']];
         $sales_user_id = !empty($args['sales_user_id']) ? (int) $args['sales_user_id'] : 0;
 
@@ -1129,15 +1129,34 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         return AEGIS_Dealer::get_dealer_for_user();
     }
 
-    protected static function normalize_date_boundary($date, $type) {
-        $timestamp = strtotime($date);
-        if (!$timestamp) {
-            $timestamp = current_time('timestamp');
+    protected static function is_datetime_input($value) {
+        return (bool) preg_match('/\d{2}:\d{2}(:\d{2})?/', (string) $value);
+    }
+
+    protected static function normalize_date_range($start_date, $end_date) {
+        $start_ts = strtotime((string) $start_date);
+        if (!$start_ts) {
+            $start_ts = current_time('timestamp');
         }
-        if ('end' === $type) {
-            return gmdate('Y-m-d 23:59:59', $timestamp + (get_option('gmt_offset') * HOUR_IN_SECONDS));
+        if (!self::is_datetime_input($start_date)) {
+            $start_ts = strtotime(wp_date('Y-m-d 00:00:00', $start_ts));
         }
-        return gmdate('Y-m-d 00:00:00', $timestamp + (get_option('gmt_offset') * HOUR_IN_SECONDS));
+
+        $end_ts = strtotime((string) $end_date);
+        if (!$end_ts) {
+            $end_ts = current_time('timestamp');
+        }
+
+        if (self::is_datetime_input($end_date)) {
+            $end_ts = strtotime(wp_date('Y-m-d H:i:s', $end_ts)) + 1;
+        } else {
+            $end_ts = strtotime(wp_date('Y-m-d 00:00:00', $end_ts)) + DAY_IN_SECONDS;
+        }
+
+        return [
+            'start' => wp_date('Y-m-d H:i:s', $start_ts),
+            'end'   => wp_date('Y-m-d H:i:s', $end_ts),
+        ];
     }
 
     public static function render_portal_panel($portal_url) {
@@ -1590,13 +1609,14 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $base_url = add_query_arg('view', 'list', $base_url);
         }
 
-        $default_start = gmdate('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
-        $default_end = gmdate('Y-m-d', current_time('timestamp'));
+        $default_start = wp_date('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
+        $default_end = wp_date('Y-m-d', current_time('timestamp'));
         $start_date = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : $default_start;
         $end_date = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : $default_end;
         $search_no = isset($_GET['order_no']) ? sanitize_text_field(wp_unslash($_GET['order_no'])) : '';
-        $start_datetime = self::normalize_date_boundary($start_date, 'start');
-        $end_datetime = self::normalize_date_boundary($end_date, 'end');
+        $normalized_range = self::normalize_date_range($start_date, $end_date);
+        $start_datetime = $normalized_range['start'];
+        $end_datetime = $normalized_range['end'];
         $per_page_options = [20, 50, 100];
         $per_page = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 20;
         if (!in_array($per_page, $per_page_options, true)) {
