@@ -1155,17 +1155,6 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         return AEGIS_Dealer::get_dealer_for_user();
     }
 
-    protected static function safe_date_input($raw, $fallback) {
-        $value = is_string($raw) ? trim($raw) : '';
-        if ('' !== $value && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return $value;
-        }
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('[AEGIS] Invalid date input: ' . wp_json_encode(['raw' => $raw, 'fallback' => $fallback]));
-        }
-        return $fallback;
-    }
-
     protected static function is_datetime_input($value) {
         return (bool) preg_match('/\d{2}:\d{2}(:\d{2})?/', (string) $value);
     }
@@ -1656,14 +1645,9 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
 
         $default_start = wp_date('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
         $default_end = wp_date('Y-m-d', current_time('timestamp'));
-        $start_date_raw = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : '';
-        $end_date_raw = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : '';
-        $start_date = self::safe_date_input($start_date_raw, $default_start);
-        $end_date = self::safe_date_input($end_date_raw, $default_end);
+        $start_date = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : $default_start;
+        $end_date = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : $default_end;
         $search_no = isset($_GET['order_no']) ? sanitize_text_field(wp_unslash($_GET['order_no'])) : '';
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('[AEGIS] Orders date input: ' . wp_json_encode(['start_raw' => $start_date_raw, 'end_raw' => $end_date_raw, 'start' => $start_date, 'end' => $end_date]));
-        }
         $normalized_range = self::normalize_date_range($start_date, $end_date);
         $start_datetime = $normalized_range['start'];
         $end_datetime = $normalized_range['end'];
@@ -1711,8 +1695,6 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $is_hq_debug = current_user_can('manage_options') || in_array('aegis_hq_admin', (array) $current_user->roles, true);
         if ($is_hq_debug) {
             $debug_payload = [
-                'start_date_raw' => $start_date_raw,
-                'end_date_raw'   => $end_date_raw,
                 'start_date'     => $start_date,
                 'end_date'       => $end_date,
                 'start_datetime' => $start_datetime,
