@@ -1082,8 +1082,13 @@ class AEGIS_Orders {
         if (in_array('aegis_dealer', $roles, true)) {
             $dealer_id = !empty($args['dealer_id']) ? (int) $args['dealer_id'] : 0;
             if ($dealer_id <= 0) {
-                $total = 0;
-                return [];
+                $dealer_id = self::resolve_portal_dealer_id($user);
+                if ($dealer_id > 0) {
+                    $args['dealer_id'] = $dealer_id;
+                } else {
+                    $total = 0;
+                    return [];
+                }
             }
         }
 
@@ -1160,6 +1165,21 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         return AEGIS_Dealer::get_dealer_for_user();
     }
 
+    protected static function resolve_portal_dealer_id($user = null) {
+        $dealer = AEGIS_Dealer::get_dealer_for_user($user);
+        if ($dealer && isset($dealer->id)) {
+            return (int) $dealer->id;
+        }
+
+        global $wpdb;
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aegis_dealers WHERE user_id = %d LIMIT 1",
+                (int) get_current_user_id()
+            )
+        );
+    }
+
     protected static function is_datetime_input($value) {
         return (bool) preg_match('/\d{2}:\d{2}(:\d{2})?/', (string) $value);
     }
@@ -1217,26 +1237,11 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $sales_user_filter = get_current_user_id();
         }
 
-        $dealer_lookup_id = 0;
-        if ($is_dealer) {
-            $dealer_lookup = AEGIS_Dealer::get_dealer_for_user($user);
-            $dealer_lookup_id = $dealer_lookup ? (int) $dealer_lookup->id : 0;
-            if ($dealer_lookup_id <= 0) {
-                global $wpdb;
-                $dealer_lookup_id = (int) $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT id FROM {$wpdb->prefix}aegis_dealers WHERE user_id = %d LIMIT 1",
-                        (int) get_current_user_id()
-                    )
-                );
-            }
-        }
-
         $dealer_state = $is_dealer ? AEGIS_Dealer::evaluate_dealer_access($user) : null;
         $dealer = $dealer_state['dealer'] ?? null;
         $dealer_id = $dealer ? (int) $dealer->id : 0;
         if ($is_dealer && $dealer_id <= 0) {
-            $dealer_id = $dealer_lookup_id;
+            $dealer_id = self::resolve_portal_dealer_id($user);
         }
         $dealer_blocked = $is_dealer && (!$dealer_state || empty($dealer_state['allowed']));
         $dealer_missing = $is_dealer && $dealer_id <= 0;
@@ -1698,7 +1703,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         }
         $total = 0;
         if ($dealer_missing) {
-            $errors[] = '当前账号未绑定经销商/无可用经销商信息。';
+            $errors[] = '账号未绑定经销商，无法查询订单。';
             AEGIS_Access_Audit::record_event(
                 'ACCESS_DENIED',
                 'FAIL',
