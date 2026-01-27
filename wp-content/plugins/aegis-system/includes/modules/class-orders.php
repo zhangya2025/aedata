@@ -317,10 +317,31 @@ class AEGIS_Orders {
     protected static function update_portal_order($dealer, $order, $items, $note = '') {
         global $wpdb;
         if ((int) $order->dealer_id !== (int) $dealer->id) {
-            return new WP_Error('forbidden', '无权操作该订单。');
+            AEGIS_Access_Audit::record_event(
+                'ACCESS_DENIED',
+                'FAIL',
+                [
+                    'order_id'        => (int) $order->id,
+                    'order_no'        => $order->order_no,
+                    'reason_code'     => 'dealer_mismatch',
+                    'dealer_id'       => (int) $order->dealer_id,
+                    'actor_dealer_id' => (int) $dealer->id,
+                ]
+            );
+            return new WP_Error('forbidden', '权限不足，订单不可编辑。');
         }
         if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
-            return new WP_Error('bad_status', '仅待初审订单可编辑。');
+            AEGIS_Access_Audit::record_event(
+                'ACCESS_DENIED',
+                'FAIL',
+                [
+                    'order_id'    => (int) $order->id,
+                    'order_no'    => $order->order_no,
+                    'reason_code' => 'bad_status',
+                    'status'      => $order->status,
+                ]
+            );
+            return new WP_Error('bad_status', '权限不足，订单不可编辑。');
         }
 
         $priced_items = self::prepare_priced_items($dealer, $items);
@@ -1237,7 +1258,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
-                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'capability'      => AEGIS_System::CAP_ORDERS_CREATE,
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
                         'whitelist'       => ['order_action', 'order_id', 'note', 'order_item_ean', 'order_item_qty', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
@@ -1248,8 +1269,16 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
-                } elseif (!$is_dealer || !$order) {
-                    $errors[] = '无效的订单。';
+                } elseif (!$is_dealer || !$order || !$dealer) {
+                    AEGIS_Access_Audit::record_event(
+                        'ACCESS_DENIED',
+                        'FAIL',
+                        [
+                            'order_id'    => $order_id,
+                            'reason_code' => !$is_dealer ? 'not_dealer' : (!$order ? 'invalid_order' : 'dealer_missing'),
+                        ]
+                    );
+                    $errors[] = '权限不足，订单不可编辑。';
                 } else {
                     $items = self::parse_item_post($_POST);
                     $note = isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '';
@@ -1590,8 +1619,8 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $base_url = add_query_arg('view', 'list', $base_url);
         }
 
-        $default_start = gmdate('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
-        $default_end = gmdate('Y-m-d', current_time('timestamp'));
+        $default_start = wp_date('Y-m-d', current_time('timestamp') - 6 * DAY_IN_SECONDS);
+        $default_end = wp_date('Y-m-d', current_time('timestamp'));
         $start_date = isset($_GET['start_date']) ? sanitize_text_field(wp_unslash($_GET['start_date'])) : $default_start;
         $end_date = isset($_GET['end_date']) ? sanitize_text_field(wp_unslash($_GET['end_date'])) : $default_end;
         $search_no = isset($_GET['order_no']) ? sanitize_text_field(wp_unslash($_GET['order_no'])) : '';
