@@ -5,25 +5,19 @@ if (!defined('ABSPATH')) {
 
 class AEGIS_Access_Audit_Module {
     public static function render_portal_panel($portal_url) {
-        $user = wp_get_current_user();
-        $can_access_audit = $user
-            && (AEGIS_System_Roles::is_hq_admin($user)
-                || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
-                || current_user_can(AEGIS_System::CAP_ACCESS_ROOT));
-
-        if (!$can_access_audit) {
-            return '<div class="aegis-t-a5">当前账号无权访问访问审计。</div>';
-        }
+        self::ensure_can_view();
 
         $filters = self::read_filters();
-        $can_export = in_array('aegis_hq_admin', (array) $user->roles, true) || AEGIS_System_Roles::user_can_manage_system();
+        $can_export = current_user_can(AEGIS_System::CAP_ACCESS_AUDIT_VIEW);
 
         if (!empty($_GET['export']) && 'csv' === sanitize_key(wp_unslash($_GET['export']))) {
+            self::ensure_can_view();
             if ($can_export) {
                 self::stream_csv($filters);
             }
         }
 
+        self::ensure_can_view();
         $result = AEGIS_Access_Audit::query_events($filters);
         $total_pages = $result['per_page'] > 0 ? (int) ceil($result['total'] / $result['per_page']) : 1;
 
@@ -39,6 +33,13 @@ class AEGIS_Access_Audit_Module {
         ];
 
         return AEGIS_Portal::render_portal_template('audit', $context);
+    }
+
+    protected static function ensure_can_view() {
+        if (!current_user_can(AEGIS_System::CAP_ACCESS_AUDIT_VIEW)) {
+            AEGIS_Access_Audit::record_event('ACCESS_DENIED', 'FAIL', ['reason' => 'capability']);
+            wp_die('权限不足。', '权限不足', ['response' => 403]);
+        }
     }
 
     protected static function read_filters() {

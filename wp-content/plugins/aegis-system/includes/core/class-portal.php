@@ -691,9 +691,7 @@ class AEGIS_Portal {
      */
     protected static function get_visible_modules_for_user($user, $states) {
         $roles = (array) $user->roles;
-        $can_access_audit = AEGIS_System_Roles::is_hq_admin($user)
-            || user_can($user, AEGIS_System::CAP_MANAGE_SYSTEM)
-            || user_can($user, AEGIS_System::CAP_ACCESS_ROOT);
+        $can_access_audit = user_can($user, AEGIS_System::CAP_ACCESS_AUDIT_VIEW);
         $all_modules = array_keys(AEGIS_System::get_registered_modules());
 
         if (AEGIS_System_Roles::is_hq_admin($user)) {

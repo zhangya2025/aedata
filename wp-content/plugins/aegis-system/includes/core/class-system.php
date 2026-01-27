@@ -28,6 +28,7 @@ class AEGIS_System {
     const RESET_LOG_TABLE = 'aegis_reset_logs';
 
     const CAP_ACCESS_ROOT = 'aegis_access_root';
+    const CAP_ACCESS_AUDIT_VIEW = 'aegis_access_audit_view';
     const CAP_MANAGE_SYSTEM = 'aegis_manage_system';
     const CAP_MANAGE_WAREHOUSE = 'aegis_manage_warehouse';
     const CAP_USE_WAREHOUSE = 'aegis_use_warehouse';
