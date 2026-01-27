@@ -61,6 +61,7 @@ class AEGIS_System_Schema {
         $query_log_table = $wpdb->prefix . AEGIS_System::QUERY_LOG_TABLE;
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $order_item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
+        $order_status_log_table = $wpdb->prefix . AEGIS_System::ORDER_STATUS_LOG_TABLE;
         $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
         $reset_log_table = $wpdb->prefix . AEGIS_System::RESET_LOG_TABLE;
         $dealer_price_table = $wpdb->prefix . AEGIS_System::DEALER_PRICE_TABLE;
@@ -323,6 +324,21 @@ class AEGIS_System_Schema {
             KEY ean (ean)
         ) {$charset_collate};";
 
+        $order_status_log_sql = "CREATE TABLE {$order_status_log_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            order_id BIGINT(20) UNSIGNED NOT NULL,
+            action VARCHAR(32) NOT NULL,
+            from_status VARCHAR(32) NOT NULL,
+            to_status VARCHAR(32) NOT NULL,
+            actor_user_id BIGINT(20) UNSIGNED NOT NULL,
+            reason TEXT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY order_id (order_id),
+            KEY actor_user_id (actor_user_id),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
         $payment_sql = "CREATE TABLE {$payment_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             order_id BIGINT(20) UNSIGNED NOT NULL,
@@ -379,7 +395,7 @@ class AEGIS_System_Schema {
             KEY updated_at (updated_at)
         ) {$charset_collate};";
 
-        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $dealer_price_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $payment_sql, $reset_log_sql];
+        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $dealer_price_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $order_status_log_sql, $payment_sql, $reset_log_sql];
     }
 
     /**
