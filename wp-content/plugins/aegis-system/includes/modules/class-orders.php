@@ -565,10 +565,41 @@ class AEGIS_Orders {
             return new WP_Error('rollback_failed', '订单退回失败，请稍后再试。');
         }
 
+        $log_table = $wpdb->prefix . AEGIS_System::ORDER_STATUS_LOG_TABLE;
+        $log_inserted = $wpdb->insert(
+            $log_table,
+            [
+                'order_id'      => (int) $order->id,
+                'action'        => 'ROLLBACK_STEP',
+                'from_status'   => $order->status,
+                'to_status'     => $prev_status,
+                'actor_user_id' => get_current_user_id(),
+                'reason'        => $reason,
+                'created_at'    => $now,
+            ],
+            ['%d', '%s', '%s', '%s', '%d', '%s', '%s']
+        );
+
+        $message = '已退回：' . $order->status . ' → ' . $prev_status;
+        if (false === $log_inserted) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
+                'FAIL',
+                [
+                    'order_id' => (int) $order->id,
+                    'order_no' => $order->order_no,
+                    'from'     => $order->status,
+                    'to'       => $prev_status,
+                    'reason'   => 'log_insert_failed',
+                ]
+            );
+            $message .= '（日志写入失败）';
+        }
+
         return [
             'from'    => $order->status,
             'to'      => $prev_status,
-            'message' => '已退回：' . $order->status . ' → ' . $prev_status,
+            'message' => $message,
         ];
     }
 
