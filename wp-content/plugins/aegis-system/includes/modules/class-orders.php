@@ -1153,6 +1153,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $can_manage_all = current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
         $can_initial_review = $can_manage_all || current_user_can(AEGIS_System::CAP_ORDERS_INITIAL_REVIEW);
         $can_payment_review = $can_manage_all || current_user_can(AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW);
+        $can_create_order = current_user_can(AEGIS_System::CAP_ORDERS_CREATE);
         $can_view_all = $can_manage_all
             || current_user_can(AEGIS_System::CAP_ORDERS_VIEW_ALL)
             || $can_initial_review
@@ -1210,7 +1211,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
-                        'capability'      => AEGIS_System::CAP_ORDERS_INITIAL_REVIEW,
+                        'capability'      => AEGIS_System::CAP_ORDERS_CREATE,
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
                         'whitelist'       => ['order_action', 'note', 'order_item_ean', 'order_item_qty', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
@@ -1696,6 +1697,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 'can_initial_review' => $can_initial_review,
                 'can_payment_review' => $can_payment_review,
                 'can_manage_all'     => $can_manage_all,
+                'can_create_order'   => $can_create_order,
                 'queue_view'         => $queue_view,
                 'payment_queue'      => $payment_queue,
                 'can_manage'         => $can_manage,

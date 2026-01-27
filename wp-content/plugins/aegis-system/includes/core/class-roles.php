@@ -273,6 +273,7 @@ class AEGIS_System_Roles {
                     'read'                                 => true,
                     AEGIS_System::CAP_ACCESS_ROOT          => true,
                     AEGIS_System::CAP_RESET_B              => true,
+                    AEGIS_System::CAP_ORDERS_CREATE         => true,
                 ],
             ],
         ];

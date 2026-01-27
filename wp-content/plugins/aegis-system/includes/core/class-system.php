@@ -36,6 +36,7 @@ class AEGIS_System {
     const CAP_ORDERS_VIEW_ALL = 'aegis_orders_view_all';
     const CAP_ORDERS_INITIAL_REVIEW = 'aegis_orders_initial_review';
     const CAP_ORDERS_PAYMENT_REVIEW = 'aegis_orders_payment_review';
+    const CAP_ORDERS_CREATE = 'aegis_orders_create';
     const CAP_ORDERS_MANAGE_ALL = self::CAP_ORDERS;
 
     const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
