@@ -1076,6 +1076,16 @@ class AEGIS_Orders {
         $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
         $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
         $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
+        $user = wp_get_current_user();
+        $roles = (array) ($user ? $user->roles : []);
+
+        if (in_array('aegis_dealer', $roles, true)) {
+            $dealer_id = !empty($args['dealer_id']) ? (int) $args['dealer_id'] : 0;
+            if ($dealer_id <= 0) {
+                $total = 0;
+                return [];
+            }
+        }
 
         $where = ['o.created_at >= %s', 'o.created_at < %s'];
         $params = [$args['start'], $args['end']];
@@ -1207,10 +1217,29 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $sales_user_filter = get_current_user_id();
         }
 
+        $dealer_lookup_id = 0;
+        if ($is_dealer) {
+            $dealer_lookup = AEGIS_Dealer::get_dealer_for_user($user);
+            $dealer_lookup_id = $dealer_lookup ? (int) $dealer_lookup->id : 0;
+            if ($dealer_lookup_id <= 0) {
+                global $wpdb;
+                $dealer_lookup_id = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT id FROM {$wpdb->prefix}aegis_dealers WHERE user_id = %d LIMIT 1",
+                        (int) get_current_user_id()
+                    )
+                );
+            }
+        }
+
         $dealer_state = $is_dealer ? AEGIS_Dealer::evaluate_dealer_access($user) : null;
         $dealer = $dealer_state['dealer'] ?? null;
         $dealer_id = $dealer ? (int) $dealer->id : 0;
+        if ($is_dealer && $dealer_id <= 0) {
+            $dealer_id = $dealer_lookup_id;
+        }
         $dealer_blocked = $is_dealer && (!$dealer_state || empty($dealer_state['allowed']));
+        $dealer_missing = $is_dealer && $dealer_id <= 0;
 
         $allowed_views = ['list'];
         $default_view = 'list';
@@ -1653,7 +1682,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         }
         $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
 
-        $dealer_filter = $is_dealer ? ($dealer_id > 0 ? $dealer_id : -1) : null;
+        $dealer_filter = $is_dealer ? ($dealer_id > 0 ? $dealer_id : 0) : null;
         if (!$is_dealer && isset($_GET['dealer_id'])) {
             $dealer_filter = absint(wp_unslash($_GET['dealer_id']));
             if ($dealer_filter <= 0) {
@@ -1668,19 +1697,35 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $statuses_filter = [self::STATUS_PENDING_HQ_PAYMENT_REVIEW];
         }
         $total = 0;
-        $orders = self::query_portal_orders(
-            [
-                'start'     => $start_datetime,
-                'end'       => $end_datetime,
-                'order_no'  => $search_no,
-                'dealer_id' => $dealer_filter,
-                'sales_user_id' => $sales_user_filter,
-                'statuses'  => $statuses_filter,
-                'per_page'  => $per_page,
-                'paged'     => $paged,
-            ],
-            $total
-        );
+        if ($dealer_missing) {
+            $errors[] = '当前账号未绑定经销商/无可用经销商信息。';
+            AEGIS_Access_Audit::record_event(
+                'ACCESS_DENIED',
+                'FAIL',
+                [
+                    'reason_code' => 'dealer_missing',
+                    'user_id' => (int) get_current_user_id(),
+                    'roles' => $roles,
+                    'derived_dealer_id' => $dealer_id,
+                    'path' => isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '',
+                ]
+            );
+            $orders = [];
+        } else {
+            $orders = self::query_portal_orders(
+                [
+                    'start'     => $start_datetime,
+                    'end'       => $end_datetime,
+                    'order_no'  => $search_no,
+                    'dealer_id' => $dealer_filter,
+                    'sales_user_id' => $sales_user_filter,
+                    'statuses'  => $statuses_filter,
+                    'per_page'  => $per_page,
+                    'paged'     => $paged,
+                ],
+                $total
+            );
+        }
 
         $order = $view_id ? self::get_order($view_id) : null;
         if ($order && $is_dealer && (int) $order->dealer_id !== $dealer_id) {
