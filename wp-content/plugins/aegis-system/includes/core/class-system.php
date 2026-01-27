@@ -28,6 +28,7 @@ class AEGIS_System {
     const RESET_LOG_TABLE = 'aegis_reset_logs';
 
     const CAP_ACCESS_ROOT = 'aegis_access_root';
+    const CAP_ACCESS_AUDIT_VIEW = 'aegis_access_audit_view';
     const CAP_MANAGE_SYSTEM = 'aegis_manage_system';
     const CAP_MANAGE_WAREHOUSE = 'aegis_manage_warehouse';
     const CAP_USE_WAREHOUSE = 'aegis_use_warehouse';
@@ -36,6 +37,7 @@ class AEGIS_System {
     const CAP_ORDERS_VIEW_ALL = 'aegis_orders_view_all';
     const CAP_ORDERS_INITIAL_REVIEW = 'aegis_orders_initial_review';
     const CAP_ORDERS_PAYMENT_REVIEW = 'aegis_orders_payment_review';
+    const CAP_ORDERS_CREATE = 'aegis_orders_create';
     const CAP_ORDERS_MANAGE_ALL = self::CAP_ORDERS;
 
     const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';

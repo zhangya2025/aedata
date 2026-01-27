@@ -50,7 +50,9 @@ $payment_status_labels = [
     <?php if ($role_flags['is_dealer']) : ?>
         <div class="aegis-t-a5" style="border:1px solid #d9dce3; padding:12px; border-radius:8px; background:#f8f9fb; margin-bottom:16px;">
             <div class="aegis-t-a4" style="margin-bottom:8px;">新增订单</div>
-            <?php if ($dealer_blocked) : ?>
+            <?php if (!$role_flags['can_create_order']) : ?>
+                <p class="aegis-t-a6" style="color:#d63638;">当前账号无下单权限。</p>
+            <?php elseif ($dealer_blocked) : ?>
                 <p class="aegis-t-a6" style="color:#d63638;">经销商账号已停用或授权到期，暂不可下单。</p>
             <?php else : ?>
                 <form method="post" class="aegis-t-a6" id="aegis-order-create-form">

@@ -231,6 +231,7 @@ class AEGIS_System_Roles {
                     AEGIS_System::CAP_ORDERS_INITIAL_REVIEW => true,
                     AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW => true,
                     AEGIS_System::CAP_ORDERS_MANAGE_ALL    => true,
+                    AEGIS_System::CAP_ACCESS_AUDIT_VIEW    => true,
                 ],
             ],
             'aegis_sales'            => [
@@ -273,6 +274,7 @@ class AEGIS_System_Roles {
                     'read'                                 => true,
                     AEGIS_System::CAP_ACCESS_ROOT          => true,
                     AEGIS_System::CAP_RESET_B              => true,
+                    AEGIS_System::CAP_ORDERS_CREATE         => true,
                 ],
             ],
         ];
