@@ -527,11 +527,29 @@ class AEGIS_Orders {
     protected static function rollback_order_one_step($order, $reason) {
         global $wpdb;
         if (in_array($order->status, [self::STATUS_CANCELLED_BY_DEALER, self::STATUS_VOIDED_BY_HQ], true)) {
+            AEGIS_Access_Audit::record_event(
+                'ORDER_ROLLBACK_STEP',
+                'FAIL',
+                [
+                    'order_id'    => (int) $order->id,
+                    'from'        => $order->status,
+                    'reason_code' => 'terminal_status',
+                ]
+            );
             return new WP_Error('bad_status', '该状态不可退回。');
         }
 
         $prev_status = self::get_prev_status($order->status);
         if (null === $prev_status) {
+            AEGIS_Access_Audit::record_event(
+                'ORDER_ROLLBACK_STEP',
+                'FAIL',
+                [
+                    'order_id'    => (int) $order->id,
+                    'from'        => $order->status,
+                    'reason_code' => 'no_prev_status',
+                ]
+            );
             return new WP_Error('bad_status', '该状态不可退回。');
         }
 
@@ -562,45 +580,46 @@ class AEGIS_Orders {
         );
 
         if (false === $updated) {
+            AEGIS_Access_Audit::record_event(
+                'ORDER_ROLLBACK_STEP',
+                'FAIL',
+                [
+                    'order_id'    => (int) $order->id,
+                    'from'        => $order->status,
+                    'to'          => $prev_status,
+                    'reason_code' => 'update_failed',
+                ]
+            );
             return new WP_Error('rollback_failed', '订单退回失败，请稍后再试。');
         }
 
-        $log_table = $wpdb->prefix . AEGIS_System::ORDER_STATUS_LOG_TABLE;
-        $log_inserted = $wpdb->insert(
-            $log_table,
+        AEGIS_Access_Audit::record_event(
+            'ORDER_ROLLBACK_STEP',
+            'SUCCESS',
             [
-                'order_id'      => (int) $order->id,
-                'action'        => 'ROLLBACK_STEP',
-                'from_status'   => $order->status,
-                'to_status'     => $prev_status,
-                'actor_user_id' => get_current_user_id(),
-                'reason'        => $reason,
-                'created_at'    => $now,
-            ],
-            ['%d', '%s', '%s', '%s', '%d', '%s', '%s']
+                'order_id' => (int) $order->id,
+                'from'     => $order->status,
+                'to'       => $prev_status,
+                'reason'   => self::truncate_audit_reason($reason),
+            ]
         );
-
-        $message = '已退回：' . $order->status . ' → ' . $prev_status;
-        if (false === $log_inserted) {
-            AEGIS_Access_Audit::record_event(
-                AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
-                'FAIL',
-                [
-                    'order_id' => (int) $order->id,
-                    'order_no' => $order->order_no,
-                    'from'     => $order->status,
-                    'to'       => $prev_status,
-                    'reason'   => 'log_insert_failed',
-                ]
-            );
-            $message .= '（日志写入失败）';
-        }
 
         return [
             'from'    => $order->status,
             'to'      => $prev_status,
-            'message' => $message,
+            'message' => '已退回：' . $order->status . ' → ' . $prev_status,
         ];
+    }
+
+    protected static function truncate_audit_reason($reason) {
+        $reason = trim((string) $reason);
+        if ($reason === '') {
+            return '';
+        }
+        if (function_exists('mb_substr')) {
+            return mb_substr($reason, 0, 200);
+        }
+        return substr($reason, 0, 200);
     }
 
     public static function current_user_can_view_order($order) {
@@ -1301,10 +1320,36 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 }
 
                 if (!$validation['success']) {
+                    AEGIS_Access_Audit::record_event(
+                        'ORDER_ROLLBACK_STEP',
+                        'FAIL',
+                        [
+                            'order_id'    => (int) $order_id,
+                            'reason_code' => 'nonce_failed',
+                        ]
+                    );
                     $redirect_url = add_query_arg('aegis_orders_error', $validation['message'], $redirect_url);
                 } elseif (!$is_hq || !$order) {
+                    AEGIS_Access_Audit::record_event(
+                        'ORDER_ROLLBACK_STEP',
+                        'FAIL',
+                        [
+                            'order_id'    => (int) $order_id,
+                            'from'        => $order ? $order->status : null,
+                            'reason_code' => !$is_hq ? 'forbidden' : 'invalid_order',
+                        ]
+                    );
                     $redirect_url = add_query_arg('aegis_orders_error', '无权操作该订单。', $redirect_url);
                 } elseif ('' === $reason) {
+                    AEGIS_Access_Audit::record_event(
+                        'ORDER_ROLLBACK_STEP',
+                        'FAIL',
+                        [
+                            'order_id'    => (int) $order_id,
+                            'from'        => $order ? $order->status : null,
+                            'reason_code' => 'empty_reason',
+                        ]
+                    );
                     $redirect_url = add_query_arg('aegis_orders_error', '退回原因不能为空。', $redirect_url);
                 } else {
                     $result = self::rollback_order_one_step($order, $reason);
