@@ -524,6 +524,54 @@ class AEGIS_Orders {
         return ['message' => '订单已作废。'];
     }
 
+    protected static function rollback_order_one_step($order, $reason) {
+        global $wpdb;
+        if (in_array($order->status, [self::STATUS_CANCELLED_BY_DEALER, self::STATUS_VOIDED_BY_HQ], true)) {
+            return new WP_Error('bad_status', '该状态不可退回。');
+        }
+
+        $prev_status = self::get_prev_status($order->status);
+        if (null === $prev_status) {
+            return new WP_Error('bad_status', '该状态不可退回。');
+        }
+
+        $meta = [];
+        if (!empty($order->meta)) {
+            $decoded = json_decode($order->meta, true);
+            if (is_array($decoded)) {
+                $meta = $decoded;
+            }
+        }
+
+        $now = current_time('mysql');
+        $meta['rollback_reason'] = $reason;
+        $meta['rollback_by'] = get_current_user_id();
+        $meta['rollback_at'] = $now;
+
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $updated = $wpdb->update(
+            $table,
+            [
+                'status'     => $prev_status,
+                'updated_at' => $now,
+                'meta'       => wp_json_encode($meta),
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s', '%s'],
+            ['%d']
+        );
+
+        if (false === $updated) {
+            return new WP_Error('rollback_failed', '订单退回失败，请稍后再试。');
+        }
+
+        return [
+            'from'    => $order->status,
+            'to'      => $prev_status,
+            'message' => '已退回：' . $order->status . ' → ' . $prev_status,
+        ];
+    }
+
     public static function current_user_can_view_order($order) {
         $roles = AEGIS_System_Roles::get_user_roles();
         $is_sales = in_array('aegis_sales', $roles, true);
@@ -1001,6 +1049,12 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
         $messages = [];
         $errors = [];
         $view_id = 0;
+        if (isset($_GET['aegis_orders_message'])) {
+            $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_orders_message']));
+        }
+        if (isset($_GET['aegis_orders_error'])) {
+            $errors[] = sanitize_text_field(wp_unslash($_GET['aegis_orders_error']));
+        }
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
@@ -1191,6 +1245,47 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                         $view_mode = 'list';
                     }
                 }
+            } elseif ('rollback_step' === $action) {
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $nonce_action = 'aegis_orders_rollback_' . $order_id;
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => $nonce_action,
+                        'whitelist'       => ['order_action', 'order_id', 'rollback_reason', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order = $order_id ? self::get_order($order_id) : null;
+                $reason = isset($_POST['rollback_reason']) ? trim(sanitize_text_field(wp_unslash($_POST['rollback_reason']))) : '';
+                $is_hq = current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+                    || current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
+                    || AEGIS_System_Roles::is_hq_admin();
+
+                $redirect_url = add_query_arg('m', 'orders', $portal_url);
+                if ($order_id > 0) {
+                    $redirect_url = add_query_arg(['view' => $order_id, 'order_id' => $order_id], $redirect_url);
+                }
+
+                if (!$validation['success']) {
+                    $redirect_url = add_query_arg('aegis_orders_error', $validation['message'], $redirect_url);
+                } elseif (!$is_hq || !$order) {
+                    $redirect_url = add_query_arg('aegis_orders_error', '无权操作该订单。', $redirect_url);
+                } elseif ('' === $reason) {
+                    $redirect_url = add_query_arg('aegis_orders_error', '退回原因不能为空。', $redirect_url);
+                } else {
+                    $result = self::rollback_order_one_step($order, $reason);
+                    if (is_wp_error($result)) {
+                        $redirect_url = add_query_arg('aegis_orders_error', $result->get_error_message(), $redirect_url);
+                    } else {
+                        $redirect_url = add_query_arg('aegis_orders_message', $result['message'], $redirect_url);
+                    }
+                }
+
+                wp_safe_redirect($redirect_url);
+                exit;
             } elseif ('upload_payment' === $action) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
