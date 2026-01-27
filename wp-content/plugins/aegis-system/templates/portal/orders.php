@@ -17,7 +17,6 @@ $view_mode = $context['view_mode'];
 $queue_mode = $context['queue_mode'];
 $status_labels = $context['status_labels'];
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
-$debug_panel = $context['debug_panel'] ?? '';
 $payment_status_labels = [
     'none'      => '未提交',
     'submitted' => '已提交，待审核',
@@ -121,7 +120,6 @@ $payment_status_labels = [
         <button type="submit" class="button">筛选</button>
     </form>
 
-    <?php echo $debug_panel; ?>
     <?php $table_colspan = $role_flags['can_view_all'] ? ($queue_mode === 'payment_review' ? 10 : 9) : 6; ?>
     <table class="aegis-table" style="width:100%;">
         <thead><tr>
