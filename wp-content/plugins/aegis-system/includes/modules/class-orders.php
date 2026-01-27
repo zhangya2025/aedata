@@ -16,6 +16,7 @@ class AEGIS_Orders {
     const PAYMENT_STATUS_APPROVED = 'approved';
     const PAYMENT_STATUS_REJECTED = 'rejected';
     const PAYMENT_STATUS_NEED_MORE = 'need_more';
+    protected static $portal_query_error = '';
 
     /**
      * HQ 逐级退回上一状态映射（仅规则，不触发任何流转）。
@@ -1072,6 +1073,7 @@ class AEGIS_Orders {
 
     protected static function query_portal_orders($args, &$total = 0) {
         global $wpdb;
+        self::$portal_query_error = '';
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
         $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
         $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
@@ -1129,13 +1131,38 @@ class AEGIS_Orders {
         $params[] = $per_page;
         $params[] = $offset;
 
-        return $wpdb->get_results(
+        $include_payment = false;
+        if (!empty($args['statuses']) && is_array($args['statuses'])) {
+            $statuses = array_values($args['statuses']);
+            if (1 === count($statuses) && self::STATUS_PENDING_HQ_PAYMENT_REVIEW === $statuses[0]) {
+                $include_payment = true;
+            }
+        }
+
+        $select_fields = "o.*, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count, COALESCE(SUM(oi.qty * oi.unit_price_snapshot),0) AS total_amount";
+        if ($include_payment) {
+            $select_fields .= ", pay.status AS payment_status, pay.submitted_at AS payment_submitted_at, pay.review_note AS payment_review_note";
+        }
+
+        $joins = "LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id";
+        if ($include_payment) {
+            $joins .= " LEFT JOIN {$payment_table} pay ON pay.order_id = o.id";
+        }
+
+        $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT o.*, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty, COUNT(DISTINCT oi.ean) AS sku_count, COALESCE(SUM(oi.qty * oi.unit_price_snapshot),0) AS total_amount, pay.status AS payment_status, pay.submitted_at AS payment_submitted_at, pay.review_note AS payment_review_note FROM {$order_table} o \
-LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id LEFT JOIN {$payment_table} pay ON pay.order_id = o.id WHERE {$where_sql} GROUP BY o.id ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
+                "SELECT {$select_fields} FROM {$order_table} o {$joins} WHERE {$where_sql} GROUP BY o.id ORDER BY o.created_at DESC LIMIT %d OFFSET %d",
                 $params
             )
         );
+
+        if (empty($results) && !empty($wpdb->last_error)) {
+            self::$portal_query_error = $wpdb->last_error;
+            $total = 0;
+            return [];
+        }
+
+        return $results;
     }
 
     protected static function list_active_skus() {
@@ -1702,6 +1729,7 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
             $statuses_filter = [self::STATUS_PENDING_HQ_PAYMENT_REVIEW];
         }
         $total = 0;
+        self::$portal_query_error = '';
         if ($dealer_missing) {
             $errors[] = '账号未绑定经销商，无法查询订单。';
             AEGIS_Access_Audit::record_event(
@@ -1730,6 +1758,13 @@ LEFT JOIN {$item_table} oi ON oi.order_id = o.id LEFT JOIN {$dealer_table} d ON 
                 ],
                 $total
             );
+        }
+        if (self::$portal_query_error) {
+            if ($can_manage_system || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)) {
+                $errors[] = '订单列表查询失败，请联系管理员。';
+            } else {
+                $errors[] = '系统查询失败，请联系管理员。';
+            }
         }
 
         $order = $view_id ? self::get_order($view_id) : null;
