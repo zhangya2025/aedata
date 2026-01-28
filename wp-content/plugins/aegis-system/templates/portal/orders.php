@@ -25,9 +25,12 @@ $payment_status_labels = [
     'need_more' => '需补充',
 ];
 ?>
-<div class="aegis-t-a4">
-    <div class="aegis-t-a2" style="margin-bottom:12px;">订单</div>
-    <p class="aegis-t-a6">当前流程：经销商下单 → 待初审（HQ删减匹配）→ 待确认（上传付款凭证）→ 待审核 → 已通过（待出库）/撤销/作废。价格来自等级/覆盖价快照，不影响其他系统。</p>
+<div class="aegis-t-a4 aegis-orders-page">
+    <div class="aegis-orders-header">
+        <div class="aegis-t-a2">订单</div>
+        <button type="button" class="aegis-help-btn button" aria-controls="aegis-help-panel" aria-expanded="false">? 帮助</button>
+    </div>
+    <p class="aegis-t-a6 aegis-orders-summary">流程摘要：下单 → 初审 → 确认付款 → 审核 → 出库/终止。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -49,8 +52,12 @@ $payment_status_labels = [
     <?php endif; ?>
 
     <?php if ($role_flags['is_dealer']) : ?>
-        <div class="aegis-t-a5" style="border:1px solid #d9dce3; padding:12px; border-radius:8px; background:#f8f9fb; margin-bottom:16px;">
-            <div class="aegis-t-a4" style="margin-bottom:8px;">新增订单</div>
+        <section class="aegis-card aegis-orders-create is-collapsed">
+            <div class="aegis-card-header">
+                <div class="aegis-card-title aegis-t-a4">新建订单</div>
+                <button type="button" class="button aegis-toggle-create" aria-expanded="false">展开</button>
+            </div>
+            <div class="aegis-orders-create-body">
             <?php if (!$role_flags['can_create_order']) : ?>
                 <p class="aegis-t-a6" style="color:#d63638;">当前账号无下单权限。</p>
             <?php elseif ($dealer_blocked) : ?>
@@ -90,98 +97,105 @@ $payment_status_labels = [
                     <button type="submit" class="button button-primary">提交订单</button>
                 </form>
             <?php endif; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <section class="aegis-card aegis-orders-list">
+        <div class="aegis-card-header">
+            <div class="aegis-card-title aegis-t-a4">
+                <?php
+                if ($queue_mode === 'review') {
+                    echo '待初审订单队列';
+                } elseif ($queue_mode === 'payment_review') {
+                    echo '待审核订单队列';
+                } else {
+                    echo '订单列表';
+                }
+                ?>
+            </div>
         </div>
-    <?php endif; ?>
-
-    <div class="aegis-t-a4" style="margin-top:8px;">
-        <?php
-        if ($queue_mode === 'review') {
-            echo '待初审订单队列';
-        } elseif ($queue_mode === 'payment_review') {
-            echo '待审核订单队列';
-        } else {
-            echo '订单列表';
-        }
-        ?>
-    </div>
-    <form method="get" class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-        <input type="hidden" name="m" value="orders" />
-        <?php if (!empty($filters['dealer_id'])) : ?>
-            <input type="hidden" name="dealer_id" value="<?php echo esc_attr($filters['dealer_id']); ?>" />
-        <?php endif; ?>
-        <label>开始 <input type="date" name="start_date" value="<?php echo esc_attr($filters['start_date']); ?>" /></label>
-        <label>结束 <input type="date" name="end_date" value="<?php echo esc_attr($filters['end_date']); ?>" /></label>
-        <label>订单号 <input type="text" name="order_no" value="<?php echo esc_attr($filters['order_no']); ?>" /></label>
-        <label>每页 <select name="per_page">
-            <?php foreach ($filters['per_options'] as $opt) : ?>
-                <option value="<?php echo esc_attr($opt); ?>" <?php selected($filters['per_page'], $opt); ?>><?php echo esc_html($opt); ?></option>
-            <?php endforeach; ?>
-        </select></label>
-        <button type="submit" class="button">筛选</button>
-    </form>
-
-    <?php $table_colspan = $role_flags['can_view_all'] ? ($queue_mode === 'payment_review' ? 10 : 9) : 6; ?>
-    <table class="aegis-table" style="width:100%;">
-        <thead><tr>
-            <th>订单号</th>
-            <?php if ($role_flags['can_view_all']) : ?><th>经销商</th><?php endif; ?>
-            <th>下单时间</th>
-            <?php if ($queue_mode === 'payment_review') : ?><th>提交确认时间</th><?php endif; ?>
-            <th>状态</th>
-            <?php if ($role_flags['can_view_all']) : ?><th>付款状态</th><?php endif; ?>
-            <th>SKU 种类数</th>
-            <th>总数量</th>
-            <?php if ($role_flags['can_view_all']) : ?><th>金额</th><?php endif; ?>
-            <th>操作</th></tr></thead>
-        <tbody>
-            <?php if (empty($orders)) : ?>
-                <tr><td colspan="<?php echo esc_attr($table_colspan); ?>">暂无订单</td></tr>
-            <?php else : ?>
-                <?php foreach ($orders as $row) : ?>
-                    <?php $status_text = $status_labels[$row->status] ?? $row->status; ?>
-                    <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
-                    <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => $view_mode, 'order_id' => $row->id], $base_url); } ?>
-                    <?php $payment_state_text = $row->payment_status && isset($payment_status_labels[$row->payment_status]) ? $payment_status_labels[$row->payment_status] : '-'; ?>
-                    <tr>
-                        <td><?php echo esc_html($row->order_no); ?></td>
-                        <?php if ($role_flags['can_view_all']) : ?><td><?php echo esc_html($row->dealer_name ?? ''); ?></td><?php endif; ?>
-                        <td><?php echo esc_html($row->created_at); ?></td>
-                        <?php if ($queue_mode === 'payment_review') : ?><td><?php echo esc_html($row->payment_submitted_at ?? '-'); ?></td><?php endif; ?>
-                        <td><?php echo esc_html($status_text); ?></td>
-                        <?php if ($role_flags['can_view_all']) : ?><td><?php echo esc_html($payment_state_text); ?></td><?php endif; ?>
-                        <td><?php echo esc_html((int) ($row->sku_count ?? 0)); ?></td>
-                        <td><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
-                        <?php if ($role_flags['can_view_all']) : ?><td><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
-                        <td>
-                            <a class="button" href="<?php echo esc_url($row_link); ?>">查看</a>
-                            <?php if ($role_flags['is_dealer'] && $row->status === $pending_initial_status) : ?>
-                                <a class="button" href="<?php echo esc_url(add_query_arg('order_id', $row->id, $base_url)); ?>#order-edit">编辑</a>
-                            <?php elseif ($role_flags['can_initial_review'] && $row->status === $pending_initial_status) : ?>
-                                <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'review', 'order_id' => $row->id], $base_url)); ?>">审核</a>
-                            <?php elseif ($role_flags['can_payment_review'] && $row->status === 'pending_hq_payment_review') : ?>
-                                <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'payment_review', 'order_id' => $row->id], $base_url)); ?>">审核付款</a>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+        <form method="get" class="aegis-t-a6 aegis-orders-filters">
+            <input type="hidden" name="m" value="orders" />
+            <?php if (!empty($filters['dealer_id'])) : ?>
+                <input type="hidden" name="dealer_id" value="<?php echo esc_attr($filters['dealer_id']); ?>" />
+            <?php endif; ?>
+            <label>开始 <input type="date" name="start_date" value="<?php echo esc_attr($filters['start_date']); ?>" /></label>
+            <label>结束 <input type="date" name="end_date" value="<?php echo esc_attr($filters['end_date']); ?>" /></label>
+            <label>订单号 <input type="text" name="order_no" value="<?php echo esc_attr($filters['order_no']); ?>" /></label>
+            <label>每页 <select name="per_page">
+                <?php foreach ($filters['per_options'] as $opt) : ?>
+                    <option value="<?php echo esc_attr($opt); ?>" <?php selected($filters['per_page'], $opt); ?>><?php echo esc_html($opt); ?></option>
                 <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
-    <?php if ($filters['total_pages'] > 1) : ?>
-        <div class="tablenav"><div class="tablenav-pages">
-            <?php if ($filters['paged'] > 1) : ?>
-                <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] - 1], $base_url)); ?>">上一页</a>
-            <?php endif; ?>
-            <span class="aegis-t-a6">第 <?php echo esc_html($filters['paged']); ?> / <?php echo esc_html($filters['total_pages']); ?> 页</span>
-            <?php if ($filters['paged'] < $filters['total_pages']) : ?>
-                <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] + 1], $base_url)); ?>">下一页</a>
-            <?php endif; ?>
-        </div></div>
-    <?php endif; ?>
+            </select></label>
+            <button type="submit" class="button">筛选</button>
+        </form>
+
+        <?php $table_colspan = $role_flags['can_view_all'] ? ($queue_mode === 'payment_review' ? 10 : 9) : 6; ?>
+        <table class="aegis-table" style="width:100%;">
+            <thead><tr>
+                <th>订单号</th>
+                <?php if ($role_flags['can_view_all']) : ?><th>经销商</th><?php endif; ?>
+                <th>下单时间</th>
+                <?php if ($queue_mode === 'payment_review') : ?><th>提交确认时间</th><?php endif; ?>
+                <th>状态</th>
+                <?php if ($role_flags['can_view_all']) : ?><th>付款状态</th><?php endif; ?>
+                <th>SKU 种类数</th>
+                <th>总数量</th>
+                <?php if ($role_flags['can_view_all']) : ?><th>金额</th><?php endif; ?>
+                <th>操作</th></tr></thead>
+            <tbody>
+                <?php if (empty($orders)) : ?>
+                    <tr><td colspan="<?php echo esc_attr($table_colspan); ?>">暂无订单</td></tr>
+                <?php else : ?>
+                    <?php foreach ($orders as $row) : ?>
+                        <?php $status_text = $status_labels[$row->status] ?? $row->status; ?>
+                        <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
+                        <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => $view_mode, 'order_id' => $row->id], $base_url); } ?>
+                        <?php $payment_state_text = $row->payment_status && isset($payment_status_labels[$row->payment_status]) ? $payment_status_labels[$row->payment_status] : '-'; ?>
+                        <tr>
+                            <td><?php echo esc_html($row->order_no); ?></td>
+                            <?php if ($role_flags['can_view_all']) : ?><td><?php echo esc_html($row->dealer_name ?? ''); ?></td><?php endif; ?>
+                            <td><?php echo esc_html($row->created_at); ?></td>
+                            <?php if ($queue_mode === 'payment_review') : ?><td><?php echo esc_html($row->payment_submitted_at ?? '-'); ?></td><?php endif; ?>
+                            <td><?php echo esc_html($status_text); ?></td>
+                            <?php if ($role_flags['can_view_all']) : ?><td><?php echo esc_html($payment_state_text); ?></td><?php endif; ?>
+                            <td><?php echo esc_html((int) ($row->sku_count ?? 0)); ?></td>
+                            <td><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
+                            <?php if ($role_flags['can_view_all']) : ?><td><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
+                            <td>
+                                <a class="button" href="<?php echo esc_url($row_link); ?>">查看</a>
+                                <?php if ($role_flags['is_dealer'] && $row->status === $pending_initial_status) : ?>
+                                    <a class="button" href="<?php echo esc_url(add_query_arg('order_id', $row->id, $base_url)); ?>#order-edit">编辑</a>
+                                <?php elseif ($role_flags['can_initial_review'] && $row->status === $pending_initial_status) : ?>
+                                    <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'review', 'order_id' => $row->id], $base_url)); ?>">审核</a>
+                                <?php elseif ($role_flags['can_payment_review'] && $row->status === 'pending_hq_payment_review') : ?>
+                                    <a class="button button-primary" href="<?php echo esc_url(add_query_arg(['view' => 'payment_review', 'order_id' => $row->id], $base_url)); ?>">审核付款</a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <?php if ($filters['total_pages'] > 1) : ?>
+            <div class="tablenav"><div class="tablenav-pages">
+                <?php if ($filters['paged'] > 1) : ?>
+                    <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] - 1], $base_url)); ?>">上一页</a>
+                <?php endif; ?>
+                <span class="aegis-t-a6">第 <?php echo esc_html($filters['paged']); ?> / <?php echo esc_html($filters['total_pages']); ?> 页</span>
+                <?php if ($filters['paged'] < $filters['total_pages']) : ?>
+                    <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] + 1], $base_url)); ?>">下一页</a>
+                <?php endif; ?>
+            </div></div>
+        <?php endif; ?>
+    </section>
 
     <?php if ($order) : ?>
-        <div class="aegis-t-a5" style="margin-top:16px; border:1px solid #d9dce3; padding:12px; border-radius:8px;" id="order-detail">
-            <div class="aegis-t-a4" style="margin-bottom:8px;">订单详情</div>
+        <section class="aegis-card aegis-orders-detail" id="order-detail">
+            <div class="aegis-card-header">
+                <div class="aegis-card-title aegis-t-a4">订单详情</div>
+            </div>
             <?php $status_text = $status_labels[$order->status] ?? $order->status; ?>
             <div class="aegis-t-a6">订单号：<?php echo esc_html($order->order_no); ?> | 状态：<?php echo esc_html($status_text); ?></div>
             <div class="aegis-t-a6" style="margin-top:4px;">下单时间：<?php echo esc_html($order->created_at); ?></div>
@@ -438,9 +452,26 @@ $payment_status_labels = [
             <?php elseif ($order->status === 'voided_by_hq') : ?>
                 <p class="aegis-t-a6" style="margin-top:8px; color:#d63638;">订单已作废，无法继续操作。</p>
             <?php endif; ?>
-        </div>
+        </section>
     <?php endif; ?>
 </div>
+
+<aside id="aegis-help-panel" class="aegis-help-panel" hidden>
+    <div class="aegis-help-panel-header">
+        <h2 class="aegis-t-a4">订单帮助</h2>
+        <button type="button" class="button aegis-help-close" aria-label="关闭帮助">关闭</button>
+    </div>
+    <div class="aegis-help-panel-body">
+        <h3 class="aegis-t-a5">本页用途</h3>
+        <p class="aegis-t-a6">这里用于创建、查看与处理订单的完整流程。</p>
+        <h3 class="aegis-t-a5">操作流程</h3>
+        <p class="aegis-t-a6">创建订单后，按队列完成初审、确认付款与审核出库。</p>
+        <h3 class="aegis-t-a5">注意事项</h3>
+        <p class="aegis-t-a6">价格与等级来自系统快照，编辑时仅可调整数量。</p>
+        <h3 class="aegis-t-a5">常见问题</h3>
+        <p class="aegis-t-a6">常见问题将在后续补充。</p>
+    </div>
+</aside>
 
 <?php if ($role_flags['is_dealer'] && !empty($price_map)) : ?>
 <script>
@@ -523,6 +554,41 @@ $payment_status_labels = [
                 });
             }
         });
+    }
+})();
+</script>
+
+<script>
+(function() {
+    const ordersPage = document.querySelector('.aegis-orders-page');
+    if (!ordersPage) return;
+
+    const createCard = ordersPage.querySelector('.aegis-orders-create');
+    const toggleCreate = ordersPage.querySelector('.aegis-toggle-create');
+    if (createCard && toggleCreate) {
+        toggleCreate.addEventListener('click', function() {
+            const isCollapsed = createCard.classList.toggle('is-collapsed');
+            toggleCreate.setAttribute('aria-expanded', String(!isCollapsed));
+            toggleCreate.textContent = isCollapsed ? '展开' : '收起';
+        });
+    }
+
+    const helpBtn = ordersPage.querySelector('.aegis-help-btn');
+    const helpPanel = document.getElementById('aegis-help-panel');
+    const helpClose = helpPanel ? helpPanel.querySelector('.aegis-help-close') : null;
+    if (helpBtn && helpPanel) {
+        const closeHelp = function() {
+            helpPanel.hidden = true;
+            helpBtn.setAttribute('aria-expanded', 'false');
+        };
+        helpBtn.addEventListener('click', function() {
+            const isOpen = !helpPanel.hidden;
+            helpPanel.hidden = isOpen;
+            helpBtn.setAttribute('aria-expanded', String(!isOpen));
+        });
+        if (helpClose) {
+            helpClose.addEventListener('click', closeHelp);
+        }
     }
 })();
 </script>
