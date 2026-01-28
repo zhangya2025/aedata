@@ -481,6 +481,23 @@ $payment_status_labels = [
     </div>
 </aside>
 
+<aside id="aegis-help-panel" class="aegis-help-panel" hidden>
+    <div class="aegis-help-panel-header">
+        <h2 class="aegis-t-a4">订单帮助</h2>
+        <button type="button" class="button aegis-help-close" aria-label="关闭帮助">关闭</button>
+    </div>
+    <div class="aegis-help-panel-body">
+        <h3 class="aegis-t-a5">本页用途</h3>
+        <p class="aegis-t-a6">这里用于创建、查看与处理订单的完整流程。</p>
+        <h3 class="aegis-t-a5">操作流程</h3>
+        <p class="aegis-t-a6">创建订单后，按队列完成初审、确认付款与审核出库。</p>
+        <h3 class="aegis-t-a5">注意事项</h3>
+        <p class="aegis-t-a6">价格与等级来自系统快照，编辑时仅可调整数量。</p>
+        <h3 class="aegis-t-a5">常见问题</h3>
+        <p class="aegis-t-a6">常见问题将在后续补充。</p>
+    </div>
+</aside>
+
 <?php if ($role_flags['is_dealer'] && !empty($price_map)) : ?>
 <script>
 (function() {
@@ -692,6 +709,41 @@ $payment_status_labels = [
 
     if (window.location.search.includes('order_id=')) {
         openDrawer('view');
+    }
+})();
+</script>
+
+<script>
+(function() {
+    const ordersPage = document.querySelector('.aegis-orders-page');
+    if (!ordersPage) return;
+
+    const createCard = ordersPage.querySelector('.aegis-orders-create');
+    const toggleCreate = ordersPage.querySelector('.aegis-toggle-create');
+    if (createCard && toggleCreate) {
+        toggleCreate.addEventListener('click', function() {
+            const isCollapsed = createCard.classList.toggle('is-collapsed');
+            toggleCreate.setAttribute('aria-expanded', String(!isCollapsed));
+            toggleCreate.textContent = isCollapsed ? '展开' : '收起';
+        });
+    }
+
+    const helpBtn = ordersPage.querySelector('.aegis-help-btn');
+    const helpPanel = document.getElementById('aegis-help-panel');
+    const helpClose = helpPanel ? helpPanel.querySelector('.aegis-help-close') : null;
+    if (helpBtn && helpPanel) {
+        const closeHelp = function() {
+            helpPanel.hidden = true;
+            helpBtn.setAttribute('aria-expanded', 'false');
+        };
+        helpBtn.addEventListener('click', function() {
+            const isOpen = !helpPanel.hidden;
+            helpPanel.hidden = isOpen;
+            helpBtn.setAttribute('aria-expanded', String(!isOpen));
+        });
+        if (helpClose) {
+            helpClose.addEventListener('click', closeHelp);
+        }
     }
 })();
 </script>
