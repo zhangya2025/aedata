@@ -648,6 +648,7 @@ class AEGIS_Portal {
             'workbench'        => '工作台',
             'sku'              => 'SKU 管理',
             'dealer_master'    => '经销商管理',
+            'sales_master'     => '销售管理',
             'my_dealers'       => '我的经销商',
             'codes'            => '防伪码生成',
             'inbound'          => '扫码入库',
@@ -746,6 +747,8 @@ class AEGIS_Portal {
                 return AEGIS_SKU::render_portal_panel(self::get_portal_url());
             case 'dealer_master':
                 return AEGIS_Dealer::render_portal_panel(self::get_portal_url());
+            case 'sales_master':
+                return AEGIS_Sales::render_portal_panel(self::get_portal_url());
             case 'my_dealers':
                 return AEGIS_Dealer::render_my_dealers_panel(self::get_portal_url());
             case 'codes':

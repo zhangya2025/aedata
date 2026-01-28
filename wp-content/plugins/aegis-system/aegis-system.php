@@ -24,6 +24,7 @@ require_once AEGIS_SYSTEM_PATH . 'includes/core/class-assets-media.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-access-audit.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-pricing.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-sku.php';
+require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-sales.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-dealer.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-codes.php';
 require_once AEGIS_SYSTEM_PATH . 'includes/modules/class-inbound.php';

@@ -1844,7 +1844,37 @@ class AEGIS_Dealer {
             $user = wp_get_current_user();
         }
 
-        if (!$user || !in_array('aegis_dealer', (array) $user->roles, true)) {
+        if (!$user) {
+            return true;
+        }
+
+        $roles = (array) $user->roles;
+        $is_dealer = in_array('aegis_dealer', $roles, true);
+        $is_sales = in_array('aegis_sales', $roles, true);
+
+        if (!$is_dealer && !$is_sales) {
+            return true;
+        }
+
+        if ($is_sales) {
+            $status = get_user_meta((int) $user->ID, 'aegis_account_status', true);
+            if ($status && $status === 'inactive') {
+                AEGIS_Access_Audit::record_event(
+                    'ACCESS_DENIED',
+                    'FAIL',
+                    [
+                        'reason_code' => 'sales_inactive',
+                        'user_id'     => (int) $user->ID,
+                        'roles'       => $roles,
+                        'path'        => isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '',
+                    ]
+                );
+
+                return new WP_Error('sales_inactive', '账户已停用，请联系管理员');
+            }
+        }
+
+        if (!$is_dealer) {
             return true;
         }
 
@@ -1864,11 +1894,10 @@ class AEGIS_Dealer {
             [
                 'reason_code' => $reason_code,
                 'user_id'     => (int) $user->ID,
-                'roles'       => (array) $user->roles,
+                'roles'       => $roles,
                 'path'        => isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '',
             ]
         );
-
         return new WP_Error('dealer_inactive', '账户已停用，请联系管理员');
     }
 
