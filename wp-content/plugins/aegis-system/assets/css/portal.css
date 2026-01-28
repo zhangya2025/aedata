@@ -1557,3 +1557,132 @@ body.aegis-scan-open {
         display: none;
     }
 }
+
+.aegis-orders-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.aegis-orders-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.aegis-orders-summary {
+    margin: 0;
+    color: #6b7280;
+}
+
+.aegis-orders-page .aegis-card {
+    border: 1px solid #d9dce3;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.aegis-orders-page .aegis-card + .aegis-card {
+    margin-top: 0;
+}
+
+.aegis-orders-page .aegis-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.aegis-orders-page .aegis-card-title {
+    margin: 0;
+}
+
+.aegis-orders-create {
+    background: #f8f9fb;
+}
+
+.aegis-orders-create.is-collapsed .aegis-orders-create-body {
+    display: none;
+}
+
+.aegis-orders-filters {
+    margin: 8px 0 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.aegis-orders-page .aegis-table th,
+.aegis-orders-page .aegis-table td {
+    padding: 0 12px;
+    height: 44px;
+    line-height: 44px;
+}
+
+.aegis-orders-page input[type="text"],
+.aegis-orders-page input[type="number"],
+.aegis-orders-page input[type="date"],
+.aegis-orders-page input[type="file"],
+.aegis-orders-page select,
+.aegis-orders-page textarea {
+    height: 36px;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.aegis-orders-page textarea {
+    height: auto;
+}
+
+.aegis-orders-page .button,
+.aegis-orders-page .button-primary,
+.aegis-orders-page .button-secondary {
+    min-height: 32px;
+    padding: 0 14px;
+    line-height: 32px;
+}
+
+.aegis-orders-page .button-primary {
+    min-height: 36px;
+    line-height: 36px;
+}
+
+.aegis-help-btn {
+    font-size: 12px;
+}
+
+.aegis-help-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 480px;
+    max-width: 90%;
+    height: 100vh;
+    background: #fff;
+    box-shadow: -8px 0 20px rgba(0, 0, 0, 0.08);
+    padding: 20px 20px 24px;
+    z-index: 30;
+    overflow-y: auto;
+}
+
+.aegis-help-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.aegis-help-panel-body h3 {
+    margin: 16px 0 6px;
+}
+
+.aegis-help-panel-body p {
+    margin: 0;
+    color: #4b5563;
+}
