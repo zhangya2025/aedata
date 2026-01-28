@@ -326,9 +326,8 @@ $payment_status_labels = [
             <?php if ($role_flags['can_initial_review'] && $order->status === $pending_initial_status) : ?>
                 <div class="aegis-t-a6" style="margin-top:12px; padding-top:8px; border-top:1px solid #d9dce3;">
                     <div class="aegis-t-a5" style="margin-bottom:8px;">初审（可删减/下调数量，不改价）</div>
-                    <form method="post" id="aegis-order-review-form" onsubmit="return confirm('确认提交初审并通知经销商确认吗？');">
+                    <form method="post" id="aegis-order-review-form">
                         <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                        <input type="hidden" name="order_action" value="initial_review_submit" />
                         <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                         <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                         <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">初审备注（可选）<br />
@@ -353,7 +352,10 @@ $payment_status_labels = [
                                 </div>
                             <?php endforeach; ?>
                         </div>
-                        <button type="submit" class="button button-primary">提交初审并通知经销商确认</button>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button type="submit" class="button" name="order_action" value="save_review_draft">保存草稿</button>
+                            <button type="submit" class="button button-primary" name="order_action" value="submit_initial_review" onclick="return confirm('确认提交初审并通知经销商确认吗？');">提交初审并通知经销商确认</button>
+                        </div>
                     </form>
                     <form method="post" style="margin-top:8px;" onsubmit="return confirm('确认作废该订单吗？作废后不可恢复。');">
                         <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
