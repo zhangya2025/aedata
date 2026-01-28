@@ -883,6 +883,12 @@ class AEGIS_Assets_Media {
      * @param int $id
      */
     public static function stream_media($id) {
+        $guard = AEGIS_Dealer::guard_dealer_portal_access();
+        if (is_wp_error($guard)) {
+            status_header(403);
+            wp_die('账户已停用，请联系管理员', 403);
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . AEGIS_System::MEDIA_TABLE;
         $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
@@ -985,4 +991,3 @@ class AEGIS_Assets_Media {
         exit;
     }
 }
-
