@@ -1557,3 +1557,201 @@ body.aegis-scan-open {
         display: none;
     }
 }
+
+.aegis-orders-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.aegis-orders-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.aegis-orders-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aegis-orders-page .aegis-card {
+    border: 1px solid #d9dce3;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.aegis-orders-page .aegis-card + .aegis-card {
+    margin-top: 0;
+}
+
+.aegis-orders-page .aegis-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.aegis-orders-page .aegis-card-title {
+    margin: 0;
+}
+
+.aegis-orders-create {
+    background: #f8f9fb;
+}
+
+.aegis-orders-filters {
+    margin: 0 0 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.aegis-orders-page .aegis-table th,
+.aegis-orders-page .aegis-table td,
+.aegis-orders-drawer .aegis-table th,
+.aegis-orders-drawer .aegis-table td {
+    padding: 0 12px;
+    height: 44px;
+    line-height: 44px;
+}
+
+.aegis-orders-table .col-text {
+    text-align: left;
+}
+
+.aegis-orders-table .col-number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.aegis-orders-table .col-actions {
+    width: 120px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.aegis-orders-table .col-actions .button {
+    min-width: 52px;
+    padding: 0 10px;
+    height: 32px;
+    line-height: 32px;
+}
+
+.aegis-orders-page input[type="text"],
+.aegis-orders-page input[type="number"],
+.aegis-orders-page input[type="date"],
+.aegis-orders-page input[type="file"],
+.aegis-orders-page select,
+.aegis-orders-page textarea,
+.aegis-orders-drawer input[type="text"],
+.aegis-orders-drawer input[type="number"],
+.aegis-orders-drawer input[type="date"],
+.aegis-orders-drawer input[type="file"],
+.aegis-orders-drawer select,
+.aegis-orders-drawer textarea {
+    height: 36px;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.aegis-orders-page textarea,
+.aegis-orders-drawer textarea {
+    height: auto;
+}
+
+.aegis-orders-page .button,
+.aegis-orders-page .button-primary,
+.aegis-orders-page .button-secondary,
+.aegis-orders-drawer .button,
+.aegis-orders-drawer .button-primary,
+.aegis-orders-drawer .button-secondary {
+    min-height: 32px;
+    padding: 0 14px;
+    line-height: 32px;
+}
+
+.aegis-orders-page .button-primary,
+.aegis-orders-drawer .button-primary {
+    min-height: 36px;
+    line-height: 36px;
+}
+
+.aegis-help-btn {
+    font-size: 12px;
+}
+
+.aegis-orders-drawer {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 40;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.aegis-orders-drawer[hidden] {
+    display: none;
+}
+
+.aegis-orders-drawer-panel {
+    width: 520px;
+    max-width: 92vw;
+    height: 100%;
+    background: #fff;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+}
+
+.aegis-orders-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.aegis-orders-drawer-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.aegis-orders-drawer-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: #fff;
+}
+
+.aegis-orders-drawer-section {
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eef0f4;
+}
+
+.aegis-orders-drawer-section:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.aegis-orders-section-title {
+    margin-bottom: 8px;
+}
+
+.aegis-orders-drawer-extension {
+    min-height: 1px;
+}
