@@ -18,6 +18,26 @@ class AEGIS_Reset_B {
             return '<div class="aegis-t-a5">清零模块未启用，请联系管理员。</div>';
         }
 
+        $guard = AEGIS_Dealer::guard_dealer_portal_access();
+        if (is_wp_error($guard)) {
+            status_header(403);
+            $logout_url = add_query_arg(
+                [
+                    'action'      => 'logout',
+                    'redirect_to' => home_url('/'),
+                ],
+                home_url('/aegislogin.php')
+            );
+            $home_url = home_url('/');
+            return '<div class="aegis-system-root aegis-t-a5" style="padding:32px; text-align:center;">'
+                . '<p style="margin-bottom:16px;">账户已停用，请联系管理员。</p>'
+                . '<div style="display:flex; gap:12px; justify-content:center;">'
+                . '<a class="button button-primary" href="' . esc_url($logout_url) . '">退出登录</a>'
+                . '<a class="button" href="' . esc_url($home_url) . '">返回首页</a>'
+                . '</div>'
+                . '</div>';
+        }
+
         $actor = self::get_actor_context();
         if (!$actor['can_access']) {
             return '<div class="aegis-t-a5">当前账号无权访问清零模块。</div>';
