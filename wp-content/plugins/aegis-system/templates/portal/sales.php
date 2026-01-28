@@ -5,6 +5,8 @@ $messages = $context['messages'];
 $errors = $context['errors'];
 $users = $context['users'];
 $status_map = $context['status_map'];
+$current_user = $context['current_user'];
+$current_note = $context['current_note'];
 $list = $context['list'];
 ?>
 
@@ -18,6 +20,58 @@ $list = $context['list'];
     <?php foreach ($errors as $msg) : ?>
         <div class="notice notice-error"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
     <?php endforeach; ?>
+
+    <?php if ($current_user) : ?>
+        <?php
+        $current_status = $status_map[$current_user->ID] ?? 'active';
+        $toggle_status = $current_status === 'active' ? 'inactive' : 'active';
+        $edit_url = add_query_arg(['m' => 'sales_master'], $base_url);
+        ?>
+        <div class="aegis-t-a5" style="border:1px solid #d9dce3; padding:16px; border-radius:8px; background:#f8f9fb; margin-bottom:16px;">
+            <div class="aegis-t-a4" style="margin-bottom:8px;">编辑销售账号</div>
+            <form method="post" class="aegis-t-a6" style="display:grid; gap:12px;">
+                <?php wp_nonce_field('aegis_sales_action', 'aegis_sales_nonce'); ?>
+                <input type="hidden" name="sales_action" value="save_sales" />
+                <input type="hidden" name="target_user_id" value="<?php echo esc_attr($current_user->ID); ?>" />
+                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <label class="aegis-t-a6">用户名
+                        <input type="text" class="aegis-portal-input" value="<?php echo esc_attr($current_user->user_login); ?>" readonly />
+                    </label>
+                    <label class="aegis-t-a6">用户 ID
+                        <input type="text" class="aegis-portal-input" value="<?php echo esc_attr($current_user->ID); ?>" readonly />
+                    </label>
+                    <label class="aegis-t-a6">注册时间
+                        <input type="text" class="aegis-portal-input" value="<?php echo esc_attr(mysql2date('Y-m-d H:i', $current_user->user_registered)); ?>" readonly />
+                    </label>
+                    <label class="aegis-t-a6">显示名称
+                        <input type="text" name="display_name" class="aegis-portal-input" value="<?php echo esc_attr($current_user->display_name); ?>" />
+                    </label>
+                    <label class="aegis-t-a6">邮箱
+                        <input type="email" name="user_email" class="aegis-portal-input" value="<?php echo esc_attr($current_user->user_email); ?>" />
+                    </label>
+                    <label class="aegis-t-a6">状态
+                        <input type="text" class="aegis-portal-input" value="<?php echo esc_attr($current_status === 'inactive' ? '停用' : '启用'); ?>" readonly />
+                    </label>
+                </div>
+                <label class="aegis-t-a6">备注
+                    <textarea name="sales_note" class="aegis-portal-input" rows="3"><?php echo esc_textarea($current_note); ?></textarea>
+                </label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="submit" class="aegis-portal-button is-secondary">保存</button>
+                    <a class="aegis-portal-button is-link" href="<?php echo esc_url($edit_url); ?>">返回列表</a>
+                </div>
+            </form>
+            <form method="post" class="inline-form" style="margin-top:8px;">
+                <?php wp_nonce_field('aegis_sales_action', 'aegis_sales_nonce'); ?>
+                <input type="hidden" name="sales_action" value="toggle_status" />
+                <input type="hidden" name="target_user_id" value="<?php echo esc_attr($current_user->ID); ?>" />
+                <input type="hidden" name="target_status" value="<?php echo esc_attr($toggle_status); ?>" />
+                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                <button type="submit" class="aegis-portal-button is-secondary"><?php echo $current_status === 'active' ? '停用' : '启用'; ?></button>
+            </form>
+        </div>
+    <?php endif; ?>
 
     <form method="get" class="aegis-portal-filters aegis-t-a6" action="<?php echo esc_url($base_url); ?>">
         <input type="hidden" name="m" value="sales_master" />
@@ -61,6 +115,7 @@ $list = $context['list'];
                     $status_label = $status === 'inactive' ? '停用' : '启用';
                     $target_status = $status === 'active' ? 'inactive' : 'active';
                     $status_class = $status === 'active' ? 'is-active' : 'is-inactive';
+                    $edit_link = add_query_arg(['m' => 'sales_master', 'user_id' => $user->ID], $base_url);
                 ?>
                     <tr>
                         <td class="aegis-t-a5"><?php echo esc_html($user->user_login); ?></td>
@@ -69,6 +124,7 @@ $list = $context['list'];
                         <td><?php echo esc_html(mysql2date('Y-m-d H:i', $user->user_registered)); ?></td>
                         <td><span class="status-badge <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span></td>
                         <td class="col-actions">
+                            <a class="aegis-portal-button is-link" href="<?php echo esc_url($edit_link); ?>">编辑</a>
                             <form method="post" class="inline-form">
                                 <?php wp_nonce_field('aegis_sales_action', 'aegis_sales_nonce'); ?>
                                 <input type="hidden" name="sales_action" value="toggle_status" />
