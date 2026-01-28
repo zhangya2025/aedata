@@ -1851,8 +1851,11 @@ class AEGIS_Dealer {
         $roles = (array) $user->roles;
         $is_dealer = in_array('aegis_dealer', $roles, true);
         $is_sales = in_array('aegis_sales', $roles, true);
+        $is_warehouse_manager = in_array('aegis_warehouse_manager', $roles, true);
+        $is_warehouse_staff = in_array('aegis_warehouse_staff', $roles, true);
+        $is_warehouse = $is_warehouse_manager || $is_warehouse_staff;
 
-        if (!$is_dealer && !$is_sales) {
+        if (!$is_dealer && !$is_sales && !$is_warehouse) {
             return true;
         }
 
@@ -1871,6 +1874,24 @@ class AEGIS_Dealer {
                 );
 
                 return new WP_Error('sales_inactive', '账户已停用，请联系管理员');
+            }
+        }
+
+        if ($is_warehouse) {
+            $status = get_user_meta((int) $user->ID, 'aegis_account_status', true);
+            if ($status && $status === 'inactive') {
+                AEGIS_Access_Audit::record_event(
+                    'ACCESS_DENIED',
+                    'FAIL',
+                    [
+                        'reason_code' => 'warehouse_inactive',
+                        'user_id'     => (int) $user->ID,
+                        'roles'       => $roles,
+                        'path'        => isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '',
+                    ]
+                );
+
+                return new WP_Error('warehouse_inactive', '账户已停用，请联系管理员');
             }
         }
 

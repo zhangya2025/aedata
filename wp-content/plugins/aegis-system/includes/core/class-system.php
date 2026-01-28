@@ -120,6 +120,7 @@ class AEGIS_System {
             'sku'            => ['label' => 'SKU', 'default' => false],
             'dealer_master'  => ['label' => '经销商主数据', 'default' => false],
             'sales_master'   => ['label' => '销售管理', 'default' => true],
+            'warehouse_master' => ['label' => '仓库人员管理', 'default' => true],
             'my_dealers'     => ['label' => '我的经销商', 'default' => true],
             'codes'          => ['label' => '编码管理', 'default' => false],
             'inbound'        => ['label' => '扫码入库', 'default' => false],
