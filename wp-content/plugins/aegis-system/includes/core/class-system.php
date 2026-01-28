@@ -116,6 +116,8 @@ class AEGIS_System {
             'core_manager'   => ['label' => '核心管理', 'default' => true],
             'workbench'      => ['label' => '工作台', 'default' => true],
             'access_audit'   => ['label' => '访问审计', 'default' => true],
+            'system_settings' => ['label' => '系统设置', 'default' => true],
+            'aegis_typography' => ['label' => '排版设置', 'default' => true],
             'assets_media'   => ['label' => '资产与媒体', 'default' => false],
             'sku'            => ['label' => 'SKU', 'default' => false],
             'dealer_master'  => ['label' => '经销商主数据', 'default' => false],
