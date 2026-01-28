@@ -1834,6 +1834,45 @@ class AEGIS_Dealer {
     }
 
     /**
+     * 经销商 Portal 访问统一拦截。
+     *
+     * @param WP_User|null $user
+     * @return true|WP_Error
+     */
+    public static function guard_dealer_portal_access($user = null) {
+        if (null === $user) {
+            $user = wp_get_current_user();
+        }
+
+        if (!$user || !in_array('aegis_dealer', (array) $user->roles, true)) {
+            return true;
+        }
+
+        $dealer_state = self::evaluate_dealer_access($user);
+        if (!empty($dealer_state['allowed'])) {
+            return true;
+        }
+
+        if (($dealer_state['reason'] ?? '') === 'dealer_unbound') {
+            return true;
+        }
+
+        $reason_code = ($dealer_state['reason'] ?? '') === 'dealer_inactive' ? 'dealer_inactive' : 'dealer_blocked';
+        AEGIS_Access_Audit::record_event(
+            'ACCESS_DENIED',
+            'FAIL',
+            [
+                'reason_code' => $reason_code,
+                'user_id'     => (int) $user->ID,
+                'roles'       => (array) $user->roles,
+                'path'        => isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '',
+            ]
+        );
+
+        return new WP_Error('dealer_inactive', '账户已停用，请联系管理员');
+    }
+
+    /**
      * 授权截止日期按日末时间戳。
      *
      * @param string|null $date

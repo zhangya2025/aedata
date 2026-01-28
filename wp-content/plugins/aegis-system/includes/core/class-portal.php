@@ -234,31 +234,7 @@ class AEGIS_Portal {
         }
 
         if (in_array('aegis_dealer', (array) $user->roles, true)) {
-            $dealer_state = AEGIS_Dealer::evaluate_dealer_access($user);
-            if (empty($dealer_state['allowed'])) {
-                if ('dealer_unbound' === $dealer_state['reason']) {
-                    AEGIS_Access_Audit::record_event(
-                        AEGIS_System::ACTION_PORTAL_BLOCKED,
-                        'FAIL',
-                        [
-                            'reason' => $dealer_state['reason'],
-                        ]
-                    );
-                } else {
-                    AEGIS_Access_Audit::record_event(
-                        AEGIS_System::ACTION_PORTAL_BLOCKED,
-                        'FAIL',
-                        [
-                            'reason' => $dealer_state['reason'],
-                        ]
-                    );
-
-                    wp_logout();
-                    $redirect = add_query_arg('aegis_notice', $dealer_state['reason'], self::get_login_url());
-                    wp_safe_redirect($redirect);
-                    exit;
-                }
-            }
+            AEGIS_Dealer::guard_dealer_portal_access($user);
         }
 
         if (!self::is_app_shell_enabled()) {
@@ -404,6 +380,26 @@ class AEGIS_Portal {
         $user = wp_get_current_user();
         if (!AEGIS_System_Roles::is_business_user($user)) {
             return '<div class="aegis-system-root aegis-t-a5">当前账号无权访问 AEGIS Portal。</div>';
+        }
+
+        $guard = AEGIS_Dealer::guard_dealer_portal_access($user);
+        if (is_wp_error($guard)) {
+            status_header(403);
+            $logout_url = add_query_arg(
+                [
+                    'action'      => 'logout',
+                    'redirect_to' => home_url('/'),
+                ],
+                home_url('/aegislogin.php')
+            );
+            $home_url = home_url('/');
+            return '<div class="aegis-system-root aegis-t-a5" style="padding:32px; text-align:center;">'
+                . '<p style="margin-bottom:16px;">账户已停用，请联系管理员。</p>'
+                . '<div style="display:flex; gap:12px; justify-content:center;">'
+                . '<a class="button button-primary" href="' . esc_url($logout_url) . '">退出登录</a>'
+                . '<a class="button" href="' . esc_url($home_url) . '">返回首页</a>'
+                . '</div>'
+                . '</div>';
         }
 
         if (in_array('aegis_dealer', (array) $user->roles, true)) {
