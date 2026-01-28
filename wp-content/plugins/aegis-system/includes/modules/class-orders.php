@@ -427,20 +427,11 @@ class AEGIS_Orders {
         return ['message' => '订单已撤销。'];
     }
 
-    protected static function review_order_by_hq($order, $items, $review_note = '') {
+    protected static function apply_initial_review_edits($order, $items, $review_note = '', $status = null, $mark_reviewed = false, $status_error_message = '') {
         global $wpdb;
         if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
-            AEGIS_Access_Audit::record_event(
-                AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
-                'FAIL',
-                [
-                    'order_id'    => (int) $order->id,
-                    'order_no'    => $order->order_no,
-                    'status'      => $order->status,
-                    'reason_code' => 'bad_status',
-                ]
-            );
-            return new WP_Error('bad_status', '仅待初审订单可审核。');
+            $message = $status_error_message ?: '仅待初审订单可编辑初审内容。';
+            return new WP_Error('bad_status', $message);
         }
 
         $existing_items = self::get_items($order->id);
@@ -452,22 +443,31 @@ class AEGIS_Orders {
         $now = current_time('mysql');
         $totals = self::calculate_totals($prepared['items']);
         $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $update_data = [
+            'updated_at'   => $now,
+            'review_note'  => $review_note,
+            'total_amount' => $totals['total_amount'],
+            'meta'         => wp_json_encode([
+                'item_count' => $totals['item_count'],
+                'total_qty'  => $totals['total_qty'],
+            ]),
+        ];
+        $update_formats = ['%s', '%s', '%f', '%s'];
+        if (null !== $status) {
+            $update_data['status'] = $status;
+            $update_formats[] = '%s';
+        }
+        if ($mark_reviewed) {
+            $update_data['reviewed_by'] = get_current_user_id();
+            $update_formats[] = '%d';
+            $update_data['reviewed_at'] = $now;
+            $update_formats[] = '%s';
+        }
         $updated = $wpdb->update(
             $order_table,
-            [
-                'status'       => self::STATUS_PENDING_DEALER_CONFIRM,
-                'updated_at'   => $now,
-                'review_note'  => $review_note,
-                'reviewed_by'  => get_current_user_id(),
-                'reviewed_at'  => $now,
-                'total_amount' => $totals['total_amount'],
-                'meta'         => wp_json_encode([
-                    'item_count' => $totals['item_count'],
-                    'total_qty'  => $totals['total_qty'],
-                ]),
-            ],
+            $update_data,
             ['id' => (int) $order->id],
-            ['%s', '%s', '%s', '%d', '%s', '%f', '%s'],
+            $update_formats,
             ['%d']
         );
 
@@ -477,27 +477,75 @@ class AEGIS_Orders {
 
         self::persist_items((int) $order->id, $prepared['items'], $now);
 
+        return [
+            'items'   => $prepared['items'],
+            'changes' => $prepared['changes'],
+            'totals'  => $totals,
+            'time'    => $now,
+        ];
+    }
+
+    protected static function save_initial_review_draft($order, $items, $review_note = '') {
+        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+            return new WP_Error('bad_status', '仅待初审订单可保存草稿。');
+        }
+        $result = self::apply_initial_review_edits(
+            $order,
+            $items,
+            $review_note,
+            null,
+            false,
+            '仅待初审订单可保存草稿。'
+        );
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        return ['message' => '已保存草稿'];
+    }
+
+    protected static function review_order_by_hq($order, $items, $review_note = '') {
+        $result = self::apply_initial_review_edits(
+            $order,
+            $items,
+            $review_note,
+            self::STATUS_PENDING_DEALER_CONFIRM,
+            true,
+            '仅待初审订单可审核。'
+        );
+        if (is_wp_error($result)) {
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                'FAIL',
+                [
+                    'order_id' => (int) $order->id,
+                    'order_no' => $order->order_no,
+                    'reason'   => $result->get_error_message(),
+                ]
+            );
+            return $result;
+        }
+
         AEGIS_Access_Audit::record_event(
             AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
             'SUCCESS',
             [
                 'order_id' => (int) $order->id,
                 'order_no' => $order->order_no,
-                'removed'  => $prepared['changes']['removed'],
-                'qty'      => $prepared['changes']['qty'],
+                'removed'  => $result['changes']['removed'],
+                'qty'      => $result['changes']['qty'],
                 'status_to' => self::STATUS_PENDING_DEALER_CONFIRM,
             ]
         );
 
-        if (!empty($prepared['changes']['removed']) || !empty($prepared['changes']['qty'])) {
+        if (!empty($result['changes']['removed']) || !empty($result['changes']['qty'])) {
             AEGIS_Access_Audit::record_event(
                 AEGIS_System::ACTION_ORDER_INITIAL_REVIEW_EDIT,
                 'SUCCESS',
                 [
                     'order_id' => (int) $order->id,
                     'order_no' => $order->order_no,
-                    'removed'  => $prepared['changes']['removed'],
-                    'qty'      => $prepared['changes']['qty'],
+                    'removed'  => $result['changes']['removed'],
+                    'qty'      => $result['changes']['qty'],
                 ]
             );
         }
@@ -1396,11 +1444,11 @@ class AEGIS_Orders {
                         $view_id = (int) $order_id;
                     }
                 }
-            } elseif (in_array($action, ['review_order', 'initial_review_submit'], true)) {
+            } elseif (in_array($action, ['save_review_draft', 'submit_initial_review', 'review_order', 'initial_review_submit'], true)) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
-                        'capability'      => AEGIS_System::CAP_ACCESS_ROOT,
+                        'capability'      => AEGIS_System::CAP_ORDERS_INITIAL_REVIEW,
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
                         'whitelist'       => ['order_action', 'order_id', 'review_note', 'order_item_ean', 'order_item_qty', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
@@ -1409,26 +1457,31 @@ class AEGIS_Orders {
                 );
                 $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
                 $order = $order_id ? self::get_order($order_id) : null;
+                $is_submit_action = in_array($action, ['submit_initial_review', 'review_order', 'initial_review_submit'], true);
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
-                    AEGIS_Access_Audit::record_event(
-                        AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
-                        'FAIL',
-                        [
-                            'order_id' => $order_id,
-                            'reason'   => $validation['message'],
-                        ]
-                    );
+                    if ($is_submit_action) {
+                        AEGIS_Access_Audit::record_event(
+                            AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                            'FAIL',
+                            [
+                                'order_id' => $order_id,
+                                'reason'   => $validation['message'],
+                            ]
+                        );
+                    }
                 } elseif (!$can_initial_review || !$order) {
                     $errors[] = '无效的订单。';
-                    AEGIS_Access_Audit::record_event(
-                        AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
-                        'FAIL',
-                        [
-                            'order_id' => $order_id,
-                            'reason'   => 'invalid_order',
-                        ]
-                    );
+                    if ($is_submit_action) {
+                        AEGIS_Access_Audit::record_event(
+                            AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                            'FAIL',
+                            [
+                                'order_id' => $order_id,
+                                'reason'   => 'invalid_order',
+                            ]
+                        );
+                    }
                 } else {
                     $sales_scope_ok = true;
                     global $wpdb;
@@ -1456,21 +1509,27 @@ class AEGIS_Orders {
                     if ($sales_scope_ok) {
                         $items = self::parse_item_post($_POST);
                         $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
-                        $result = self::review_order_by_hq($order, $items, $note);
+                        $result = $is_submit_action
+                            ? self::review_order_by_hq($order, $items, $note)
+                            : self::save_initial_review_draft($order, $items, $note);
                         if (is_wp_error($result)) {
                             $errors[] = $result->get_error_message();
-                            AEGIS_Access_Audit::record_event(
-                                AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
-                                'FAIL',
-                                [
-                                    'order_id' => $order_id,
-                                    'reason'   => $result->get_error_message(),
-                                ]
-                            );
+                            if ($is_submit_action) {
+                                AEGIS_Access_Audit::record_event(
+                                    AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                                    'FAIL',
+                                    [
+                                        'order_id' => $order_id,
+                                        'reason'   => $result->get_error_message(),
+                                    ]
+                                );
+                            }
                         } else {
                             $messages[] = $result['message'];
                             $view_id = (int) $order_id;
-                            $view_mode = 'list';
+                            if ($is_submit_action) {
+                                $view_mode = 'list';
+                            }
                         }
                     }
                 }
