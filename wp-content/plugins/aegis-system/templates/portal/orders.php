@@ -75,7 +75,6 @@ $payment_status_labels = [
             <?php else : ?>
                 <form method="post" class="aegis-t-a6" id="aegis-order-create-form">
                     <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                    <input type="hidden" name="order_action" value="create_order" />
                     <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                     <div class="aegis-t-a6" style="margin-bottom:8px;">经销商：<?php echo esc_html($dealer ? $dealer->dealer_name : ''); ?></div>
                     <div class="aegis-note-field">
@@ -110,7 +109,8 @@ $payment_status_labels = [
                         <?php endforeach; ?>
                     </datalist>
                     <div class="aegis-orders-actions">
-                        <button type="submit" class="button button-primary">提交订单</button>
+                        <button type="submit" name="order_action" value="save_draft" class="button">保存订单</button>
+                        <button type="submit" name="order_action" value="submit_order" class="button button-primary">保存并提交</button>
                     </div>
                 </form>
             <?php endif; ?>
