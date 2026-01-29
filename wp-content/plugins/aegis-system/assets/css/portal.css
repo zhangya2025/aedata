@@ -1688,6 +1688,108 @@ body.aegis-scan-open {
     font-size: 12px;
 }
 
+.aegis-help-panel {
+    position: fixed;
+    top: 120px;
+    right: 24px;
+    width: 320px;
+    max-width: calc(100vw - 48px);
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    padding: 16px;
+    z-index: 50;
+}
+
+.aegis-help-panel[hidden] {
+    display: none;
+}
+
+.aegis-help-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.aegis-orders-page .aegis-note-field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.aegis-orders-page .aegis-note-toggle {
+    border: none;
+    background: none;
+    color: #2271b1;
+    padding: 0;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.aegis-orders-page .aegis-note-toggle:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+.aegis-orders-create .aegis-orders-actions {
+    margin-top: 16px;
+}
+
+.aegis-orders-drawer .aegis-order-edit-actions {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.aegis-orders-page .aegis-order-row-actions,
+.aegis-orders-drawer .aegis-order-row-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 2px;
+    min-width: 64px;
+    white-space: nowrap;
+}
+
+.aegis-orders-page .aegis-order-row-actions .aegis-row-add,
+.aegis-orders-page .aegis-order-row-actions .aegis-row-del,
+.aegis-orders-drawer .aegis-order-row-actions .aegis-row-add,
+.aegis-orders-drawer .aegis-order-row-actions .aegis-row-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid #c7cbd3;
+    background: #fff;
+    color: #111827;
+    font-size: 16px;
+    line-height: 28px;
+    padding: 0;
+    cursor: pointer;
+}
+
+.aegis-orders-page .aegis-order-row-actions .aegis-row-add:hover,
+.aegis-orders-page .aegis-order-row-actions .aegis-row-del:hover,
+.aegis-orders-drawer .aegis-order-row-actions .aegis-row-add:hover,
+.aegis-orders-drawer .aegis-order-row-actions .aegis-row-del:hover {
+    border-color: #9da3af;
+    background: #f8fafc;
+}
+
+.aegis-orders-page .aegis-order-row-actions .aegis-row-add:disabled,
+.aegis-orders-page .aegis-order-row-actions .aegis-row-del:disabled,
+.aegis-orders-drawer .aegis-order-row-actions .aegis-row-add:disabled,
+.aegis-orders-drawer .aegis-order-row-actions .aegis-row-del:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
 .aegis-orders-drawer {
     position: fixed;
     inset: 0;
@@ -1730,11 +1832,12 @@ body.aegis-scan-open {
 }
 
 .aegis-orders-drawer-footer {
-    padding: 12px 16px;
+    padding: 16px 16px 12px;
     border-top: 1px solid #e5e5e5;
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
     background: #fff;
 }
 

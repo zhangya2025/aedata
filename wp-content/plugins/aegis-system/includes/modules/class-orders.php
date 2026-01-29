@@ -1230,7 +1230,7 @@ class AEGIS_Orders {
                 'unit_price' => $quote['unit_price'],
                 'price_source' => $quote['price_source'],
                 'price_level_used' => $quote['price_level_used'],
-                'label' => $quote['unit_price'] ? ('¥' . number_format((float) $quote['unit_price'], 2) . ' · ' . ('override' === $quote['price_source'] ? '覆盖价' : '等级价')) : '无价',
+                'label' => $quote['unit_price'] ? ('¥' . number_format((float) $quote['unit_price'], 2)) : '无价',
             ];
         }
         return $map;
