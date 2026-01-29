@@ -19,6 +19,7 @@ $status_labels = $context['status_labels'];
 $processing_lock = $context['processing_lock'] ?? null;
 $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
+$cancel_idempotency = $context['cancel_idempotency'] ?? wp_generate_uuid4();
 $auto_open_drawer = !empty($context['auto_open_drawer']);
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
@@ -594,7 +595,7 @@ $payment_status_labels = [
                                 <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_action" value="request_cancel" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($cancel_idempotency); ?>" data-aegis-allow-readonly="1" />
                                 <?php if ($cancel_form_error) : ?>
                                     <p class="aegis-t-a6" style="margin-bottom:8px; color:#d63638;"><?php echo esc_html($cancel_form_error); ?></p>
                                 <?php endif; ?>
