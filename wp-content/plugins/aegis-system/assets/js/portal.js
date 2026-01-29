@@ -81,7 +81,7 @@
         }
     };
 
-    ordersPage.addEventListener('submit', (event) => {
+    document.addEventListener('submit', (event) => {
         const form = event.target;
         if (!(form instanceof HTMLFormElement)) {
             return;
