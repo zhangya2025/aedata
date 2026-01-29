@@ -19,8 +19,6 @@ $status_labels = $context['status_labels'];
 $processing_lock = $context['processing_lock'] ?? null;
 $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
-$cancel_approve_allowed = $context['cancel_approve_allowed'] ?? false;
-$cancel_force_allowed = $context['cancel_force_allowed'] ?? false;
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
 $show_create = !empty($_GET['create']);
@@ -141,16 +139,28 @@ $payment_status_labels = [
 
         <?php $table_colspan = $role_flags['can_view_all'] ? ($queue_mode === 'payment_review' ? 10 : 9) : 6; ?>
         <table class="aegis-table aegis-orders-table" style="width:100%;">
+            <colgroup>
+                <col class="col-order-no" />
+                <?php if ($role_flags['can_view_all']) : ?><col class="col-dealer" /><?php endif; ?>
+                <col class="col-created-at" />
+                <?php if ($queue_mode === 'payment_review') : ?><col class="col-payment-submitted" /><?php endif; ?>
+                <col class="col-status" />
+                <?php if ($role_flags['can_view_all']) : ?><col class="col-payment-status" /><?php endif; ?>
+                <col class="col-sku-count" />
+                <col class="col-total-qty" />
+                <?php if ($role_flags['can_view_all']) : ?><col class="col-amount" /><?php endif; ?>
+                <col class="col-actions" />
+            </colgroup>
             <thead><tr>
-                <th class="col-text">订单号</th>
-                <?php if ($role_flags['can_view_all']) : ?><th class="col-text">经销商</th><?php endif; ?>
-                <th class="col-text">下单时间</th>
-                <?php if ($queue_mode === 'payment_review') : ?><th class="col-text">提交确认时间</th><?php endif; ?>
-                <th class="col-text">状态</th>
-                <?php if ($role_flags['can_view_all']) : ?><th class="col-text">付款状态</th><?php endif; ?>
-                <th class="col-number">SKU 种类数</th>
-                <th class="col-number">总数量</th>
-                <?php if ($role_flags['can_view_all']) : ?><th class="col-number">金额</th><?php endif; ?>
+                <th class="col-text col-order-no">订单号</th>
+                <?php if ($role_flags['can_view_all']) : ?><th class="col-text col-dealer">经销商</th><?php endif; ?>
+                <th class="col-text col-created-at">下单时间</th>
+                <?php if ($queue_mode === 'payment_review') : ?><th class="col-text col-payment-submitted">提交确认时间</th><?php endif; ?>
+                <th class="col-text col-status">状态</th>
+                <?php if ($role_flags['can_view_all']) : ?><th class="col-text col-payment-status">付款状态</th><?php endif; ?>
+                <th class="col-number col-sku-count">SKU 种类数</th>
+                <th class="col-number col-total-qty">总数量</th>
+                <?php if ($role_flags['can_view_all']) : ?><th class="col-number col-amount">金额</th><?php endif; ?>
                 <th class="col-actions">操作</th></tr></thead>
             <tbody>
                 <?php if (empty($orders)) : ?>
@@ -169,26 +179,46 @@ $payment_status_labels = [
                         <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => $view_mode, 'order_id' => $row->id], $base_url); } ?>
                         <?php $payment_state_text = $row->payment_status && isset($payment_status_labels[$row->payment_status]) ? $payment_status_labels[$row->payment_status] : '-'; ?>
                         <tr>
-                        <td class="col-text"><?php echo esc_html($row->order_no); ?></td>
-                        <?php if ($role_flags['can_view_all']) : ?><td class="col-text"><?php echo esc_html($row->dealer_name ?? ''); ?></td><?php endif; ?>
-                        <td class="col-text"><?php echo esc_html($row->created_at); ?></td>
-                        <?php if ($queue_mode === 'payment_review') : ?><td class="col-text"><?php echo esc_html($row->payment_submitted_at ?? '-'); ?></td><?php endif; ?>
-                        <td class="col-text">
+                        <td class="col-text col-order-no"><?php echo esc_html($row->order_no); ?></td>
+                        <?php if ($role_flags['can_view_all']) : ?><td class="col-text col-dealer"><?php echo esc_html($row->dealer_name ?? ''); ?></td><?php endif; ?>
+                        <td class="col-text col-created-at"><?php echo esc_html($row->created_at); ?></td>
+                        <?php if ($queue_mode === 'payment_review') : ?><td class="col-text col-payment-submitted"><?php echo esc_html($row->payment_submitted_at ?? '-'); ?></td><?php endif; ?>
+                        <td class="col-text col-status">
                             <?php echo esc_html($status_text); ?>
                             <?php if ($cancel_pending) : ?>
                                 <span class="aegis-t-a6" style="margin-left:6px; color:#d97706;">撤销申请中</span>
                             <?php endif; ?>
                         </td>
-                        <?php if ($role_flags['can_view_all']) : ?><td class="col-text"><?php echo esc_html($payment_state_text); ?></td><?php endif; ?>
-                        <td class="col-number"><?php echo esc_html((int) ($row->sku_count ?? 0)); ?></td>
-                        <td class="col-number"><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
-                        <?php if ($role_flags['can_view_all']) : ?><td class="col-number"><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
+                        <?php if ($role_flags['can_view_all']) : ?><td class="col-text col-payment-status"><?php echo esc_html($payment_state_text); ?></td><?php endif; ?>
+                        <td class="col-number col-sku-count"><?php echo esc_html((int) ($row->sku_count ?? 0)); ?></td>
+                        <td class="col-number col-total-qty"><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
+                        <?php if ($role_flags['can_view_all']) : ?><td class="col-number col-amount"><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
                         <td class="col-actions">
-                            <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="view">查看</button>
-                            <?php if (($role_flags['is_dealer'] && $row->status === $draft_status)
-                                || ($role_flags['can_initial_review'] && $row->status === $pending_initial_status)
-                                || ($role_flags['can_payment_review'] && $row->status === 'pending_hq_payment_review')) : ?>
-                                <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="edit">编辑</button>
+                            <?php if ($role_flags['is_dealer']) : ?>
+                                <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="view">查看</button>
+                                <?php if ($row->status === $draft_status) : ?>
+                                    <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="edit">编辑</button>
+                                    <form method="post" class="aegis-orders-inline-form" style="display:inline-block;">
+                                        <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                                        <input type="hidden" name="order_action" value="submit_draft" />
+                                        <input type="hidden" name="order_id" value="<?php echo esc_attr($row->id); ?>" />
+                                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                        <button type="submit" class="button button-primary">提交</button>
+                                    </form>
+                                <?php else : ?>
+                                    <?php
+                                    $dealer_cancel_allowed = in_array($row->status, ['pending_initial_review', 'pending_dealer_confirm', 'pending_hq_payment_review', 'approved_pending_fulfillment'], true);
+                                    ?>
+                                    <?php if ($dealer_cancel_allowed && !$cancel_pending) : ?>
+                                        <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="view">申请撤销</button>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            <?php else : ?>
+                                <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="view">查看</button>
+                                <?php if (($role_flags['can_initial_review'] && $row->status === $pending_initial_status)
+                                    || ($role_flags['can_payment_review'] && $row->status === 'pending_hq_payment_review')) : ?>
+                                    <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="edit">编辑</button>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -389,44 +419,6 @@ $payment_status_labels = [
                         <p class="aegis-t-a6" style="margin-top:12px; color:#6b7280;">订单已进入其他环节，当前不可进行付款审核。</p>
                     <?php endif; ?>
 
-                    <?php if ($cancel_requested && $cancel_approve_allowed) : ?>
-                        <section class="aegis-orders-drawer-section">
-                            <div class="aegis-orders-section-title aegis-t-a5">撤销申请审批</div>
-                            <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-bottom:8px;">
-                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="approve_cancel" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <button type="submit" class="button button-primary">同意撤销</button>
-                            </form>
-                            <form method="post" class="aegis-t-a6 aegis-orders-inline-form">
-                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="reject_cancel" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">驳回原因（必填）<br />
-                                    <input type="text" name="decision_note" required style="width:100%;" />
-                                </label>
-                                <button type="submit" class="button">驳回撤销</button>
-                            </form>
-                        </section>
-                    <?php endif; ?>
-
-                    <?php if ($cancel_force_allowed && !in_array($order->status, [AEGIS_Orders::STATUS_FULFILLED, AEGIS_Orders::STATUS_CANCELLED, 'cancelled_by_dealer', 'voided_by_hq'], true)) : ?>
-                        <section class="aegis-orders-drawer-section">
-                            <div class="aegis-orders-section-title aegis-t-a5">HQ 强制撤销</div>
-                            <form method="post" class="aegis-t-a6 aegis-orders-inline-form" onsubmit="return confirm('确认强制撤销该订单吗？');">
-                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="force_cancel" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">撤销原因（可选）<br />
-                                    <input type="text" name="decision_note" style="width:100%;" />
-                                </label>
-                                <button type="submit" class="button">强制撤销</button>
-                            </form>
-                        </section>
-                    <?php endif; ?>
 
                     <?php if ($role_flags['can_initial_review'] && $order->status === $pending_initial_status) : ?>
                         <section class="aegis-orders-drawer-section">
@@ -538,6 +530,13 @@ $payment_status_labels = [
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                                 <button type="submit" class="button">撤销草稿</button>
                             </form>
+                            <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认提交该草稿进入待初审吗？');">
+                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                                <input type="hidden" name="order_action" value="submit_draft" />
+                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                <button type="submit" class="button button-primary aegis-orders-primary-action">提交草稿</button>
+                            </form>
                         </section>
                     <?php elseif ($role_flags['is_dealer'] && $order->status === $pending_initial_status) : ?>
                         <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已提交初审，当前内容只读。</p>
@@ -576,13 +575,13 @@ $payment_status_labels = [
                         <?php elseif ($dealer_cancel_allowed && !$cancel_requested) : ?>
                             <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:12px;">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="request_cancel" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                <input type="hidden" name="order_action" value="request_cancel" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
                                 <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">撤销原因（必填）<br />
-                                    <input type="text" name="cancel_reason" required style="width:100%;" />
+                                    <input type="text" name="cancel_reason" required style="width:100%;" data-aegis-allow-readonly="1" />
                                 </label>
-                                <button type="submit" class="button">申请撤销订单</button>
+                                <button type="submit" class="button aegis-orders-primary-action" data-aegis-allow-readonly="1">申请撤销订单</button>
                             </form>
                         <?php elseif ($cancel_requested) : ?>
                             <p class="aegis-t-a6" style="margin-top:8px; color:#d97706;">撤销申请中，请等待审批。</p>
@@ -791,6 +790,9 @@ $payment_status_labels = [
         drawer.dataset.mode = mode;
         const isReadOnly = mode === 'view';
         drawerContent.querySelectorAll('input, select, textarea, button').forEach((field) => {
+            if (field.dataset.aegisAllowReadonly === '1') {
+                return;
+            }
             if (!field.dataset.aegisOriginalDisabled) {
                 field.dataset.aegisOriginalDisabled = field.disabled ? '1' : '0';
             }
@@ -802,7 +804,9 @@ $payment_status_labels = [
         });
 
         if (footerPrimary) {
-            footerPrimary.disabled = isReadOnly || footerPrimary.disabled;
+            const primaryAction = drawerContent.querySelector('.aegis-orders-primary-action');
+            const allowPrimary = primaryAction && primaryAction.dataset.aegisAllowReadonly === '1';
+            footerPrimary.disabled = isReadOnly ? !allowPrimary : footerPrimary.disabled;
         }
         if (footerSecondary) {
             footerSecondary.disabled = isReadOnly || footerSecondary.disabled;
