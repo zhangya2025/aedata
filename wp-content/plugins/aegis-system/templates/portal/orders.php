@@ -261,6 +261,16 @@ $payment_status_labels = [
                     $cancel_requested = !empty($cancel_request['requested']) && ('pending' === ($cancel_request['decision'] ?? ''));
                     $cancel_reason = $cancel_request['reason'] ?? '';
                     $cancel_decision_note = $cancel_request['decision_note'] ?? '';
+                    $cancel_form_error = '';
+                    $cancel_reason_input = $cancel_reason;
+                    if ('POST' === $_SERVER['REQUEST_METHOD']) {
+                        $post_action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
+                        $post_order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                        if ('request_cancel' === $post_action && $post_order_id === (int) $order->id) {
+                            $cancel_form_error = $errors[0] ?? '';
+                            $cancel_reason_input = isset($_POST['cancel_reason']) ? sanitize_text_field(wp_unslash($_POST['cancel_reason'])) : '';
+                        }
+                    }
                     $cancel_pending_label = '';
                     if ($order->status === $pending_initial_status || $order->status === 'pending_dealer_confirm') {
                         $cancel_pending_label = '销售/HQ';
@@ -573,15 +583,18 @@ $payment_status_labels = [
                         <?php if ($order->status === AEGIS_Orders::STATUS_FULFILLED) : ?>
                             <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已完成不可撤销。</p>
                         <?php elseif ($dealer_cancel_allowed && !$cancel_requested) : ?>
-                            <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:12px;">
+                            <form method="post" class="aegis-t-a6 aegis-orders-inline-form aegis-cancel-form" style="margin-top:12px;">
                                 <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_action" value="request_cancel" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
+                                <?php if ($cancel_form_error) : ?>
+                                    <p class="aegis-t-a6" style="margin-bottom:8px; color:#d63638;"><?php echo esc_html($cancel_form_error); ?></p>
+                                <?php endif; ?>
                                 <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">撤销原因（必填）<br />
-                                    <input type="text" name="cancel_reason" required style="width:100%;" data-aegis-allow-readonly="1" />
+                                    <input type="text" name="cancel_reason" required style="width:100%;" data-aegis-allow-readonly="1" value="<?php echo esc_attr($cancel_reason_input); ?>" />
                                 </label>
-                                <button type="submit" class="button aegis-orders-primary-action" data-aegis-allow-readonly="1">申请撤销订单</button>
+                                <button type="submit" class="button button-primary aegis-cancel-submit" data-aegis-allow-readonly="1">申请撤销订单</button>
                             </form>
                         <?php elseif ($cancel_requested) : ?>
                             <p class="aegis-t-a6" style="margin-top:8px; color:#d97706;">撤销申请中，请等待审批。</p>
@@ -594,6 +607,7 @@ $payment_status_labels = [
             <div class="aegis-orders-drawer-extension" aria-hidden="true"></div>
         </div>
         <div class="aegis-orders-drawer-footer">
+            <span class="aegis-t-a6 aegis-orders-drawer-hint" hidden style="margin-right:auto; color:#d97706;">撤销申请请使用上方按钮提交</span>
             <button type="button" class="button aegis-orders-drawer-secondary" disabled>保存修改</button>
             <button type="button" class="button button-primary aegis-orders-drawer-primary" disabled>提交/确认</button>
             <button type="button" class="button aegis-orders-drawer-close">关闭</button>
@@ -758,6 +772,7 @@ $payment_status_labels = [
     const drawerCloseButtons = drawer ? drawer.querySelectorAll('.aegis-orders-drawer-close') : [];
     const footerSecondary = drawer ? drawer.querySelector('.aegis-orders-drawer-secondary') : null;
     const footerPrimary = drawer ? drawer.querySelector('.aegis-orders-drawer-primary') : null;
+    const footerHint = drawer ? drawer.querySelector('.aegis-orders-drawer-hint') : null;
 
     if (!drawer || !drawerContent) {
         return;
@@ -766,6 +781,23 @@ $payment_status_labels = [
     const setFooterState = () => {
         const primaryAction = drawerContent.querySelector('.aegis-orders-primary-action');
         const secondaryAction = drawerContent.querySelector('.aegis-orders-secondary-action');
+        const cancelForm = drawerContent.querySelector('.aegis-cancel-form');
+
+        if (footerHint) {
+            footerHint.hidden = !cancelForm;
+        }
+
+        if (cancelForm) {
+            if (footerPrimary) {
+                footerPrimary.disabled = true;
+                footerPrimary.onclick = null;
+            }
+            if (footerSecondary) {
+                footerSecondary.disabled = true;
+                footerSecondary.onclick = null;
+            }
+            return;
+        }
 
         if (footerPrimary) {
             footerPrimary.disabled = !primaryAction || primaryAction.disabled;
