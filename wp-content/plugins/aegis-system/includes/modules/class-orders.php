@@ -1764,7 +1764,11 @@ class AEGIS_Orders {
                 $allowed_statuses = [self::STATUS_PENDING_INITIAL_REVIEW, self::STATUS_PENDING_DEALER_CONFIRM, self::STATUS_PENDING_HQ_PAYMENT_REVIEW, self::STATUS_APPROVED_PENDING_FULFILLMENT];
                 $request_path = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
                 if (!$validation['success']) {
-                    $errors[] = $validation['message'];
+                    $message = $validation['message'];
+                    if (in_array($message, ['权限不足。', '安全校验失败，请重试。', '请求参数不被允许。'], true)) {
+                        $message = '权限不足/会话过期，请刷新重试。';
+                    }
+                    $errors[] = $message;
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order_id,
                         'reason_code' => 'validation_failed',
@@ -1799,7 +1803,7 @@ class AEGIS_Orders {
                         'actor_id'    => get_current_user_id(),
                     ]);
                 } elseif ('' === $reason) {
-                    $errors[] = '撤销原因不能为空。';
+                    $errors[] = '撤销原因必填。';
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order->id,
                         'order_no'    => $order->order_no,
@@ -1830,7 +1834,17 @@ class AEGIS_Orders {
                         ];
                         $updated = self::update_cancel_request($order->id, $cancel);
                         if (!$updated) {
-                            $errors[] = '撤销申请提交失败，请稍后再试。';
+                            global $wpdb;
+                            $errors[] = '提交失败，请稍后再试。';
+                            AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
+                                'order_id'    => (int) $order->id,
+                                'order_no'    => $order->order_no,
+                                'status'      => $order->status,
+                                'reason_code' => 'db_error',
+                                'path'        => $request_path,
+                                'actor_id'    => get_current_user_id(),
+                                'db_error'    => $wpdb->last_error,
+                            ]);
                         } else {
                             AEGIS_Access_Audit::record_event(
                                 'CANCEL_REQUEST',
