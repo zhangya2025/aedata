@@ -19,6 +19,7 @@ $status_labels = $context['status_labels'];
 $processing_lock = $context['processing_lock'] ?? null;
 $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
+$cancel_form_error = $context['cancel_form_error'] ?? '';
 $auto_open_drawer = !empty($context['auto_open_drawer']);
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
@@ -179,7 +180,7 @@ $payment_status_labels = [
                         <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
                         <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => $view_mode, 'order_id' => $row->id], $base_url); } ?>
                         <?php $payment_state_text = $row->payment_status && isset($payment_status_labels[$row->payment_status]) ? $payment_status_labels[$row->payment_status] : '-'; ?>
-                        <tr>
+                        <tr data-order-id="<?php echo esc_attr($row->id); ?>">
                         <td class="col-text col-order-no"><?php echo esc_html($row->order_no); ?></td>
                         <?php if ($role_flags['can_view_all']) : ?><td class="col-text col-dealer"><?php echo esc_html($row->dealer_name ?? ''); ?></td><?php endif; ?>
                         <td class="col-text col-created-at"><?php echo esc_html($row->created_at); ?></td>
@@ -262,14 +263,13 @@ $payment_status_labels = [
                     $cancel_requested = !empty($cancel_request['requested']) && ('pending' === ($cancel_request['decision'] ?? ''));
                     $cancel_reason = $cancel_request['reason'] ?? '';
                     $cancel_decision_note = $cancel_request['decision_note'] ?? '';
-                    $cancel_form_error = '';
                     $cancel_reason_input = $cancel_reason;
                     $cancel_submitted = !empty($_GET['cancel_submitted']) && (int) ($_GET['order_id'] ?? 0) === (int) $order->id;
                     if ('POST' === $_SERVER['REQUEST_METHOD']) {
                         $post_action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
                         $post_order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
                         if ('request_cancel' === $post_action && $post_order_id === (int) $order->id) {
-                            $cancel_form_error = $errors[0] ?? '';
+                            $cancel_form_error = $cancel_form_error ?: ($errors[0] ?? '');
                             $cancel_reason_input = isset($_POST['cancel_reason']) ? sanitize_text_field(wp_unslash($_POST['cancel_reason'])) : '';
                         }
                     }
@@ -594,7 +594,6 @@ $payment_status_labels = [
                                 <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_action" value="request_cancel" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
                                 <?php if ($cancel_form_error) : ?>
                                     <p class="aegis-t-a6" style="margin-bottom:8px; color:#d63638;"><?php echo esc_html($cancel_form_error); ?></p>
                                 <?php endif; ?>
