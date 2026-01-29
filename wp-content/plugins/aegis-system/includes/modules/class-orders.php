@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 class AEGIS_Orders {
+    const STATUS_DRAFT = 'draft';
     const STATUS_PENDING_INITIAL_REVIEW = 'pending_initial_review';
     const STATUS_CANCELLED_BY_DEALER = 'cancelled_by_dealer';
     const STATUS_PENDING_DEALER_CONFIRM = 'pending_dealer_confirm';
@@ -272,7 +273,7 @@ class AEGIS_Orders {
             [
                 'order_no'               => $order_no,
                 'dealer_id'              => (int) $dealer->id,
-                'status'                 => self::STATUS_PENDING_INITIAL_REVIEW,
+                'status'                 => self::STATUS_DRAFT,
                 'total_amount'           => $totals['total_amount'],
                 'created_by'             => get_current_user_id(),
                 'created_at'             => $now,
@@ -331,7 +332,7 @@ class AEGIS_Orders {
             );
             return new WP_Error('forbidden', '权限不足，订单不可编辑。');
         }
-        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+        if (!in_array($order->status, [self::STATUS_DRAFT, self::STATUS_PENDING_INITIAL_REVIEW], true)) {
             AEGIS_Access_Audit::record_event(
                 'ACCESS_DENIED',
                 'FAIL',
@@ -1162,6 +1163,9 @@ class AEGIS_Orders {
             $placeholders = implode(',', array_fill(0, count($args['statuses']), '%s'));
             $where[] = "o.status IN ({$placeholders})";
             $params = array_merge($params, $args['statuses']);
+        } elseif (!in_array('aegis_dealer', $roles, true)) {
+            $where[] = 'o.status != %s';
+            $params[] = self::STATUS_DRAFT;
         }
 
         $where_sql = implode(' AND ', $where);
@@ -1851,6 +1855,7 @@ class AEGIS_Orders {
         $price_map = ($is_dealer && $dealer && $skus) ? self::build_price_map($dealer, $skus) : [];
 
         $status_labels = [
+            self::STATUS_DRAFT                 => '草稿',
             self::STATUS_PENDING_INITIAL_REVIEW => '待初审',
             self::STATUS_PENDING_DEALER_CONFIRM => '待确认',
             self::STATUS_PENDING_HQ_PAYMENT_REVIEW => '待审核',
