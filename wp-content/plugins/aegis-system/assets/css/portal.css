@@ -1736,6 +1736,17 @@ body.aegis-scan-open {
     text-decoration: underline;
 }
 
+.aegis-orders-create .aegis-orders-actions {
+    margin-top: 16px;
+}
+
+.aegis-orders-drawer .aegis-order-edit-actions {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
 .aegis-orders-page .aegis-order-row-actions,
 .aegis-orders-drawer .aegis-order-row-actions {
     display: flex;
@@ -1821,7 +1832,7 @@ body.aegis-scan-open {
 }
 
 .aegis-orders-drawer-footer {
-    padding: 12px 16px;
+    padding: 16px 16px 12px;
     border-top: 1px solid #e5e5e5;
     display: flex;
     justify-content: flex-end;

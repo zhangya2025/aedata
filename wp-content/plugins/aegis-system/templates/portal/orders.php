@@ -108,7 +108,9 @@ $payment_status_labels = [
                             <option value="<?php echo esc_attr($sku->ean); ?>"><?php echo esc_html($sku->ean . ' / ' . $sku->product_name); ?></option>
                         <?php endforeach; ?>
                     </datalist>
-                    <button type="submit" class="button button-primary">提交订单</button>
+                    <div class="aegis-orders-actions">
+                        <button type="submit" class="button button-primary">提交订单</button>
+                    </div>
                 </form>
             <?php endif; ?>
         </section>
@@ -454,9 +456,11 @@ $payment_status_labels = [
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div>
-                                <button type="submit" class="button aegis-orders-secondary-action">保存修改</button>
+                                <div class="aegis-order-edit-actions">
+                                    <button type="submit" class="button aegis-orders-secondary-action">保存修改</button>
+                                </div>
                             </form>
-                            <form method="post" style="margin-top:8px;" onsubmit="return confirm('确认撤销该订单吗？撤销后不可再编辑。');">
+                            <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认撤销该订单吗？撤销后不可再编辑。');">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
                                 <input type="hidden" name="order_action" value="cancel_order" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
