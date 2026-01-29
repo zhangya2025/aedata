@@ -20,6 +20,8 @@ class AEGIS_Shipments {
         $errors = [];
         $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
         $shipment_id = isset($_GET['shipment']) ? (int) $_GET['shipment'] : 0;
+        $prefill_dealer_id = isset($_GET['dealer_id']) ? (int) $_GET['dealer_id'] : 0;
+        $prefill_order_ref = isset($_GET['order_ref']) ? sanitize_text_field(wp_unslash($_GET['order_ref'])) : '';
 
         if (isset($_GET['shipments_action'])) {
             $action = sanitize_key(wp_unslash($_GET['shipments_action']));
@@ -43,7 +45,7 @@ class AEGIS_Shipments {
         }
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
-            $whitelist = ['shipments_action', 'dealer_id', 'note', 'shipment_id', 'code', '_wp_http_referer', 'aegis_shipments_nonce', '_aegis_idempotency'];
+            $whitelist = ['shipments_action', 'dealer_id', 'note', 'order_ref', 'shipment_id', 'code', '_wp_http_referer', 'aegis_shipments_nonce', '_aegis_idempotency'];
             $action = isset($_POST['shipments_action']) ? sanitize_key(wp_unslash($_POST['shipments_action'])) : '';
             $capability = 'delete_shipment' === $action ? AEGIS_System::CAP_MANAGE_SYSTEM : AEGIS_System::CAP_USE_WAREHOUSE;
             $validation = AEGIS_Access_Audit::validate_write_request(
@@ -63,7 +65,8 @@ class AEGIS_Shipments {
                 if ('start' === $action) {
                     $dealer_id = isset($_POST['dealer_id']) ? (int) $_POST['dealer_id'] : 0;
                     $note = isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '';
-                    $result = self::handle_portal_start($dealer_id, $note);
+                    $order_ref = isset($_POST['order_ref']) ? sanitize_text_field(wp_unslash($_POST['order_ref'])) : '';
+                    $result = self::handle_portal_start($dealer_id, $note, $order_ref);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
@@ -116,6 +119,10 @@ class AEGIS_Shipments {
         $paged = isset($_GET['paged']) ? max(1, (int) $_GET['paged']) : 1;
         $total = 0;
         $shipments = self::query_shipments($start_datetime, $end_datetime, $per_page, $paged, $total, $dealer_filter);
+        $pending_orders = [];
+        if ($order_link_enabled && AEGIS_System::is_module_enabled('orders')) {
+            $pending_orders = self::query_orders_ready_for_fulfillment($dealer_filter);
+        }
 
         $shipment = $shipment_id ? self::get_shipment($shipment_id) : null;
         $items = $shipment ? self::get_items_by_shipment($shipment_id, true) : [];
@@ -125,6 +132,7 @@ class AEGIS_Shipments {
 
         $context = [
             'base_url'     => $base_url,
+            'portal_url'   => $portal_url,
             'messages'     => $messages,
             'errors'       => $errors,
             'shipment'     => $shipment,
@@ -132,6 +140,12 @@ class AEGIS_Shipments {
             'summary'      => $summary,
             'sku_summary'  => $sku_summary,
             'dealers'      => $dealers,
+            'pending_orders' => $pending_orders,
+            'prefill'      => [
+                'dealer_id' => $prefill_dealer_id,
+                'order_ref' => $prefill_order_ref,
+            ],
+            'order_link_enabled' => $order_link_enabled,
             'filters'      => [
                 'start_date'  => $start_date,
                 'end_date'    => $end_date,
@@ -168,7 +182,7 @@ class AEGIS_Shipments {
         );
     }
 
-    protected static function handle_portal_start($dealer_id, $note = '') {
+    protected static function handle_portal_start($dealer_id, $note = '', $order_ref = '') {
         global $wpdb;
         if ($dealer_id <= 0) {
             return new WP_Error('invalid_dealer', '请选择经销商。');
@@ -181,10 +195,31 @@ class AEGIS_Shipments {
             return new WP_Error('dealer_inactive', '该经销商已停用，禁止出库。');
         }
 
+        $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
+        $order_ref = $order_link_enabled ? $order_ref : '';
+        if ($order_ref) {
+            if (!AEGIS_System::is_module_enabled('orders')) {
+                return new WP_Error('order_disabled', '订单模块未启用，无法关联。');
+            }
+            $order = AEGIS_Orders::get_order_by_no($order_ref);
+            if (!$order) {
+                return new WP_Error('order_missing', '未找到关联订单。');
+            }
+            if ((int) $order->dealer_id !== (int) $dealer_id) {
+                return new WP_Error('order_mismatch', '订单与经销商不匹配。');
+            }
+            if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
+                return new WP_Error('order_not_ready', '订单未进入待出库状态，无法开始出库。');
+            }
+        }
+
         $shipment_no = 'SHP-' . gmdate('Ymd-His', current_time('timestamp'));
         $meta = [];
         if ($note) {
             $meta['note'] = $note;
+        }
+        if ($order_ref) {
+            $meta['order_ref'] = $order_ref;
         }
 
         $inserted = $wpdb->insert(
@@ -196,10 +231,11 @@ class AEGIS_Shipments {
                 'created_at'  => current_time('mysql'),
                 'qty'         => 0,
                 'note'        => $note,
+                'order_ref'   => $order_ref ? $order_ref : null,
                 'status'      => 'draft',
                 'meta'        => !empty($meta) ? wp_json_encode($meta) : null,
             ],
-            ['%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s']
+            ['%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s']
         );
 
         if (!$inserted) {
@@ -304,6 +340,19 @@ class AEGIS_Shipments {
         if (!$shipment) {
             return new WP_Error('shipment_missing', '出库单不存在。');
         }
+        $order = null;
+        if ($shipment->order_ref) {
+            if (!AEGIS_System::is_module_enabled('orders')) {
+                return new WP_Error('order_disabled', '订单模块未启用，无法更新订单状态。');
+            }
+            $order = AEGIS_Orders::get_order_by_no($shipment->order_ref);
+            if (!$order) {
+                return new WP_Error('order_missing', '关联订单不存在，无法完成出库。');
+            }
+            if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
+                return new WP_Error('order_not_ready', '关联订单未处于待出库状态，无法完成出库。');
+            }
+        }
         $items = self::get_items_by_shipment($shipment_id);
         $count = count($items);
         if ($count <= 0) {
@@ -319,6 +368,38 @@ class AEGIS_Shipments {
             ['%d', '%s'],
             ['%d']
         );
+        if (!empty($shipment->order_ref)) {
+            $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+            $wpdb->update(
+                $order_table,
+                [
+                    'status'     => AEGIS_Orders::STATUS_FULFILLED,
+                    'updated_at' => current_time('mysql'),
+                ],
+                ['id' => (int) $order->id],
+                ['%s', '%s'],
+                ['%d']
+            );
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
+                'SUCCESS',
+                [
+                    'order_id' => (int) $order->id,
+                    'order_no' => $order->order_no,
+                    'from'     => $order->status,
+                    'to'       => AEGIS_Orders::STATUS_FULFILLED,
+                ]
+            );
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_SHIPMENT_COMPLETE,
+                'SUCCESS',
+                [
+                    'shipment_id' => $shipment_id,
+                    'order_id'    => (int) $order->id,
+                    'order_no'    => $order->order_no,
+                ]
+            );
+        }
         AEGIS_Access_Audit::record_event(
             AEGIS_System::ACTION_SHIPMENT_CREATE,
             'SUCCESS',
@@ -634,6 +715,9 @@ class AEGIS_Shipments {
             if ((int) $order->dealer_id !== (int) $dealer_id) {
                 return new WP_Error('order_mismatch', '订单与经销商不匹配。');
             }
+            if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
+                return new WP_Error('order_not_ready', '订单未进入待出库状态，无法出库。');
+            }
         }
 
         $codes = self::parse_codes($codes_input);
@@ -671,7 +755,7 @@ class AEGIS_Shipments {
                 'status'      => 'created',
                 'meta'        => wp_json_encode(['count' => count($validated_codes), 'order_ref' => $order_ref]),
             ],
-            ['%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s']
+            ['%s', '%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s']
         );
 
         if (!$inserted) {
@@ -712,6 +796,39 @@ class AEGIS_Shipments {
             'dealer_id'   => $dealer_id,
             'count'       => count($validated_codes),
         ]);
+
+        if ($order_ref && $order) {
+            $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+            $wpdb->update(
+                $order_table,
+                [
+                    'status'     => AEGIS_Orders::STATUS_FULFILLED,
+                    'updated_at' => current_time('mysql'),
+                ],
+                ['id' => (int) $order->id],
+                ['%s', '%s'],
+                ['%d']
+            );
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
+                'SUCCESS',
+                [
+                    'order_id' => (int) $order->id,
+                    'order_no' => $order->order_no,
+                    'from'     => $order->status,
+                    'to'       => AEGIS_Orders::STATUS_FULFILLED,
+                ]
+            );
+            AEGIS_Access_Audit::record_event(
+                AEGIS_System::ACTION_SHIPMENT_COMPLETE,
+                'SUCCESS',
+                [
+                    'shipment_id' => $shipment_id,
+                    'order_id'    => (int) $order->id,
+                    'order_no'    => $order->order_no,
+                ]
+            );
+        }
 
         return [
             'message' => '出库成功，出库单号：' . $shipment_no,
@@ -768,6 +885,34 @@ class AEGIS_Shipments {
         }
 
         return $rows;
+    }
+
+    protected static function query_orders_ready_for_fulfillment($dealer_id = 0, $limit = 50) {
+        global $wpdb;
+        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
+        $where = ['o.status = %s'];
+        $params = [AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT];
+        if ($dealer_id > 0) {
+            $where[] = 'o.dealer_id = %d';
+            $params[] = $dealer_id;
+        }
+        $where_sql = implode(' AND ', $where);
+        $params[] = $limit;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT o.id, o.order_no, o.dealer_id, o.created_at, d.dealer_name, COALESCE(SUM(oi.qty),0) AS total_qty
+                 FROM {$order_table} o
+                 LEFT JOIN {$dealer_table} d ON o.dealer_id = d.id
+                 LEFT JOIN {$item_table} oi ON oi.order_id = o.id
+                 WHERE {$where_sql}
+                 GROUP BY o.id
+                 ORDER BY o.created_at DESC
+                 LIMIT %d",
+                $params
+            )
+        );
     }
 
     /**

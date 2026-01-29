@@ -1627,14 +1627,33 @@ body.aegis-scan-open {
     text-align: left;
 }
 
+.aegis-orders-table .col-order-no {
+    width: 260px;
+}
+
+.aegis-orders-table .col-created-at {
+    width: 180px;
+}
+
+.aegis-orders-table .col-status {
+    width: 90px;
+}
+
+.aegis-orders-table .col-sku-count,
+.aegis-orders-table .col-total-qty {
+    width: 90px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .aegis-orders-table .col-number {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
 
 .aegis-orders-table .col-actions {
-    width: 120px;
-    text-align: right;
+    width: 180px;
+    text-align: center;
     white-space: nowrap;
 }
 
@@ -1643,6 +1662,12 @@ body.aegis-scan-open {
     padding: 0 10px;
     height: 32px;
     line-height: 32px;
+    margin: 0 4px 0 0;
+}
+
+.aegis-orders-table .col-actions form {
+    display: inline-block;
+    margin-left: 4px;
 }
 
 .aegis-orders-page input[type="text"],

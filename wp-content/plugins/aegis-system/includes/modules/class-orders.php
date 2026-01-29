@@ -4,11 +4,14 @@ if (!defined('ABSPATH')) {
 }
 
 class AEGIS_Orders {
+    const STATUS_DRAFT = 'draft';
     const STATUS_PENDING_INITIAL_REVIEW = 'pending_initial_review';
+    const STATUS_CANCELLED = 'cancelled';
     const STATUS_CANCELLED_BY_DEALER = 'cancelled_by_dealer';
     const STATUS_PENDING_DEALER_CONFIRM = 'pending_dealer_confirm';
     const STATUS_PENDING_HQ_PAYMENT_REVIEW = 'pending_hq_payment_review';
     const STATUS_APPROVED_PENDING_FULFILLMENT = 'approved_pending_fulfillment';
+    const STATUS_FULFILLED = 'shipped';
     const STATUS_VOIDED_BY_HQ = 'voided_by_hq';
 
     const PAYMENT_STATUS_NONE = 'none';
@@ -37,6 +40,7 @@ class AEGIS_Orders {
             self::STATUS_PENDING_HQ_PAYMENT_REVIEW => self::STATUS_PENDING_DEALER_CONFIRM,
             self::STATUS_PENDING_DEALER_CONFIRM => self::STATUS_PENDING_INITIAL_REVIEW,
             self::STATUS_PENDING_INITIAL_REVIEW => null,
+            self::STATUS_FULFILLED => self::STATUS_APPROVED_PENDING_FULFILLMENT,
         ];
     }
 
@@ -157,6 +161,161 @@ class AEGIS_Orders {
         ];
     }
 
+    protected static function get_order_meta($order): array {
+        if (!$order || empty($order->meta)) {
+            return [];
+        }
+        $decoded = json_decode($order->meta, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    protected static function build_order_meta($order, $totals, array $extra_meta = []): array {
+        $meta = self::get_order_meta($order);
+        $meta['item_count'] = $totals['item_count'];
+        $meta['total_qty'] = $totals['total_qty'];
+        foreach ($extra_meta as $key => $value) {
+            $meta[$key] = $value;
+        }
+        return $meta;
+    }
+
+    protected static function get_cancel_request($order): ?array {
+        $meta = self::get_order_meta($order);
+        if (!empty($meta['cancel']) && is_array($meta['cancel'])) {
+            return $meta['cancel'];
+        }
+        return null;
+    }
+
+    protected static function update_cancel_request($order_id, array $cancel) {
+        global $wpdb;
+        $order = self::get_order((int) $order_id);
+        if (!$order) {
+            return false;
+        }
+        $meta = self::get_order_meta($order);
+        $current = [];
+        if (!empty($meta['cancel']) && is_array($meta['cancel'])) {
+            $current = $meta['cancel'];
+        }
+        $meta['cancel'] = array_merge($current, $cancel);
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        return false !== $wpdb->update(
+            $table,
+            ['meta' => wp_json_encode($meta)],
+            ['id' => (int) $order_id],
+            ['%s'],
+            ['%d']
+        );
+    }
+
+    public static function can_force_cancel($user = null): bool {
+        $user = $user ?: wp_get_current_user();
+        return current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
+            || current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
+            || current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL)
+            || AEGIS_System_Roles::is_hq_admin($user);
+    }
+
+    public static function can_approve_cancel($order, $user = null): bool {
+        if (!$order) {
+            return false;
+        }
+        $terminal_statuses = [self::STATUS_CANCELLED, self::STATUS_CANCELLED_BY_DEALER, self::STATUS_VOIDED_BY_HQ, self::STATUS_FULFILLED];
+        if (in_array($order->status, $terminal_statuses, true)) {
+            return false;
+        }
+        $user = $user ?: wp_get_current_user();
+        $roles = (array) ($user ? $user->roles : []);
+        $is_hq = self::can_force_cancel($user);
+        if (in_array($order->status, [self::STATUS_PENDING_INITIAL_REVIEW, self::STATUS_PENDING_DEALER_CONFIRM], true)) {
+            if ($is_hq) {
+                return true;
+            }
+            if (in_array('aegis_sales', $roles, true)) {
+                $sales_user_id = self::get_order_sales_user_id($order);
+                return $sales_user_id > 0 && (int) $sales_user_id === (int) $user->ID;
+            }
+            return false;
+        }
+        if (self::STATUS_PENDING_HQ_PAYMENT_REVIEW === $order->status) {
+            return $is_hq;
+        }
+        if (self::STATUS_APPROVED_PENDING_FULFILLMENT === $order->status) {
+            return $is_hq || AEGIS_System_Roles::user_can_use_warehouse();
+        }
+        return false;
+    }
+
+    protected static function get_order_sales_user_id($order): int {
+        global $wpdb;
+        if (!$order) {
+            return 0;
+        }
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT sales_user_id FROM {$dealer_table} WHERE id = %d",
+                (int) $order->dealer_id
+            )
+        );
+    }
+
+    protected static function get_processing_lock($order): ?array {
+        $meta = self::get_order_meta($order);
+        if (!empty($meta['processing_lock']) && is_array($meta['processing_lock'])) {
+            return $meta['processing_lock'];
+        }
+        return null;
+    }
+
+    protected static function set_processing_lock($order_id, $user_id, $reason = 'review') {
+        global $wpdb;
+        $order = self::get_order((int) $order_id);
+        if (!$order) {
+            return false;
+        }
+        $meta = self::get_order_meta($order);
+        $meta['processing_lock'] = [
+            'locked' => true,
+            'by'     => (int) $user_id,
+            'at'     => current_time('mysql'),
+            'reason' => $reason,
+        ];
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        return false !== $wpdb->update(
+            $table,
+            [
+                'meta' => wp_json_encode($meta),
+            ],
+            ['id' => (int) $order_id],
+            ['%s'],
+            ['%d']
+        );
+    }
+
+    protected static function clear_processing_lock($order_id) {
+        global $wpdb;
+        $order = self::get_order((int) $order_id);
+        if (!$order) {
+            return false;
+        }
+        $meta = self::get_order_meta($order);
+        if (isset($meta['processing_lock'])) {
+            unset($meta['processing_lock']);
+        }
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        return false !== $wpdb->update(
+            $table,
+            [
+                'meta' => wp_json_encode($meta),
+            ],
+            ['id' => (int) $order_id],
+            ['%s'],
+            ['%d']
+        );
+    }
+
     protected static function persist_items($order_id, $items, $timestamp) {
         global $wpdb;
         $table = $wpdb->prefix . AEGIS_System::ORDER_ITEM_TABLE;
@@ -250,7 +409,7 @@ class AEGIS_Orders {
         ];
     }
 
-    protected static function create_portal_order($dealer, $items, $note = '') {
+    protected static function create_portal_order($dealer, $items, $note = '', $status = self::STATUS_DRAFT, $success_message = '') {
         global $wpdb;
         $priced_items = self::prepare_priced_items($dealer, $items);
         if (is_wp_error($priced_items)) {
@@ -272,7 +431,7 @@ class AEGIS_Orders {
             [
                 'order_no'               => $order_no,
                 'dealer_id'              => (int) $dealer->id,
-                'status'                 => self::STATUS_PENDING_INITIAL_REVIEW,
+                'status'                 => $status,
                 'total_amount'           => $totals['total_amount'],
                 'created_by'             => get_current_user_id(),
                 'created_at'             => $now,
@@ -283,10 +442,7 @@ class AEGIS_Orders {
                 'snapshot_dealer_name'   => $dealer->dealer_name,
                 'dealer_name_snapshot'   => $dealer->dealer_name,
                 'sales_user_id_snapshot' => $dealer->sales_user_id,
-                'meta'                   => wp_json_encode([
-                    'item_count' => $totals['item_count'],
-                    'total_qty'  => $totals['total_qty'],
-                ]),
+                'meta'                   => wp_json_encode(self::build_order_meta(null, $totals)),
             ],
             ['%s', '%d', '%s', '%f', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s']
         );
@@ -309,9 +465,13 @@ class AEGIS_Orders {
             ]
         );
 
+        if ('' === $success_message) {
+            $success_message = '下单成功，订单号 ' . $order_no;
+        }
+
         return [
             'order_id' => $order_id,
-            'message'  => '下单成功，订单号 ' . $order_no,
+            'message'  => $success_message,
         ];
     }
 
@@ -331,7 +491,7 @@ class AEGIS_Orders {
             );
             return new WP_Error('forbidden', '权限不足，订单不可编辑。');
         }
-        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+        if (self::STATUS_DRAFT !== $order->status) {
             AEGIS_Access_Audit::record_event(
                 'ACCESS_DENIED',
                 'FAIL',
@@ -359,10 +519,7 @@ class AEGIS_Orders {
                 'updated_at'   => $now,
                 'note'         => $note,
                 'total_amount' => $totals['total_amount'],
-                'meta'         => wp_json_encode([
-                    'item_count' => $totals['item_count'],
-                    'total_qty'  => $totals['total_qty'],
-                ]),
+                'meta'         => wp_json_encode(self::build_order_meta($order, $totals)),
             ],
             ['id' => (int) $order->id],
             ['%s', '%s', '%f', '%s'],
@@ -394,8 +551,8 @@ class AEGIS_Orders {
         if ((int) $order->dealer_id !== (int) $dealer->id) {
             return new WP_Error('forbidden', '无权操作该订单。');
         }
-        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
-            return new WP_Error('bad_status', '仅待初审订单可撤销。');
+        if (self::STATUS_DRAFT !== $order->status) {
+            return new WP_Error('bad_status', '仅草稿订单可撤销。');
         }
 
         $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
@@ -447,10 +604,7 @@ class AEGIS_Orders {
             'updated_at'   => $now,
             'review_note'  => $review_note,
             'total_amount' => $totals['total_amount'],
-            'meta'         => wp_json_encode([
-                'item_count' => $totals['item_count'],
-                'total_qty'  => $totals['total_qty'],
-            ]),
+            'meta'         => wp_json_encode(self::build_order_meta($order, $totals)),
         ];
         $update_formats = ['%s', '%s', '%f', '%s'];
         if (null !== $status) {
@@ -500,6 +654,7 @@ class AEGIS_Orders {
         if (is_wp_error($result)) {
             return $result;
         }
+        self::set_processing_lock($order->id, get_current_user_id(), 'review');
         return ['message' => '已保存草稿'];
     }
 
@@ -560,6 +715,7 @@ class AEGIS_Orders {
                 'status_to' => self::STATUS_PENDING_DEALER_CONFIRM,
             ]
         );
+        self::clear_processing_lock($order->id);
 
         return ['message' => '初审已通过，等待经销商确认。'];
     }
@@ -606,7 +762,7 @@ class AEGIS_Orders {
 
     protected static function rollback_order_one_step($order, $reason) {
         global $wpdb;
-        if (in_array($order->status, [self::STATUS_CANCELLED_BY_DEALER, self::STATUS_VOIDED_BY_HQ], true)) {
+        if (in_array($order->status, [self::STATUS_CANCELLED, self::STATUS_CANCELLED_BY_DEALER, self::STATUS_VOIDED_BY_HQ], true)) {
             AEGIS_Access_Audit::record_event(
                 'ORDER_ROLLBACK_STEP',
                 'FAIL',
@@ -899,9 +1055,9 @@ class AEGIS_Orders {
                 $payment_table,
                 [
                     'media_id'     => (int) $upload['id'],
-                    'status'       => self::PAYMENT_STATUS_NONE,
-                    'submitted_at' => null,
-                    'submitted_by' => null,
+                    'status'       => self::PAYMENT_STATUS_SUBMITTED,
+                    'submitted_at' => $now,
+                    'submitted_by' => get_current_user_id(),
                     'reviewed_at'  => null,
                     'reviewed_by'  => null,
                     'review_note'  => null,
@@ -919,15 +1075,29 @@ class AEGIS_Orders {
                     'order_id'    => (int) $order->id,
                     'dealer_id'   => (int) $dealer->id,
                     'media_id'    => (int) $upload['id'],
-                    'status'      => self::PAYMENT_STATUS_NONE,
+                    'status'      => self::PAYMENT_STATUS_SUBMITTED,
+                    'submitted_at' => $now,
+                    'submitted_by' => get_current_user_id(),
                     'created_by'  => get_current_user_id(),
                     'created_at'  => $now,
                     'updated_at'  => $now,
                 ],
-                ['%d', '%d', '%d', '%s', '%d', '%s', '%s']
+                ['%d', '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s']
             );
             $payment_id = (int) $wpdb->insert_id;
         }
+
+        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $wpdb->update(
+            $order_table,
+            [
+                'status'     => self::STATUS_PENDING_HQ_PAYMENT_REVIEW,
+                'updated_at' => $now,
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s'],
+            ['%d']
+        );
 
         AEGIS_Access_Audit::record_event(
             AEGIS_System::ACTION_PAYMENT_PROOF_UPLOAD,
@@ -940,7 +1110,18 @@ class AEGIS_Orders {
             ]
         );
 
-        return ['message' => '付款凭证已上传。'];
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
+            'SUCCESS',
+            [
+                'order_id' => (int) $order->id,
+                'order_no' => $order->order_no,
+                'from'     => $order->status,
+                'to'       => self::STATUS_PENDING_HQ_PAYMENT_REVIEW,
+            ]
+        );
+
+        return ['message' => '已提交付款凭证，等待审核。'];
     }
 
     protected static function submit_payment_confirmation($dealer_state, $order) {
@@ -1162,6 +1343,9 @@ class AEGIS_Orders {
             $placeholders = implode(',', array_fill(0, count($args['statuses']), '%s'));
             $where[] = "o.status IN ({$placeholders})";
             $params = array_merge($params, $args['statuses']);
+        } elseif (!in_array('aegis_dealer', $roles, true)) {
+            $where[] = 'o.status != %s';
+            $params[] = self::STATUS_DRAFT;
         }
 
         $where_sql = implode(' AND ', $where);
@@ -1356,7 +1540,7 @@ class AEGIS_Orders {
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
             $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
-            if ('create_order' === $action) {
+            if (in_array($action, ['create_order', 'save_draft', 'submit_order'], true)) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
@@ -1367,6 +1551,9 @@ class AEGIS_Orders {
                         'idempotency_key' => $idempotency,
                     ]
                 );
+                $is_submit_action = 'submit_order' === $action;
+                $status = $is_submit_action ? self::STATUS_PENDING_INITIAL_REVIEW : self::STATUS_DRAFT;
+                $success_message = $is_submit_action ? '已提交，等待初审。' : '已保存草稿。';
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
                 } elseif ($dealer_blocked || !$dealer_id) {
@@ -1374,12 +1561,20 @@ class AEGIS_Orders {
                 } else {
                     $items = self::parse_item_post($_POST);
                     $note = isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '';
-                    $result = self::create_portal_order($dealer, $items, $note);
+                    $result = self::create_portal_order($dealer, $items, $note, $status, $success_message);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
-                        $messages[] = $result['message'];
-                        $view_id = (int) $result['order_id'];
+                        $redirect_url = add_query_arg(
+                            [
+                                'm' => 'orders',
+                                'order_id' => (int) $result['order_id'],
+                                'aegis_orders_message' => $result['message'],
+                            ],
+                            $portal_url
+                        );
+                        wp_safe_redirect($redirect_url);
+                        exit;
                     }
                 }
             } elseif ('update_order' === $action) {
@@ -1418,6 +1613,114 @@ class AEGIS_Orders {
                         $view_id = (int) $order_id;
                     }
                 }
+            } elseif ('submit_draft' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ORDERS_CREATE,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } elseif (!$is_dealer || !$order || !$dealer) {
+                    $errors[] = '无效的订单。';
+                } elseif ((int) $order->dealer_id !== (int) $dealer->id) {
+                    $errors[] = '权限不足，无法提交草稿。';
+                } elseif (self::STATUS_DRAFT !== $order->status) {
+                    $errors[] = '当前订单无法提交。';
+                } else {
+                    $lock = self::get_processing_lock($order);
+                    if (!empty($lock['locked'])) {
+                        $errors[] = '订单处理中，无法提交。';
+                    } else {
+                        global $wpdb;
+                        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+                        $now = current_time('mysql');
+                        $updated = $wpdb->update(
+                            $table,
+                            [
+                                'status'     => self::STATUS_PENDING_INITIAL_REVIEW,
+                                'updated_at' => $now,
+                            ],
+                            ['id' => (int) $order->id],
+                            ['%s', '%s'],
+                            ['%d']
+                        );
+                        if (false === $updated) {
+                            $errors[] = '提交失败，请稍后再试。';
+                        } else {
+                            AEGIS_Access_Audit::record_event(
+                                'SUBMIT_DRAFT',
+                                'SUCCESS',
+                                [
+                                    'order_id' => (int) $order->id,
+                                    'order_no' => $order->order_no,
+                                    'from'     => $order->status,
+                                    'to'       => self::STATUS_PENDING_INITIAL_REVIEW,
+                                ]
+                            );
+                            $messages[] = '已提交，等待初审。';
+                            $view_id = (int) $order->id;
+                        }
+                    }
+                }
+            } elseif ('withdraw_order' === $action) {
+                global $wpdb;
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ORDERS_CREATE,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } elseif (!$is_dealer || !$order || !$dealer) {
+                    $errors[] = '权限不足，无法撤回订单。';
+                } elseif ((int) $order->dealer_id !== (int) $dealer->id) {
+                    $errors[] = '权限不足，无法撤回订单。';
+                } elseif (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+                    $errors[] = '当前订单无法撤回。';
+                } else {
+                    $lock = self::get_processing_lock($order);
+                    if (!empty($lock['locked'])) {
+                        $errors[] = '订单处理中，无法撤回提交。';
+                    } else {
+                        $meta = self::get_order_meta($order);
+                        if (isset($meta['processing_lock'])) {
+                            unset($meta['processing_lock']);
+                        }
+                        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+                        $updated = $wpdb->update(
+                            $table,
+                            [
+                                'status'     => self::STATUS_DRAFT,
+                                'updated_at' => current_time('mysql'),
+                                'meta'       => wp_json_encode($meta),
+                            ],
+                            ['id' => (int) $order->id],
+                            ['%s', '%s', '%s'],
+                            ['%d']
+                        );
+                        if (false === $updated) {
+                            $errors[] = '撤回失败，请稍后再试。';
+                        } else {
+                            $messages[] = '已撤回提交，订单恢复为草稿。';
+                            $view_id = (int) $order->id;
+                        }
+                    }
+                }
             } elseif ('cancel_order' === $action) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
@@ -1442,6 +1745,108 @@ class AEGIS_Orders {
                     } else {
                         $messages[] = $result['message'];
                         $view_id = (int) $order_id;
+                    }
+                }
+            } elseif ('request_cancel' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ORDERS_CREATE,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', 'cancel_reason', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                $reason = isset($_POST['cancel_reason']) ? sanitize_text_field(wp_unslash($_POST['cancel_reason'])) : '';
+                $allowed_statuses = [self::STATUS_PENDING_INITIAL_REVIEW, self::STATUS_PENDING_DEALER_CONFIRM, self::STATUS_PENDING_HQ_PAYMENT_REVIEW, self::STATUS_APPROVED_PENDING_FULFILLMENT];
+                $request_path = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                    AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
+                        'order_id'    => (int) $order_id,
+                        'reason_code' => 'validation_failed',
+                        'path'        => $request_path,
+                        'actor_id'    => get_current_user_id(),
+                    ]);
+                } elseif (!$is_dealer || !$order || !$dealer) {
+                    $errors[] = '无效的订单。';
+                    AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
+                        'order_id'    => (int) $order_id,
+                        'reason_code' => 'invalid_order',
+                        'path'        => $request_path,
+                        'actor_id'    => get_current_user_id(),
+                    ]);
+                } elseif ((int) $order->dealer_id !== (int) $dealer->id) {
+                    $errors[] = '权限不足，无法申请撤销。';
+                    AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
+                        'order_id'    => (int) $order_id,
+                        'order_no'    => $order->order_no,
+                        'reason_code' => 'forbidden',
+                        'path'        => $request_path,
+                        'actor_id'    => get_current_user_id(),
+                    ]);
+                } elseif (!in_array($order->status, $allowed_statuses, true)) {
+                    $errors[] = '当前订单无法申请撤销。';
+                    AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
+                        'order_id'    => (int) $order->id,
+                        'order_no'    => $order->order_no,
+                        'status'      => $order->status,
+                        'reason_code' => 'invalid_status',
+                        'path'        => $request_path,
+                        'actor_id'    => get_current_user_id(),
+                    ]);
+                } elseif ('' === $reason) {
+                    $errors[] = '撤销原因不能为空。';
+                    AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
+                        'order_id'    => (int) $order->id,
+                        'order_no'    => $order->order_no,
+                        'status'      => $order->status,
+                        'reason_code' => 'missing_reason',
+                        'path'        => $request_path,
+                        'actor_id'    => get_current_user_id(),
+                    ]);
+                } else {
+                    $existing = self::get_cancel_request($order);
+                    if (!empty($existing['requested']) && ('pending' === ($existing['decision'] ?? ''))) {
+                        $errors[] = '撤销申请已提交，请等待审批。';
+                        AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
+                            'order_id'    => (int) $order->id,
+                            'order_no'    => $order->order_no,
+                            'status'      => $order->status,
+                            'reason_code' => 'duplicate_request',
+                            'path'        => $request_path,
+                            'actor_id'    => get_current_user_id(),
+                        ]);
+                    } else {
+                        $cancel = [
+                            'requested'    => true,
+                            'reason'       => $reason,
+                            'requested_by' => get_current_user_id(),
+                            'requested_at' => current_time('mysql'),
+                            'decision'     => 'pending',
+                        ];
+                        $updated = self::update_cancel_request($order->id, $cancel);
+                        if (!$updated) {
+                            $errors[] = '撤销申请提交失败，请稍后再试。';
+                        } else {
+                            AEGIS_Access_Audit::record_event(
+                                'CANCEL_REQUEST',
+                                'SUCCESS',
+                                [
+                                    'order_id'   => (int) $order->id,
+                                    'order_no'   => $order->order_no,
+                                    'status'     => $order->status,
+                                    'reason'     => $reason,
+                                    'path'       => $request_path,
+                                    'actor_id'   => get_current_user_id(),
+                                ]
+                            );
+                            $messages[] = '撤销申请已提交，等待审批。';
+                            $view_id = (int) $order->id;
+                        }
                     }
                 }
             } elseif (in_array($action, ['save_review_draft', 'submit_initial_review', 'review_order', 'initial_review_submit'], true)) {
@@ -1845,16 +2250,21 @@ class AEGIS_Orders {
                 $errors[] = '无权查看该订单。';
             }
         }
+        $processing_lock = $order ? self::get_processing_lock($order) : null;
+        $cancel_request = $order ? self::get_cancel_request($order) : null;
         $items = $order ? self::get_items($order->id) : [];
         $payment = $order ? self::get_payment_record($order->id) : null;
         $skus = $is_dealer ? self::list_active_skus() : [];
         $price_map = ($is_dealer && $dealer && $skus) ? self::build_price_map($dealer, $skus) : [];
 
         $status_labels = [
+            self::STATUS_DRAFT                 => '草稿',
             self::STATUS_PENDING_INITIAL_REVIEW => '待初审',
             self::STATUS_PENDING_DEALER_CONFIRM => '待确认',
             self::STATUS_PENDING_HQ_PAYMENT_REVIEW => '待审核',
             self::STATUS_APPROVED_PENDING_FULFILLMENT => '已通过（待出库）',
+            self::STATUS_FULFILLED             => '已出库',
+            self::STATUS_CANCELLED             => '已撤销',
             self::STATUS_CANCELLED_BY_DEALER    => '已撤销',
             self::STATUS_VOIDED_BY_HQ           => '已作废',
         ];
@@ -1867,6 +2277,8 @@ class AEGIS_Orders {
             'order'          => $order,
             'items'          => $items,
             'payment'        => $payment,
+            'processing_lock' => $processing_lock,
+            'cancel_request' => $cancel_request,
             'filters'        => [
                 'start_date'  => $start_date,
                 'end_date'    => $end_date,

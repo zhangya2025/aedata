@@ -10,6 +10,10 @@ $sku_summary = $context['sku_summary'];
 $dealers = $context['dealers'];
 $filters = $context['filters'];
 $shipments = $context['shipments'];
+$pending_orders = $context['pending_orders'] ?? [];
+$prefill = $context['prefill'] ?? ['dealer_id' => 0, 'order_ref' => ''];
+$order_link_enabled = $context['order_link_enabled'] ?? false;
+$portal_url = $context['portal_url'] ?? '';
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
 $is_list_view = 'list' === $view;
 $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
@@ -26,6 +30,42 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
     <?php endforeach; ?>
 
     <?php if (!$shipment) : ?>
+        <?php if ($order_link_enabled) : ?>
+            <section class="aegis-card" style="margin:12px 0;">
+                <div class="aegis-card-header">
+                    <div class="aegis-card-title aegis-t-a5">待出库订单</div>
+                </div>
+                <?php if (empty($pending_orders)) : ?>
+                    <p class="aegis-t-a6">暂无待出库订单。</p>
+                <?php else : ?>
+                    <div class="aegis-table-wrap">
+                        <table class="aegis-table" style="width:100%;">
+                            <thead><tr><th>订单号</th><th>经销商</th><th>下单时间</th><th>总数量</th><th>操作</th></tr></thead>
+                            <tbody>
+                                <?php foreach ($pending_orders as $row) : ?>
+                                    <?php
+                                    $order_url = $portal_url ? add_query_arg(['m' => 'orders', 'order_id' => $row->id], $portal_url) : '';
+                                    $start_url = add_query_arg(['dealer_id' => (int) $row->dealer_id, 'order_ref' => $row->order_no], $base_url);
+                                    ?>
+                                    <tr>
+                                        <td><?php echo esc_html($row->order_no); ?></td>
+                                        <td><?php echo esc_html($row->dealer_name ?? ''); ?></td>
+                                        <td><?php echo esc_html($row->created_at); ?></td>
+                                        <td><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
+                                        <td>
+                                            <?php if ($order_url) : ?>
+                                                <a class="button" href="<?php echo esc_url($order_url); ?>">查看订单</a>
+                                            <?php endif; ?>
+                                            <a class="button button-primary" href="<?php echo esc_url($start_url); ?>">开始出库</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </section>
+        <?php endif; ?>
         <form method="post" class="aegis-t-a5 aegis-start-form" style="margin:12px 0;">
             <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
             <input type="hidden" name="shipments_action" value="start" />
@@ -35,10 +75,15 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                     <select name="dealer_id" required class="aegis-action-select">
                         <option value="">请选择经销商</option>
                         <?php foreach ($dealers as $dealer) : ?>
-                            <option value="<?php echo esc_attr($dealer->id); ?>"><?php echo esc_html($dealer->dealer_name . '（' . $dealer->auth_code . '）'); ?></option>
+                            <option value="<?php echo esc_attr($dealer->id); ?>" <?php selected((int) $prefill['dealer_id'], (int) $dealer->id); ?>><?php echo esc_html($dealer->dealer_name . '（' . $dealer->auth_code . '）'); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </label>
+                <?php if ($order_link_enabled) : ?>
+                    <label class="aegis-t-a6">关联订单号：
+                        <input type="text" name="order_ref" value="<?php echo esc_attr($prefill['order_ref']); ?>" placeholder="待出库订单号" />
+                    </label>
+                <?php endif; ?>
                 <button type="button" class="button aegis-note-toggle aegis-action-note" id="aegis-shipments-note-toggle" aria-expanded="false" aria-controls="aegis-shipments-note-field">备注</button>
                 <div id="aegis-shipments-note-field" class="aegis-note-field" style="display:none; min-width:240px;">
                     <label class="aegis-t-a6" style="display:block;">备注（可选）：<input type="text" name="note" /></label>
