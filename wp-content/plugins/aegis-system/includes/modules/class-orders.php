@@ -1531,6 +1531,7 @@ class AEGIS_Orders {
         $errors = [];
         $view_id = 0;
         $auto_open_drawer = false;
+        $cancel_idempotency = wp_generate_uuid4();
         if (isset($_GET['aegis_orders_message'])) {
             $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_orders_message']));
         }
@@ -1772,6 +1773,7 @@ class AEGIS_Orders {
                     $errors[] = $message;
                     $view_id = (int) $order_id;
                     $auto_open_drawer = true;
+                    $cancel_idempotency = wp_generate_uuid4();
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order_id,
                         'reason_code' => 'validation_failed',
@@ -1815,6 +1817,7 @@ class AEGIS_Orders {
                     $errors[] = '撤销原因必填。';
                     $view_id = (int) $order->id;
                     $auto_open_drawer = true;
+                    $cancel_idempotency = wp_generate_uuid4();
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order->id,
                         'order_no'    => $order->order_no,
@@ -1851,6 +1854,7 @@ class AEGIS_Orders {
                             $errors[] = '提交失败，请稍后再试。';
                             $view_id = (int) $order->id;
                             $auto_open_drawer = true;
+                            $cancel_idempotency = wp_generate_uuid4();
                             AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                                 'order_id'    => (int) $order->id,
                                 'order_no'    => $order->order_no,
@@ -2318,6 +2322,7 @@ class AEGIS_Orders {
             'payment'        => $payment,
             'processing_lock' => $processing_lock,
             'cancel_request' => $cancel_request,
+            'cancel_idempotency' => $cancel_idempotency,
             'filters'        => [
                 'start_date'  => $start_date,
                 'end_date'    => $end_date,
