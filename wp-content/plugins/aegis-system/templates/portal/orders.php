@@ -16,6 +16,8 @@ $price_map = $context['price_map'];
 $view_mode = $context['view_mode'];
 $queue_mode = $context['queue_mode'];
 $status_labels = $context['status_labels'];
+$processing_lock = $context['processing_lock'] ?? null;
+$is_processing_locked = !empty($processing_lock['locked']);
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
 $show_create = !empty($_GET['create']);
@@ -168,7 +170,7 @@ $payment_status_labels = [
                         <?php if ($role_flags['can_view_all']) : ?><td class="col-number"><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
                         <td class="col-actions">
                             <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="view">查看</button>
-                            <?php if (($role_flags['is_dealer'] && in_array($row->status, [$draft_status, $pending_initial_status], true))
+                            <?php if (($role_flags['is_dealer'] && $row->status === $draft_status)
                                 || ($role_flags['can_initial_review'] && $row->status === $pending_initial_status)
                                 || ($role_flags['can_payment_review'] && $row->status === 'pending_hq_payment_review')) : ?>
                                 <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="edit">编辑</button>
@@ -420,9 +422,9 @@ $payment_status_labels = [
                         </form>
                     <?php endif; ?>
 
-                    <?php if ($role_flags['is_dealer'] && $order->status === $pending_initial_status) : ?>
+                    <?php if ($role_flags['is_dealer'] && $order->status === $draft_status) : ?>
                         <section id="order-edit" class="aegis-t-a6 aegis-orders-drawer-section">
-                            <div class="aegis-orders-section-title aegis-t-a5">编辑订单（待初审可编辑）</div>
+                            <div class="aegis-orders-section-title aegis-t-a5">编辑订单（草稿可编辑）</div>
                             <form method="post" id="aegis-order-edit-form">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
                                 <input type="hidden" name="order_action" value="update_order" />
@@ -461,14 +463,27 @@ $payment_status_labels = [
                                     <button type="submit" class="button aegis-orders-secondary-action">保存修改</button>
                                 </div>
                             </form>
-                            <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认撤销该订单吗？撤销后不可再编辑。');">
+                            <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认撤销该草稿吗？撤销后不可再编辑。');">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
                                 <input type="hidden" name="order_action" value="cancel_order" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <button type="submit" class="button">撤销订单</button>
+                                <button type="submit" class="button">撤销草稿</button>
                             </form>
                         </section>
+                    <?php elseif ($role_flags['is_dealer'] && $order->status === $pending_initial_status) : ?>
+                        <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已提交初审，当前内容只读。</p>
+                        <?php if ($is_processing_locked) : ?>
+                            <p class="aegis-t-a6" style="margin-top:8px; color:#d63638;">订单处理中，暂不可撤回。</p>
+                        <?php else : ?>
+                            <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认撤回提交并恢复为草稿吗？');">
+                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                                <input type="hidden" name="order_action" value="withdraw_order" />
+                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                <button type="submit" class="button">撤回提交</button>
+                            </form>
+                        <?php endif; ?>
                     <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_dealer_confirm') : ?>
                         <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已由 HQ 调整并待确认，当前内容只读。</p>
                     <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_hq_payment_review') : ?>
