@@ -10,6 +10,7 @@ class AEGIS_Orders {
     const STATUS_PENDING_DEALER_CONFIRM = 'pending_dealer_confirm';
     const STATUS_PENDING_HQ_PAYMENT_REVIEW = 'pending_hq_payment_review';
     const STATUS_APPROVED_PENDING_FULFILLMENT = 'approved_pending_fulfillment';
+    const STATUS_FULFILLED = 'shipped';
     const STATUS_VOIDED_BY_HQ = 'voided_by_hq';
 
     const PAYMENT_STATUS_NONE = 'none';
@@ -38,6 +39,7 @@ class AEGIS_Orders {
             self::STATUS_PENDING_HQ_PAYMENT_REVIEW => self::STATUS_PENDING_DEALER_CONFIRM,
             self::STATUS_PENDING_DEALER_CONFIRM => self::STATUS_PENDING_INITIAL_REVIEW,
             self::STATUS_PENDING_INITIAL_REVIEW => null,
+            self::STATUS_FULFILLED => self::STATUS_APPROVED_PENDING_FULFILLMENT,
         ];
     }
 
@@ -2018,6 +2020,7 @@ class AEGIS_Orders {
             self::STATUS_PENDING_DEALER_CONFIRM => '待确认',
             self::STATUS_PENDING_HQ_PAYMENT_REVIEW => '待审核',
             self::STATUS_APPROVED_PENDING_FULFILLMENT => '已通过（待出库）',
+            self::STATUS_FULFILLED             => '已出库',
             self::STATUS_CANCELLED_BY_DEALER    => '已撤销',
             self::STATUS_VOIDED_BY_HQ           => '已作废',
         ];

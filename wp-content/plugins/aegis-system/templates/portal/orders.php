@@ -317,6 +317,8 @@ $payment_status_labels = [
                                 <p class="aegis-t-a6" style="color:#6b7280;">已提交付款凭证，等待审核。</p>
                             <?php elseif ($order->status === 'approved_pending_fulfillment') : ?>
                                 <p class="aegis-t-a6" style="color:#15803d;">付款审核已通过，等待出库。</p>
+                            <?php elseif ($order->status === AEGIS_Orders::STATUS_FULFILLED) : ?>
+                                <p class="aegis-t-a6" style="color:#15803d;">已完成出库，订单结束。</p>
                             <?php elseif ($order->status === 'voided_by_hq' || $order->status === 'cancelled_by_dealer') : ?>
                                 <p class="aegis-t-a6" style="color:#6b7280;">订单已终止，凭证仅供查看。</p>
                             <?php endif; ?>
@@ -480,6 +482,8 @@ $payment_status_labels = [
                         <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">已提交付款凭证，等待审核，当前内容只读。</p>
                     <?php elseif ($role_flags['is_dealer'] && $order->status === 'approved_pending_fulfillment') : ?>
                         <p class="aegis-t-a6" style="margin-top:8px; color:#15803d;">付款已通过，等待出库，内容只读。</p>
+                    <?php elseif ($role_flags['is_dealer'] && $order->status === AEGIS_Orders::STATUS_FULFILLED) : ?>
+                        <p class="aegis-t-a6" style="margin-top:8px; color:#15803d;">已完成出库，订单结束。</p>
                     <?php elseif ($order->status === 'cancelled_by_dealer') : ?>
                         <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已撤销，明细仅供查看。</p>
                     <?php elseif ($order->status === 'voided_by_hq') : ?>
