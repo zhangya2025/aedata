@@ -77,12 +77,17 @@ $payment_status_labels = [
                     <input type="hidden" name="order_action" value="create_order" />
                     <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                     <div class="aegis-t-a6" style="margin-bottom:8px;">经销商：<?php echo esc_html($dealer ? $dealer->dealer_name : ''); ?></div>
-                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">备注（可选）<br />
-                        <input type="text" name="note" style="width:100%;" />
-                    </label>
+                    <div class="aegis-note-field">
+                        <button type="button" class="aegis-note-toggle" aria-expanded="false">添加备注</button>
+                        <div class="aegis-note-panel" hidden>
+                            <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">备注（可选）<br />
+                                <input type="text" name="note" style="width:100%;" />
+                            </label>
+                        </div>
+                    </div>
                     <div class="aegis-t-a6" style="margin-bottom:8px;">订单明细（价格自动带出，不可手改）</div>
                     <div id="aegis-order-items" class="aegis-t-a6" style="display:flex; flex-direction:column; gap:8px;">
-                        <div class="order-item-row" style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; align-items:end;">
+                        <div class="order-item-row" style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;">
                             <label class="aegis-t-a6">SKU
                                 <input list="aegis-sku-list" name="order_item_ean[]" required />
                             </label>
@@ -90,20 +95,22 @@ $payment_status_labels = [
                                 <input type="number" name="order_item_qty[]" min="1" step="1" value="1" required />
                             </label>
                             <div class="aegis-t-a6">单价
-                                <div class="aegis-t-a6 order-item-price" style="font-weight:bold;">-</div>
+                                <div class="aegis-t-a6 order-item-price" style="font-weight:bold;">—</div>
+                            </div>
+                            <div class="aegis-order-row-actions">
+                                <button type="button" class="aegis-row-add" aria-label="新增一行">＋</button>
+                                <button type="button" class="aegis-row-del" aria-label="删除此行">－</button>
                             </div>
                         </div>
-                    </div>
-                    <div style="margin:8px 0; display:flex; gap:8px;">
-                        <button type="button" class="button" id="add-order-item">新增一行</button>
-                        <button type="button" class="button" id="remove-order-item">删除末行</button>
                     </div>
                     <datalist id="aegis-sku-list">
                         <?php foreach ($skus as $sku) : ?>
                             <option value="<?php echo esc_attr($sku->ean); ?>"><?php echo esc_html($sku->ean . ' / ' . $sku->product_name); ?></option>
                         <?php endforeach; ?>
                     </datalist>
-                    <button type="submit" class="button button-primary">提交订单</button>
+                    <div class="aegis-orders-actions">
+                        <button type="submit" class="button button-primary">提交订单</button>
+                    </div>
                 </form>
             <?php endif; ?>
         </section>
@@ -185,8 +192,6 @@ $payment_status_labels = [
     </section>
 
 </div>
-
-<aside id="aegis-help-panel" class="aegis-help-panel" hidden aria-hidden="true"></aside>
 
 <aside id="aegis-orders-drawer" class="aegis-orders-drawer" hidden aria-hidden="true">
     <div class="aegis-orders-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="aegis-orders-drawer-title">
@@ -422,13 +427,18 @@ $payment_status_labels = [
                                 <input type="hidden" name="order_action" value="update_order" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">备注（可选）<br />
-                                    <input type="text" name="note" value="<?php echo esc_attr($order->note); ?>" style="width:100%;" />
-                                </label>
+                                <div class="aegis-note-field">
+                                    <button type="button" class="aegis-note-toggle" aria-expanded="false">添加备注</button>
+                                    <div class="aegis-note-panel" hidden>
+                                        <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">备注（可选）<br />
+                                            <input type="text" name="note" value="<?php echo esc_attr($order->note); ?>" style="width:100%;" />
+                                        </label>
+                                    </div>
+                                </div>
                                 <div id="aegis-order-edit-items" class="aegis-t-a6" style="display:flex; flex-direction:column; gap:8px;">
                                     <?php if (!empty($items)) : ?>
                                         <?php foreach ($items as $line) : ?>
-                                            <div class="order-item-row" style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; align-items:end;">
+                                            <div class="order-item-row" style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;">
                                                 <label class="aegis-t-a6">SKU
                                                     <input list="aegis-sku-list" name="order_item_ean[]" value="<?php echo esc_attr($line->ean); ?>" required />
                                                 </label>
@@ -436,19 +446,21 @@ $payment_status_labels = [
                                                     <input type="number" name="order_item_qty[]" min="1" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required />
                                                 </label>
                                                 <div class="aegis-t-a6">单价
-                                                    <div class="aegis-t-a6 order-item-price" style="font-weight:bold;">-</div>
+                                                    <div class="aegis-t-a6 order-item-price" style="font-weight:bold;">—</div>
+                                                </div>
+                                                <div class="aegis-order-row-actions">
+                                                    <button type="button" class="aegis-row-add" aria-label="新增一行">＋</button>
+                                                    <button type="button" class="aegis-row-del" aria-label="删除此行">－</button>
                                                 </div>
                                             </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div>
-                                <div style="margin:8px 0; display:flex; gap:8px;">
-                                    <button type="button" class="button" id="edit-add-order-item">新增一行</button>
-                                    <button type="button" class="button" id="edit-remove-order-item">删除末行</button>
+                                <div class="aegis-order-edit-actions">
+                                    <button type="submit" class="button aegis-orders-secondary-action">保存修改</button>
                                 </div>
-                                <button type="submit" class="button aegis-orders-secondary-action">保存修改</button>
                             </form>
-                            <form method="post" style="margin-top:8px;" onsubmit="return confirm('确认撤销该订单吗？撤销后不可再编辑。');">
+                            <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认撤销该订单吗？撤销后不可再编辑。');">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
                                 <input type="hidden" name="order_action" value="cancel_order" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
@@ -481,7 +493,7 @@ $payment_status_labels = [
     </div>
 </aside>
 
-<aside id="aegis-help-panel" class="aegis-help-panel" hidden>
+<aside id="aegis-help-panel" class="aegis-help-panel" hidden aria-hidden="true">
     <div class="aegis-help-panel-header">
         <h2 class="aegis-t-a4">订单帮助</h2>
         <button type="button" class="button aegis-help-close" aria-label="关闭帮助">关闭</button>
@@ -506,7 +518,12 @@ $payment_status_labels = [
         const input = row.querySelector('input[name="order_item_ean[]"]');
         const priceBox = row.querySelector('.order-item-price');
         if (!input || !priceBox) return;
-        const val = input.value;
+        const val = input.value.trim();
+        if (!val) {
+            priceBox.textContent = '—';
+            priceBox.style.color = '';
+            return;
+        }
         if (priceMap[val]) {
             priceBox.textContent = priceMap[val].label;
             priceBox.style.color = '';
@@ -515,33 +532,62 @@ $payment_status_labels = [
             priceBox.style.color = '#d63638';
         }
     }
-    function attach(row) {
+    function attach(row, container) {
         const input = row.querySelector('input[name="order_item_ean[]"]');
         if (input) {
             input.addEventListener('change', function() { updateRowPrice(row); });
             input.addEventListener('blur', function() { updateRowPrice(row); });
         }
+        const addBtn = row.querySelector('.aegis-row-add');
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                if (!container) return;
+                const newRow = buildRow();
+                row.after(newRow);
+                attach(newRow, container);
+                syncRowControls(container);
+            });
+        }
+        const delBtn = row.querySelector('.aegis-row-del');
+        if (delBtn) {
+            delBtn.addEventListener('click', function() {
+                if (!container || container.children.length <= 1) {
+                    return;
+                }
+                row.remove();
+                syncRowControls(container);
+            });
+        }
         updateRowPrice(row);
     }
 
-    function addRow(container) {
+    function buildRow() {
         const row = document.createElement('div');
         row.className = 'order-item-row';
         row.style.display = 'grid';
-        row.style.gridTemplateColumns = '2fr 1fr 1fr';
+        row.style.gridTemplateColumns = '2fr 1fr 1fr auto';
         row.style.gap = '8px';
         row.style.alignItems = 'end';
         row.innerHTML = '<label class="aegis-t-a6">SKU <input list="aegis-sku-list" name="order_item_ean[]" required /></label>' +
             '<label class="aegis-t-a6">数量 <input type="number" name="order_item_qty[]" min="1" step="1" value="1" required /></label>' +
-            '<div class="aegis-t-a6">单价<div class="aegis-t-a6 order-item-price" style="font-weight:bold;">-</div></div>';
-        container.appendChild(row);
-        attach(row);
+            '<div class="aegis-t-a6">单价<div class="aegis-t-a6 order-item-price" style="font-weight:bold;">—</div></div>' +
+            '<div class="aegis-order-row-actions">' +
+            '<button type="button" class="aegis-row-add" aria-label="新增一行">＋</button>' +
+            '<button type="button" class="aegis-row-del" aria-label="删除此行">－</button>' +
+            '</div>';
+        return row;
     }
 
-    function removeLast(container) {
-        if (container.children.length > 1) {
-            container.removeChild(container.lastElementChild);
-        }
+    function syncRowControls(container) {
+        if (!container) return;
+        const rows = container.querySelectorAll('.order-item-row');
+        const disableDelete = rows.length <= 1;
+        rows.forEach((row) => {
+            const delBtn = row.querySelector('.aegis-row-del');
+            if (delBtn) {
+                delBtn.disabled = disableDelete;
+            }
+        });
     }
 
     function init(container) {
@@ -550,20 +596,14 @@ $payment_status_labels = [
         }
         const createContainer = container.querySelector('#aegis-order-items');
         if (createContainer) {
-            attach(createContainer.querySelector('.order-item-row'));
-            const addBtn = container.querySelector('#add-order-item');
-            const removeBtn = container.querySelector('#remove-order-item');
-            if (addBtn) addBtn.addEventListener('click', function() { addRow(createContainer); });
-            if (removeBtn) removeBtn.addEventListener('click', function() { removeLast(createContainer); });
+            createContainer.querySelectorAll('.order-item-row').forEach((row) => attach(row, createContainer));
+            syncRowControls(createContainer);
         }
 
         const editContainer = container.querySelector('#aegis-order-edit-items');
         if (editContainer) {
-            editContainer.querySelectorAll('.order-item-row').forEach(attach);
-            const addBtn = container.querySelector('#edit-add-order-item');
-            const removeBtn = container.querySelector('#edit-remove-order-item');
-            if (addBtn) addBtn.addEventListener('click', function() { addRow(editContainer); });
-            if (removeBtn) removeBtn.addEventListener('click', function() { removeLast(editContainer); });
+            editContainer.querySelectorAll('.order-item-row').forEach((row) => attach(row, editContainer));
+            syncRowControls(editContainer);
         }
     }
 
@@ -697,6 +737,9 @@ $payment_status_labels = [
                         if (window.AegisOrders && typeof window.AegisOrders.initReview === 'function') {
                             window.AegisOrders.initReview(drawerContent);
                         }
+                        if (window.AegisOrders && typeof window.AegisOrders.initNotes === 'function') {
+                            window.AegisOrders.initNotes(drawerContent);
+                        }
                     }
                     openDrawer(mode);
                     window.history.replaceState({}, '', url);
@@ -728,6 +771,35 @@ $payment_status_labels = [
         });
     }
 
+    const initNotes = (container) => {
+        if (!container) return;
+        container.querySelectorAll('.aegis-note-field').forEach((field) => {
+            if (field.dataset.aegisNoteBound) {
+                return;
+            }
+            field.dataset.aegisNoteBound = '1';
+            const toggle = field.querySelector('.aegis-note-toggle');
+            const panel = field.querySelector('.aegis-note-panel');
+            if (!toggle || !panel) return;
+            const input = panel.querySelector('input, textarea');
+            const setOpen = (isOpen) => {
+                panel.hidden = !isOpen;
+                toggle.setAttribute('aria-expanded', String(isOpen));
+            };
+            toggle.addEventListener('click', function() {
+                setOpen(panel.hidden);
+            });
+            if (input && input.value.trim()) {
+                setOpen(true);
+            }
+        });
+    };
+
+    window.AegisOrders = window.AegisOrders || {};
+    window.AegisOrders.initNotes = initNotes;
+
+    initNotes(ordersPage);
+
     const helpBtn = ordersPage.querySelector('.aegis-help-btn');
     const helpPanel = document.getElementById('aegis-help-panel');
     const helpClose = helpPanel ? helpPanel.querySelector('.aegis-help-close') : null;
@@ -735,11 +807,13 @@ $payment_status_labels = [
         const closeHelp = function() {
             helpPanel.hidden = true;
             helpBtn.setAttribute('aria-expanded', 'false');
+            helpPanel.setAttribute('aria-hidden', 'true');
         };
         helpBtn.addEventListener('click', function() {
             const isOpen = !helpPanel.hidden;
             helpPanel.hidden = isOpen;
             helpBtn.setAttribute('aria-expanded', String(!isOpen));
+            helpPanel.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
         });
         if (helpClose) {
             helpClose.addEventListener('click', closeHelp);
