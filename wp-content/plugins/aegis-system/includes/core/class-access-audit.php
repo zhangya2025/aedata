@@ -65,13 +65,19 @@ class AEGIS_Access_Audit {
                     'message' => '请求已处理，请勿重复提交。',
                 ];
             }
-            set_transient($idem_key, 1, MINUTE_IN_SECONDS * 10);
         }
 
-        return [
+        $result = [
             'success' => true,
             'message' => '',
         ];
+
+        if (!empty($config['idempotency_key'])) {
+            $idem_key = 'aegis_idem_' . md5($config['idempotency_key']);
+            set_transient($idem_key, 1, MINUTE_IN_SECONDS * 10);
+        }
+
+        return $result;
     }
 
     /**
@@ -292,4 +298,3 @@ class AEGIS_Access_Audit {
         ];
     }
 }
-
