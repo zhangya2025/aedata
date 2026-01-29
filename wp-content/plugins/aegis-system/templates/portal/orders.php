@@ -20,6 +20,7 @@ $processing_lock = $context['processing_lock'] ?? null;
 $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
 $cancel_idempotency = $context['cancel_idempotency'] ?? wp_generate_uuid4();
+$cancel_form_error = $context['cancel_form_error'] ?? '';
 $auto_open_drawer = !empty($context['auto_open_drawer']);
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
@@ -263,14 +264,13 @@ $payment_status_labels = [
                     $cancel_requested = !empty($cancel_request['requested']) && ('pending' === ($cancel_request['decision'] ?? ''));
                     $cancel_reason = $cancel_request['reason'] ?? '';
                     $cancel_decision_note = $cancel_request['decision_note'] ?? '';
-                    $cancel_form_error = '';
                     $cancel_reason_input = $cancel_reason;
                     $cancel_submitted = !empty($_GET['cancel_submitted']) && (int) ($_GET['order_id'] ?? 0) === (int) $order->id;
                     if ('POST' === $_SERVER['REQUEST_METHOD']) {
                         $post_action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
                         $post_order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
                         if ('request_cancel' === $post_action && $post_order_id === (int) $order->id) {
-                            $cancel_form_error = $errors[0] ?? '';
+                            $cancel_form_error = $cancel_form_error ?: ($errors[0] ?? '');
                             $cancel_reason_input = isset($_POST['cancel_reason']) ? sanitize_text_field(wp_unslash($_POST['cancel_reason'])) : '';
                         }
                     }
