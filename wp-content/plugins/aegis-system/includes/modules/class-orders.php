@@ -1531,7 +1531,6 @@ class AEGIS_Orders {
         $errors = [];
         $view_id = 0;
         $auto_open_drawer = false;
-        $cancel_idempotency = wp_generate_uuid4();
         $cancel_form_error = '';
         if (isset($_GET['aegis_orders_message'])) {
             $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_orders_message']));
@@ -1757,8 +1756,7 @@ class AEGIS_Orders {
                         'capability'      => AEGIS_System::CAP_ORDERS_CREATE,
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
-                        'whitelist'       => ['order_action', 'order_id', 'cancel_reason', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
-                        'idempotency_key' => $idempotency,
+                        'whitelist'       => ['order_action', 'order_id', 'cancel_reason', '_wp_http_referer', 'aegis_orders_nonce'],
                     ]
                 );
                 $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
@@ -2334,7 +2332,6 @@ class AEGIS_Orders {
             'payment'        => $payment,
             'processing_lock' => $processing_lock,
             'cancel_request' => $cancel_request,
-            'cancel_idempotency' => $cancel_idempotency,
             'cancel_form_error' => $cancel_form_error,
             'filters'        => [
                 'start_date'  => $start_date,
