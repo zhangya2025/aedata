@@ -1736,25 +1736,29 @@ body.aegis-scan-open {
     text-decoration: underline;
 }
 
-.aegis-orders-page .aegis-order-row-actions {
+.aegis-orders-page .aegis-order-row-actions,
+.aegis-orders-drawer .aegis-order-row-actions {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     padding-bottom: 2px;
+    min-width: 64px;
+    white-space: nowrap;
 }
 
 .aegis-orders-page .aegis-order-row-actions .aegis-row-add,
 .aegis-orders-page .aegis-order-row-actions .aegis-row-del,
 .aegis-orders-drawer .aegis-order-row-actions .aegis-row-add,
 .aegis-orders-drawer .aegis-order-row-actions .aegis-row-del {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 999px;
     border: 1px solid #c7cbd3;
     background: #fff;
     color: #111827;
-    font-size: 18px;
-    line-height: 30px;
+    font-size: 16px;
+    line-height: 28px;
     padding: 0;
     cursor: pointer;
 }
@@ -1821,7 +1825,8 @@ body.aegis-scan-open {
     border-top: 1px solid #e5e5e5;
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
     background: #fff;
 }
 
