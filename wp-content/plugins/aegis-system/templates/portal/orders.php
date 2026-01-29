@@ -574,7 +574,7 @@ $payment_status_labels = [
                             <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已完成不可撤销。</p>
                         <?php elseif ($dealer_cancel_allowed && !$cancel_requested) : ?>
                             <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:12px;">
-                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                                <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_action" value="request_cancel" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
