@@ -970,9 +970,9 @@ class AEGIS_Orders {
                 $payment_table,
                 [
                     'media_id'     => (int) $upload['id'],
-                    'status'       => self::PAYMENT_STATUS_NONE,
-                    'submitted_at' => null,
-                    'submitted_by' => null,
+                    'status'       => self::PAYMENT_STATUS_SUBMITTED,
+                    'submitted_at' => $now,
+                    'submitted_by' => get_current_user_id(),
                     'reviewed_at'  => null,
                     'reviewed_by'  => null,
                     'review_note'  => null,
@@ -990,15 +990,29 @@ class AEGIS_Orders {
                     'order_id'    => (int) $order->id,
                     'dealer_id'   => (int) $dealer->id,
                     'media_id'    => (int) $upload['id'],
-                    'status'      => self::PAYMENT_STATUS_NONE,
+                    'status'      => self::PAYMENT_STATUS_SUBMITTED,
+                    'submitted_at' => $now,
+                    'submitted_by' => get_current_user_id(),
                     'created_by'  => get_current_user_id(),
                     'created_at'  => $now,
                     'updated_at'  => $now,
                 ],
-                ['%d', '%d', '%d', '%s', '%d', '%s', '%s']
+                ['%d', '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s']
             );
             $payment_id = (int) $wpdb->insert_id;
         }
+
+        $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $wpdb->update(
+            $order_table,
+            [
+                'status'     => self::STATUS_PENDING_HQ_PAYMENT_REVIEW,
+                'updated_at' => $now,
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s'],
+            ['%d']
+        );
 
         AEGIS_Access_Audit::record_event(
             AEGIS_System::ACTION_PAYMENT_PROOF_UPLOAD,
@@ -1011,7 +1025,18 @@ class AEGIS_Orders {
             ]
         );
 
-        return ['message' => '付款凭证已上传。'];
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
+            'SUCCESS',
+            [
+                'order_id' => (int) $order->id,
+                'order_no' => $order->order_no,
+                'from'     => $order->status,
+                'to'       => self::STATUS_PENDING_HQ_PAYMENT_REVIEW,
+            ]
+        );
+
+        return ['message' => '已提交付款凭证，等待审核。'];
     }
 
     protected static function submit_payment_confirmation($dealer_state, $order) {

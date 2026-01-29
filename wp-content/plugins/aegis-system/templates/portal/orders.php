@@ -298,19 +298,9 @@ $payment_status_labels = [
                                     <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">选择付款凭证（图片或 PDF）<br />
                                         <input type="file" name="payment_file" accept="image/*,.pdf" required />
                                     </label>
-                                    <button type="submit" class="button">上传凭证</button>
+                                    <button type="submit" class="button button-primary">上传并提交审核</button>
                                     <?php if ($has_payment) : ?>
                                         <span class="aegis-t-a6" style="margin-left:8px;">当前：<a href="<?php echo esc_url($payment_url); ?>" target="_blank">查看凭证</a>（<?php echo esc_html($payment_status_text); ?>）</span>
-                                    <?php endif; ?>
-                                </form>
-                                <form method="post" class="aegis-t-a6 aegis-orders-inline-form">
-                                    <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                    <input type="hidden" name="order_action" value="submit_payment" />
-                                    <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                    <button type="submit" class="button button-primary aegis-orders-primary-action" <?php echo $has_payment ? '' : 'disabled'; ?>>提交确认（待审核）</button>
-                                    <?php if (!$has_payment) : ?>
-                                        <span class="aegis-t-a6" style="margin-left:8px; color:#d63638;">请先上传凭证后再提交。</span>
                                     <?php endif; ?>
                                 </form>
                             <?php endif; ?>
@@ -324,7 +314,7 @@ $payment_status_labels = [
                                 <p class="aegis-t-a6" style="color:#d63638;">驳回原因：<?php echo esc_html($payment->review_note); ?></p>
                             <?php endif; ?>
                             <?php if ($order->status === 'pending_hq_payment_review') : ?>
-                                <p class="aegis-t-a6" style="color:#6b7280;">已提交确认，等待审核。</p>
+                                <p class="aegis-t-a6" style="color:#6b7280;">已提交付款凭证，等待审核。</p>
                             <?php elseif ($order->status === 'approved_pending_fulfillment') : ?>
                                 <p class="aegis-t-a6" style="color:#15803d;">付款审核已通过，等待出库。</p>
                             <?php elseif ($order->status === 'voided_by_hq' || $order->status === 'cancelled_by_dealer') : ?>
