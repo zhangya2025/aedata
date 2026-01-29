@@ -1530,6 +1530,7 @@ class AEGIS_Orders {
         $messages = [];
         $errors = [];
         $view_id = 0;
+        $auto_open_drawer = false;
         if (isset($_GET['aegis_orders_message'])) {
             $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_orders_message']));
         }
@@ -1769,6 +1770,8 @@ class AEGIS_Orders {
                         $message = '权限不足/会话过期，请刷新重试。';
                     }
                     $errors[] = $message;
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order_id,
                         'reason_code' => 'validation_failed',
@@ -1777,6 +1780,8 @@ class AEGIS_Orders {
                     ]);
                 } elseif (!$is_dealer || !$order || !$dealer) {
                     $errors[] = '无效的订单。';
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order_id,
                         'reason_code' => 'invalid_order',
@@ -1785,6 +1790,8 @@ class AEGIS_Orders {
                     ]);
                 } elseif ((int) $order->dealer_id !== (int) $dealer->id) {
                     $errors[] = '权限不足，无法申请撤销。';
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order_id,
                         'order_no'    => $order->order_no,
@@ -1794,6 +1801,8 @@ class AEGIS_Orders {
                     ]);
                 } elseif (!in_array($order->status, $allowed_statuses, true)) {
                     $errors[] = '当前订单无法申请撤销。';
+                    $view_id = (int) $order->id;
+                    $auto_open_drawer = true;
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order->id,
                         'order_no'    => $order->order_no,
@@ -1804,6 +1813,8 @@ class AEGIS_Orders {
                     ]);
                 } elseif ('' === $reason) {
                     $errors[] = '撤销原因必填。';
+                    $view_id = (int) $order->id;
+                    $auto_open_drawer = true;
                     AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                         'order_id'    => (int) $order->id,
                         'order_no'    => $order->order_no,
@@ -1816,6 +1827,8 @@ class AEGIS_Orders {
                     $existing = self::get_cancel_request($order);
                     if (!empty($existing['requested']) && ('pending' === ($existing['decision'] ?? ''))) {
                         $errors[] = '撤销申请已提交，请等待审批。';
+                        $view_id = (int) $order->id;
+                        $auto_open_drawer = true;
                         AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                             'order_id'    => (int) $order->id,
                             'order_no'    => $order->order_no,
@@ -1836,6 +1849,8 @@ class AEGIS_Orders {
                         if (!$updated) {
                             global $wpdb;
                             $errors[] = '提交失败，请稍后再试。';
+                            $view_id = (int) $order->id;
+                            $auto_open_drawer = true;
                             AEGIS_Access_Audit::record_event('CANCEL_REQUEST', 'FAIL', [
                                 'order_id'    => (int) $order->id,
                                 'order_no'    => $order->order_no,
@@ -1858,8 +1873,17 @@ class AEGIS_Orders {
                                     'actor_id'   => get_current_user_id(),
                                 ]
                             );
-                            $messages[] = '撤销申请已提交，等待审批。';
-                            $view_id = (int) $order->id;
+                            $redirect_params = [
+                                'm'                => 'orders',
+                                'order_id'         => (int) $order->id,
+                                'cancel_submitted' => 1,
+                            ];
+                            if ($queue_view) {
+                                $redirect_params['view'] = $view_mode;
+                            }
+                            $redirect_url = add_query_arg($redirect_params, $portal_url);
+                            wp_safe_redirect($redirect_url);
+                            exit;
                         }
                     }
                 }
@@ -2287,6 +2311,7 @@ class AEGIS_Orders {
             'base_url'       => $base_url,
             'messages'       => $messages,
             'errors'         => $errors,
+            'auto_open_drawer' => $auto_open_drawer,
             'orders'         => $orders,
             'order'          => $order,
             'items'          => $items,

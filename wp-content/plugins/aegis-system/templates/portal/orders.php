@@ -19,6 +19,7 @@ $status_labels = $context['status_labels'];
 $processing_lock = $context['processing_lock'] ?? null;
 $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
+$auto_open_drawer = !empty($context['auto_open_drawer']);
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
 $show_create = !empty($_GET['create']);
@@ -241,7 +242,7 @@ $payment_status_labels = [
 
 </div>
 
-<aside id="aegis-orders-drawer" class="aegis-orders-drawer" hidden aria-hidden="true">
+<aside id="aegis-orders-drawer" class="aegis-orders-drawer" hidden aria-hidden="true" <?php echo $auto_open_drawer ? 'data-auto-open="1"' : ''; ?>>
     <div class="aegis-orders-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="aegis-orders-drawer-title">
         <div class="aegis-orders-drawer-header">
             <div class="aegis-t-a4" id="aegis-orders-drawer-title">订单详情</div>
@@ -263,6 +264,7 @@ $payment_status_labels = [
                     $cancel_decision_note = $cancel_request['decision_note'] ?? '';
                     $cancel_form_error = '';
                     $cancel_reason_input = $cancel_reason;
+                    $cancel_submitted = !empty($_GET['cancel_submitted']) && (int) ($_GET['order_id'] ?? 0) === (int) $order->id;
                     if ('POST' === $_SERVER['REQUEST_METHOD']) {
                         $post_action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
                         $post_order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
@@ -280,6 +282,11 @@ $payment_status_labels = [
                         $cancel_pending_label = '仓库/HQ';
                     }
                     ?>
+                    <?php if ($cancel_submitted) : ?>
+                        <div class="notice notice-success" style="margin-bottom:12px;">
+                            <p class="aegis-t-a6">撤销申请已提交，等待审批。</p>
+                        </div>
+                    <?php endif; ?>
                     <?php if ($cancel_requested) : ?>
                         <div class="notice notice-warning" style="margin-bottom:12px;">
                             <p class="aegis-t-a6">经销商申请撤销订单（原因：<?php echo esc_html($cancel_reason ?: '未填写'); ?>）。</p>
@@ -896,6 +903,8 @@ $payment_status_labels = [
     });
 
     if (window.location.search.includes('order_id=')) {
+        openDrawer('view');
+    } else if (drawer.dataset.autoOpen === '1') {
         openDrawer('view');
     }
 })();
