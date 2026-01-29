@@ -181,7 +181,7 @@ $payment_status_labels = [
                         <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
                         <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => $view_mode, 'order_id' => $row->id], $base_url); } ?>
                         <?php $payment_state_text = $row->payment_status && isset($payment_status_labels[$row->payment_status]) ? $payment_status_labels[$row->payment_status] : '-'; ?>
-                        <tr>
+                        <tr data-order-id="<?php echo esc_attr($row->id); ?>">
                         <td class="col-text col-order-no"><?php echo esc_html($row->order_no); ?></td>
                         <?php if ($role_flags['can_view_all']) : ?><td class="col-text col-dealer"><?php echo esc_html($row->dealer_name ?? ''); ?></td><?php endif; ?>
                         <td class="col-text col-created-at"><?php echo esc_html($row->created_at); ?></td>
