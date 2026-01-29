@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 class AEGIS_Orders {
+    const STATUS_DRAFT = 'draft';
     const STATUS_PENDING_INITIAL_REVIEW = 'pending_initial_review';
     const STATUS_CANCELLED_BY_DEALER = 'cancelled_by_dealer';
     const STATUS_PENDING_DEALER_CONFIRM = 'pending_dealer_confirm';
@@ -250,7 +251,7 @@ class AEGIS_Orders {
         ];
     }
 
-    protected static function create_portal_order($dealer, $items, $note = '') {
+    protected static function create_portal_order($dealer, $items, $note = '', $status = self::STATUS_DRAFT, $success_message = '') {
         global $wpdb;
         $priced_items = self::prepare_priced_items($dealer, $items);
         if (is_wp_error($priced_items)) {
@@ -272,7 +273,7 @@ class AEGIS_Orders {
             [
                 'order_no'               => $order_no,
                 'dealer_id'              => (int) $dealer->id,
-                'status'                 => self::STATUS_PENDING_INITIAL_REVIEW,
+                'status'                 => $status,
                 'total_amount'           => $totals['total_amount'],
                 'created_by'             => get_current_user_id(),
                 'created_at'             => $now,
@@ -309,9 +310,13 @@ class AEGIS_Orders {
             ]
         );
 
+        if ('' === $success_message) {
+            $success_message = '下单成功，订单号 ' . $order_no;
+        }
+
         return [
             'order_id' => $order_id,
-            'message'  => '下单成功，订单号 ' . $order_no,
+            'message'  => $success_message,
         ];
     }
 
@@ -331,7 +336,7 @@ class AEGIS_Orders {
             );
             return new WP_Error('forbidden', '权限不足，订单不可编辑。');
         }
-        if (self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+        if (!in_array($order->status, [self::STATUS_DRAFT, self::STATUS_PENDING_INITIAL_REVIEW], true)) {
             AEGIS_Access_Audit::record_event(
                 'ACCESS_DENIED',
                 'FAIL',
@@ -1162,6 +1167,9 @@ class AEGIS_Orders {
             $placeholders = implode(',', array_fill(0, count($args['statuses']), '%s'));
             $where[] = "o.status IN ({$placeholders})";
             $params = array_merge($params, $args['statuses']);
+        } elseif (!in_array('aegis_dealer', $roles, true)) {
+            $where[] = 'o.status != %s';
+            $params[] = self::STATUS_DRAFT;
         }
 
         $where_sql = implode(' AND ', $where);
@@ -1356,7 +1364,7 @@ class AEGIS_Orders {
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
             $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
-            if ('create_order' === $action) {
+            if (in_array($action, ['create_order', 'save_draft', 'submit_order'], true)) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
@@ -1367,6 +1375,9 @@ class AEGIS_Orders {
                         'idempotency_key' => $idempotency,
                     ]
                 );
+                $is_submit_action = 'submit_order' === $action;
+                $status = $is_submit_action ? self::STATUS_PENDING_INITIAL_REVIEW : self::STATUS_DRAFT;
+                $success_message = $is_submit_action ? '已提交，等待初审。' : '已保存草稿。';
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
                 } elseif ($dealer_blocked || !$dealer_id) {
@@ -1374,12 +1385,20 @@ class AEGIS_Orders {
                 } else {
                     $items = self::parse_item_post($_POST);
                     $note = isset($_POST['note']) ? sanitize_text_field(wp_unslash($_POST['note'])) : '';
-                    $result = self::create_portal_order($dealer, $items, $note);
+                    $result = self::create_portal_order($dealer, $items, $note, $status, $success_message);
                     if (is_wp_error($result)) {
                         $errors[] = $result->get_error_message();
                     } else {
-                        $messages[] = $result['message'];
-                        $view_id = (int) $result['order_id'];
+                        $redirect_url = add_query_arg(
+                            [
+                                'm' => 'orders',
+                                'order_id' => (int) $result['order_id'],
+                                'aegis_orders_message' => $result['message'],
+                            ],
+                            $portal_url
+                        );
+                        wp_safe_redirect($redirect_url);
+                        exit;
                     }
                 }
             } elseif ('update_order' === $action) {
@@ -1851,6 +1870,7 @@ class AEGIS_Orders {
         $price_map = ($is_dealer && $dealer && $skus) ? self::build_price_map($dealer, $skus) : [];
 
         $status_labels = [
+            self::STATUS_DRAFT                 => '草稿',
             self::STATUS_PENDING_INITIAL_REVIEW => '待初审',
             self::STATUS_PENDING_DEALER_CONFIRM => '待确认',
             self::STATUS_PENDING_HQ_PAYMENT_REVIEW => '待审核',

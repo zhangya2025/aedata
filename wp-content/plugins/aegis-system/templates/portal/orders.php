@@ -16,6 +16,7 @@ $price_map = $context['price_map'];
 $view_mode = $context['view_mode'];
 $queue_mode = $context['queue_mode'];
 $status_labels = $context['status_labels'];
+$draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
 $show_create = !empty($_GET['create']);
 $payment_status_labels = [
@@ -74,7 +75,6 @@ $payment_status_labels = [
             <?php else : ?>
                 <form method="post" class="aegis-t-a6" id="aegis-order-create-form">
                     <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                    <input type="hidden" name="order_action" value="create_order" />
                     <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                     <div class="aegis-t-a6" style="margin-bottom:8px;">经销商：<?php echo esc_html($dealer ? $dealer->dealer_name : ''); ?></div>
                     <div class="aegis-note-field">
@@ -109,7 +109,8 @@ $payment_status_labels = [
                         <?php endforeach; ?>
                     </datalist>
                     <div class="aegis-orders-actions">
-                        <button type="submit" class="button button-primary">提交订单</button>
+                        <button type="submit" name="order_action" value="save_draft" class="button">保存订单</button>
+                        <button type="submit" name="order_action" value="submit_order" class="button button-primary">保存并提交</button>
                     </div>
                 </form>
             <?php endif; ?>
@@ -167,7 +168,7 @@ $payment_status_labels = [
                         <?php if ($role_flags['can_view_all']) : ?><td class="col-number"><?php echo esc_html('¥' . number_format((float) ($row->total_amount ?? 0), 2)); ?></td><?php endif; ?>
                         <td class="col-actions">
                             <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="view">查看</button>
-                            <?php if (($role_flags['is_dealer'] && $row->status === $pending_initial_status)
+                            <?php if (($role_flags['is_dealer'] && in_array($row->status, [$draft_status, $pending_initial_status], true))
                                 || ($role_flags['can_initial_review'] && $row->status === $pending_initial_status)
                                 || ($role_flags['can_payment_review'] && $row->status === 'pending_hq_payment_review')) : ?>
                                 <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="edit">编辑</button>
