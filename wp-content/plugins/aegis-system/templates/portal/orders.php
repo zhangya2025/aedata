@@ -20,6 +20,7 @@ $processing_lock = $context['processing_lock'] ?? null;
 $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
 $cancel_form_error = $context['cancel_form_error'] ?? '';
+$cancel_decision_error = $context['cancel_decision_error'] ?? '';
 $auto_open_drawer = !empty($context['auto_open_drawer']);
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
@@ -263,7 +264,9 @@ $payment_status_labels = [
                     $cancel_requested = !empty($cancel_request['requested']) && ('pending' === ($cancel_request['decision'] ?? ''));
                     $cancel_reason = $cancel_request['reason'] ?? '';
                     $cancel_decision_note = $cancel_request['decision_note'] ?? '';
+                    $cancel_decision = $cancel_request['decision'] ?? '';
                     $cancel_reason_input = $cancel_reason;
+                    $cancel_decision_note_input = $cancel_decision_note;
                     $cancel_submitted = !empty($_GET['cancel_submitted']) && (int) ($_GET['order_id'] ?? 0) === (int) $order->id;
                     if ('POST' === $_SERVER['REQUEST_METHOD']) {
                         $post_action = isset($_POST['order_action']) ? sanitize_key(wp_unslash($_POST['order_action'])) : '';
@@ -271,7 +274,23 @@ $payment_status_labels = [
                         if ('request_cancel' === $post_action && $post_order_id === (int) $order->id) {
                             $cancel_form_error = $cancel_form_error ?: ($errors[0] ?? '');
                             $cancel_reason_input = isset($_POST['cancel_reason']) ? sanitize_text_field(wp_unslash($_POST['cancel_reason'])) : '';
+                        } elseif ('cancel_decision' === $post_action && $post_order_id === (int) $order->id) {
+                            $cancel_decision_error = $cancel_decision_error ?: ($errors[0] ?? '');
+                            $cancel_decision_note_input = isset($_POST['decision_note']) ? sanitize_text_field(wp_unslash($_POST['decision_note'])) : '';
                         }
+                    }
+                    $can_cancel_decide = $cancel_requested
+                        && (AEGIS_Orders::can_force_cancel() || AEGIS_Orders::can_approve_cancel($order));
+                    $cancel_requested_by = $cancel_request['requested_by'] ?? 0;
+                    $cancel_requested_at = $cancel_request['requested_at'] ?? '';
+                    $cancel_requested_user = $cancel_requested_by ? get_userdata((int) $cancel_requested_by) : null;
+                    $cancel_requested_name = $cancel_requested_user ? ($cancel_requested_user->display_name ?: $cancel_requested_user->user_login) : '';
+                    $cancel_requested_time = $cancel_requested_at ? wp_date('Y-m-d H:i', strtotime($cancel_requested_at)) : '';
+                    $cancel_decided_label = '';
+                    if ('approved' === $cancel_decision) {
+                        $cancel_decided_label = '已批准撤销';
+                    } elseif ('rejected' === $cancel_decision) {
+                        $cancel_decided_label = '已驳回撤销';
                     }
                     $cancel_pending_label = '';
                     if ($order->status === $pending_initial_status || $order->status === 'pending_dealer_confirm') {
@@ -292,6 +311,49 @@ $payment_status_labels = [
                             <p class="aegis-t-a6">经销商申请撤销订单（原因：<?php echo esc_html($cancel_reason ?: '未填写'); ?>）。</p>
                             <p class="aegis-t-a6">状态：撤销申请中<?php echo $cancel_pending_label ? '（待' . esc_html($cancel_pending_label) . '审批）' : ''; ?>。</p>
                         </div>
+                    <?php elseif ($cancel_decided_label) : ?>
+                        <div class="notice notice-success" style="margin-bottom:12px;">
+                            <p class="aegis-t-a6"><?php echo esc_html($cancel_decided_label); ?>。</p>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($can_cancel_decide || $cancel_decided_label) : ?>
+                        <section class="aegis-orders-drawer-section">
+                            <div class="aegis-orders-section-title aegis-t-a5">撤销审批</div>
+                            <div class="aegis-t-a6">撤销原因：<?php echo esc_html($cancel_reason ?: '未填写'); ?></div>
+                            <?php if ($cancel_requested_name) : ?>
+                                <div class="aegis-t-a6">申请人：<?php echo esc_html($cancel_requested_name); ?></div>
+                            <?php endif; ?>
+                            <?php if ($cancel_requested_time) : ?>
+                                <div class="aegis-t-a6">申请时间：<?php echo esc_html($cancel_requested_time); ?></div>
+                            <?php endif; ?>
+                            <?php if ($can_cancel_decide) : ?>
+                                <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:8px;">
+                                    <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
+                                    <input type="hidden" name="order_action" value="cancel_decision" data-aegis-allow-readonly="1" />
+                                    <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
+                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
+                                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">审批备注（可选）<br />
+                                        <textarea name="decision_note" style="width:100%; min-height:72px;" data-aegis-allow-readonly="1"><?php echo esc_textarea($cancel_decision_note_input); ?></textarea>
+                                    </label>
+                                    <?php if ($cancel_decision_error) : ?>
+                                        <p class="aegis-t-a6" style="margin-bottom:8px; color:#d63638;"><?php echo esc_html($cancel_decision_error); ?></p>
+                                    <?php endif; ?>
+                                    <div style="display:flex; gap:8px; align-items:center;">
+                                        <button type="submit" class="button button-primary" name="decision" value="approve" data-aegis-allow-readonly="1" onclick="return confirm('确认批准撤销订单吗？');">批准撤销</button>
+                                        <button type="submit" class="button" name="decision" value="reject" data-aegis-allow-readonly="1" onclick="return confirm('确认驳回撤销申请吗？');">驳回撤销</button>
+                                    </div>
+                                </form>
+                            <?php else : ?>
+                                <div class="aegis-t-a6" style="margin-top:8px;">状态：<?php echo esc_html($cancel_decided_label); ?></div>
+                                <?php if (!empty($cancel_decision_note)) : ?>
+                                    <div class="aegis-t-a6">审批备注：<?php echo esc_html($cancel_decision_note); ?></div>
+                                <?php endif; ?>
+                                <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                                    <button type="button" class="button button-primary" disabled>批准撤销</button>
+                                    <button type="button" class="button" disabled>驳回撤销</button>
+                                </div>
+                            <?php endif; ?>
+                        </section>
                     <?php endif; ?>
                     <section class="aegis-orders-drawer-section">
                         <div class="aegis-orders-section-title aegis-t-a5">基础信息</div>
