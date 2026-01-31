@@ -392,14 +392,14 @@ $payment_status_labels = [
                                 <input type="hidden" name="order_action" value="rollback_step" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">退回原因（必填）<br />
-                                    <textarea name="rollback_reason" required style="width:100%; min-height:72px;"></textarea>
+                                    <textarea name="rollback_reason" required style="width:100%; min-height:72px;" data-aegis-edit-field="1"></textarea>
                                 </label>
                                 <?php if ($order->status === 'shipped') : ?>
                                     <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">输入 ROLLBACK 以确认高风险退回<br />
-                                        <input type="text" name="rollback_confirm" required style="width:100%;" />
+                                        <input type="text" name="rollback_confirm" required style="width:100%;" data-aegis-edit-field="1" />
                                     </label>
                                 <?php endif; ?>
-                                <button type="submit" class="button" onclick="return confirm('确认退回到上一环节？退回原因必须填写。');">退回上一环节</button>
+                                <button type="submit" class="button" data-aegis-edit-action="1" onclick="return confirm('确认退回到上一环节？退回原因必须填写。');">退回上一环节</button>
                                 <span class="aegis-t-a6" style="margin-left:8px; color:#6b7280;">当前：<?php echo esc_html($order->status); ?> → 退回后：<?php echo esc_html($rollback_to_status); ?></span>
                             </form>
                         <?php endif; ?>
@@ -489,22 +489,22 @@ $payment_status_labels = [
                             <div class="aegis-orders-section-title aegis-t-a5">付款审核</div>
                             <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-bottom:8px;">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="review_payment" />
-                                <input type="hidden" name="decision" value="approve" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <button type="submit" class="button button-primary aegis-orders-primary-action">审核通过（待出库）</button>
+                                <input type="hidden" name="order_action" value="review_payment" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="decision" value="approve" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
+                                <button type="submit" class="button button-primary aegis-orders-primary-action" data-aegis-allow-readonly="1">审核通过（待出库）</button>
                             </form>
                             <form method="post" class="aegis-t-a6 aegis-orders-inline-form">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="review_payment" />
-                                <input type="hidden" name="decision" value="reject" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                <input type="hidden" name="order_action" value="review_payment" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="decision" value="reject" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
                                 <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">驳回原因（必填）<br />
-                                    <input type="text" name="review_note" required style="width:100%;" />
+                                    <input type="text" name="review_note" required style="width:100%;" data-aegis-allow-readonly="1" />
                                 </label>
-                                <button type="submit" class="button aegis-orders-secondary-action" onclick="return confirm('确认驳回并退回经销商重新提交吗？');">驳回并退回经销商</button>
+                                <button type="submit" class="button aegis-orders-secondary-action" data-aegis-allow-readonly="1" onclick="return confirm('确认驳回并退回经销商重新提交吗？');">驳回并退回经销商</button>
                             </form>
                         </section>
                     <?php elseif ($role_flags['can_payment_review']) : ?>
@@ -520,30 +520,30 @@ $payment_status_labels = [
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                                 <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">初审备注（可选）<br />
-                                    <input type="text" name="review_note" value="<?php echo esc_attr($order->review_note ?? ''); ?>" style="width:100%;" />
+                                    <input type="text" name="review_note" value="<?php echo esc_attr($order->review_note ?? ''); ?>" style="width:100%;" data-aegis-edit-field="1" />
                                 </label>
                                 <div id="aegis-order-review-items" class="aegis-t-a6" style="display:flex; flex-direction:column; gap:8px;">
                                     <?php foreach ($items as $line) : ?>
                                         <div class="order-review-row" style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;">
                                             <label class="aegis-t-a6">SKU
-                                                <input type="text" name="order_item_ean[]" value="<?php echo esc_attr($line->ean); ?>" readonly />
+                                                <input type="text" name="order_item_ean[]" value="<?php echo esc_attr($line->ean); ?>" readonly data-aegis-edit-field="1" />
                                             </label>
                                             <label class="aegis-t-a6">数量（可下调/删减）
-                                                <input type="number" name="order_item_qty[]" min="0" max="<?php echo esc_attr((int) $line->qty); ?>" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required />
+                                                <input type="number" name="order_item_qty[]" min="0" max="<?php echo esc_attr((int) $line->qty); ?>" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required data-aegis-edit-field="1" />
                                                 <span class="aegis-t-a6" style="display:block; color:#6b7280;">当前最大：<?php echo esc_html((int) $line->qty); ?></span>
                                             </label>
                                             <div class="aegis-t-a6">单价快照
                                                 <div class="aegis-t-a6" style="font-weight:bold;">¥<?php echo esc_html(number_format((float) $line->unit_price_snapshot, 2)); ?></div>
                                             </div>
                                             <div>
-                                                <button type="button" class="button order-review-remove">删除</button>
+                                                <button type="button" class="button order-review-remove" data-aegis-edit-action="1">删除</button>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                                 <div style="display:flex; gap:8px; align-items:center;">
-                                    <button type="submit" class="button aegis-orders-secondary-action" name="order_action" value="save_review_draft">保存草稿</button>
-                                    <button type="submit" class="button button-primary aegis-orders-primary-action" name="order_action" value="submit_initial_review" onclick="return confirm('确认提交初审并通知经销商确认吗？');">提交初审并通知经销商确认</button>
+                                    <button type="submit" class="button aegis-orders-secondary-action" name="order_action" value="save_review_draft" data-aegis-edit-action="1">保存草稿</button>
+                                    <button type="submit" class="button button-primary aegis-orders-primary-action" name="order_action" value="submit_initial_review" data-aegis-edit-action="1" onclick="return confirm('确认提交初审并通知经销商确认吗？');">提交初审并通知经销商确认</button>
                                 </div>
                             </form>
                             <form method="post" style="margin-top:8px;" onsubmit="return confirm('确认作废该订单吗？作废后不可恢复。');">
@@ -552,9 +552,9 @@ $payment_status_labels = [
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                                 <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">作废原因（可选）<br />
-                                    <input type="text" name="void_reason" style="width:100%;" />
+                                    <input type="text" name="void_reason" style="width:100%;" data-aegis-edit-field="1" />
                                 </label>
-                                <button type="submit" class="button">作废订单</button>
+                                <button type="submit" class="button" data-aegis-edit-action="1">作废订单</button>
                             </form>
                         </section>
                     <?php elseif ($role_flags['can_initial_review']) : ?>
@@ -568,9 +568,9 @@ $payment_status_labels = [
                             <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                             <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
                             <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">作废原因（可选）<br />
-                                <input type="text" name="void_reason" style="width:100%;" />
+                                <input type="text" name="void_reason" style="width:100%;" data-aegis-edit-field="1" />
                             </label>
-                            <button type="submit" class="button">删除/作废订单</button>
+                            <button type="submit" class="button" data-aegis-edit-action="1">删除/作废订单</button>
                         </form>
                     <?php endif; ?>
 
@@ -586,7 +586,7 @@ $payment_status_labels = [
                                     <button type="button" class="aegis-note-toggle" aria-expanded="false">添加备注</button>
                                     <div class="aegis-note-panel" hidden>
                                         <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">备注（可选）<br />
-                                            <input type="text" name="note" value="<?php echo esc_attr($order->note); ?>" style="width:100%;" />
+                                            <input type="text" name="note" value="<?php echo esc_attr($order->note); ?>" style="width:100%;" data-aegis-edit-field="1" />
                                         </label>
                                     </div>
                                 </div>
@@ -595,24 +595,24 @@ $payment_status_labels = [
                                         <?php foreach ($items as $line) : ?>
                                             <div class="order-item-row" style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;">
                                                 <label class="aegis-t-a6">SKU
-                                                    <input list="aegis-sku-list" name="order_item_ean[]" value="<?php echo esc_attr($line->ean); ?>" required />
+                                                    <input list="aegis-sku-list" name="order_item_ean[]" value="<?php echo esc_attr($line->ean); ?>" required data-aegis-edit-field="1" />
                                                 </label>
                                                 <label class="aegis-t-a6">数量
-                                                    <input type="number" name="order_item_qty[]" min="1" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required />
+                                                    <input type="number" name="order_item_qty[]" min="1" step="1" value="<?php echo esc_attr((int) $line->qty); ?>" required data-aegis-edit-field="1" />
                                                 </label>
                                                 <div class="aegis-t-a6">单价
                                                     <div class="aegis-t-a6 order-item-price" style="font-weight:bold;">—</div>
                                                 </div>
                                                 <div class="aegis-order-row-actions">
-                                                    <button type="button" class="aegis-row-add" aria-label="新增一行">＋</button>
-                                                    <button type="button" class="aegis-row-del" aria-label="删除此行">－</button>
+                                                    <button type="button" class="aegis-row-add" aria-label="新增一行" data-aegis-edit-action="1">＋</button>
+                                                    <button type="button" class="aegis-row-del" aria-label="删除此行" data-aegis-edit-action="1">－</button>
                                                 </div>
                                             </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div>
                                 <div class="aegis-order-edit-actions">
-                                    <button type="submit" class="button aegis-orders-secondary-action">保存修改</button>
+                                    <button type="submit" class="button aegis-orders-secondary-action" data-aegis-edit-action="1">保存修改</button>
                                 </div>
                             </form>
                             <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认撤销该草稿吗？撤销后不可再编辑。');">
@@ -620,14 +620,14 @@ $payment_status_labels = [
                                 <input type="hidden" name="order_action" value="cancel_order" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <button type="submit" class="button">撤销草稿</button>
+                                <button type="submit" class="button" data-aegis-edit-action="1">撤销草稿</button>
                             </form>
                             <form method="post" class="aegis-order-edit-actions" onsubmit="return confirm('确认提交该草稿进入待初审吗？');">
                                 <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
                                 <input type="hidden" name="order_action" value="submit_draft" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <button type="submit" class="button button-primary aegis-orders-primary-action">提交草稿</button>
+                                <button type="submit" class="button button-primary aegis-orders-primary-action" data-aegis-edit-action="1">提交草稿</button>
                             </form>
                         </section>
                     <?php elseif ($role_flags['is_dealer'] && $order->status === $pending_initial_status) : ?>
@@ -640,7 +640,7 @@ $payment_status_labels = [
                                 <input type="hidden" name="order_action" value="withdraw_order" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
                                 <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <button type="submit" class="button">撤回提交</button>
+                                <button type="submit" class="button" data-aegis-edit-action="1">撤回提交</button>
                             </form>
                         <?php endif; ?>
                     <?php elseif ($role_flags['is_dealer'] && $order->status === 'pending_dealer_confirm') : ?>
@@ -908,14 +908,24 @@ $payment_status_labels = [
         drawer.dataset.mode = mode;
         const isReadOnly = mode === 'view';
         drawerContent.querySelectorAll('input, select, textarea, button').forEach((field) => {
-            if (field.dataset.aegisAllowReadonly === '1') {
-                return;
-            }
             if (!field.dataset.aegisOriginalDisabled) {
                 field.dataset.aegisOriginalDisabled = field.disabled ? '1' : '0';
             }
+
+            const allowReadonly = field.dataset.aegisAllowReadonly === '1' || field.type === 'hidden';
+            const isEditField = field.dataset.aegisEditField === '1';
+            const isEditAction = field.dataset.aegisEditAction === '1';
+
             if (isReadOnly) {
-                field.disabled = true;
+                if (allowReadonly) {
+                    field.disabled = false;
+                } else if (isEditField || isEditAction) {
+                    field.disabled = true;
+                } else if (field.dataset.aegisOriginalDisabled === '1') {
+                    field.disabled = true;
+                } else {
+                    field.disabled = false;
+                }
             } else if (field.dataset.aegisOriginalDisabled === '0') {
                 field.disabled = false;
             }
@@ -927,7 +937,9 @@ $payment_status_labels = [
             footerPrimary.disabled = isReadOnly ? !allowPrimary : footerPrimary.disabled;
         }
         if (footerSecondary) {
-            footerSecondary.disabled = isReadOnly || footerSecondary.disabled;
+            const secondaryAction = drawerContent.querySelector('.aegis-orders-secondary-action');
+            const allowSecondary = secondaryAction && secondaryAction.dataset.aegisAllowReadonly === '1';
+            footerSecondary.disabled = isReadOnly ? !allowSecondary : footerSecondary.disabled;
         }
     };
 
