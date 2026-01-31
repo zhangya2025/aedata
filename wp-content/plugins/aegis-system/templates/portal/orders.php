@@ -316,7 +316,7 @@ $payment_status_labels = [
                             <p class="aegis-t-a6"><?php echo esc_html($cancel_decided_label); ?>。</p>
                         </div>
                     <?php endif; ?>
-                    <?php if ($can_cancel_decide) : ?>
+                    <?php if ($can_cancel_decide || $cancel_decided_label) : ?>
                         <section class="aegis-orders-drawer-section">
                             <div class="aegis-orders-section-title aegis-t-a5">撤销审批</div>
                             <div class="aegis-t-a6">撤销原因：<?php echo esc_html($cancel_reason ?: '未填写'); ?></div>
@@ -326,59 +326,33 @@ $payment_status_labels = [
                             <?php if ($cancel_requested_time) : ?>
                                 <div class="aegis-t-a6">申请时间：<?php echo esc_html($cancel_requested_time); ?></div>
                             <?php endif; ?>
-                            <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:8px;">
-                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="cancel_decision" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">审批备注（可选）<br />
-                                    <textarea name="decision_note" style="width:100%; min-height:72px;"><?php echo esc_textarea($cancel_decision_note_input); ?></textarea>
-                                </label>
-                                <?php if ($cancel_decision_error) : ?>
-                                    <p class="aegis-t-a6" style="margin-bottom:8px; color:#d63638;"><?php echo esc_html($cancel_decision_error); ?></p>
+                            <?php if ($can_cancel_decide) : ?>
+                                <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:8px;">
+                                    <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
+                                    <input type="hidden" name="order_action" value="cancel_decision" data-aegis-allow-readonly="1" />
+                                    <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
+                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
+                                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">审批备注（可选）<br />
+                                        <textarea name="decision_note" style="width:100%; min-height:72px;" data-aegis-allow-readonly="1"><?php echo esc_textarea($cancel_decision_note_input); ?></textarea>
+                                    </label>
+                                    <?php if ($cancel_decision_error) : ?>
+                                        <p class="aegis-t-a6" style="margin-bottom:8px; color:#d63638;"><?php echo esc_html($cancel_decision_error); ?></p>
+                                    <?php endif; ?>
+                                    <div style="display:flex; gap:8px; align-items:center;">
+                                        <button type="submit" class="button button-primary" name="decision" value="approve" data-aegis-allow-readonly="1" onclick="return confirm('确认批准撤销订单吗？');">批准撤销</button>
+                                        <button type="submit" class="button" name="decision" value="reject" data-aegis-allow-readonly="1" onclick="return confirm('确认驳回撤销申请吗？');">驳回撤销</button>
+                                    </div>
+                                </form>
+                            <?php else : ?>
+                                <div class="aegis-t-a6" style="margin-top:8px;">状态：<?php echo esc_html($cancel_decided_label); ?></div>
+                                <?php if (!empty($cancel_decision_note)) : ?>
+                                    <div class="aegis-t-a6">审批备注：<?php echo esc_html($cancel_decision_note); ?></div>
                                 <?php endif; ?>
-                                <div style="display:flex; gap:8px; align-items:center;">
-                                    <button type="submit" class="button button-primary" name="decision" value="approve" onclick="return confirm('确认批准撤销订单吗？');">批准撤销</button>
-                                    <button type="submit" class="button" name="decision" value="reject" onclick="return confirm('确认驳回撤销申请吗？');">驳回撤销</button>
+                                <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                                    <button type="button" class="button button-primary" disabled>批准撤销</button>
+                                    <button type="button" class="button" disabled>驳回撤销</button>
                                 </div>
-                            </form>
-                        </section>
-                    <?php elseif ($cancel_decided_label) : ?>
-                        <section class="aegis-orders-drawer-section">
-                            <div class="aegis-orders-section-title aegis-t-a5">撤销审批</div>
-                            <div class="aegis-t-a6">状态：<?php echo esc_html($cancel_decided_label); ?></div>
-                            <?php if (!empty($cancel_decision_note)) : ?>
-                                <div class="aegis-t-a6">审批备注：<?php echo esc_html($cancel_decision_note); ?></div>
                             <?php endif; ?>
-                            <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-                                <button type="button" class="button button-primary" disabled>批准撤销</button>
-                                <button type="button" class="button" disabled>驳回撤销</button>
-                            </div>
-                        </section>
-                    <?php endif; ?>
-                    <?php if ($can_cancel_decide) : ?>
-                        <section class="aegis-orders-drawer-section">
-                            <div class="aegis-orders-section-title aegis-t-a5">撤销审批</div>
-                            <div class="aegis-t-a6">撤销原因：<?php echo esc_html($cancel_reason ?: '未填写'); ?></div>
-                            <?php if ($cancel_requested_name) : ?>
-                                <div class="aegis-t-a6">申请人：<?php echo esc_html($cancel_requested_name); ?></div>
-                            <?php endif; ?>
-                            <?php if ($cancel_requested_time) : ?>
-                                <div class="aegis-t-a6">申请时间：<?php echo esc_html($cancel_requested_time); ?></div>
-                            <?php endif; ?>
-                            <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:8px;">
-                                <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
-                                <input type="hidden" name="order_action" value="cancel_decision" />
-                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">审批备注（可选）<br />
-                                    <textarea name="decision_note" style="width:100%; min-height:72px;"><?php echo esc_textarea($cancel_decision_note_input); ?></textarea>
-                                </label>
-                                <div style="display:flex; gap:8px; align-items:center;">
-                                    <button type="submit" class="button button-primary" name="decision" value="approve" onclick="return confirm('确认批准撤销订单吗？');">批准撤销</button>
-                                    <button type="submit" class="button" name="decision" value="reject" onclick="return confirm('确认驳回撤销申请吗？');">驳回撤销</button>
-                                </div>
-                            </form>
                         </section>
                     <?php endif; ?>
                     <section class="aegis-orders-drawer-section">
