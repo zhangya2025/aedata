@@ -48,6 +48,18 @@
     const drawer = document.getElementById('aegis-orders-drawer');
     const drawerContent = document.getElementById('aegis-orders-drawer-content');
 
+    const canonicalizeUrl = (inputUrl) => {
+        try {
+            const url = new URL(inputUrl, window.location.href);
+            if (url.pathname.includes('/index.php/')) {
+                url.pathname = url.pathname.replace('/index.php/', '/');
+            }
+            return url.toString();
+        } catch (error) {
+            return inputUrl;
+        }
+    };
+
     const refreshFromHtml = (html) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -99,7 +111,7 @@
             submitButton.textContent = '提交中…';
         }
 
-        const actionUrl = form.getAttribute('action') || window.location.href;
+        const actionUrl = canonicalizeUrl(form.getAttribute('action') || window.location.href);
 
         fetch(actionUrl, {
             method: 'POST',
@@ -109,7 +121,7 @@
             .then((response) => response.text().then((html) => ({ response, html })))
             .then(({ response, html }) => {
                 if (response.url) {
-                    window.history.replaceState({}, '', response.url);
+                    window.history.replaceState({}, '', canonicalizeUrl(response.url));
                 }
                 refreshFromHtml(html);
             })
