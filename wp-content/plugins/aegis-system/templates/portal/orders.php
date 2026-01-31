@@ -864,6 +864,23 @@ $payment_status_labels = [
         return;
     }
 
+    const canonicalizeUrl = (inputUrl) => {
+        try {
+            const url = new URL(inputUrl, window.location.href);
+            if (url.pathname.includes('/index.php/')) {
+                url.pathname = url.pathname.replace('/index.php/', '/');
+            }
+            return url.toString();
+        } catch (error) {
+            return inputUrl;
+        }
+    };
+
+    const canonicalLocation = canonicalizeUrl(window.location.href);
+    if (canonicalLocation !== window.location.href) {
+        window.history.replaceState(null, '', canonicalLocation);
+    }
+
     const setFooterState = () => {
         const primaryAction = drawerContent.querySelector('.aegis-orders-primary-action');
         const secondaryAction = drawerContent.querySelector('.aegis-orders-secondary-action');
@@ -955,7 +972,7 @@ $payment_status_labels = [
         drawer.setAttribute('aria-hidden', 'true');
         const url = new URL(window.location.href);
         url.searchParams.delete('order_id');
-        window.history.replaceState({}, '', url.toString());
+        window.history.replaceState({}, '', canonicalizeUrl(url.toString()));
     };
 
     drawerCloseButtons.forEach((button) => button.addEventListener('click', closeDrawer));
@@ -966,7 +983,8 @@ $payment_status_labels = [
             return;
         }
 
-        const fetchUrl = new URL(url, window.location.href);
+        const canonicalUrl = canonicalizeUrl(url);
+        const fetchUrl = new URL(canonicalUrl, window.location.href);
         fetchUrl.searchParams.set('_drawer_ts', Date.now().toString());
 
         fetch(fetchUrl.toString(), { cache: 'no-store', credentials: 'same-origin' })
@@ -988,7 +1006,7 @@ $payment_status_labels = [
                     }
                 }
                 openDrawer(mode);
-                window.history.replaceState({}, '', url);
+                window.history.replaceState({}, '', canonicalUrl);
             })
             .catch(() => {
                 openDrawer(mode);
@@ -999,14 +1017,14 @@ $payment_status_labels = [
         button.addEventListener('click', () => {
             const url = button.getAttribute('data-order-url');
             const mode = button.getAttribute('data-mode') || 'view';
-            refreshDrawer(url, mode);
+            refreshDrawer(canonicalizeUrl(url), mode);
         });
     });
 
     if (window.location.search.includes('order_id=')) {
         openDrawer('view');
     } else if (drawer.dataset.autoOpen === '1') {
-        refreshDrawer(drawer.dataset.orderUrl, 'view');
+        refreshDrawer(canonicalizeUrl(drawer.dataset.orderUrl), 'view');
     }
 })();
 </script>

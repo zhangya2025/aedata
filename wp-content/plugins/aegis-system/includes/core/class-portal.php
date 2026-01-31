@@ -560,7 +560,7 @@ class AEGIS_Portal {
 
         if (!empty($structure)) {
             $pretty = home_url('/' . self::PORTAL_SLUG . '/');
-            $use_pretty = apply_filters('aegis_portal_use_pretty_links', false, $pretty, $fallback);
+            $use_pretty = apply_filters('aegis_portal_use_pretty_links', true, $pretty, $fallback);
 
             if ($use_pretty) {
                 return $pretty;
