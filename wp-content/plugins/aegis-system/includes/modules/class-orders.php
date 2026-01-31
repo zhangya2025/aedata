@@ -1474,6 +1474,10 @@ class AEGIS_Orders {
             return '<div class="aegis-t-a5">模块未启用。</div>';
         }
 
+        if (is_user_logged_in()) {
+            nocache_headers();
+        }
+
         $user = wp_get_current_user();
         $roles = (array) ($user ? $user->roles : []);
         $is_dealer = in_array('aegis_dealer', $roles, true);
