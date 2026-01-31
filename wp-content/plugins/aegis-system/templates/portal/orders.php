@@ -874,7 +874,10 @@ $payment_status_labels = [
             const mode = button.getAttribute('data-mode') || 'view';
             if (!url) return;
 
-            fetch(url, { credentials: 'same-origin' })
+            const fetchUrl = new URL(url, window.location.href);
+            fetchUrl.searchParams.set('_aegis_drawer_ts', Date.now().toString());
+
+            fetch(fetchUrl.toString(), { cache: 'no-store', credentials: 'same-origin' })
                 .then((response) => response.text())
                 .then((html) => {
                     const parser = new DOMParser();
