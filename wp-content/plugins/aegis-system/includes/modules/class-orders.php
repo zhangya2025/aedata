@@ -1536,6 +1536,7 @@ class AEGIS_Orders {
         $view_id = 0;
         $auto_open_drawer = false;
         $cancel_form_error = '';
+        $cancel_decision_error = '';
         if (isset($_GET['aegis_orders_message'])) {
             $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_orders_message']));
         }
@@ -1920,7 +1921,9 @@ class AEGIS_Orders {
                 $view_id = (int) $order_id;
                 $auto_open_drawer = true;
                 if (!$validation['success']) {
-                    $errors[] = $validation['message'];
+                    $decision_error = new WP_Error('validation_failed', $validation['message']);
+                    $errors[] = $decision_error->get_error_message();
+                    $cancel_decision_error = $decision_error->get_error_message();
                     AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
                         'order_id'    => (int) $order_id,
                         'decision'    => $decision,
@@ -1929,7 +1932,9 @@ class AEGIS_Orders {
                         'actor_id'    => get_current_user_id(),
                     ]);
                 } elseif (!$order) {
-                    $errors[] = '无效的订单。';
+                    $decision_error = new WP_Error('invalid_order', '无效的订单。');
+                    $errors[] = $decision_error->get_error_message();
+                    $cancel_decision_error = $decision_error->get_error_message();
                     AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
                         'order_id'    => (int) $order_id,
                         'decision'    => $decision,
@@ -1942,7 +1947,9 @@ class AEGIS_Orders {
                     $has_pending = !empty($cancel_request['requested']) && ('pending' === ($cancel_request['decision'] ?? ''));
                     $can_decide = self::can_force_cancel() || self::can_approve_cancel($order);
                     if (!$has_pending) {
-                        $errors[] = '当前无待审批的撤销申请。';
+                        $decision_error = new WP_Error('no_pending_request', '当前无待审批的撤销申请。');
+                        $errors[] = $decision_error->get_error_message();
+                        $cancel_decision_error = $decision_error->get_error_message();
                         AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
                             'order_id'    => (int) $order->id,
                             'order_no'    => $order->order_no,
@@ -1952,7 +1959,9 @@ class AEGIS_Orders {
                             'actor_id'    => get_current_user_id(),
                         ]);
                     } elseif (!$can_decide) {
-                        $errors[] = '权限不足，无法审批撤销。';
+                        $decision_error = new WP_Error('forbidden', '权限不足，无法审批撤销。');
+                        $errors[] = $decision_error->get_error_message();
+                        $cancel_decision_error = $decision_error->get_error_message();
                         AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
                             'order_id'    => (int) $order->id,
                             'order_no'    => $order->order_no,
@@ -1962,7 +1971,9 @@ class AEGIS_Orders {
                             'actor_id'    => get_current_user_id(),
                         ]);
                     } elseif (!in_array($decision, ['approve', 'reject'], true)) {
-                        $errors[] = '无效的审批动作。';
+                        $decision_error = new WP_Error('invalid_decision', '无效的审批动作。');
+                        $errors[] = $decision_error->get_error_message();
+                        $cancel_decision_error = $decision_error->get_error_message();
                         AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
                             'order_id'    => (int) $order->id,
                             'order_no'    => $order->order_no,
@@ -1984,9 +1995,14 @@ class AEGIS_Orders {
                             'decided_at'    => current_time('mysql'),
                         ];
                         $updated = self::update_cancel_request($order->id, $decision_payload);
+                        $updated_order = $updated ? self::get_order($order->id) : null;
+                        $updated_cancel = $updated_order ? self::get_cancel_request($updated_order) : null;
+                        $decision_synced = $updated_cancel && ($updated_cancel['decision'] ?? '') === $decision_value;
                         if (!$updated) {
                             global $wpdb;
-                            $errors[] = '撤销审批失败，请稍后再试。';
+                            $decision_error = new WP_Error('db_error', '撤销审批失败，请稍后再试。');
+                            $errors[] = $decision_error->get_error_message();
+                            $cancel_decision_error = $decision_error->get_error_message();
                             AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
                                 'order_id'    => (int) $order->id,
                                 'order_no'    => $order->order_no,
@@ -1995,6 +2011,18 @@ class AEGIS_Orders {
                                 'path'        => $request_path,
                                 'actor_id'    => get_current_user_id(),
                                 'db_error'    => $wpdb->last_error,
+                            ]);
+                        } elseif (!$decision_synced) {
+                            $decision_error = new WP_Error('db_error', '撤销审批失败，请稍后再试。');
+                            $errors[] = $decision_error->get_error_message();
+                            $cancel_decision_error = $decision_error->get_error_message();
+                            AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
+                                'order_id'    => (int) $order->id,
+                                'order_no'    => $order->order_no,
+                                'decision'    => $decision_value,
+                                'reason_code' => 'db_error',
+                                'path'        => $request_path,
+                                'actor_id'    => get_current_user_id(),
                             ]);
                         } elseif ('approved' === $decision_value) {
                             global $wpdb;
@@ -2009,14 +2037,18 @@ class AEGIS_Orders {
                                 ['%s', '%s'],
                                 ['%d']
                             );
-                            if (false === $updated_status) {
+                            $status_order = false === $updated_status ? null : self::get_order($order->id);
+                            $status_synced = $status_order && self::STATUS_CANCELLED === $status_order->status;
+                            if (false === $updated_status || !$status_synced) {
                                 self::update_cancel_request($order->id, [
                                     'decision'      => 'pending',
                                     'decision_note' => '',
                                     'decided_by'    => null,
                                     'decided_at'    => null,
                                 ]);
-                                $errors[] = '撤销审批失败，请稍后再试。';
+                                $decision_error = new WP_Error('db_error', '撤销审批失败，请稍后再试。');
+                                $errors[] = $decision_error->get_error_message();
+                                $cancel_decision_error = $decision_error->get_error_message();
                                 AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
                                     'order_id'    => (int) $order->id,
                                     'order_no'    => $order->order_no,
@@ -2033,7 +2065,7 @@ class AEGIS_Orders {
                                     'actor_id'  => get_current_user_id(),
                                     'decision'  => $decision_value,
                                 ]);
-                                $messages[] = '撤销申请已批准，订单已撤销。';
+                                $messages[] = '已批准撤销，订单已进入取消终态。';
                             }
                         } else {
                             AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'SUCCESS', [
@@ -2482,6 +2514,7 @@ class AEGIS_Orders {
             'processing_lock' => $processing_lock,
             'cancel_request' => $cancel_request,
             'cancel_form_error' => $cancel_form_error,
+            'cancel_decision_error' => $cancel_decision_error,
             'filters'        => [
                 'start_date'  => $start_date,
                 'end_date'    => $end_date,
