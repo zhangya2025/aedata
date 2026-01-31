@@ -22,6 +22,14 @@ $cancel_request = $context['cancel_request'] ?? null;
 $cancel_form_error = $context['cancel_form_error'] ?? '';
 $cancel_decision_error = $context['cancel_decision_error'] ?? '';
 $auto_open_drawer = !empty($context['auto_open_drawer']);
+$drawer_order_url = '';
+if ($order) {
+    $drawer_params = ['order_id' => $order->id];
+    if ($queue_mode) {
+        $drawer_params['view'] = $view_mode;
+    }
+    $drawer_order_url = add_query_arg($drawer_params, $base_url);
+}
 $draft_status = AEGIS_Orders::STATUS_DRAFT;
 $pending_initial_status = AEGIS_Orders::STATUS_PENDING_INITIAL_REVIEW;
 $show_create = !empty($_GET['create']);
@@ -244,7 +252,7 @@ $payment_status_labels = [
 
 </div>
 
-<aside id="aegis-orders-drawer" class="aegis-orders-drawer" hidden aria-hidden="true" <?php echo $auto_open_drawer ? 'data-auto-open="1"' : ''; ?>>
+<aside id="aegis-orders-drawer" class="aegis-orders-drawer" hidden aria-hidden="true" <?php echo $auto_open_drawer ? 'data-auto-open="1"' : ''; ?><?php echo $drawer_order_url ? ' data-order-url="' . esc_url($drawer_order_url) . '"' : ''; ?>>
     <div class="aegis-orders-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="aegis-orders-drawer-title">
         <div class="aegis-orders-drawer-header">
             <div class="aegis-t-a4" id="aegis-orders-drawer-title">订单详情</div>
@@ -328,7 +336,12 @@ $payment_status_labels = [
                             <?php endif; ?>
                             <?php if ($can_cancel_decide) : ?>
                                 <form method="post" class="aegis-t-a6 aegis-orders-inline-form" style="margin-top:8px;">
-                                    <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
+                                    <?php
+                                    $nonce_field = wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce', true, false);
+                                    $nonce_field = str_replace('name="aegis_orders_nonce"', 'name="aegis_orders_nonce" data-aegis-allow-readonly="1"', $nonce_field);
+                                    $nonce_field = str_replace('name="_wp_http_referer"', 'name="_wp_http_referer" data-aegis-allow-readonly="1"', $nonce_field);
+                                    echo $nonce_field;
+                                    ?>
                                     <input type="hidden" name="order_action" value="cancel_decision" data-aegis-allow-readonly="1" />
                                     <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
                                     <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" data-aegis-allow-readonly="1" />
@@ -653,7 +666,12 @@ $payment_status_labels = [
                             <p class="aegis-t-a6" style="margin-top:8px; color:#6b7280;">订单已完成不可撤销。</p>
                         <?php elseif ($dealer_cancel_allowed && !$cancel_requested) : ?>
                             <form method="post" class="aegis-t-a6 aegis-orders-inline-form aegis-cancel-form" style="margin-top:12px;">
-                                <input type="hidden" name="aegis_orders_nonce" value="<?php echo esc_attr(wp_create_nonce('aegis_orders_action')); ?>" data-aegis-allow-readonly="1" />
+                                <?php
+                                $nonce_field = wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce', true, false);
+                                $nonce_field = str_replace('name="aegis_orders_nonce"', 'name="aegis_orders_nonce" data-aegis-allow-readonly="1"', $nonce_field);
+                                $nonce_field = str_replace('name="_wp_http_referer"', 'name="_wp_http_referer" data-aegis-allow-readonly="1"', $nonce_field);
+                                echo $nonce_field;
+                                ?>
                                 <input type="hidden" name="order_action" value="request_cancel" data-aegis-allow-readonly="1" />
                                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order->id); ?>" data-aegis-allow-readonly="1" />
                                 <?php if ($cancel_form_error) : ?>
@@ -930,46 +948,53 @@ $payment_status_labels = [
 
     drawerCloseButtons.forEach((button) => button.addEventListener('click', closeDrawer));
 
+    const refreshDrawer = (url, mode) => {
+        if (!url) {
+            openDrawer(mode);
+            return;
+        }
+
+        const fetchUrl = new URL(url, window.location.href);
+        fetchUrl.searchParams.set('_drawer_ts', Date.now().toString());
+
+        fetch(fetchUrl.toString(), { cache: 'no-store', credentials: 'same-origin' })
+            .then((response) => response.text())
+            .then((html) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const nextContent = doc.querySelector('#aegis-orders-drawer-content');
+                if (nextContent) {
+                    drawerContent.innerHTML = nextContent.innerHTML;
+                    if (window.AegisOrders && typeof window.AegisOrders.initPriceMap === 'function') {
+                        window.AegisOrders.initPriceMap(drawerContent);
+                    }
+                    if (window.AegisOrders && typeof window.AegisOrders.initReview === 'function') {
+                        window.AegisOrders.initReview(drawerContent);
+                    }
+                    if (window.AegisOrders && typeof window.AegisOrders.initNotes === 'function') {
+                        window.AegisOrders.initNotes(drawerContent);
+                    }
+                }
+                openDrawer(mode);
+                window.history.replaceState({}, '', url);
+            })
+            .catch(() => {
+                openDrawer(mode);
+            });
+    };
+
     ordersPage.querySelectorAll('.aegis-orders-open-drawer').forEach((button) => {
         button.addEventListener('click', () => {
             const url = button.getAttribute('data-order-url');
             const mode = button.getAttribute('data-mode') || 'view';
-            if (!url) return;
-
-            const fetchUrl = new URL(url, window.location.href);
-            fetchUrl.searchParams.set('_aegis_drawer_ts', Date.now().toString());
-
-            fetch(fetchUrl.toString(), { cache: 'no-store', credentials: 'same-origin' })
-                .then((response) => response.text())
-                .then((html) => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const nextContent = doc.querySelector('#aegis-orders-drawer-content');
-                    if (nextContent) {
-                        drawerContent.innerHTML = nextContent.innerHTML;
-                        if (window.AegisOrders && typeof window.AegisOrders.initPriceMap === 'function') {
-                            window.AegisOrders.initPriceMap(drawerContent);
-                        }
-                        if (window.AegisOrders && typeof window.AegisOrders.initReview === 'function') {
-                            window.AegisOrders.initReview(drawerContent);
-                        }
-                        if (window.AegisOrders && typeof window.AegisOrders.initNotes === 'function') {
-                            window.AegisOrders.initNotes(drawerContent);
-                        }
-                    }
-                    openDrawer(mode);
-                    window.history.replaceState({}, '', url);
-                })
-                .catch(() => {
-                    openDrawer(mode);
-                });
+            refreshDrawer(url, mode);
         });
     });
 
     if (window.location.search.includes('order_id=')) {
         openDrawer('view');
     } else if (drawer.dataset.autoOpen === '1') {
-        openDrawer('view');
+        refreshDrawer(drawer.dataset.orderUrl, 'view');
     }
 })();
 </script>

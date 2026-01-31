@@ -1474,9 +1474,7 @@ class AEGIS_Orders {
             return '<div class="aegis-t-a5">模块未启用。</div>';
         }
 
-        if (is_user_logged_in()) {
-            nocache_headers();
-        }
+        nocache_headers();
 
         $user = wp_get_current_user();
         $roles = (array) ($user ? $user->roles : []);
@@ -1599,6 +1597,8 @@ class AEGIS_Orders {
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$is_dealer || !$order || !$dealer) {
                     AEGIS_Access_Audit::record_event(
                         'ACCESS_DENIED',
@@ -1635,6 +1635,8 @@ class AEGIS_Orders {
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$is_dealer || !$order || !$dealer) {
                     $errors[] = '无效的订单。';
                 } elseif ((int) $order->dealer_id !== (int) $dealer->id) {
@@ -1693,6 +1695,8 @@ class AEGIS_Orders {
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$is_dealer || !$order || !$dealer) {
                     $errors[] = '权限不足，无法撤回订单。';
                 } elseif ((int) $order->dealer_id !== (int) $dealer->id) {
@@ -1743,6 +1747,8 @@ class AEGIS_Orders {
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$is_dealer || !$order) {
                     $errors[] = '无效的订单。';
                 } else {
@@ -2094,6 +2100,8 @@ class AEGIS_Orders {
                 $is_submit_action = in_array($action, ['submit_initial_review', 'review_order', 'initial_review_submit'], true);
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                     if ($is_submit_action) {
                         AEGIS_Access_Audit::record_event(
                             AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
@@ -2182,6 +2190,8 @@ class AEGIS_Orders {
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$can_initial_review || !$order) {
                     $errors[] = '无效的订单。';
                 } else {
@@ -2289,6 +2299,8 @@ class AEGIS_Orders {
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$is_dealer || !$order) {
                     AEGIS_Access_Audit::record_event(
                         AEGIS_System::ACTION_PAYMENT_PROOF_UPLOAD,
@@ -2324,6 +2336,8 @@ class AEGIS_Orders {
                 $order = $order_id ? self::get_order($order_id) : null;
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$is_dealer || !$order) {
                     $errors[] = '无效的订单。';
                 } else {
@@ -2353,6 +2367,8 @@ class AEGIS_Orders {
                 $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
                 if (!$validation['success']) {
                     $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
                 } elseif (!$can_payment_review || !$order) {
                     $audit_action = ('reject' === $decision) ? AEGIS_System::ACTION_PAYMENT_REVIEW_REJECT : AEGIS_System::ACTION_PAYMENT_REVIEW_APPROVE;
                     AEGIS_Access_Audit::record_event(
