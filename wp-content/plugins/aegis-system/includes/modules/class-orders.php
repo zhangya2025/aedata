@@ -1952,6 +1952,10 @@ class AEGIS_Orders {
                     $cancel_request = self::get_cancel_request($order);
                     $has_pending = !empty($cancel_request['requested']) && ('pending' === ($cancel_request['decision'] ?? ''));
                     $can_decide = self::can_force_cancel() || self::can_approve_cancel($order);
+                    $current_user_id = get_current_user_id();
+                    $requested_by = (int) ($cancel_request['requested_by'] ?? 0);
+                    $current_roles = AEGIS_System_Roles::get_user_roles();
+                    $is_dealer = in_array('aegis_dealer', $current_roles, true);
                     if (!$has_pending) {
                         $decision_error = new WP_Error('no_pending_request', '当前无待审批的撤销申请。');
                         $errors[] = $decision_error->get_error_message();
@@ -1963,6 +1967,18 @@ class AEGIS_Orders {
                             'reason_code' => 'no_pending_request',
                             'path'        => $request_path,
                             'actor_id'    => get_current_user_id(),
+                        ]);
+                    } elseif ($is_dealer || ($requested_by && $requested_by === (int) $current_user_id)) {
+                        $decision_error = new WP_Error('forbidden', '权限不足，无法审批撤销。');
+                        $errors[] = $decision_error->get_error_message();
+                        $cancel_decision_error = $decision_error->get_error_message();
+                        AEGIS_Access_Audit::record_event('CANCEL_DECISION', 'FAIL', [
+                            'order_id'    => (int) $order->id,
+                            'order_no'    => $order->order_no,
+                            'decision'    => $decision,
+                            'reason_code' => 'forbidden',
+                            'path'        => $request_path,
+                            'actor_id'    => $current_user_id,
                         ]);
                     } elseif (!$can_decide) {
                         $decision_error = new WP_Error('forbidden', '权限不足，无法审批撤销。');
