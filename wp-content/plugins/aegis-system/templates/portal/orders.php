@@ -287,9 +287,15 @@ $payment_status_labels = [
                             $cancel_decision_note_input = isset($_POST['decision_note']) ? sanitize_text_field(wp_unslash($_POST['decision_note'])) : '';
                         }
                     }
-                    $can_cancel_decide = $cancel_requested
+                    $current_user_id = get_current_user_id();
+                    $current_roles = AEGIS_System_Roles::get_user_roles();
+                    $is_dealer = in_array('aegis_dealer', $current_roles, true);
+                    $current_user_can_approve_cancel = $cancel_requested
                         && (AEGIS_Orders::can_force_cancel() || AEGIS_Orders::can_approve_cancel($order));
                     $cancel_requested_by = $cancel_request['requested_by'] ?? 0;
+                    $can_cancel_decide = $current_user_can_approve_cancel
+                        && !$is_dealer
+                        && (!$cancel_requested_by || (int) $cancel_requested_by !== (int) $current_user_id);
                     $cancel_requested_at = $cancel_request['requested_at'] ?? '';
                     $cancel_requested_user = $cancel_requested_by ? get_userdata((int) $cancel_requested_by) : null;
                     $cancel_requested_name = $cancel_requested_user ? ($cancel_requested_user->display_name ?: $cancel_requested_user->user_login) : '';
@@ -324,7 +330,7 @@ $payment_status_labels = [
                             <p class="aegis-t-a6"><?php echo esc_html($cancel_decided_label); ?>。</p>
                         </div>
                     <?php endif; ?>
-                    <?php if ($can_cancel_decide || $cancel_decided_label) : ?>
+                    <?php if ($can_cancel_decide) : ?>
                         <section class="aegis-orders-drawer-section">
                             <div class="aegis-orders-section-title aegis-t-a5">撤销审批</div>
                             <div class="aegis-t-a6">撤销原因：<?php echo esc_html($cancel_reason ?: '未填写'); ?></div>
