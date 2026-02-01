@@ -2646,6 +2646,7 @@ class AEGIS_Orders {
         $payment = $order ? self::get_payment_record($order->id) : null;
         $skus = $is_dealer ? self::list_active_skus() : [];
         $price_map = ($is_dealer && $dealer && $skus) ? self::build_price_map($dealer, $skus) : [];
+        $cancel_success_map = $orders ? self::get_cancel_success_map($orders) : [];
 
         $status_labels = [
             self::STATUS_DRAFT                 => '草稿',
@@ -2688,6 +2689,7 @@ class AEGIS_Orders {
             'dealer'         => $dealer,
             'dealer_blocked' => $dealer_blocked,
             'price_map'      => $price_map,
+            'cancel_success_map' => $cancel_success_map,
             'view_mode'      => $view_mode,
             'status_labels'  => $status_labels,
             'role_flags'     => [
