@@ -21,6 +21,7 @@ $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
 $cancel_form_error = $context['cancel_form_error'] ?? '';
 $cancel_decision_error = $context['cancel_decision_error'] ?? '';
+$cancel_success_map = $context['cancel_success_map'] ?? [];
 $auto_open_drawer = !empty($context['auto_open_drawer']);
 $drawer_order_url = '';
 if ($order) {
@@ -185,6 +186,10 @@ $payment_status_labels = [
                             $row_meta = json_decode($row->meta, true);
                             $cancel_pending = !empty($row_meta['cancel']['requested']) && ('pending' === ($row_meta['cancel']['decision'] ?? ''));
                         }
+                        $can_delete = $role_flags['is_dealer']
+                            && $row->status === AEGIS_Orders::STATUS_CANCELLED
+                            && !empty($cancel_success_map[$row->id])
+                            && empty($row->deleted_at);
                         ?>
                         <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
                         <?php if ($role_flags['queue_view']) { $row_link = add_query_arg(['view' => $view_mode, 'order_id' => $row->id], $base_url); } ?>
@@ -222,6 +227,15 @@ $payment_status_labels = [
                                     ?>
                                     <?php if ($dealer_cancel_allowed && !$cancel_pending) : ?>
                                         <button type="button" class="button aegis-orders-open-drawer" data-order-url="<?php echo esc_url($row_link); ?>" data-mode="view">申请撤销</button>
+                                    <?php endif; ?>
+                                    <?php if ($can_delete) : ?>
+                                        <form method="post" class="aegis-orders-inline-form" style="display:inline-block;">
+                                            <?php wp_nonce_field('aegis_orders_action', 'aegis_orders_nonce'); ?>
+                                            <input type="hidden" name="order_action" value="delete_order" />
+                                            <input type="hidden" name="order_id" value="<?php echo esc_attr($row->id); ?>" />
+                                            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                            <button type="submit" class="button" onclick="return confirm('确认删除该订单吗？');">删除</button>
+                                        </form>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             <?php else : ?>
