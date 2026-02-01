@@ -176,7 +176,7 @@
         preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
-    ordersPage.addEventListener('click', (event) => {
+    document.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) {
             return;
@@ -191,6 +191,10 @@
         if (closeButton && drawerContent) {
             const preview = drawerContent.querySelector('#aegis-payment-preview');
             if (preview) {
+                const body = preview.querySelector('.aegis-payment-preview-body');
+                if (body) {
+                    body.innerHTML = '';
+                }
                 preview.hidden = true;
             }
         }
