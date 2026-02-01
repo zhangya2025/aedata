@@ -182,12 +182,17 @@ class AEGIS_Assets_Media {
      * @param int $media_id
      * @return string
      */
-    public static function get_media_gateway_url($media_id) {
+    public static function get_media_gateway_url($media_id, $args = []) {
         if (!$media_id) {
             return '';
         }
 
-        return add_query_arg('aegis_media', (int) $media_id, home_url('/'));
+        $url = add_query_arg('aegis_media', (int) $media_id, home_url('/'));
+        if (!empty($args) && is_array($args)) {
+            $url = add_query_arg($args, $url);
+        }
+
+        return $url;
     }
 
     /**
@@ -547,6 +552,7 @@ class AEGIS_Assets_Media {
      */
     public static function register_query_vars($vars) {
         $vars[] = 'aegis_media';
+        $vars[] = 'aegis_media_disposition';
         return $vars;
     }
 
@@ -908,6 +914,10 @@ class AEGIS_Assets_Media {
         }
 
         $visibility = self::normalize_visibility($record->visibility, $record->owner_type);
+        $disposition = sanitize_key(get_query_var('aegis_media_disposition'));
+        if (!in_array($disposition, ['inline', 'attachment'], true)) {
+            $disposition = 'attachment';
+        }
         $is_public_certificate = (self::VISIBILITY_PUBLIC === $visibility && in_array($record->owner_type, ['certificate', 'certificates'], true));
         $is_hq = AEGIS_System_Roles::user_can_manage_system() || AEGIS_System_Roles::user_can_manage_warehouse();
         $is_warehouse = AEGIS_System_Roles::user_can_use_warehouse();
@@ -940,6 +950,16 @@ class AEGIS_Assets_Media {
         }
 
         if (!$access_granted) {
+            AEGIS_Access_Audit::record_event(
+                'ACCESS_DENIED',
+                'FAIL',
+                [
+                    'entity_type' => 'media',
+                    'entity_id'   => $id,
+                    'reason_code' => 'media_forbidden',
+                    'owner_type'  => $record->owner_type,
+                ]
+            );
             AEGIS_Access_Audit::log(
                 AEGIS_System::ACTION_MEDIA_ACCESS_DENY,
                 [
@@ -984,9 +1004,10 @@ class AEGIS_Assets_Media {
         );
 
         $mime = $record->mime ? $record->mime : 'application/octet-stream';
+        $filename = $record->file_path ? basename($record->file_path) : 'download';
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . filesize($file_full_path));
-        header('Content-Disposition: attachment; filename="' . basename($file_full_path) . '"');
+        header('Content-Disposition: ' . $disposition . '; filename="' . $filename . '"');
         readfile($file_full_path);
         exit;
     }

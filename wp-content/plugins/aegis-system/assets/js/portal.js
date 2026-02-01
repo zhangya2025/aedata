@@ -93,6 +93,113 @@
         }
     };
 
+    const formatBytes = (value) => {
+        const size = Number(value);
+        if (!size || Number.isNaN(size)) {
+            return '';
+        }
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let index = 0;
+        let num = size;
+        while (num >= 1024 && index < units.length - 1) {
+            num /= 1024;
+            index += 1;
+        }
+        return `${num.toFixed(num >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+    };
+
+    const renderPaymentPreview = (button) => {
+        if (!drawerContent) {
+            return;
+        }
+        const preview = drawerContent.querySelector('#aegis-payment-preview');
+        if (!preview) {
+            return;
+        }
+        const previewUrl = button.dataset.previewUrl || '';
+        const downloadUrl = button.dataset.downloadUrl || previewUrl;
+        const filename = button.dataset.filename || '';
+        const size = button.dataset.size || '';
+        const isImage = button.dataset.isImage === '1';
+        const isPdf = button.dataset.isPdf === '1';
+        const body = preview.querySelector('.aegis-payment-preview-body');
+        const note = preview.querySelector('.aegis-payment-preview-note');
+        const openBtn = preview.querySelector('.aegis-payment-preview-open');
+        const downloadBtn = preview.querySelector('.aegis-payment-preview-download');
+        const filenameEl = preview.querySelector('.aegis-payment-preview-filename');
+        const sizeEl = preview.querySelector('.aegis-payment-preview-size');
+
+        if (filenameEl) {
+            filenameEl.textContent = filename ? `文件：${filename}` : '';
+        }
+        if (sizeEl) {
+            const formatted = formatBytes(size);
+            sizeEl.textContent = formatted ? `大小：${formatted}` : '';
+        }
+        if (openBtn) {
+            openBtn.href = previewUrl;
+        }
+        if (downloadBtn) {
+            downloadBtn.href = downloadUrl;
+        }
+
+        if (body) {
+            body.innerHTML = '';
+            if (isImage) {
+                const link = document.createElement('a');
+                link.href = previewUrl;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                const img = document.createElement('img');
+                img.src = previewUrl;
+                img.alt = filename || '付款凭证';
+                link.appendChild(img);
+                body.appendChild(link);
+                if (note) {
+                    note.hidden = true;
+                }
+            } else if (isPdf) {
+                const frame = document.createElement('iframe');
+                frame.src = previewUrl;
+                frame.title = filename || '付款凭证';
+                frame.loading = 'lazy';
+                body.appendChild(frame);
+                if (note) {
+                    note.hidden = true;
+                }
+            } else if (note) {
+                note.hidden = false;
+            }
+        }
+
+        preview.hidden = false;
+        preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const previewButton = target.closest('.aegis-payment-preview-btn');
+        if (previewButton) {
+            event.preventDefault();
+            renderPaymentPreview(previewButton);
+            return;
+        }
+        const closeButton = target.closest('.aegis-payment-preview-close');
+        if (closeButton && drawerContent) {
+            const preview = drawerContent.querySelector('#aegis-payment-preview');
+            if (preview) {
+                const body = preview.querySelector('.aegis-payment-preview-body');
+                if (body) {
+                    body.innerHTML = '';
+                }
+                preview.hidden = true;
+            }
+        }
+    });
+
     document.addEventListener('submit', (event) => {
         const form = event.target;
         if (!(form instanceof HTMLFormElement)) {
