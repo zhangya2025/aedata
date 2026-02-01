@@ -506,6 +506,7 @@ $payment_status_labels = [
                                         <span class="aegis-t-a6" style="margin-left:8px;">当前：<?php echo esc_html($payment_status_text); ?></span>
                                         <button type="button"
                                             class="button aegis-payment-preview-btn"
+                                            data-aegis-allow-readonly="1"
                                             data-preview-url="<?php echo esc_url($payment_preview['preview_url']); ?>"
                                             data-download-url="<?php echo esc_url($payment_preview['download_url']); ?>"
                                             data-mime="<?php echo esc_attr($payment_preview['mime_type']); ?>"
@@ -524,6 +525,7 @@ $payment_status_labels = [
                                 <?php if ($payment_preview) : ?>
                                     <button type="button"
                                         class="button aegis-payment-preview-btn"
+                                        data-aegis-allow-readonly="1"
                                         data-preview-url="<?php echo esc_url($payment_preview['preview_url']); ?>"
                                         data-download-url="<?php echo esc_url($payment_preview['download_url']); ?>"
                                         data-mime="<?php echo esc_attr($payment_preview['mime_type']); ?>"
@@ -948,6 +950,81 @@ $payment_status_labels = [
 
     if (!drawer || !drawerContent) {
         return;
+    }
+
+    if (!drawerContent.dataset.aegisPaymentPreviewBound) {
+        drawerContent.dataset.aegisPaymentPreviewBound = '1';
+        drawerContent.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
+            }
+            const previewButton = target.closest('.aegis-payment-preview-btn');
+            const closeButton = target.closest('.aegis-payment-preview-close');
+            if (!previewButton && !closeButton) {
+                return;
+            }
+            const preview = drawerContent.querySelector('#aegis-payment-preview');
+            if (!preview) {
+                return;
+            }
+            const previewBody = preview.querySelector('.aegis-payment-preview-body');
+            const previewNote = preview.querySelector('.aegis-payment-preview-note');
+            if (closeButton) {
+                event.preventDefault();
+                if (previewBody) {
+                    previewBody.innerHTML = '';
+                }
+                preview.hidden = true;
+                return;
+            }
+            if (!previewButton) {
+                return;
+            }
+            event.preventDefault();
+            const previewUrl = previewButton.dataset.previewUrl || '';
+            const downloadUrl = previewButton.dataset.downloadUrl || previewUrl;
+            const filename = previewButton.dataset.filename || '';
+            const size = previewButton.dataset.size || '';
+            const isImage = previewButton.dataset.isImage === '1';
+            const isPdf = previewButton.dataset.isPdf === '1';
+            const filenameEl = preview.querySelector('.aegis-payment-preview-filename');
+            const sizeEl = preview.querySelector('.aegis-payment-preview-size');
+            const openLink = preview.querySelector('.aegis-payment-preview-open');
+            const downloadLink = preview.querySelector('.aegis-payment-preview-download');
+
+            if (filenameEl) {
+                filenameEl.textContent = filename ? `文件：${filename}` : '';
+            }
+            if (sizeEl) {
+                sizeEl.textContent = size ? `大小：${size}` : '';
+            }
+            if (openLink) {
+                openLink.href = previewUrl;
+            }
+            if (downloadLink) {
+                downloadLink.href = downloadUrl;
+            }
+
+            if (previewBody) {
+                previewBody.innerHTML = '';
+                if (isImage) {
+                    previewBody.innerHTML = `<img src="${previewUrl}" alt="${filename || '付款凭证'}" style="max-width:100%;height:auto;" />`;
+                    if (previewNote) {
+                        previewNote.hidden = true;
+                    }
+                } else if (isPdf) {
+                    previewBody.innerHTML = `<iframe src="${previewUrl}" style="width:100%;height:70vh;border:0"></iframe>`;
+                    if (previewNote) {
+                        previewNote.hidden = true;
+                    }
+                } else if (previewNote) {
+                    previewNote.hidden = false;
+                }
+            }
+
+            preview.hidden = false;
+        });
     }
 
     const canonicalizeUrl = (inputUrl) => {
