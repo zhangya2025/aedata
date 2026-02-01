@@ -173,9 +173,162 @@ class AEGIS_Orders {
         return !empty($order->deleted_at);
     }
 
-    protected static function has_cancel_approved($order): bool {
+    protected static function normalize_cancel_result_value($value): ?string {
+        if (null === $value) {
+            return null;
+        }
+        $normalized = strtolower(trim((string) $value));
+        if ('' === $normalized) {
+            return null;
+        }
+        $success_values = ['approved', 'approve', 'ok', 'done', 'success', 'pass', 'passed', 'yes', 'true'];
+        $fail_values = ['rejected', 'reject', 'fail', 'failed', 'denied', 'no', 'false'];
+        if (in_array($normalized, $success_values, true)) {
+            return 'success';
+        }
+        if (in_array($normalized, $fail_values, true)) {
+            return 'fail';
+        }
+        return null;
+    }
+
+    protected static function resolve_cancel_result_from_meta($order): array {
         $meta = self::get_order_meta($order);
-        return !empty($meta['cancel']['decision']) && 'approved' === $meta['cancel']['decision'];
+        $raw_value = null;
+        $source_key = '';
+        if (!empty($meta['cancel']) && is_array($meta['cancel'])) {
+            $candidates = [
+                'result'        => $meta['cancel']['result'] ?? null,
+                'cancel_result' => $meta['cancel']['cancel_result'] ?? null,
+                'decision'      => $meta['cancel']['decision'] ?? null,
+                'state'         => $meta['cancel']['state'] ?? null,
+            ];
+            foreach ($candidates as $key => $value) {
+                if (null !== $value && '' !== $value) {
+                    $raw_value = $value;
+                    $source_key = $key;
+                    break;
+                }
+            }
+        }
+        if (null === $raw_value && isset($meta['cancel_result'])) {
+            $raw_value = $meta['cancel_result'];
+            $source_key = 'cancel_result';
+        }
+
+        $normalized = self::normalize_cancel_result_value($raw_value);
+        if ('success' === $normalized) {
+            $source = ('decision' === $source_key && 'approved' === strtolower((string) $raw_value)) ? 'meta' : 'meta_legacy';
+            return [
+                'status' => 'success',
+                'source' => $source,
+                'raw'    => $raw_value,
+            ];
+        }
+        if ('fail' === $normalized) {
+            return [
+                'status' => 'fail',
+                'source' => 'meta',
+                'raw'    => $raw_value,
+            ];
+        }
+        return [
+            'status' => 'unknown',
+            'source' => $source_key ? 'meta' : 'none',
+            'raw'    => $raw_value,
+        ];
+    }
+
+    protected static function query_cancel_audit_success_map(array $order_ids): array {
+        global $wpdb;
+        $order_ids = array_values(array_unique(array_filter(array_map('intval', $order_ids))));
+        if (empty($order_ids)) {
+            return [];
+        }
+        $audit_table = $wpdb->prefix . AEGIS_System::AUDIT_TABLE;
+        $conditions = [];
+        $params = ['CANCEL_DECISION', 'SUCCESS'];
+        foreach ($order_ids as $order_id) {
+            $like_number = '%' . $wpdb->esc_like('"order_id":' . $order_id) . '%';
+            $like_string = '%' . $wpdb->esc_like('"order_id":"' . $order_id . '"') . '%';
+            $conditions[] = '(meta_json LIKE %s OR meta_json LIKE %s)';
+            $params[] = $like_number;
+            $params[] = $like_string;
+        }
+        $where_clause = implode(' OR ', $conditions);
+        $sql = "SELECT meta_json FROM {$audit_table} WHERE event_key = %s AND result = %s AND ({$where_clause})";
+        $rows = $wpdb->get_col($wpdb->prepare($sql, $params));
+        $success_map = [];
+        foreach ($rows as $row_meta) {
+            $decoded = json_decode($row_meta, true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+            $meta_order_id = isset($decoded['order_id']) ? (int) $decoded['order_id'] : 0;
+            if ($meta_order_id > 0) {
+                $success_map[$meta_order_id] = true;
+            }
+        }
+        return $success_map;
+    }
+
+    protected static function get_cancel_success_map(array $orders): array {
+        $map = [];
+        $pending_audit = [];
+        foreach ($orders as $order) {
+            if (!$order || self::STATUS_CANCELLED !== $order->status) {
+                continue;
+            }
+            $meta_state = self::resolve_cancel_result_from_meta($order);
+            if ('success' === $meta_state['status']) {
+                $map[(int) $order->id] = true;
+                continue;
+            }
+            if ('fail' === $meta_state['status']) {
+                $map[(int) $order->id] = false;
+                continue;
+            }
+            $pending_audit[] = (int) $order->id;
+        }
+        if (!empty($pending_audit)) {
+            $audit_map = self::query_cancel_audit_success_map($pending_audit);
+            foreach ($pending_audit as $order_id) {
+                $map[$order_id] = !empty($audit_map[$order_id]);
+            }
+        }
+        return $map;
+    }
+
+    protected static function resolve_cancel_success_state($order): array {
+        if (!$order || self::STATUS_CANCELLED !== $order->status) {
+            return [
+                'success' => false,
+                'source'  => 'status',
+                'raw'     => null,
+            ];
+        }
+        $meta_state = self::resolve_cancel_result_from_meta($order);
+        if ('success' === $meta_state['status']) {
+            return [
+                'success' => true,
+                'source'  => $meta_state['source'],
+                'raw'     => $meta_state['raw'],
+            ];
+        }
+        if ('fail' === $meta_state['status']) {
+            return [
+                'success' => false,
+                'source'  => 'meta',
+                'raw'     => $meta_state['raw'],
+            ];
+        }
+        $audit_map = self::query_cancel_audit_success_map([(int) $order->id]);
+        $audit_success = !empty($audit_map[(int) $order->id]);
+        return [
+            'success' => $audit_success,
+            'source'  => $audit_success ? 'audit' : 'none',
+            'raw'     => $meta_state['raw'],
+        ];
     }
 
     protected static function build_order_meta($order, $totals, array $extra_meta = []): array {
@@ -1813,51 +1966,30 @@ class AEGIS_Orders {
                         'request_path' => $request_path,
                         'reason_code'  => 'forbidden',
                     ]);
-                } elseif (self::STATUS_CANCELLED !== $order->status || !self::has_cancel_approved($order)) {
-                    $errors[] = '当前订单不可删除。';
-                    AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
-                        'order_id'     => (int) $order->id,
-                        'order_no'     => $order->order_no,
-                        'actor'        => get_current_user_id(),
-                        'old_status'   => $order->status,
-                        'request_path' => $request_path,
-                        'reason_code'  => 'invalid_status',
-                    ]);
                 } else {
-                    if (self::is_order_deleted($order)) {
-                        $messages[] = '订单已删除。';
-                        AEGIS_Access_Audit::record_event('ORDER_DELETE', 'SUCCESS', [
+                    $cancel_state = self::resolve_cancel_success_state($order);
+                    if (!$cancel_state['success']) {
+                        $errors[] = '当前订单不可删除。';
+                        AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
                             'order_id'     => (int) $order->id,
                             'order_no'     => $order->order_no,
                             'actor'        => get_current_user_id(),
                             'old_status'   => $order->status,
                             'request_path' => $request_path,
-                            'already_deleted' => true,
+                            'reason_code'  => 'invalid_status',
                         ]);
                     } else {
-                        $now = current_time('mysql');
-                        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
-                        $updated = $wpdb->update(
-                            $table,
-                            [
-                                'deleted_at' => $now,
-                                'updated_at' => $now,
-                            ],
-                            ['id' => (int) $order->id],
-                            ['%s', '%s'],
-                            ['%d']
-                        );
-                        if (false === $updated) {
-                            $errors[] = '删除失败，请稍后再试。';
-                            AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
+                        if (in_array($cancel_state['source'], ['meta_legacy', 'audit'], true)) {
+                            AEGIS_Access_Audit::record_event('DATA_LEGACY_NORMALIZED', 'SUCCESS', [
                                 'order_id'     => (int) $order->id,
                                 'order_no'     => $order->order_no,
                                 'actor'        => get_current_user_id(),
-                                'old_status'   => $order->status,
                                 'request_path' => $request_path,
-                                'reason_code'  => 'db_error',
+                                'source'       => $cancel_state['source'],
+                                'raw_value'    => $cancel_state['raw'],
                             ]);
-                        } else {
+                        }
+                        if (self::is_order_deleted($order)) {
                             $messages[] = '订单已删除。';
                             AEGIS_Access_Audit::record_event('ORDER_DELETE', 'SUCCESS', [
                                 'order_id'     => (int) $order->id,
@@ -1865,7 +1997,41 @@ class AEGIS_Orders {
                                 'actor'        => get_current_user_id(),
                                 'old_status'   => $order->status,
                                 'request_path' => $request_path,
+                                'already_deleted' => true,
                             ]);
+                        } else {
+                            $now = current_time('mysql');
+                            $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+                            $updated = $wpdb->update(
+                                $table,
+                                [
+                                    'deleted_at' => $now,
+                                    'updated_at' => $now,
+                                ],
+                                ['id' => (int) $order->id],
+                                ['%s', '%s'],
+                                ['%d']
+                            );
+                            if (false === $updated) {
+                                $errors[] = '删除失败，请稍后再试。';
+                                AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
+                                    'order_id'     => (int) $order->id,
+                                    'order_no'     => $order->order_no,
+                                    'actor'        => get_current_user_id(),
+                                    'old_status'   => $order->status,
+                                    'request_path' => $request_path,
+                                    'reason_code'  => 'db_error',
+                                ]);
+                            } else {
+                                $messages[] = '订单已删除。';
+                                AEGIS_Access_Audit::record_event('ORDER_DELETE', 'SUCCESS', [
+                                    'order_id'     => (int) $order->id,
+                                    'order_no'     => $order->order_no,
+                                    'actor'        => get_current_user_id(),
+                                    'old_status'   => $order->status,
+                                    'request_path' => $request_path,
+                                ]);
+                            }
                         }
                     }
                 }
@@ -2638,6 +2804,7 @@ class AEGIS_Orders {
         $payment = $order ? self::get_payment_record($order->id) : null;
         $skus = $is_dealer ? self::list_active_skus() : [];
         $price_map = ($is_dealer && $dealer && $skus) ? self::build_price_map($dealer, $skus) : [];
+        $cancel_success_map = $orders ? self::get_cancel_success_map($orders) : [];
 
         $status_labels = [
             self::STATUS_DRAFT                 => '草稿',
@@ -2679,6 +2846,7 @@ class AEGIS_Orders {
             'dealer'         => $dealer,
             'dealer_blocked' => $dealer_blocked,
             'price_map'      => $price_map,
+            'cancel_success_map' => $cancel_success_map,
             'view_mode'      => $view_mode,
             'status_labels'  => $status_labels,
             'role_flags'     => [

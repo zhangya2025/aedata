@@ -21,6 +21,7 @@ $is_processing_locked = !empty($processing_lock['locked']);
 $cancel_request = $context['cancel_request'] ?? null;
 $cancel_form_error = $context['cancel_form_error'] ?? '';
 $cancel_decision_error = $context['cancel_decision_error'] ?? '';
+$cancel_success_map = $context['cancel_success_map'] ?? [];
 $auto_open_drawer = !empty($context['auto_open_drawer']);
 $drawer_order_url = '';
 if ($order) {
@@ -189,7 +190,7 @@ $payment_status_labels = [
                         }
                         $can_delete = $role_flags['is_dealer']
                             && $row->status === AEGIS_Orders::STATUS_CANCELLED
-                            && 'approved' === $cancel_decision
+                            && !empty($cancel_success_map[$row->id])
                             && empty($row->deleted_at);
                         ?>
                         <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
