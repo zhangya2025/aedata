@@ -1164,8 +1164,43 @@ class AEGIS_Orders {
         return $dealer;
     }
 
-    public static function get_media_gateway_url($media_id) {
-        return AEGIS_Assets_Media::get_media_gateway_url($media_id);
+    public static function get_media_gateway_url($media_id, $args = []) {
+        return AEGIS_Assets_Media::get_media_gateway_url($media_id, $args);
+    }
+
+    public static function build_payment_preview_context($payment) {
+        if (!$payment || empty($payment->media_id)) {
+            return null;
+        }
+
+        $filename = $payment->file_path ? basename($payment->file_path) : '';
+        $ext = $filename ? strtolower(pathinfo($filename, PATHINFO_EXTENSION)) : '';
+        $mime = $payment->mime ?: '';
+        if (!$mime && $filename) {
+            $filetype = wp_check_filetype($filename);
+            $mime = $filetype['type'] ?? '';
+        }
+
+        $image_exts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        $is_image = ($mime && 0 === strpos($mime, 'image/')) || ($ext && in_array($ext, $image_exts, true));
+        $is_pdf = ('application/pdf' === $mime) || ('pdf' === $ext);
+        $size = null;
+        if (!empty($payment->file_path)) {
+            $full_path = trailingslashit(wp_upload_dir()['basedir']) . $payment->file_path;
+            if (file_exists($full_path)) {
+                $size = filesize($full_path);
+            }
+        }
+
+        return [
+            'preview_url'  => self::get_media_gateway_url($payment->media_id, ['aegis_media_disposition' => 'inline']),
+            'download_url' => self::get_media_gateway_url($payment->media_id, ['aegis_media_disposition' => 'attachment']),
+            'mime_type'    => $mime ?: '',
+            'filename'     => $filename,
+            'size'         => $size,
+            'is_image'     => $is_image,
+            'is_pdf'       => $is_pdf,
+        ];
     }
 
     protected static function upload_payment_proof($dealer_state, $order) {
@@ -1509,7 +1544,7 @@ class AEGIS_Orders {
             $where[] = 'o.status != %s';
             $params[] = self::STATUS_DRAFT;
         }
-        if (in_array('aegis_dealer', $roles, true)) {
+        if (in_array('aegis_dealer', $roles, true) || $sales_user_id > 0) {
             $where[] = 'o.deleted_at IS NULL';
         }
 
@@ -1678,8 +1713,8 @@ class AEGIS_Orders {
             $allowed_views = ['review', 'payment_review', 'list'];
             $default_view = 'review';
         } elseif ($can_initial_review) {
-            $allowed_views = ['review'];
-            $default_view = 'review';
+            $allowed_views = $is_sales ? ['review', 'list'] : ['review'];
+            $default_view = $is_sales ? 'list' : 'review';
         } elseif ($can_payment_review) {
             $allowed_views = ['payment_review'];
             $default_view = 'payment_review';
@@ -2415,6 +2450,20 @@ class AEGIS_Orders {
                             ]
                         );
                     }
+                } elseif ($sales_user_filter > 0 && self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+                    $errors[] = '订单已进入其他环节，当前不可操作。';
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
+                    AEGIS_Access_Audit::record_event(
+                        'ACCESS_DENIED',
+                        'FAIL',
+                        [
+                            'order_id'    => $order_id,
+                            'reason_code' => 'status_not_allowed',
+                            'status'      => $order->status,
+                            'action'      => $action,
+                        ]
+                    );
                 } else {
                     $sales_scope_ok = true;
                     global $wpdb;
@@ -2671,6 +2720,17 @@ class AEGIS_Orders {
                             'reason_code' => !$can_payment_review ? 'forbidden' : 'invalid_order',
                         ]
                     );
+                    if ($is_sales && !$can_payment_review) {
+                        AEGIS_Access_Audit::record_event(
+                            'ACCESS_DENIED',
+                            'FAIL',
+                            [
+                                'order_id'    => (int) $order_id,
+                                'order_no'    => $order ? $order->order_no : null,
+                                'reason_code' => 'forbidden_payment_review',
+                            ]
+                        );
+                    }
                     $errors[] = '无效的订单。';
                 } else {
                     $result = self::review_payment_by_hq($order, $decision, $note);
@@ -2851,6 +2911,7 @@ class AEGIS_Orders {
             'status_labels'  => $status_labels,
             'role_flags'     => [
                 'is_dealer'          => $is_dealer,
+                'is_sales'           => $is_sales,
                 'can_view_all'       => $can_view_all,
                 'can_initial_review' => $can_initial_review,
                 'can_payment_review' => $can_payment_review,
