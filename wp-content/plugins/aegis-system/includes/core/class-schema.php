@@ -300,6 +300,7 @@ class AEGIS_System_Schema {
             voided_at DATETIME NULL,
             voided_by BIGINT(20) UNSIGNED NULL,
             void_reason VARCHAR(255) NULL,
+            deleted_at DATETIME NULL,
             meta LONGTEXT NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY order_no (order_no),

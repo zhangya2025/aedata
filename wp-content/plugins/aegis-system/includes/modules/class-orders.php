@@ -8,6 +8,7 @@ class AEGIS_Orders {
     const STATUS_PENDING_INITIAL_REVIEW = 'pending_initial_review';
     const STATUS_CANCELLED = 'cancelled';
     const STATUS_CANCELLED_BY_DEALER = 'cancelled_by_dealer';
+    const STATUS_REVOKED = 'revoked';
     const STATUS_PENDING_DEALER_CONFIRM = 'pending_dealer_confirm';
     const STATUS_PENDING_HQ_PAYMENT_REVIEW = 'pending_hq_payment_review';
     const STATUS_APPROVED_PENDING_FULFILLMENT = 'approved_pending_fulfillment';
@@ -167,6 +168,22 @@ class AEGIS_Orders {
         }
         $decoded = json_decode($order->meta, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    protected static function is_order_deleted($order): bool {
+        return !empty($order->deleted_at);
+    }
+
+    public static function get_dealer_deletable_cancel_statuses(): array {
+        return [
+            self::STATUS_CANCELLED,
+            self::STATUS_CANCELLED_BY_DEALER,
+            self::STATUS_REVOKED,
+        ];
+    }
+
+    public static function is_dealer_deletable_cancel_status($status): bool {
+        return in_array((string) $status, self::get_dealer_deletable_cancel_statuses(), true);
     }
 
     protected static function build_order_meta($order, $totals, array $extra_meta = []): array {
@@ -1347,6 +1364,9 @@ class AEGIS_Orders {
             $where[] = 'o.status != %s';
             $params[] = self::STATUS_DRAFT;
         }
+        if (in_array('aegis_dealer', $roles, true)) {
+            $where[] = 'o.deleted_at IS NULL';
+        }
 
         $where_sql = implode(' AND ', $where);
         $per_page = $args['per_page'];
@@ -1628,7 +1648,6 @@ class AEGIS_Orders {
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
                         'whitelist'       => ['order_action', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
-                        'idempotency_key' => $idempotency,
                     ]
                 );
                 $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
@@ -1688,7 +1707,6 @@ class AEGIS_Orders {
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
                         'whitelist'       => ['order_action', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
-                        'idempotency_key' => $idempotency,
                     ]
                 );
                 $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
@@ -1740,7 +1758,6 @@ class AEGIS_Orders {
                         'nonce_field'     => 'aegis_orders_nonce',
                         'nonce_action'    => 'aegis_orders_action',
                         'whitelist'       => ['order_action', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
-                        'idempotency_key' => $idempotency,
                     ]
                 );
                 $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
@@ -1758,6 +1775,106 @@ class AEGIS_Orders {
                     } else {
                         $messages[] = $result['message'];
                         $view_id = (int) $order_id;
+                    }
+                }
+            } elseif ('delete_order' === $action) {
+                global $wpdb;
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_ORDERS_CREATE,
+                        'nonce_field'     => 'aegis_orders_nonce',
+                        'nonce_action'    => 'aegis_orders_action',
+                        'whitelist'       => ['order_action', 'order_id', '_wp_http_referer', '_aegis_idempotency', 'aegis_orders_nonce'],
+                    ]
+                );
+                $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+                $order = $order_id ? self::get_order($order_id) : null;
+                $request_path = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
+                    AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
+                        'order_id'     => (int) $order_id,
+                        'actor'        => get_current_user_id(),
+                        'old_status'   => $order ? $order->status : null,
+                        'request_path' => $request_path,
+                        'reason_code'  => 'validation_failed',
+                    ]);
+                } elseif (!$is_dealer || !$order || !$dealer) {
+                    $errors[] = '无效的订单。';
+                    AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
+                        'order_id'     => (int) $order_id,
+                        'actor'        => get_current_user_id(),
+                        'old_status'   => $order ? $order->status : null,
+                        'request_path' => $request_path,
+                        'reason_code'  => 'invalid_order',
+                    ]);
+                } elseif ((int) $order->dealer_id !== (int) $dealer->id) {
+                    $errors[] = '权限不足，无法删除订单。';
+                    AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
+                        'order_id'     => (int) $order->id,
+                        'order_no'     => $order->order_no,
+                        'actor'        => get_current_user_id(),
+                        'old_status'   => $order->status,
+                        'request_path' => $request_path,
+                        'reason_code'  => 'forbidden',
+                    ]);
+                } else {
+                    if (!self::is_dealer_deletable_cancel_status($order->status)) {
+                        $errors[] = '当前订单不可删除。';
+                        AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
+                            'order_id'     => (int) $order->id,
+                            'order_no'     => $order->order_no,
+                            'actor'        => get_current_user_id(),
+                            'old_status'   => $order->status,
+                            'request_path' => $request_path,
+                            'reason_code'  => 'invalid_status',
+                        ]);
+                    } elseif (self::is_order_deleted($order)) {
+                        $messages[] = '订单已删除。';
+                        AEGIS_Access_Audit::record_event('ORDER_DELETE', 'SUCCESS', [
+                            'order_id'     => (int) $order->id,
+                            'order_no'     => $order->order_no,
+                            'actor'        => get_current_user_id(),
+                            'old_status'   => $order->status,
+                            'request_path' => $request_path,
+                            'already_deleted' => true,
+                        ]);
+                    } else {
+                        $now = current_time('mysql');
+                        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+                        $updated = $wpdb->update(
+                            $table,
+                            [
+                                'deleted_at' => $now,
+                                'updated_at' => $now,
+                            ],
+                            ['id' => (int) $order->id],
+                            ['%s', '%s'],
+                            ['%d']
+                        );
+                        if (false === $updated) {
+                            $errors[] = '删除失败，请稍后再试。';
+                            AEGIS_Access_Audit::record_event('ORDER_DELETE', 'FAIL', [
+                                'order_id'     => (int) $order->id,
+                                'order_no'     => $order->order_no,
+                                'actor'        => get_current_user_id(),
+                                'old_status'   => $order->status,
+                                'request_path' => $request_path,
+                                'reason_code'  => 'db_error',
+                            ]);
+                        } else {
+                            $messages[] = '订单已删除。';
+                            AEGIS_Access_Audit::record_event('ORDER_DELETE', 'SUCCESS', [
+                                'order_id'     => (int) $order->id,
+                                'order_no'     => $order->order_no,
+                                'actor'        => get_current_user_id(),
+                                'old_status'   => $order->status,
+                                'request_path' => $request_path,
+                            ]);
+                        }
                     }
                 }
             } elseif ('request_cancel' === $action) {
@@ -2497,6 +2614,14 @@ class AEGIS_Orders {
             $order = null;
             $errors[] = '无权查看该订单。';
         }
+        if ($order && $is_dealer && self::is_order_deleted($order)) {
+            $order = null;
+            $errors[] = '无权查看该订单。';
+            AEGIS_Access_Audit::record_event('ACCESS_DENIED', 'FAIL', [
+                'order_id'    => (int) $view_id,
+                'reason_code' => 'order_deleted',
+            ]);
+        }
         if ($order && $sales_user_filter > 0) {
             global $wpdb;
             $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
@@ -2531,6 +2656,7 @@ class AEGIS_Orders {
             self::STATUS_FULFILLED             => '已出库',
             self::STATUS_CANCELLED             => '已撤销',
             self::STATUS_CANCELLED_BY_DEALER    => '已撤销',
+            self::STATUS_REVOKED               => '已撤销',
             self::STATUS_VOIDED_BY_HQ           => '已作废',
         ];
 
