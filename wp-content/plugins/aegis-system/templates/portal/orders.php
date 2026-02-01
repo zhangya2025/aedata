@@ -189,8 +189,7 @@ $payment_status_labels = [
                             $cancel_decision = $row_meta['cancel']['decision'] ?? '';
                         }
                         $can_delete = $role_flags['is_dealer']
-                            && $row->status === AEGIS_Orders::STATUS_CANCELLED
-                            && !empty($cancel_success_map[$row->id])
+                            && AEGIS_Orders::is_dealer_deletable_cancel_status($row->status)
                             && empty($row->deleted_at);
                         ?>
                         <?php $row_link = add_query_arg(['order_id' => $row->id], $base_url); ?>
