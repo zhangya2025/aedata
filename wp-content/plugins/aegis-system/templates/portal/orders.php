@@ -182,9 +182,11 @@ $payment_status_labels = [
                         <?php
                         $status_text = $status_labels[$row->status] ?? $row->status;
                         $cancel_pending = false;
+                        $cancel_decision = '';
                         if (!empty($row->meta)) {
                             $row_meta = json_decode($row->meta, true);
                             $cancel_pending = !empty($row_meta['cancel']['requested']) && ('pending' === ($row_meta['cancel']['decision'] ?? ''));
+                            $cancel_decision = $row_meta['cancel']['decision'] ?? '';
                         }
                         $can_delete = $role_flags['is_dealer']
                             && $row->status === AEGIS_Orders::STATUS_CANCELLED
