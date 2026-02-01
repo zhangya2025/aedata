@@ -288,6 +288,7 @@ $payment_status_labels = [
                     $initial_reviewed_at = $order->reviewed_at ?? '';
                     $payment_submitted_at = $payment->submitted_at ?? '';
                     $payment_reviewed_at = $payment->reviewed_at ?? ($order->payment_reviewed_at ?? '');
+                    $payment_preview = $payment ? AEGIS_Orders::build_payment_preview_context($payment) : null;
                     ?>
                     <?php
                     $is_hq = current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
@@ -482,7 +483,6 @@ $payment_status_labels = [
                     <section class="aegis-orders-drawer-section">
                         <div class="aegis-orders-section-title aegis-t-a5">付款凭证</div>
                         <?php $has_payment = $payment && !empty($payment->media_id); ?>
-                        <?php $payment_url = $has_payment ? AEGIS_Orders::get_media_gateway_url($payment->media_id) : ''; ?>
                         <?php $payment_status_text = $payment && isset($payment_status_labels[$payment->status]) ? $payment_status_labels[$payment->status] : ($has_payment ? '已上传' : '未上传'); ?>
                         <?php if ($order->status === $pending_initial_status) : ?>
                             <p class="aegis-t-a6" style="color:#6b7280;">等待 HQ 初审通过后可上传付款凭证。</p>
@@ -502,14 +502,38 @@ $payment_status_labels = [
                                         <input type="file" name="payment_file" accept="image/*,.pdf" required />
                                     </label>
                                     <button type="submit" class="button button-primary">上传并提交审核</button>
-                                    <?php if ($has_payment) : ?>
-                                        <span class="aegis-t-a6" style="margin-left:8px;">当前：<a href="<?php echo esc_url($payment_url); ?>" target="_blank">查看凭证</a>（<?php echo esc_html($payment_status_text); ?>）</span>
+                                    <?php if ($has_payment && $payment_preview) : ?>
+                                        <span class="aegis-t-a6" style="margin-left:8px;">当前：<?php echo esc_html($payment_status_text); ?></span>
+                                        <button type="button"
+                                            class="button aegis-payment-preview-btn"
+                                            data-preview-url="<?php echo esc_url($payment_preview['preview_url']); ?>"
+                                            data-download-url="<?php echo esc_url($payment_preview['download_url']); ?>"
+                                            data-mime="<?php echo esc_attr($payment_preview['mime_type']); ?>"
+                                            data-filename="<?php echo esc_attr($payment_preview['filename']); ?>"
+                                            data-size="<?php echo esc_attr((string) ($payment_preview['size'] ?? '')); ?>"
+                                            data-is-image="<?php echo $payment_preview['is_image'] ? '1' : '0'; ?>"
+                                            data-is-pdf="<?php echo $payment_preview['is_pdf'] ? '1' : '0'; ?>">
+                                            查看凭证
+                                        </button>
                                     <?php endif; ?>
                                 </form>
                             <?php endif; ?>
                         <?php else : ?>
                             <?php if ($has_payment) : ?>
-                                <p class="aegis-t-a6" style="margin-bottom:4px;">凭证状态：<?php echo esc_html($payment_status_text); ?> <?php if ($payment_url) : ?><a class="button" href="<?php echo esc_url($payment_url); ?>" target="_blank">查看凭证</a><?php endif; ?></p>
+                                <p class="aegis-t-a6" style="margin-bottom:4px;">凭证状态：<?php echo esc_html($payment_status_text); ?></p>
+                                <?php if ($payment_preview) : ?>
+                                    <button type="button"
+                                        class="button aegis-payment-preview-btn"
+                                        data-preview-url="<?php echo esc_url($payment_preview['preview_url']); ?>"
+                                        data-download-url="<?php echo esc_url($payment_preview['download_url']); ?>"
+                                        data-mime="<?php echo esc_attr($payment_preview['mime_type']); ?>"
+                                        data-filename="<?php echo esc_attr($payment_preview['filename']); ?>"
+                                        data-size="<?php echo esc_attr((string) ($payment_preview['size'] ?? '')); ?>"
+                                        data-is-image="<?php echo $payment_preview['is_image'] ? '1' : '0'; ?>"
+                                        data-is-pdf="<?php echo $payment_preview['is_pdf'] ? '1' : '0'; ?>">
+                                        查看凭证
+                                    </button>
+                                <?php endif; ?>
                             <?php else : ?>
                                 <p class="aegis-t-a6" style="color:#6b7280;">暂无付款凭证。</p>
                             <?php endif; ?>
@@ -525,6 +549,24 @@ $payment_status_labels = [
                             <?php elseif (in_array($order->status, ['voided_by_hq', 'cancelled_by_dealer', AEGIS_Orders::STATUS_CANCELLED], true)) : ?>
                                 <p class="aegis-t-a6" style="color:#6b7280;">订单已终止，凭证仅供查看。</p>
                             <?php endif; ?>
+                        <?php endif; ?>
+                        <?php if ($payment_preview) : ?>
+                            <div class="aegis-payment-preview" id="aegis-payment-preview" hidden>
+                                <div class="aegis-payment-preview-header">
+                                    <div class="aegis-payment-preview-title aegis-t-a6">凭证预览</div>
+                                    <button type="button" class="button aegis-payment-preview-close">关闭预览</button>
+                                </div>
+                                <div class="aegis-payment-preview-meta aegis-t-a6">
+                                    <span class="aegis-payment-preview-filename"></span>
+                                    <span class="aegis-payment-preview-size"></span>
+                                </div>
+                                <div class="aegis-payment-preview-actions">
+                                    <a class="button aegis-payment-preview-open" target="_blank" rel="noopener">新窗口打开</a>
+                                    <a class="button aegis-payment-preview-download" download>下载</a>
+                                </div>
+                                <div class="aegis-payment-preview-body"></div>
+                                <p class="aegis-payment-preview-note aegis-t-a6" hidden>该文件类型不支持预览，请下载查看。</p>
+                            </div>
                         <?php endif; ?>
                     </section>
 

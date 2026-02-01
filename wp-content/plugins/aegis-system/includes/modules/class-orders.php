@@ -1164,8 +1164,43 @@ class AEGIS_Orders {
         return $dealer;
     }
 
-    public static function get_media_gateway_url($media_id) {
-        return AEGIS_Assets_Media::get_media_gateway_url($media_id);
+    public static function get_media_gateway_url($media_id, $args = []) {
+        return AEGIS_Assets_Media::get_media_gateway_url($media_id, $args);
+    }
+
+    public static function build_payment_preview_context($payment) {
+        if (!$payment || empty($payment->media_id)) {
+            return null;
+        }
+
+        $filename = $payment->file_path ? basename($payment->file_path) : '';
+        $ext = $filename ? strtolower(pathinfo($filename, PATHINFO_EXTENSION)) : '';
+        $mime = $payment->mime ?: '';
+        if (!$mime && $filename) {
+            $filetype = wp_check_filetype($filename);
+            $mime = $filetype['type'] ?? '';
+        }
+
+        $image_exts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        $is_image = ($mime && 0 === strpos($mime, 'image/')) || ($ext && in_array($ext, $image_exts, true));
+        $is_pdf = ('application/pdf' === $mime) || ('pdf' === $ext);
+        $size = null;
+        if (!empty($payment->file_path)) {
+            $full_path = trailingslashit(wp_upload_dir()['basedir']) . $payment->file_path;
+            if (file_exists($full_path)) {
+                $size = filesize($full_path);
+            }
+        }
+
+        return [
+            'preview_url'  => self::get_media_gateway_url($payment->media_id, ['aegis_media_disposition' => 'inline']),
+            'download_url' => self::get_media_gateway_url($payment->media_id, ['aegis_media_disposition' => 'attachment']),
+            'mime_type'    => $mime ?: '',
+            'filename'     => $filename,
+            'size'         => $size,
+            'is_image'     => $is_image,
+            'is_pdf'       => $is_pdf,
+        ];
     }
 
     protected static function upload_payment_proof($dealer_state, $order) {

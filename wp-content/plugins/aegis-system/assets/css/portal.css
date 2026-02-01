@@ -1883,3 +1883,55 @@ body.aegis-scan-open {
 .aegis-orders-drawer-extension {
     min-height: 1px;
 }
+
+.aegis-payment-preview {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #e5e5e5;
+    background: #f8fafc;
+    border-radius: 6px;
+}
+
+.aegis-payment-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.aegis-payment-preview-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.aegis-payment-preview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.aegis-payment-preview-body {
+    border: 1px solid #e5e5e5;
+    background: #fff;
+    padding: 8px;
+    max-height: 70vh;
+    overflow: auto;
+}
+
+.aegis-payment-preview-body img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    cursor: zoom-in;
+}
+
+.aegis-payment-preview-body iframe {
+    width: 100%;
+    height: 70vh;
+    border: 0;
+}
