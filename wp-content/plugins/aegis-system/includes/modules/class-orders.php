@@ -1509,7 +1509,7 @@ class AEGIS_Orders {
             $where[] = 'o.status != %s';
             $params[] = self::STATUS_DRAFT;
         }
-        if (in_array('aegis_dealer', $roles, true)) {
+        if (in_array('aegis_dealer', $roles, true) || $sales_user_id > 0) {
             $where[] = 'o.deleted_at IS NULL';
         }
 
@@ -1678,8 +1678,8 @@ class AEGIS_Orders {
             $allowed_views = ['review', 'payment_review', 'list'];
             $default_view = 'review';
         } elseif ($can_initial_review) {
-            $allowed_views = ['review'];
-            $default_view = 'review';
+            $allowed_views = $is_sales ? ['review', 'list'] : ['review'];
+            $default_view = $is_sales ? 'list' : 'review';
         } elseif ($can_payment_review) {
             $allowed_views = ['payment_review'];
             $default_view = 'payment_review';
@@ -2415,6 +2415,20 @@ class AEGIS_Orders {
                             ]
                         );
                     }
+                } elseif ($sales_user_filter > 0 && self::STATUS_PENDING_INITIAL_REVIEW !== $order->status) {
+                    $errors[] = '订单已进入其他环节，当前不可操作。';
+                    $view_id = (int) $order_id;
+                    $auto_open_drawer = true;
+                    AEGIS_Access_Audit::record_event(
+                        'ACCESS_DENIED',
+                        'FAIL',
+                        [
+                            'order_id'    => $order_id,
+                            'reason_code' => 'status_not_allowed',
+                            'status'      => $order->status,
+                            'action'      => $action,
+                        ]
+                    );
                 } else {
                     $sales_scope_ok = true;
                     global $wpdb;
@@ -2671,6 +2685,17 @@ class AEGIS_Orders {
                             'reason_code' => !$can_payment_review ? 'forbidden' : 'invalid_order',
                         ]
                     );
+                    if ($is_sales && !$can_payment_review) {
+                        AEGIS_Access_Audit::record_event(
+                            'ACCESS_DENIED',
+                            'FAIL',
+                            [
+                                'order_id'    => (int) $order_id,
+                                'order_no'    => $order ? $order->order_no : null,
+                                'reason_code' => 'forbidden_payment_review',
+                            ]
+                        );
+                    }
                     $errors[] = '无效的订单。';
                 } else {
                     $result = self::review_payment_by_hq($order, $decision, $note);
@@ -2851,6 +2876,7 @@ class AEGIS_Orders {
             'status_labels'  => $status_labels,
             'role_flags'     => [
                 'is_dealer'          => $is_dealer,
+                'is_sales'           => $is_sales,
                 'can_view_all'       => $can_view_all,
                 'can_initial_review' => $can_initial_review,
                 'can_payment_review' => $can_payment_review,

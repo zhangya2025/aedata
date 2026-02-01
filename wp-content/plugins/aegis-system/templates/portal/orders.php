@@ -66,14 +66,19 @@ $payment_status_labels = [
         <div class="notice notice-error"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
     <?php endforeach; ?>
 
-    <?php if ($role_flags['can_manage_all'] || ($role_flags['can_initial_review'] && $role_flags['can_payment_review'])) : ?>
+    <?php
+    $show_sales_toggle = $role_flags['is_sales'] && $role_flags['can_initial_review'] && !$role_flags['can_payment_review'] && !$role_flags['can_manage_all'];
+    ?>
+    <?php if ($role_flags['can_manage_all'] || ($role_flags['can_initial_review'] && $role_flags['can_payment_review']) || $show_sales_toggle) : ?>
         <div class="aegis-t-a6" style="margin:8px 0; display:flex; gap:8px; align-items:center;">
             <span>视图：</span>
             <?php $review_url = add_query_arg(['view' => 'review'], $base_url); ?>
-            <?php $payment_review_url = add_query_arg(['view' => 'payment_review'], $base_url); ?>
             <?php $list_url = add_query_arg(['view' => 'list'], $base_url); ?>
+            <?php $payment_review_url = add_query_arg(['view' => 'payment_review'], $base_url); ?>
             <a class="button <?php echo $view_mode === 'review' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($review_url); ?>">待初审队列</a>
-            <a class="button <?php echo $view_mode === 'payment_review' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($payment_review_url); ?>">待审核队列</a>
+            <?php if (!$show_sales_toggle) : ?>
+                <a class="button <?php echo $view_mode === 'payment_review' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($payment_review_url); ?>">待审核队列</a>
+            <?php endif; ?>
             <a class="button <?php echo $view_mode === 'list' ? 'button-primary' : ''; ?>" href="<?php echo esc_url($list_url); ?>">全部订单</a>
         </div>
     <?php endif; ?>
@@ -277,7 +282,13 @@ $payment_status_labels = [
         <div class="aegis-orders-drawer-body">
             <div id="aegis-orders-drawer-content">
                 <?php if ($order) : ?>
-                    <?php $status_text = $status_labels[$order->status] ?? $order->status; ?>
+                    <?php
+                    $status_text = $status_labels[$order->status] ?? $order->status;
+                    $payment_status_text = $payment && isset($payment_status_labels[$payment->status]) ? $payment_status_labels[$payment->status] : '';
+                    $initial_reviewed_at = $order->reviewed_at ?? '';
+                    $payment_submitted_at = $payment->submitted_at ?? '';
+                    $payment_reviewed_at = $payment->reviewed_at ?? ($order->payment_reviewed_at ?? '');
+                    ?>
                     <?php
                     $is_hq = current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
                         || current_user_can(AEGIS_System::CAP_ACCESS_ROOT)
@@ -424,6 +435,17 @@ $payment_status_labels = [
                                 <button type="submit" class="button" data-aegis-edit-action="1" onclick="return confirm('确认退回到上一环节？退回原因必须填写。');">退回上一环节</button>
                                 <span class="aegis-t-a6" style="margin-left:8px; color:#6b7280;">当前：<?php echo esc_html($order->status); ?> → 退回后：<?php echo esc_html($rollback_to_status); ?></span>
                             </form>
+                        <?php endif; ?>
+                    </section>
+
+                    <section class="aegis-orders-drawer-section">
+                        <div class="aegis-orders-section-title aegis-t-a5">状态进度</div>
+                        <div class="aegis-t-a6">下单：<?php echo esc_html($order->created_at ?: '—'); ?></div>
+                        <div class="aegis-t-a6">初审通过：<?php echo esc_html($initial_reviewed_at ?: '—'); ?></div>
+                        <div class="aegis-t-a6">付款凭证提交：<?php echo esc_html($payment_submitted_at ?: '—'); ?></div>
+                        <div class="aegis-t-a6">财务审核：<?php echo esc_html($payment_reviewed_at ?: ($order->status === 'pending_hq_payment_review' ? '审核中' : '—')); ?></div>
+                        <?php if ($payment_status_text) : ?>
+                            <div class="aegis-t-a6">付款审核状态：<?php echo esc_html($payment_status_text); ?></div>
                         <?php endif; ?>
                     </section>
 
