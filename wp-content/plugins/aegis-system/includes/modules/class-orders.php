@@ -2755,13 +2755,27 @@ class AEGIS_Orders {
                     }
                     $errors[] = '无效的订单。';
                 } else {
-                    $result = self::review_payment_by_hq($order, $decision, $note);
-                    if (is_wp_error($result)) {
-                        $errors[] = $result->get_error_message();
-                    } else {
-                        $messages[] = $result['message'];
+                    $guard = self::guard_not_cancel_pending(
+                        (int) $order_id,
+                        'payment_review_submit',
+                        [
+                            'order_no' => $order->order_no,
+                            'action'   => $decision,
+                        ]
+                    );
+                    if (is_wp_error($guard)) {
+                        $errors[] = $guard->get_error_message();
                         $view_id = (int) $order_id;
-                        $view_mode = 'payment_review';
+                        $auto_open_drawer = true;
+                    } else {
+                        $result = self::review_payment_by_hq($order, $decision, $note);
+                        if (is_wp_error($result)) {
+                            $errors[] = $result->get_error_message();
+                        } else {
+                            $messages[] = $result['message'];
+                            $view_id = (int) $order_id;
+                            $view_mode = 'payment_review';
+                        }
                     }
                 }
             }
