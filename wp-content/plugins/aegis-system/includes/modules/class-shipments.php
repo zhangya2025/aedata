@@ -129,13 +129,6 @@ class AEGIS_Shipments {
         $summary = $shipment ? self::get_shipment_summary($shipment_id) : null;
         $sku_summary = $shipment ? self::group_items_by_sku($items) : [];
         $dealers = self::get_active_dealers();
-        $cancel_pending = false;
-        if ($shipment && $shipment->order_ref && AEGIS_System::is_module_enabled('orders')) {
-            $linked_order = AEGIS_Orders::get_order_by_no($shipment->order_ref);
-            if ($linked_order) {
-                $cancel_pending = AEGIS_Orders::is_cancel_pending($linked_order->id);
-            }
-        }
 
         $context = [
             'base_url'     => $base_url,
@@ -153,7 +146,6 @@ class AEGIS_Shipments {
                 'order_ref' => $prefill_order_ref,
             ],
             'order_link_enabled' => $order_link_enabled,
-            'cancel_pending' => $cancel_pending,
             'filters'      => [
                 'start_date'  => $start_date,
                 'end_date'    => $end_date,
@@ -356,17 +348,6 @@ class AEGIS_Shipments {
             $order = AEGIS_Orders::get_order_by_no($shipment->order_ref);
             if (!$order) {
                 return new WP_Error('order_missing', '关联订单不存在，无法完成出库。');
-            }
-            $guard = AEGIS_Orders::guard_not_cancel_pending(
-                (int) $order->id,
-                'shipment_complete',
-                [
-                    'order_no'    => $order->order_no,
-                    'shipment_id' => (int) $shipment_id,
-                ]
-            );
-            if (is_wp_error($guard)) {
-                return $guard;
             }
             if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
                 return new WP_Error('order_not_ready', '关联订单未处于待出库状态，无法完成出库。');
