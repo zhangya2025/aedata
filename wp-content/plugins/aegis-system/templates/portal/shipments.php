@@ -13,6 +13,7 @@ $shipments = $context['shipments'];
 $pending_orders = $context['pending_orders'] ?? [];
 $prefill = $context['prefill'] ?? ['dealer_id' => 0, 'order_ref' => ''];
 $order_link_enabled = $context['order_link_enabled'] ?? false;
+$cancel_pending = $context['cancel_pending'] ?? false;
 $portal_url = $context['portal_url'] ?? '';
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
 $is_list_view = 'list' === $view;
@@ -209,7 +210,10 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                     <input type="hidden" name="shipments_action" value="complete" />
                     <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
                     <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                    <button type="submit" class="button button-secondary">完成出库</button>
+                    <?php if ($cancel_pending) : ?>
+                        <div class="aegis-t-a6" style="color:#d63638; margin-bottom:8px;">关联订单撤销申请处理中，出库已冻结。</div>
+                    <?php endif; ?>
+                    <button type="submit" class="button button-secondary" <?php disabled($cancel_pending); ?>>完成出库</button>
                 </form>
             </div>
         </div>
