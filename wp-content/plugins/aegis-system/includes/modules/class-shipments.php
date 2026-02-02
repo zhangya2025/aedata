@@ -349,6 +349,17 @@ class AEGIS_Shipments {
             if (!$order) {
                 return new WP_Error('order_missing', '关联订单不存在，无法完成出库。');
             }
+            $guard = AEGIS_Orders::guard_not_cancel_pending(
+                (int) $order->id,
+                'shipment_complete',
+                [
+                    'order_no'    => $order->order_no,
+                    'shipment_id' => (int) $shipment_id,
+                ]
+            );
+            if (is_wp_error($guard)) {
+                return $guard;
+            }
             if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
                 return new WP_Error('order_not_ready', '关联订单未处于待出库状态，无法完成出库。');
             }
