@@ -2513,26 +2513,52 @@ class AEGIS_Orders {
                     if ($sales_scope_ok) {
                         $items = self::parse_item_post($_POST);
                         $note = isset($_POST['review_note']) ? sanitize_text_field(wp_unslash($_POST['review_note'])) : '';
-                        $result = $is_submit_action
-                            ? self::review_order_by_hq($order, $items, $note)
-                            : self::save_initial_review_draft($order, $items, $note);
-                        if (is_wp_error($result)) {
-                            $errors[] = $result->get_error_message();
-                            if ($is_submit_action) {
+                        if ($is_submit_action) {
+                            $guard = self::guard_not_cancel_pending(
+                                (int) $order_id,
+                                'initial_review_submit',
+                                [
+                                    'order_no' => $order->order_no,
+                                    'action'   => 'submit_initial_review',
+                                ]
+                            );
+                            if (is_wp_error($guard)) {
+                                $errors[] = $guard->get_error_message();
+                                $view_id = (int) $order_id;
+                                $auto_open_drawer = true;
                                 AEGIS_Access_Audit::record_event(
                                     AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
                                     'FAIL',
                                     [
                                         'order_id' => $order_id,
-                                        'reason'   => $result->get_error_message(),
+                                        'reason'   => $guard->get_error_message(),
                                     ]
                                 );
+                            } else {
+                                $result = self::review_order_by_hq($order, $items, $note);
+                                if (is_wp_error($result)) {
+                                    $errors[] = $result->get_error_message();
+                                    AEGIS_Access_Audit::record_event(
+                                        AEGIS_System::ACTION_ORDER_INITIAL_REVIEW,
+                                        'FAIL',
+                                        [
+                                            'order_id' => $order_id,
+                                            'reason'   => $result->get_error_message(),
+                                        ]
+                                    );
+                                } else {
+                                    $messages[] = $result['message'];
+                                    $view_id = (int) $order_id;
+                                    $view_mode = 'list';
+                                }
                             }
                         } else {
-                            $messages[] = $result['message'];
-                            $view_id = (int) $order_id;
-                            if ($is_submit_action) {
-                                $view_mode = 'list';
+                            $result = self::save_initial_review_draft($order, $items, $note);
+                            if (is_wp_error($result)) {
+                                $errors[] = $result->get_error_message();
+                            } else {
+                                $messages[] = $result['message'];
+                                $view_id = (int) $order_id;
                             }
                         }
                     }
