@@ -371,6 +371,28 @@ class AEGIS_Orders {
         );
     }
 
+    public static function is_cancel_pending($order_id): bool {
+        $order = self::get_order((int) $order_id);
+        if (!$order) {
+            return false;
+        }
+        $cancel_request = (array) self::get_cancel_request($order);
+        return !empty($cancel_request['requested']) && 'pending' === $cancel_request['decision'];
+    }
+
+    public static function guard_not_cancel_pending($order_id, $action_key, $context = []) {
+        if (!self::is_cancel_pending($order_id)) {
+            return true;
+        }
+        AEGIS_Access_Audit::record_event('ACCESS_DENIED', 'FAIL', array_merge([
+            'order_id'    => (int) $order_id,
+            'action_key'  => $action_key,
+            'reason_code' => 'cancel_pending',
+            'actor_id'    => get_current_user_id(),
+        ], (array) $context));
+        return new WP_Error('cancel_pending', '撤销申请处理中，当前不可执行该操作。');
+    }
+
     public static function can_force_cancel($user = null): bool {
         $user = $user ?: wp_get_current_user();
         return current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM)
