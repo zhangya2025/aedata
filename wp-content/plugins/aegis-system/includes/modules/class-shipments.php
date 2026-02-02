@@ -129,6 +129,13 @@ class AEGIS_Shipments {
         $summary = $shipment ? self::get_shipment_summary($shipment_id) : null;
         $sku_summary = $shipment ? self::group_items_by_sku($items) : [];
         $dealers = self::get_active_dealers();
+        $cancel_pending = false;
+        if ($shipment && $shipment->order_ref && AEGIS_System::is_module_enabled('orders')) {
+            $linked_order = AEGIS_Orders::get_order_by_no($shipment->order_ref);
+            if ($linked_order) {
+                $cancel_pending = AEGIS_Orders::is_cancel_pending($linked_order->id);
+            }
+        }
 
         $context = [
             'base_url'     => $base_url,
@@ -140,6 +147,7 @@ class AEGIS_Shipments {
             'summary'      => $summary,
             'sku_summary'  => $sku_summary,
             'dealers'      => $dealers,
+            'cancel_pending' => $cancel_pending,
             'pending_orders' => $pending_orders,
             'prefill'      => [
                 'dealer_id' => $prefill_dealer_id,
