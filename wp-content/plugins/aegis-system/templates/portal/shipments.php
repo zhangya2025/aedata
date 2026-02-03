@@ -302,9 +302,9 @@ if (!in_array($tab, $allowed_tabs, true)) {
             </div>
         </div>
     <?php else : ?>
-        <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-receipts" style="margin-top:16px;">
-            <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-receipts-content">待出库订单</button>
-            <div class="aegis-collapsible__content" id="aegis-shipments-receipts-content">
+        <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-pending" style="margin-top:16px;">
+            <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-pending-content">待出库订单</button>
+            <div class="aegis-collapsible__content" id="aegis-shipments-pending-content">
                 <?php if (!$order_link_enabled) : ?>
                     <p class="aegis-t-a6">订单队列未启用/无权限。</p>
                 <?php elseif (empty($pending_orders)) : ?>
