@@ -236,19 +236,6 @@ if (!in_array($tab, $allowed_tabs, true)) {
         </div>
     <?php endif; ?>
 
-    <div class="aegis-t-a6" style="margin-top:12px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
-        <?php
-        $pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']);
-        $shipments_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'shipments']);
-        ?>
-        <?php if ($order_link_enabled) : ?>
-            <a class="button <?php echo esc_attr('pending_orders' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($pending_tab_url); ?>">待出库订单</a>
-        <?php else : ?>
-            <span class="button" style="opacity:0.5; cursor:not-allowed;">待出库订单</span>
-        <?php endif; ?>
-        <a class="button <?php echo esc_attr('shipments' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($shipments_tab_url); ?>">出库单列表</a>
-    </div>
-
     <div id="aegis-shipments-list"></div>
     <?php if ('shipments' === $tab) : ?>
         <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-receipts" style="margin-top:16px;">
