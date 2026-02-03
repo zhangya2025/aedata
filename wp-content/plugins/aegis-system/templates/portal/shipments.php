@@ -23,6 +23,18 @@ $allowed_tabs = ['pending_orders', 'shipments'];
 if (!in_array($tab, $allowed_tabs, true)) {
     $tab = $order_link_enabled ? 'pending_orders' : 'shipments';
 }
+$pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']); $shipments_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'shipments']); $render_shipments_tabs = function() use ($tab, $order_link_enabled, $pending_tab_url, $shipments_tab_url) { $tabs = ['pending' => $pending_tab_url, 'shipments' => $shipments_tab_url];
+    ?>
+    <div class="aegis-t-a6" style="margin-top:12px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
+        <?php if ($order_link_enabled) : ?>
+            <a class="button <?php echo esc_attr('pending_orders' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($tabs['pending']); ?>">待出库订单</a>
+        <?php else : ?>
+            <span class="button" style="opacity:0.5; cursor:not-allowed;">待出库订单</span>
+        <?php endif; ?>
+        <a class="button <?php echo esc_attr('shipments' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($tabs['shipments']); ?>">出库单列表</a>
+    </div>
+    <?php
+};
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
@@ -200,21 +212,66 @@ if (!in_array($tab, $allowed_tabs, true)) {
         </div>
     <?php endif; ?>
 
-    <div class="aegis-t-a6" style="margin-top:12px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
-        <?php
-        $pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']);
-        $shipments_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'shipments']);
-        ?>
-        <?php if ($order_link_enabled) : ?>
-            <a class="button <?php echo esc_attr('pending_orders' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($pending_tab_url); ?>">待出库订单</a>
-        <?php else : ?>
-            <span class="button" style="opacity:0.5; cursor:not-allowed;">待出库订单</span>
-        <?php endif; ?>
-        <a class="button <?php echo esc_attr('shipments' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($shipments_tab_url); ?>">出库单列表</a>
-    </div>
+    <?php $render_shipments_tabs(); ?>
 
     <div id="aegis-shipments-list"></div>
-    <?php if ('shipments' === $tab) : ?>
+    <?php if ('pending_orders' === $tab) : ?>
+        <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-pending" style="margin-top:16px;">
+            <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-pending-content">待出库订单</button>
+            <div class="aegis-collapsible__content" id="aegis-shipments-pending-content">
+                <?php if (!$order_link_enabled) : ?>
+                    <p class="aegis-t-a6">订单队列未启用/无权限。</p>
+                <?php elseif (empty($pending_orders)) : ?>
+                    <p class="aegis-t-a6">暂无待出库订单。</p>
+                <?php else : ?>
+                    <div class="aegis-table-wrap">
+                        <table class="aegis-table" style="width:100%;">
+                            <thead><tr><th>订单号</th><th>经销商</th><th>数量</th><th>操作</th></tr></thead>
+                            <tbody>
+                                <?php foreach ($pending_orders as $row) : ?>
+                                    <?php
+                                    $order_no = '';
+                                    $dealer_id_value = 0;
+                                    $dealer_name_value = '';
+                                    $total_qty_value = 0;
+                                    if (is_array($row)) {
+                                        $order_no = $row['order_no'] ?? '';
+                                        $dealer_id_value = (int) ($row['dealer_id'] ?? 0);
+                                        $dealer_name_value = $row['dealer_name'] ?? '';
+                                        $total_qty_value = (int) ($row['total_qty'] ?? 0);
+                                    } elseif (is_object($row)) {
+                                        $order_no = $row->order_no ?? '';
+                                        $dealer_id_value = (int) ($row->dealer_id ?? 0);
+                                        $dealer_name_value = $row->dealer_name ?? '';
+                                        $total_qty_value = (int) ($row->total_qty ?? 0);
+                                    }
+                                    $has_link_data = $dealer_id_value && $order_no;
+                                    $start_url = $has_link_data ? add_query_arg(
+                                        ['m' => 'shipments', 'tab' => 'pending_orders', 'dealer_id' => $dealer_id_value, 'order_ref' => $order_no],
+                                        $base_url
+                                    ) : '';
+                                    ?>
+                                    <tr>
+                                        <td><?php echo esc_html($order_no); ?></td>
+                                        <td><?php echo esc_html($dealer_name_value); ?></td>
+                                        <td><?php echo esc_html($total_qty_value); ?></td>
+                                        <td>
+                                            <?php if ($has_link_data) : ?>
+                                                <a class="button button-primary" href="<?php echo esc_url($start_url); ?>">开始出库</a>
+                                            <?php else : ?>
+                                                <button type="button" class="button button-primary" disabled>开始出库</button>
+                                                <span class="aegis-t-a6" style="margin-left:6px;">PR-2 后端补全数据后启用</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php else : ?>
         <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-receipts" style="margin-top:16px;">
             <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-receipts-content">出库单列表（最近 7 天）</button>
             <div class="aegis-collapsible__content" id="aegis-shipments-receipts-content">
@@ -298,62 +355,6 @@ if (!in_array($tab, $allowed_tabs, true)) {
                             <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] + 1], $base_url)); ?>">下一页</a>
                         <?php endif; ?>
                     </div></div>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php else : ?>
-        <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-pending" style="margin-top:16px;">
-            <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-pending-content">待出库订单</button>
-            <div class="aegis-collapsible__content" id="aegis-shipments-pending-content">
-                <?php if (!$order_link_enabled) : ?>
-                    <p class="aegis-t-a6">订单队列未启用/无权限。</p>
-                <?php elseif (empty($pending_orders)) : ?>
-                    <p class="aegis-t-a6">暂无待出库订单。</p>
-                <?php else : ?>
-                    <div class="aegis-table-wrap">
-                        <table class="aegis-table" style="width:100%;">
-                            <thead><tr><th>订单号</th><th>经销商</th><th>数量</th><th>操作</th></tr></thead>
-                            <tbody>
-                                <?php foreach ($pending_orders as $row) : ?>
-                                    <?php
-                                    $order_no = '';
-                                    $dealer_id_value = 0;
-                                    $dealer_name_value = '';
-                                    $total_qty_value = 0;
-                                    if (is_array($row)) {
-                                        $order_no = $row['order_no'] ?? '';
-                                        $dealer_id_value = (int) ($row['dealer_id'] ?? 0);
-                                        $dealer_name_value = $row['dealer_name'] ?? '';
-                                        $total_qty_value = (int) ($row['total_qty'] ?? 0);
-                                    } elseif (is_object($row)) {
-                                        $order_no = $row->order_no ?? '';
-                                        $dealer_id_value = (int) ($row->dealer_id ?? 0);
-                                        $dealer_name_value = $row->dealer_name ?? '';
-                                        $total_qty_value = (int) ($row->total_qty ?? 0);
-                                    }
-                                    $has_link_data = $dealer_id_value && $order_no;
-                                    $start_url = $has_link_data ? add_query_arg(
-                                        ['m' => 'shipments', 'tab' => 'pending_orders', 'dealer_id' => $dealer_id_value, 'order_ref' => $order_no],
-                                        $base_url
-                                    ) : '';
-                                    ?>
-                                    <tr>
-                                        <td><?php echo esc_html($order_no); ?></td>
-                                        <td><?php echo esc_html($dealer_name_value); ?></td>
-                                        <td><?php echo esc_html($total_qty_value); ?></td>
-                                        <td>
-                                            <?php if ($has_link_data) : ?>
-                                                <a class="button button-primary" href="<?php echo esc_url($start_url); ?>">开始出库</a>
-                                            <?php else : ?>
-                                                <button type="button" class="button button-primary" disabled>开始出库</button>
-                                                <span class="aegis-t-a6" style="margin-left:6px;">PR-2 后端补全数据后启用</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
                 <?php endif; ?>
             </div>
         </div>
