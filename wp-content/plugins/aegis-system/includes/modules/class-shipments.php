@@ -192,6 +192,20 @@ class AEGIS_Shipments {
 
     protected static function handle_portal_start($dealer_id, $note = '', $order_ref = '') {
         global $wpdb;
+        if ($order_ref) {
+            if (!AEGIS_System::is_module_enabled('orders')) {
+                return new WP_Error('order_disabled', '订单模块未启用，无法关联。');
+            }
+            $order = AEGIS_Orders::get_order_by_no($order_ref);
+            if (!$order) {
+                return new WP_Error('order_missing', '未找到关联订单。');
+            }
+            if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
+                return new WP_Error('order_not_ready', '订单未进入待出库状态，无法开始出库。');
+            }
+            $dealer_id = (int) $order->dealer_id;
+        }
+
         if ($dealer_id <= 0) {
             return new WP_Error('invalid_dealer', '请选择经销商。');
         }
@@ -201,24 +215,6 @@ class AEGIS_Shipments {
         }
         if ('active' !== $dealer->status) {
             return new WP_Error('dealer_inactive', '该经销商已停用，禁止出库。');
-        }
-
-        $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
-        $order_ref = $order_link_enabled ? $order_ref : '';
-        if ($order_ref) {
-            if (!AEGIS_System::is_module_enabled('orders')) {
-                return new WP_Error('order_disabled', '订单模块未启用，无法关联。');
-            }
-            $order = AEGIS_Orders::get_order_by_no($order_ref);
-            if (!$order) {
-                return new WP_Error('order_missing', '未找到关联订单。');
-            }
-            if ((int) $order->dealer_id !== (int) $dealer_id) {
-                return new WP_Error('order_mismatch', '订单与经销商不匹配。');
-            }
-            if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
-                return new WP_Error('order_not_ready', '订单未进入待出库状态，无法开始出库。');
-            }
         }
 
         $shipment_no = 'SHP-' . gmdate('Ymd-His', current_time('timestamp'));
@@ -706,10 +702,21 @@ class AEGIS_Shipments {
         $shipment_no = isset($data['shipment_no']) ? sanitize_text_field(wp_unslash($data['shipment_no'])) : '';
         $order_ref = isset($data['order_ref']) ? sanitize_text_field(wp_unslash($data['order_ref'])) : '';
         $codes_input = isset($data['codes']) ? wp_unslash($data['codes']) : '';
-
-        $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
-        $order_ref = $order_link_enabled ? $order_ref : '';
         $order = null;
+
+        if ($order_ref) {
+            if (!AEGIS_System::is_module_enabled('orders')) {
+                return new WP_Error('order_disabled', '订单模块未启用，无法关联。');
+            }
+            $order = AEGIS_Orders::get_order_by_no($order_ref);
+            if (!$order) {
+                return new WP_Error('order_missing', '未找到关联订单。');
+            }
+            if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
+                return new WP_Error('order_not_ready', '订单未进入待出库状态，无法出库。');
+            }
+            $dealer_id = (int) $order->dealer_id;
+        }
 
         if ($dealer_id <= 0) {
             return new WP_Error('invalid_dealer', '请选择经销商。');
@@ -721,22 +728,6 @@ class AEGIS_Shipments {
         }
         if ('active' !== $dealer->status) {
             return new WP_Error('dealer_inactive', '经销商已停用，禁止新出库。');
-        }
-
-        if ($order_ref) {
-            if (!AEGIS_System::is_module_enabled('orders')) {
-                return new WP_Error('order_disabled', '订单模块未启用，无法关联。');
-            }
-            $order = AEGIS_Orders::get_order_by_no($order_ref);
-            if (!$order) {
-                return new WP_Error('order_missing', '未找到关联订单。');
-            }
-            if ((int) $order->dealer_id !== (int) $dealer_id) {
-                return new WP_Error('order_mismatch', '订单与经销商不匹配。');
-            }
-            if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
-                return new WP_Error('order_not_ready', '订单未进入待出库状态，无法出库。');
-            }
         }
 
         $codes = self::parse_codes($codes_input);
