@@ -9,7 +9,7 @@ $summary = $context['summary'];
 $sku_summary = $context['sku_summary'];
 $dealers = $context['dealers'];
 $filters = $context['filters'];
-$shipments = is_array($context['shipments'] ?? null) ? $context['shipments'] : [];
+$shipments = $context['shipments'];
 $pending_orders = $context['pending_orders'] ?? [];
 $prefill = $context['prefill'] ?? ['dealer_id' => 0, 'order_ref' => ''];
 $order_link_enabled = $context['order_link_enabled'] ?? false;
@@ -84,7 +84,7 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
             <table class="aegis-table aegis-shipments-table" style="width:100%;">
                 <thead><tr><th>ID</th><th>出库单号</th><th>经销商</th><th>数量</th><th>创建人</th><th>时间</th><th>操作</th></tr></thead>
                 <tbody>
-                    <?php if (!$shipments) : ?>
+                    <?php if (empty($shipments)) : ?>
                         <tr><td colspan="7">暂无出库单</td></tr>
                     <?php else : ?>
                         <?php foreach ($shipments as $row) : ?>
