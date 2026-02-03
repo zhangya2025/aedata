@@ -38,6 +38,18 @@ $pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
+    <div class="aegis-t-a6" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;">
+        <?php
+        $pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']);
+        $shipments_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'shipments']);
+        ?>
+        <?php if ($order_link_enabled) : ?>
+            <a class="button <?php echo esc_attr('pending_orders' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($pending_tab_url); ?>">待出库订单</a>
+        <?php else : ?>
+            <span class="button" style="opacity:0.5; cursor:not-allowed;">待出库订单</span>
+        <?php endif; ?>
+        <a class="button <?php echo esc_attr('shipments' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($shipments_tab_url); ?>">出库单列表</a>
+    </div>
     <p class="aegis-t-a6 aegis-helptext">逐码扫码/手输，仅允许已入库码出库；经销商停用则不可选择。导出汇总/明细仅限仓库与 HQ。</p>
 
     <?php foreach ($messages as $msg) : ?>
