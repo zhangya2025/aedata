@@ -16,28 +16,11 @@ $order_link_enabled = $context['order_link_enabled'] ?? false;
 $cancel_pending = $context['cancel_pending'] ?? false;
 $portal_url = $context['portal_url'] ?? '';
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
-$tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
 $is_list_view = 'list' === $view;
 $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
-$allowed_tabs = ['pending_orders', 'shipments'];
-if (!in_array($tab, $allowed_tabs, true)) {
-    $tab = $order_link_enabled ? 'pending_orders' : 'shipments';
-}
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
-    <div class="aegis-t-a6" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;">
-        <?php
-        $pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']);
-        $shipments_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'shipments']);
-        ?>
-        <?php if ($order_link_enabled) : ?>
-            <a class="button <?php echo esc_attr('pending_orders' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($pending_tab_url); ?>">待出库订单</a>
-        <?php else : ?>
-            <span class="button" style="opacity:0.5; cursor:not-allowed;">待出库订单</span>
-        <?php endif; ?>
-        <a class="button <?php echo esc_attr('shipments' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($shipments_tab_url); ?>">出库单列表</a>
-    </div>
     <p class="aegis-t-a6 aegis-helptext">逐码扫码/手输，仅允许已入库码出库；经销商停用则不可选择。导出汇总/明细仅限仓库与 HQ。</p>
 
     <?php foreach ($messages as $msg) : ?>
@@ -237,150 +220,91 @@ if (!in_array($tab, $allowed_tabs, true)) {
     <?php endif; ?>
 
     <div id="aegis-shipments-list"></div>
-    <?php if ('shipments' === $tab) : ?>
-        <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-receipts" style="margin-top:16px;">
-            <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-receipts-content">出库单列表（最近 7 天）</button>
-            <div class="aegis-collapsible__content" id="aegis-shipments-receipts-content">
-                <div class="aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-filter-section">
-                    <button type="button" class="aegis-t-a6 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-filter-content">筛选条件</button>
-                    <div class="aegis-collapsible__content" id="aegis-shipments-filter-content">
-                        <form method="get" class="aegis-t-a6 aegis-filter-form" style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-                            <input type="hidden" name="m" value="shipments" />
-                            <input type="hidden" name="tab" value="shipments" />
-                            <label>开始 <input type="date" name="start_date" value="<?php echo esc_attr($filters['start_date']); ?>" /></label>
-                            <label>结束 <input type="date" name="end_date" value="<?php echo esc_attr($filters['end_date']); ?>" /></label>
-                            <label>经销商
-                                <select name="dealer_id">
-                                    <option value="0">全部</option>
-                                    <?php foreach ($dealers as $dealer) : ?>
-                                        <option value="<?php echo esc_attr($dealer->id); ?>" <?php selected((int) $filters['dealer_id'], (int) $dealer->id); ?>><?php echo esc_html($dealer->dealer_name); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </label>
-                            <label>每页 <select name="per_page">
-                                <?php foreach ($filters['per_options'] as $opt) : ?>
-                                    <option value="<?php echo esc_attr($opt); ?>" <?php selected($filters['per_page'], $opt); ?>><?php echo esc_html($opt); ?></option>
+    <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-receipts" style="margin-top:16px;">
+        <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-receipts-content">出库单列表（最近 7 天）</button>
+        <div class="aegis-collapsible__content" id="aegis-shipments-receipts-content">
+            <div class="aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-filter-section">
+                <button type="button" class="aegis-t-a6 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-filter-content">筛选条件</button>
+                <div class="aegis-collapsible__content" id="aegis-shipments-filter-content">
+                    <form method="get" class="aegis-t-a6 aegis-filter-form" style="margin:8px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+                        <input type="hidden" name="m" value="shipments" />
+                        <label>开始 <input type="date" name="start_date" value="<?php echo esc_attr($filters['start_date']); ?>" /></label>
+                        <label>结束 <input type="date" name="end_date" value="<?php echo esc_attr($filters['end_date']); ?>" /></label>
+                        <label>经销商
+                            <select name="dealer_id">
+                                <option value="0">全部</option>
+                                <?php foreach ($dealers as $dealer) : ?>
+                                    <option value="<?php echo esc_attr($dealer->id); ?>" <?php selected((int) $filters['dealer_id'], (int) $dealer->id); ?>><?php echo esc_html($dealer->dealer_name); ?></option>
                                 <?php endforeach; ?>
-                            </select></label>
-                            <button type="submit" class="button">筛选</button>
-                        </form>
-                    </div>
+                            </select>
+                        </label>
+                        <label>每页 <select name="per_page">
+                            <?php foreach ($filters['per_options'] as $opt) : ?>
+                                <option value="<?php echo esc_attr($opt); ?>" <?php selected($filters['per_page'], $opt); ?>><?php echo esc_html($opt); ?></option>
+                            <?php endforeach; ?>
+                        </select></label>
+                        <button type="submit" class="button">筛选</button>
+                    </form>
                 </div>
-                <div class="aegis-table-wrap">
-                    <table class="aegis-table aegis-shipments-table" style="width:100%;">
-                        <thead><tr><th>ID</th><th>出库单号</th><th>经销商</th><th>数量</th><th>创建人</th><th>时间</th><th>操作</th></tr></thead>
-                        <tbody>
-                            <?php if (empty($shipments)) : ?>
-                                <tr><td colspan="7">暂无出库单</td></tr>
-                            <?php else : ?>
-                                <?php foreach ($shipments as $row) : ?>
-                                    <?php $user = $row->created_by ? get_userdata($row->created_by) : null; ?>
-                                    <?php
-                                    $dealer = null;
-                                    if ($row->dealer_id) {
-                                        foreach ($dealers as $d) {
-                                            if ((int) $d->id === (int) $row->dealer_id) {
-                                                $dealer = $d;
-                                                break;
-                                            }
+            </div>
+            <div class="aegis-table-wrap">
+                <table class="aegis-table aegis-shipments-table" style="width:100%;">
+                    <thead><tr><th>ID</th><th>出库单号</th><th>经销商</th><th>数量</th><th>创建人</th><th>时间</th><th>操作</th></tr></thead>
+                    <tbody>
+                        <?php if (empty($shipments)) : ?>
+                            <tr><td colspan="7">暂无出库单</td></tr>
+                        <?php else : ?>
+                            <?php foreach ($shipments as $row) : ?>
+                                <?php $user = $row->created_by ? get_userdata($row->created_by) : null; ?>
+                                <?php
+                                $dealer = null;
+                                if ($row->dealer_id) {
+                                    foreach ($dealers as $d) {
+                                        if ((int) $d->id === (int) $row->dealer_id) {
+                                            $dealer = $d;
+                                            break;
                                         }
                                     }
-                                    ?>
-                                    <tr>
-                                        <td><?php echo esc_html($row->id); ?></td>
-                                        <td><?php echo esc_html($row->shipment_no); ?></td>
-                                        <td><?php echo esc_html($dealer ? $dealer->dealer_name : '-'); ?></td>
-                                        <td><?php echo esc_html((int) ($row->qty ?? $row->item_count)); ?></td>
-                                        <td><?php echo esc_html($user ? $user->user_login : '-'); ?></td>
-                                        <td><?php echo esc_html($row->created_at); ?></td>
-                                        <td>
-                                            <a class="button" href="<?php echo esc_url(add_query_arg('shipment', $row->id, $base_url)); ?>">查看</a>
-                                            <?php if ($can_manage_system) : ?>
-                                                <form method="post" style="display:inline-block; margin-left:6px;">
-                                                    <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
-                                                    <input type="hidden" name="shipments_action" value="delete_shipment" />
-                                                    <input type="hidden" name="shipment_id" value="<?php echo esc_attr($row->id); ?>" />
-                                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                                    <button type="submit" class="button" onclick="return confirm('确认删除该出库单？仅空单/草稿可删除。');">删除</button>
-                                                </form>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <?php if ($filters['total_pages'] > 1) : ?>
-                    <div class="tablenav"><div class="tablenav-pages">
-                        <?php if ($filters['paged'] > 1) : ?>
-                            <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] - 1], $base_url)); ?>">上一页</a>
+                                }
+                                ?>
+                                <tr>
+                                    <td><?php echo esc_html($row->id); ?></td>
+                                    <td><?php echo esc_html($row->shipment_no); ?></td>
+                                    <td><?php echo esc_html($dealer ? $dealer->dealer_name : '-'); ?></td>
+                                    <td><?php echo esc_html((int) ($row->qty ?? $row->item_count)); ?></td>
+                                    <td><?php echo esc_html($user ? $user->user_login : '-'); ?></td>
+                                    <td><?php echo esc_html($row->created_at); ?></td>
+                                    <td>
+                                        <a class="button" href="<?php echo esc_url(add_query_arg('shipment', $row->id, $base_url)); ?>">查看</a>
+                                        <?php if ($can_manage_system) : ?>
+                                            <form method="post" style="display:inline-block; margin-left:6px;">
+                                                <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+                                                <input type="hidden" name="shipments_action" value="delete_shipment" />
+                                                <input type="hidden" name="shipment_id" value="<?php echo esc_attr($row->id); ?>" />
+                                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                <button type="submit" class="button" onclick="return confirm('确认删除该出库单？仅空单/草稿可删除。');">删除</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         <?php endif; ?>
-                        <span class="aegis-t-a6">第 <?php echo esc_html($filters['paged']); ?> / <?php echo esc_html($filters['total_pages']); ?> 页</span>
-                        <?php if ($filters['paged'] < $filters['total_pages']) : ?>
-                            <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] + 1], $base_url)); ?>">下一页</a>
-                        <?php endif; ?>
-                    </div></div>
-                <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
+            <?php if ($filters['total_pages'] > 1) : ?>
+                <div class="tablenav"><div class="tablenav-pages">
+                    <?php if ($filters['paged'] > 1) : ?>
+                        <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] - 1], $base_url)); ?>">上一页</a>
+                    <?php endif; ?>
+                    <span class="aegis-t-a6">第 <?php echo esc_html($filters['paged']); ?> / <?php echo esc_html($filters['total_pages']); ?> 页</span>
+                    <?php if ($filters['paged'] < $filters['total_pages']) : ?>
+                        <a class="button" href="<?php echo esc_url(add_query_arg(['paged' => $filters['paged'] + 1], $base_url)); ?>">下一页</a>
+                    <?php endif; ?>
+                </div></div>
+            <?php endif; ?>
         </div>
-    <?php else : ?>
-        <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed aegis-list-section" id="aegis-shipments-receipts" style="margin-top:16px;">
-            <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-receipts-content">待出库订单</button>
-            <div class="aegis-collapsible__content" id="aegis-shipments-receipts-content">
-                <?php if (!$order_link_enabled) : ?>
-                    <p class="aegis-t-a6">订单队列未启用/无权限。</p>
-                <?php elseif (empty($pending_orders)) : ?>
-                    <p class="aegis-t-a6">暂无待出库订单。</p>
-                <?php else : ?>
-                    <div class="aegis-table-wrap">
-                        <table class="aegis-table" style="width:100%;">
-                            <thead><tr><th>订单号</th><th>经销商</th><th>数量</th><th>操作</th></tr></thead>
-                            <tbody>
-                                <?php foreach ($pending_orders as $row) : ?>
-                                    <?php
-                                    $order_no = '';
-                                    $dealer_id_value = 0;
-                                    $dealer_name_value = '';
-                                    $total_qty_value = 0;
-                                    if (is_array($row)) {
-                                        $order_no = $row['order_no'] ?? '';
-                                        $dealer_id_value = (int) ($row['dealer_id'] ?? 0);
-                                        $dealer_name_value = $row['dealer_name'] ?? '';
-                                        $total_qty_value = (int) ($row['total_qty'] ?? 0);
-                                    } elseif (is_object($row)) {
-                                        $order_no = $row->order_no ?? '';
-                                        $dealer_id_value = (int) ($row->dealer_id ?? 0);
-                                        $dealer_name_value = $row->dealer_name ?? '';
-                                        $total_qty_value = (int) ($row->total_qty ?? 0);
-                                    }
-                                    $has_link_data = $dealer_id_value && $order_no;
-                                    $start_url = $has_link_data ? add_query_arg(
-                                        ['m' => 'shipments', 'tab' => 'pending_orders', 'dealer_id' => $dealer_id_value, 'order_ref' => $order_no],
-                                        $base_url
-                                    ) : '';
-                                    ?>
-                                    <tr>
-                                        <td><?php echo esc_html($order_no); ?></td>
-                                        <td><?php echo esc_html($dealer_name_value); ?></td>
-                                        <td><?php echo esc_html($total_qty_value); ?></td>
-                                        <td>
-                                            <?php if ($has_link_data) : ?>
-                                                <a class="button button-primary" href="<?php echo esc_url($start_url); ?>">开始出库</a>
-                                            <?php else : ?>
-                                                <button type="button" class="button button-primary" disabled>开始出库</button>
-                                                <span class="aegis-t-a6" style="margin-left:6px;">PR-2 后端补全数据后启用</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php endif; ?>
+    </div>
 </div>
 <script>
     (function() {
