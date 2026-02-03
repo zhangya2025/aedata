@@ -23,6 +23,18 @@ $allowed_tabs = ['pending_orders', 'shipments'];
 if (!in_array($tab, $allowed_tabs, true)) {
     $tab = $order_link_enabled ? 'pending_orders' : 'shipments';
 }
+$pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']); $shipments_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'shipments']); $render_shipments_tabs = function() use ($tab, $order_link_enabled, $pending_tab_url, $shipments_tab_url) { $tabs = ['pending' => $pending_tab_url, 'shipments' => $shipments_tab_url];
+    ?>
+    <div class="aegis-t-a6" style="margin-top:12px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
+        <?php if ($order_link_enabled) : ?>
+            <a class="button <?php echo esc_attr('pending_orders' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($tabs['pending']); ?>">待出库订单</a>
+        <?php else : ?>
+            <span class="button" style="opacity:0.5; cursor:not-allowed;">待出库订单</span>
+        <?php endif; ?>
+        <a class="button <?php echo esc_attr('shipments' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($tabs['shipments']); ?>">出库单列表</a>
+    </div>
+    <?php
+};
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
@@ -200,18 +212,7 @@ if (!in_array($tab, $allowed_tabs, true)) {
         </div>
     <?php endif; ?>
 
-    <?php
-    $pending_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'pending_orders']);
-    $shipments_tab_url = add_query_arg(['m' => 'shipments', 'tab' => 'shipments']);
-    ?>
-    <div class="aegis-t-a6" style="margin-top:12px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
-        <?php if ($order_link_enabled) : ?>
-            <a class="button <?php echo esc_attr('pending_orders' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($pending_tab_url); ?>">待出库订单</a>
-        <?php else : ?>
-            <span class="button" style="opacity:0.5; cursor:not-allowed;">待出库订单</span>
-        <?php endif; ?>
-        <a class="button <?php echo esc_attr('shipments' === $tab ? 'button-primary' : ''); ?>" href="<?php echo esc_url($shipments_tab_url); ?>">出库单列表</a>
-    </div>
+    <?php $render_shipments_tabs(); ?>
 
     <div id="aegis-shipments-list"></div>
     <?php if ('pending_orders' === $tab) : ?>
