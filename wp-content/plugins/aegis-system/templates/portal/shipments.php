@@ -31,6 +31,40 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
     <?php endforeach; ?>
 
     <?php if (!$shipment) : ?>
+        <form method="post" class="aegis-t-a5 aegis-start-form" style="margin:12px 0;">
+            <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+            <input type="hidden" name="shipments_action" value="start" />
+            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+            <div class="aegis-start-actions" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+                <label class="aegis-t-a6">经销商：
+                    <select name="dealer_id" required class="aegis-action-select">
+                        <option value="">请选择经销商</option>
+                        <?php foreach ($dealers as $dealer) : ?>
+                            <option value="<?php echo esc_attr($dealer->id); ?>" <?php selected((int) $prefill['dealer_id'], (int) $dealer->id); ?>><?php echo esc_html($dealer->dealer_name . '（' . $dealer->auth_code . '）'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <?php if ($order_link_enabled) : ?>
+                    <label class="aegis-t-a6">关联订单号：
+                        <input type="text" name="order_ref" value="<?php echo esc_attr($prefill['order_ref']); ?>" placeholder="待出库订单号" />
+                    </label>
+                <?php endif; ?>
+                <button type="button" class="button aegis-note-toggle aegis-action-note" id="aegis-shipments-note-toggle" aria-expanded="false" aria-controls="aegis-shipments-note-field">备注</button>
+                <div id="aegis-shipments-note-field" class="aegis-note-field" style="display:none; min-width:240px;">
+                    <label class="aegis-t-a6" style="display:block;">备注（可选）：<input type="text" name="note" /></label>
+                </div>
+                <button type="submit" class="button button-primary aegis-action-start">
+                    <svg class="aegis-btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">
+                        <rect x="3" y="4" width="2" height="16"></rect>
+                        <rect x="7" y="4" width="1" height="16"></rect>
+                        <rect x="10" y="4" width="2" height="16"></rect>
+                        <rect x="14" y="4" width="1" height="16"></rect>
+                        <rect x="17" y="4" width="2" height="16"></rect>
+                    </svg>
+                    <span class="aegis-btn-label">开始出库</span>
+                </button>
+            </div>
+        </form>
         <div class="aegis-shipments-tabs" data-aegis-tabs>
             <div class="aegis-shipments-tabs__header" role="tablist" aria-label="出库列表切换">
                 <button type="button" class="aegis-shipments-tab is-active" role="tab" aria-selected="true" data-tab="pending">待出库订单</button>
@@ -164,40 +198,6 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                 </div>
             </div>
         </div>
-        <form method="post" class="aegis-t-a5 aegis-start-form" style="margin:12px 0;">
-            <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
-            <input type="hidden" name="shipments_action" value="start" />
-            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-            <div class="aegis-start-actions" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-                <label class="aegis-t-a6">经销商：
-                    <select name="dealer_id" required class="aegis-action-select">
-                        <option value="">请选择经销商</option>
-                        <?php foreach ($dealers as $dealer) : ?>
-                            <option value="<?php echo esc_attr($dealer->id); ?>" <?php selected((int) $prefill['dealer_id'], (int) $dealer->id); ?>><?php echo esc_html($dealer->dealer_name . '（' . $dealer->auth_code . '）'); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <?php if ($order_link_enabled) : ?>
-                    <label class="aegis-t-a6">关联订单号：
-                        <input type="text" name="order_ref" value="<?php echo esc_attr($prefill['order_ref']); ?>" placeholder="待出库订单号" />
-                    </label>
-                <?php endif; ?>
-                <button type="button" class="button aegis-note-toggle aegis-action-note" id="aegis-shipments-note-toggle" aria-expanded="false" aria-controls="aegis-shipments-note-field">备注</button>
-                <div id="aegis-shipments-note-field" class="aegis-note-field" style="display:none; min-width:240px;">
-                    <label class="aegis-t-a6" style="display:block;">备注（可选）：<input type="text" name="note" /></label>
-                </div>
-                <button type="submit" class="button button-primary aegis-action-start">
-                    <svg class="aegis-btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">
-                        <rect x="3" y="4" width="2" height="16"></rect>
-                        <rect x="7" y="4" width="1" height="16"></rect>
-                        <rect x="10" y="4" width="2" height="16"></rect>
-                        <rect x="14" y="4" width="1" height="16"></rect>
-                        <rect x="17" y="4" width="2" height="16"></rect>
-                    </svg>
-                    <span class="aegis-btn-label">开始出库</span>
-                </button>
-            </div>
-        </form>
         <script>
             (function() {
                 var toggle = document.getElementById('aegis-shipments-note-toggle');
