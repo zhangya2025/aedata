@@ -759,6 +759,44 @@ body.aegis-scan-open {
     transition: transform 0.2s ease;
 }
 
+.aegis-shipments-page .aegis-shipments-tabs {
+    margin-top: 12px;
+}
+
+.aegis-shipments-page .aegis-shipments-tabs__header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px solid #d9dce3;
+    padding-bottom: 8px;
+}
+
+.aegis-shipments-page .aegis-shipments-tab {
+    appearance: none;
+    border: 1px solid #d9dce3;
+    background: #f4f6f9;
+    color: #1d2327;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.aegis-shipments-page .aegis-shipments-tab.is-active {
+    background: #1d73e8;
+    border-color: #1d73e8;
+    color: #fff;
+}
+
+.aegis-shipments-page .aegis-shipments-tabs__panel {
+    margin-top: 12px;
+}
+
+.aegis-shipments-page .aegis-shipments-tabs__note {
+    color: #7a828a;
+    margin-top: 6px;
+}
+
 .aegis-scan-overlay {
     position: fixed;
     inset: 0;
