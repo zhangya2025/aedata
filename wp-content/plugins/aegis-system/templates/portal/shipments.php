@@ -79,52 +79,53 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                 });
             })();
         </script>
-        <div id="aegis-shipments-table-anchor"></div>
-        <div class="aegis-shipments-table-wrapper">
-            <table class="aegis-table aegis-shipments-table" style="width:100%;">
-                <thead><tr><th>ID</th><th>出库单号</th><th>经销商</th><th>数量</th><th>创建人</th><th>时间</th><th>操作</th></tr></thead>
-                <tbody>
-                    <?php if (!$shipments) : ?>
-                        <tr><td colspan="7">暂无出库单</td></tr>
+        <section class="aegis-card" id="aegis-shipments-table-section" style="margin-top:16px;"><div class="aegis-card-header"><div class="aegis-card-title aegis-t-a5">出库单列表（最近 7 天）</div></div><div class="aegis-table-wrap"><table class="aegis-table aegis-shipments-table" style="width:100%;">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>出库单号</th>
+                        <th>经销商</th>
+                        <th>数量</th>
+                        <th>创建人</th>
+                        <th>时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($shipments)) : ?>
+                        <tr><td colspan="7" class="aegis-t-a6">暂无出库单</td></tr>
                     <?php else : ?>
                         <?php foreach ($shipments as $row) : ?>
-                            <?php $user = $row->created_by ? get_userdata($row->created_by) : null; ?>
                             <?php
-                            $dealer = null;
-                            if ($row->dealer_id) {
+                            $user = $row->created_by ? get_userdata($row->created_by) : null;
+
+                            $dealer_name = '-';
+                            if (!empty($row->dealer_id)) {
                                 foreach ($dealers as $d) {
                                     if ((int) $d->id === (int) $row->dealer_id) {
-                                        $dealer = $d;
+                                        $dealer_name = $d->dealer_name;
                                         break;
                                     }
                                 }
                             }
+
+                            $qty = (int) ($row->qty ?? $row->item_count ?? 0);
                             ?>
                             <tr>
                                 <td><?php echo esc_html($row->id); ?></td>
                                 <td><?php echo esc_html($row->shipment_no); ?></td>
-                                <td><?php echo esc_html($dealer ? $dealer->dealer_name : '-'); ?></td>
-                                <td><?php echo esc_html((int) ($row->qty ?? $row->item_count)); ?></td>
+                                <td><?php echo esc_html($dealer_name); ?></td>
+                                <td><?php echo esc_html($qty); ?></td>
                                 <td><?php echo esc_html($user ? $user->user_login : '-'); ?></td>
                                 <td><?php echo esc_html($row->created_at); ?></td>
                                 <td>
                                     <a class="button" href="<?php echo esc_url(add_query_arg('shipment', $row->id, $base_url)); ?>">查看</a>
-                                    <?php if ($can_manage_system) : ?>
-                                        <form method="post" style="display:inline-block; margin-left:6px;">
-                                            <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
-                                            <input type="hidden" name="shipments_action" value="delete_shipment" />
-                                            <input type="hidden" name="shipment_id" value="<?php echo esc_attr($row->id); ?>" />
-                                            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                            <button type="submit" class="button" onclick="return confirm('确认删除该出库单？仅空单/草稿可删除。');">删除</button>
-                                        </form>
-                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table></div></section>
     <?php else : ?>
         <div class="aegis-t-a5" style="padding:12px 16px; border:1px solid #d9dce3; border-radius:8px; background:#f8f9fb; margin-bottom:12px;">
             <div class="aegis-t-a4">出库单信息</div>
