@@ -18,6 +18,7 @@ $portal_url = $context['portal_url'] ?? '';
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
 $is_list_view = 'list' === $view;
 $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
+$start_nonce = wp_create_nonce('aegis_shipments_action');
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
@@ -88,7 +89,6 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                                     <?php foreach ($pending_orders as $row) : ?>
                                         <?php
                                         $order_url = $portal_url ? add_query_arg(['m' => 'orders', 'order_id' => $row->id], $portal_url) : '';
-                                        $start_url = add_query_arg(['dealer_id' => (int) $row->dealer_id, 'order_ref' => $row->order_no], $base_url);
                                         ?>
                                         <tr>
                                             <td><?php echo esc_html($row->order_no); ?></td>
@@ -99,7 +99,14 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                                                 <?php if ($order_url) : ?>
                                                     <a class="button" href="<?php echo esc_url($order_url); ?>">查看订单</a>
                                                 <?php endif; ?>
-                                                <a class="button button-primary" href="<?php echo esc_url($start_url); ?>">开始出库</a>
+                                                <form method="post" style="display:inline-block; margin-left:6px;">
+                                                    <input type="hidden" name="shipments_action" value="start" />
+                                                    <input type="hidden" name="dealer_id" value="<?php echo esc_attr((int) $row->dealer_id); ?>" />
+                                                    <input type="hidden" name="order_ref" value="<?php echo esc_attr($row->order_no); ?>" />
+                                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                    <input type="hidden" name="aegis_shipments_nonce" value="<?php echo esc_attr($start_nonce); ?>" />
+                                                    <button type="submit" class="button button-primary">开始出库</button>
+                                                </form>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
