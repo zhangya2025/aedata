@@ -1003,6 +1003,7 @@ class AEGIS_Portal {
 
         $modules = AEGIS_System::get_registered_modules();
         $states = self::get_portal_module_states();
+        $order_link_enabled = (bool) get_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, false);
         $validation = ['success' => true, 'message' => ''];
         $message = '';
 
@@ -1013,7 +1014,7 @@ class AEGIS_Portal {
                     'capability'      => AEGIS_System::CAP_MANAGE_SYSTEM,
                     'nonce_field'     => 'aegis_system_portal_nonce',
                     'nonce_action'    => 'aegis_system_portal_save_modules',
-                    'whitelist'       => ['aegis_system_portal_nonce', '_wp_http_referer', '_aegis_idempotency', 'modules', 'submit'],
+                    'whitelist'       => ['aegis_system_portal_nonce', '_wp_http_referer', '_aegis_idempotency', 'modules', 'submit', AEGIS_System::ORDER_SHIPMENT_LINK_OPTION],
                     'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
                 ]
             );
@@ -1036,7 +1037,10 @@ class AEGIS_Portal {
                 }
 
                 self::save_module_states($new_states, $states);
+                $new_enabled = !empty($_POST[AEGIS_System::ORDER_SHIPMENT_LINK_OPTION]);
+                update_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, $new_enabled ? 1 : 0);
                 $states = self::get_portal_module_states();
+                $order_link_enabled = $new_enabled;
                 $message = '模块配置已保存。';
             }
         }
@@ -1087,6 +1091,14 @@ class AEGIS_Portal {
                         </div>
                     </div>
                 <?php endforeach; ?>
+            </div>
+            <div style="margin-top:16px; padding:12px; border:1px solid #e5e5e5; border-radius:8px;">
+                <div class="aegis-t-a5" style="font-weight:600; margin-bottom:6px;">订单关联 / 出库关联订单</div>
+                <label style="display:inline-flex; align-items:center; gap:8px;">
+                    <input type="checkbox" name="<?php echo esc_attr(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION); ?>" value="1" <?php checked($order_link_enabled); ?> />
+                    <span><?php echo $order_link_enabled ? '已启用' : '未启用'; ?></span>
+                </label>
+                <div class="aegis-t-a6" style="color:#666; margin-top:6px;">启用后，“扫码出库 → 待出库订单”将显示订单数据。</div>
             </div>
             <div style="margin-top:12px;">
                 <button type="submit" class="button button-primary">保存配置</button>
