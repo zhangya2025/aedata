@@ -10,6 +10,8 @@ $sku_summary = $context['sku_summary'];
 $dealers = $context['dealers'];
 $filters = $context['filters'];
 $shipments = $context['shipments'];
+$order_compare_rows = $context['order_compare_rows'] ?? [];
+$order_compare_summary = $context['order_compare_summary'] ?? [];
 $pending_orders = $context['pending_orders'] ?? [];
 $prefill = $context['prefill'] ?? ['dealer_id' => 0, 'order_ref' => ''];
 $order_link_enabled = $context['order_link_enabled'] ?? false;
@@ -267,6 +269,40 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                 </table>
             </div>
         </div>
+
+        <section class="aegis-card" id="aegis-order-compare" style="margin-top:12px;">
+            <div class="aegis-card-header">
+                <div class="aegis-card-title aegis-t-a5">订单应发清单（对照）</div>
+            </div>
+            <div class="aegis-table-wrap">
+                <table class="aegis-table" style="width:100%;">
+                    <thead><tr><th>EAN</th><th>商品</th><th>应发数量</th><th>已扫数量</th><th>差异</th><th>状态</th></tr></thead>
+                    <tbody>
+                        <?php
+                        $compare_error = $order_compare_summary['error'] ?? '';
+                        if (empty($shipment->order_ref)) :
+                        ?>
+                            <tr><td colspan="6">未关联订单，无法生成应发清单。</td></tr>
+                        <?php elseif ('order_not_found' === $compare_error) : ?>
+                            <tr><td colspan="6">已关联订单号 <?php echo esc_html($shipment->order_ref); ?>，但未找到订单数据。</td></tr>
+                        <?php elseif (empty($order_compare_rows)) : ?>
+                            <tr><td colspan="6">暂无应发清单数据。</td></tr>
+                        <?php else : ?>
+                            <?php foreach ($order_compare_rows as $row) : ?>
+                                <tr>
+                                    <td><?php echo esc_html($row['ean']); ?></td>
+                                    <td><?php echo esc_html($row['product_name']); ?></td>
+                                    <td><?php echo esc_html((int) $row['expected_qty']); ?></td>
+                                    <td><?php echo esc_html((int) $row['scanned_qty']); ?></td>
+                                    <td><?php echo esc_html((int) $row['delta']); ?></td>
+                                    <td><?php echo esc_html($row['status']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <div class="aegis-t-a5 aegis-scan-actions-band">
             <div class="aegis-t-a4">扫码/手输</div>

@@ -130,11 +130,100 @@ class AEGIS_Shipments {
         $sku_summary = $shipment ? self::group_items_by_sku($items) : [];
         $dealers = self::get_active_dealers();
         $cancel_pending = false;
+        $linked_order = null;
+        $order_expected_rows = [];
+        $order_compare_rows = [];
+        $order_compare_summary = [
+            'expected_total'  => 0,
+            'scanned_total'   => 0,
+            'over_count_skus' => 0,
+            'under_count_skus' => 0,
+            'error'           => '',
+        ];
+        $order_missing_rows = [];
         if ($shipment && $shipment->order_ref && AEGIS_System::is_module_enabled('orders')) {
             $linked_order = AEGIS_Orders::get_order_by_no($shipment->order_ref);
             if ($linked_order) {
                 $cancel_pending = AEGIS_Orders::is_cancel_pending($linked_order->id);
             }
+        }
+        if ($shipment && $shipment->order_ref && $order_link_enabled && AEGIS_System::is_module_enabled('orders')) {
+            $linked_order = $linked_order ?: AEGIS_Orders::get_order_by_no($shipment->order_ref);
+            if ($linked_order) {
+                $order_items = AEGIS_Orders::get_items($linked_order->id);
+                $expected_map = [];
+                foreach ($order_items as $item) {
+                    $ean = $item->ean;
+                    if (!isset($expected_map[$ean])) {
+                        $expected_map[$ean] = [
+                            'ean'           => $ean,
+                            'product_name'  => $item->product_name_snapshot ?? '',
+                            'expected_qty'  => 0,
+                        ];
+                    }
+                    $expected_map[$ean]['expected_qty'] += (int) $item->qty;
+                }
+                $order_expected_rows = array_values($expected_map);
+
+                $scanned_map = [];
+                foreach ($sku_summary as $row) {
+                    $scanned_map[$row['ean']] = [
+                        'scanned_qty'  => (int) $row['count'],
+                        'product_name' => $row['product_name'] ?? '',
+                    ];
+                }
+
+                $all_eans = array_unique(array_merge(array_keys($expected_map), array_keys($scanned_map)));
+                $expected_total = 0;
+                $scanned_total = 0;
+                $over_count_skus = 0;
+                $under_count_skus = 0;
+                foreach ($all_eans as $ean) {
+                    $expected_qty = $expected_map[$ean]['expected_qty'] ?? 0;
+                    $scanned_qty = $scanned_map[$ean]['scanned_qty'] ?? 0;
+                    $product_name = $expected_map[$ean]['product_name'] ?? ($scanned_map[$ean]['product_name'] ?? '');
+                    $delta = $scanned_qty - $expected_qty;
+                    if ($delta > 0) {
+                        $status = '多件';
+                        $over_count_skus++;
+                    } elseif ($delta < 0) {
+                        $status = '少件';
+                        $under_count_skus++;
+                    } else {
+                        $status = 'OK';
+                    }
+                    $order_compare_rows[] = [
+                        'ean'          => $ean,
+                        'product_name' => $product_name,
+                        'expected_qty' => $expected_qty,
+                        'scanned_qty'  => $scanned_qty,
+                        'delta'        => $delta,
+                        'status'       => $status,
+                    ];
+                    $expected_total += $expected_qty;
+                    $scanned_total += $scanned_qty;
+                    if ($delta < 0) {
+                        $order_missing_rows[] = [
+                            'ean'          => $ean,
+                            'product_name' => $product_name,
+                            'expected_qty' => $expected_qty,
+                            'scanned_qty'  => $scanned_qty,
+                            'delta'        => $delta,
+                        ];
+                    }
+                }
+                $order_compare_summary = [
+                    'expected_total'  => $expected_total,
+                    'scanned_total'   => $scanned_total,
+                    'over_count_skus' => $over_count_skus,
+                    'under_count_skus' => $under_count_skus,
+                    'error'           => '',
+                ];
+            } else {
+                $order_compare_summary['error'] = 'order_not_found';
+            }
+        } elseif ($shipment && empty($shipment->order_ref)) {
+            $order_compare_summary['error'] = 'no_order_ref';
         }
 
         $context = [
@@ -149,6 +238,11 @@ class AEGIS_Shipments {
             'dealers'      => $dealers,
             'cancel_pending' => $cancel_pending,
             'pending_orders' => $pending_orders,
+            'linked_order' => $linked_order,
+            'order_expected_rows' => $order_expected_rows,
+            'order_compare_rows' => $order_compare_rows,
+            'order_compare_summary' => $order_compare_summary,
+            'order_missing_rows' => $order_missing_rows,
             'prefill'      => [
                 'dealer_id' => $prefill_dealer_id,
                 'order_ref' => $prefill_order_ref,
