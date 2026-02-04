@@ -18,7 +18,6 @@ $portal_url = $context['portal_url'] ?? '';
 $view = isset($_GET['view']) ? sanitize_key(wp_unslash($_GET['view'])) : '';
 $is_list_view = 'list' === $view;
 $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
-$start_nonce = wp_create_nonce('aegis_shipments_action');
 ?>
 <div class="aegis-t-a4 aegis-shipments-page">
     <div class="aegis-t-a2" style="margin-bottom:12px;">扫码出库</div>
@@ -100,11 +99,10 @@ $start_nonce = wp_create_nonce('aegis_shipments_action');
                                                     <a class="button" href="<?php echo esc_url($order_url); ?>">查看订单</a>
                                                 <?php endif; ?>
                                                 <form method="post" style="display:inline-block; margin-left:6px;">
+                                                    <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
                                                     <input type="hidden" name="shipments_action" value="start" />
-                                                    <input type="hidden" name="dealer_id" value="<?php echo esc_attr((int) $row->dealer_id); ?>" />
                                                     <input type="hidden" name="order_ref" value="<?php echo esc_attr($row->order_no); ?>" />
                                                     <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                                    <input type="hidden" name="aegis_shipments_nonce" value="<?php echo esc_attr($start_nonce); ?>" />
                                                     <button type="submit" class="button button-primary">开始出库</button>
                                                 </form>
                                             </td>
@@ -233,7 +231,14 @@ $start_nonce = wp_create_nonce('aegis_shipments_action');
                 }
             }
             ?>
-            <div class="aegis-t-a6">出库单号：<?php echo esc_html($shipment->shipment_no); ?> | 出库时间：<?php echo esc_html($shipment->created_at); ?> | 经销商：<?php echo esc_html($dealer ? $dealer->dealer_name : ''); ?></div>
+            <div class="aegis-t-a6">
+                出库单号：<?php echo esc_html($shipment->shipment_no); ?> |
+                出库时间：<?php echo esc_html($shipment->created_at); ?> |
+                经销商：<?php echo esc_html($dealer ? $dealer->dealer_name : ''); ?>
+                <?php if (!empty($shipment->order_ref)) : ?>
+                    | 关联订单：<?php echo esc_html($shipment->order_ref); ?>
+                <?php endif; ?>
+            </div>
             <?php if (!empty($shipment->note)) : ?>
                 <div class="aegis-t-a6" style="margin-top:6px;">备注：<?php echo esc_html($shipment->note); ?></div>
             <?php endif; ?>
