@@ -384,6 +384,21 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                     <?php endif; ?>
                     <button type="submit" class="button button-secondary" <?php disabled($cancel_pending); ?>>完成出库</button>
                 </form>
+                <?php
+                $under_count = (int) ($order_compare_summary['under_count_skus'] ?? 0);
+                $over_count = (int) ($order_compare_summary['over_count_skus'] ?? 0);
+                $compare_error = $order_compare_summary['error'] ?? '';
+                ?>
+                <?php if (!empty($shipment->order_ref) && 0 === $over_count && $under_count > 0 && '' === $compare_error) : ?>
+                    <form method="post" style="margin-top:10px;">
+                        <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+                        <input type="hidden" name="shipments_action" value="complete_and_split" />
+                        <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <div class="aegis-t-a6" style="margin-bottom:6px;">检测到少件，可拆分欠货订单并完成出库。</div>
+                        <button type="submit" class="button button-primary" <?php disabled($cancel_pending); ?> onclick="return confirm('确认拆分欠货并完成出库？');">拆分欠货并完成</button>
+                    </form>
+                <?php endif; ?>
             </div>
         </div>
     <?php endif; ?>
