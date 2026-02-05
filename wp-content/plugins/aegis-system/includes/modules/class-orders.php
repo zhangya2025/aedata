@@ -687,6 +687,13 @@ class AEGIS_Orders {
         if (!$order) {
             return new WP_Error('order_missing', '欠货订单创建失败。');
         }
+        $extra_meta = array_merge(
+            $extra_meta,
+            [
+                'is_backorder'   => 1,
+                'shortage_items' => $missing_items,
+            ]
+        );
         $order_items = self::get_items($order_id);
         $prepared_items = [];
         foreach ($order_items as $item) {
@@ -711,6 +718,23 @@ class AEGIS_Orders {
             return new WP_Error('order_meta_failed', '欠货订单创建失败，请稍后重试。');
         }
 
+        $source_meta = self::get_order_meta($source_order);
+        $source_meta['backorder_order_id'] = $order_id;
+        $source_meta['backorder_order_no'] = $order->order_no;
+        if (!empty($extra_meta['split_from_shipment_id'])) {
+            $source_meta['backorder_shipment_id'] = (int) $extra_meta['split_from_shipment_id'];
+        }
+        $source_meta['shortage_items'] = $missing_items;
+        $wpdb->update(
+            $table,
+            [
+                'meta' => wp_json_encode($source_meta),
+            ],
+            ['id' => (int) $source_order->id],
+            ['%s'],
+            ['%d']
+        );
+
         return [
             'order_id' => $order_id,
             'order_no' => $order->order_no,
@@ -728,13 +752,15 @@ class AEGIS_Orders {
         $now = current_time('mysql');
         global $wpdb;
         $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $latest_order = self::get_order((int) $order->id);
+        $order_for_meta = $latest_order ?: $order;
         $updated = $wpdb->update(
             $table,
             [
                 'status'       => self::STATUS_FULFILLED,
                 'updated_at'   => $now,
                 'total_amount' => $totals['total_amount'],
-                'meta'         => wp_json_encode(self::build_order_meta($order, $totals)),
+                'meta'         => wp_json_encode(self::build_order_meta($order_for_meta, $totals)),
             ],
             ['id' => (int) $order->id],
             ['%s', '%s', '%f', '%s'],

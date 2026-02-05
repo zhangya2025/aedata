@@ -90,9 +90,27 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                                     <?php foreach ($pending_orders as $row) : ?>
                                         <?php
                                         $order_url = $portal_url ? add_query_arg(['m' => 'orders', 'order_id' => $row->id], $portal_url) : '';
+                                        $order_detail = class_exists('AEGIS_Orders') ? AEGIS_Orders::get_order((int) $row->id) : null;
+                                        $order_meta = ($order_detail && !empty($order_detail->meta)) ? json_decode($order_detail->meta, true) : [];
+                                        $is_backorder = !empty($order_meta['is_backorder']);
+                                        $split_from_order_no = $order_meta['split_from_order_no'] ?? '';
+                                        $split_from_order_id = (int) ($order_meta['split_from_order_id'] ?? 0);
+                                        $split_from_order_url = ($portal_url && $split_from_order_id)
+                                            ? add_query_arg(['m' => 'orders', 'order_id' => $split_from_order_id], $portal_url)
+                                            : '';
                                         ?>
                                         <tr>
-                                            <td><?php echo esc_html($row->order_no); ?></td>
+                                            <td>
+                                                <?php echo esc_html($row->order_no); ?>
+                                                <?php if ($is_backorder) : ?>
+                                                    <span class="aegis-t-a6" style="margin-left:6px; padding:2px 6px; border-radius:999px; background:#fff4db; color:#b45309;">欠货</span>
+                                                    <?php if ($split_from_order_url && $split_from_order_no) : ?>
+                                                        <div class="aegis-t-a6" style="margin-top:4px;">
+                                                            来源：<a href="<?php echo esc_url($split_from_order_url); ?>"><?php echo esc_html($split_from_order_no); ?></a>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            </td>
                                             <td><?php echo esc_html($row->dealer_name ?? ''); ?></td>
                                             <td><?php echo esc_html($row->created_at); ?></td>
                                             <td><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
@@ -245,6 +263,21 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                 <div class="aegis-t-a6" style="margin-top:6px;">备注：<?php echo esc_html($shipment->note); ?></div>
             <?php endif; ?>
             <div class="aegis-t-a6" style="margin-top:8px;">本次总码数：<?php echo esc_html((int) ($summary->total ?? 0)); ?>，SKU 种类数：<?php echo esc_html((int) ($summary->sku_count ?? 0)); ?></div>
+            <?php
+            $backorder_order_id = 0;
+            $backorder_order_no = '';
+            if (!empty($linked_order) && !empty($linked_order->meta)) {
+                $linked_meta = json_decode($linked_order->meta, true);
+                $backorder_order_id = (int) ($linked_meta['backorder_order_id'] ?? 0);
+                $backorder_order_no = $linked_meta['backorder_order_no'] ?? '';
+            }
+            $backorder_order_url = ($portal_url && $backorder_order_id)
+                ? add_query_arg(['m' => 'orders', 'order_id' => $backorder_order_id], $portal_url)
+                : '';
+            ?>
+            <?php if ($backorder_order_id && $backorder_order_no && $backorder_order_url) : ?>
+                <div class="aegis-t-a6" style="margin-top:6px;">已生成欠货子订单：<a href="<?php echo esc_url($backorder_order_url); ?>"><?php echo esc_html($backorder_order_no); ?></a></div>
+            <?php endif; ?>
             <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
                 <a class="button" href="<?php echo esc_url(add_query_arg(['shipments_action' => 'print', 'shipment' => $shipment->id], $base_url)); ?>" target="_blank">打印汇总</a>
                 <a class="button" href="<?php echo esc_url(add_query_arg(['shipments_action' => 'export_summary', 'shipment' => $shipment->id], $base_url)); ?>">导出汇总</a>
