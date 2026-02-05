@@ -47,7 +47,7 @@ class AEGIS_Shipments {
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $whitelist = ['shipments_action', 'dealer_id', 'note', 'order_ref', 'shipment_id', 'code', '_wp_http_referer', 'aegis_shipments_nonce', '_aegis_idempotency'];
             $action = isset($_POST['shipments_action']) ? sanitize_key(wp_unslash($_POST['shipments_action'])) : '';
-            $capability = 'delete_shipment' === $action ? AEGIS_System::CAP_MANAGE_SYSTEM : AEGIS_System::CAP_USE_WAREHOUSE;
+            $capability = AEGIS_System::CAP_USE_WAREHOUSE;
             $validation = AEGIS_Access_Audit::validate_write_request(
                 $_POST,
                 [
@@ -98,6 +98,8 @@ class AEGIS_Shipments {
                         $errors[] = $result->get_error_message();
                     } else {
                         $messages[] = $result['message'];
+                        wp_safe_redirect($base_url);
+                        exit;
                     }
                 }
             }
@@ -555,7 +557,7 @@ class AEGIS_Shipments {
 
     protected static function handle_delete_shipment($shipment_id) {
         global $wpdb;
-        if (!AEGIS_System_Roles::user_can_manage_system()) {
+        if (!AEGIS_System_Roles::user_can_use_warehouse()) {
             return new WP_Error('forbidden', '当前账号无权删除出库单。');
         }
         if ($shipment_id <= 0) {
@@ -572,6 +574,9 @@ class AEGIS_Shipments {
         $item_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(1) FROM {$item_table} WHERE shipment_id = %d", $shipment_id));
         if ($item_count > 0) {
             return new WP_Error('not_empty', '该出库单已有明细，禁止删除。');
+        }
+        if ((int) $shipment->created_by !== (int) get_current_user_id() && !AEGIS_System_Roles::user_can_manage_system()) {
+            return new WP_Error('forbidden', '无权删除他人草稿出库单。');
         }
         $shipment_table = $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE;
         $deleted = $wpdb->delete($shipment_table, ['id' => $shipment_id], ['%d']);
