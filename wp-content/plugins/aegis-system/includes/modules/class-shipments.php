@@ -519,7 +519,8 @@ class AEGIS_Shipments {
                 if (!isset($scanned_map[$ean])) {
                     $scanned_map[$ean] = 0;
                 }
-                $scanned_map[$ean]++;
+                $item_qty = isset($item->qty) ? (int) $item->qty : 1;
+                $scanned_map[$ean] += $item_qty > 0 ? $item_qty : 1;
             }
 
             $all_eans = array_unique(array_merge(array_keys($expected_map), array_keys($scanned_map)));
@@ -536,10 +537,10 @@ class AEGIS_Shipments {
                 }
             }
             if ($has_over) {
-                return new WP_Error('order_reconcile_over', '对账失败：存在多件/订单外条目，请删除多扫条目后再完成出库。');
+                return new WP_Error('reconcile_over', '对账失败：存在多件/订单外条目，请删除多扫条目后再完成出库。');
             }
             if ($has_under) {
-                return new WP_Error('order_reconcile_under', '对账失败：存在少件。可继续扫码补齐，或选择拆分欠货订单（后续功能）。');
+                return new WP_Error('reconcile_under', '对账失败：存在少件。可继续扫码补齐，或选择拆分欠货订单（后续功能）。');
             }
         }
         $wpdb->update(
