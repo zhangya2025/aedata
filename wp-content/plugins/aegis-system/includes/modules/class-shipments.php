@@ -501,6 +501,47 @@ class AEGIS_Shipments {
         if ($count <= 0) {
             return new WP_Error('empty_shipment', '请先扫码或录入防伪码。');
         }
+        $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
+        if ($shipment->order_ref && $order && $order_link_enabled) {
+            $order_items = AEGIS_Orders::get_items($order->id);
+            $expected_map = [];
+            foreach ($order_items as $item) {
+                $ean = $item->ean;
+                if (!isset($expected_map[$ean])) {
+                    $expected_map[$ean] = 0;
+                }
+                $expected_map[$ean] += (int) $item->qty;
+            }
+
+            $scanned_map = [];
+            foreach ($items as $item) {
+                $ean = $item->ean;
+                if (!isset($scanned_map[$ean])) {
+                    $scanned_map[$ean] = 0;
+                }
+                $scanned_map[$ean]++;
+            }
+
+            $all_eans = array_unique(array_merge(array_keys($expected_map), array_keys($scanned_map)));
+            $has_over = false;
+            $has_under = false;
+            foreach ($all_eans as $ean) {
+                $expected_qty = $expected_map[$ean] ?? 0;
+                $scanned_qty = $scanned_map[$ean] ?? 0;
+                $delta = $scanned_qty - $expected_qty;
+                if ($delta > 0) {
+                    $has_over = true;
+                } elseif ($delta < 0) {
+                    $has_under = true;
+                }
+            }
+            if ($has_over) {
+                return new WP_Error('order_reconcile_over', '对账失败：存在多件/订单外条目，请删除多扫条目后再完成出库。');
+            }
+            if ($has_under) {
+                return new WP_Error('order_reconcile_under', '对账失败：存在少件。可继续扫码补齐，或选择拆分欠货订单（后续功能）。');
+            }
+        }
         $wpdb->update(
             $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE,
             [
