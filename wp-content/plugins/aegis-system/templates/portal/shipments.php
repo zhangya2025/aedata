@@ -374,6 +374,12 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                         </tbody>
                     </table>
                 </div>
+                <?php
+                $under_count = (int) ($order_compare_summary['under_count_skus'] ?? 0);
+                $over_count = (int) ($order_compare_summary['over_count_skus'] ?? 0);
+                $compare_error = $order_compare_summary['error'] ?? '';
+                $has_under = (!empty($shipment->order_ref) && $under_count > 0 && '' === $compare_error);
+                ?>
                 <form method="post" style="margin-top:10px;">
                     <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
                     <input type="hidden" name="shipments_action" value="complete" />
@@ -382,8 +388,28 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                     <?php if ($cancel_pending) : ?>
                         <div class="aegis-t-a6" style="color:#d63638; margin-bottom:8px;">关联订单撤销申请处理中，出库已冻结。</div>
                     <?php endif; ?>
-                    <button type="submit" class="button button-secondary" <?php disabled($cancel_pending); ?>>完成出库</button>
+                    <?php if ($has_under) : ?>
+                        <div class="aegis-t-a6" style="color:#d63638; margin-bottom:8px;">检测到少件，请继续扫码补齐或拆分欠货后完成出库。</div>
+                    <?php endif; ?>
+                    <button type="submit" class="button button-secondary" <?php disabled($cancel_pending || $has_under); ?>>完成出库</button>
                 </form>
+                <?php if ($has_under) : ?>
+                    <div class="aegis-t-a5" style="margin-top:12px; padding:10px 12px; border:1px solid #f0c2c2; background:#fff6f6; border-radius:6px;">
+                        <div class="aegis-t-a6" style="margin-bottom:6px;">少件 SKU 数：<?php echo esc_html($under_count); ?>。</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="button button-secondary">继续扫码补齐</button>
+                            <?php if (0 === $over_count) : ?>
+                                <form method="post">
+                                    <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+                                    <input type="hidden" name="shipments_action" value="complete_and_split" />
+                                    <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
+                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                    <button type="submit" class="button button-primary" <?php disabled($cancel_pending); ?> onclick="return confirm('确认拆分欠货并完成出库？');">拆分欠货并完成出库</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     <?php endif; ?>
