@@ -249,6 +249,15 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                 <a class="button" href="<?php echo esc_url(add_query_arg(['shipments_action' => 'print', 'shipment' => $shipment->id], $base_url)); ?>" target="_blank">打印汇总</a>
                 <a class="button" href="<?php echo esc_url(add_query_arg(['shipments_action' => 'export_summary', 'shipment' => $shipment->id], $base_url)); ?>">导出汇总</a>
                 <a class="button" href="<?php echo esc_url(add_query_arg(['shipments_action' => 'export_detail', 'shipment' => $shipment->id], $base_url)); ?>">导出明细</a>
+                <?php if ('draft' === $shipment->status && empty($items)) : ?>
+                    <form method="post" style="display:inline-block;">
+                        <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+                        <input type="hidden" name="shipments_action" value="delete_shipment" />
+                        <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <button type="submit" class="button">退出（不保存）</button>
+                    </form>
+                <?php endif; ?>
             </div>
             <div class="aegis-table-wrap">
                 <table class="aegis-table" style="margin-top:12px; width:100%;">
