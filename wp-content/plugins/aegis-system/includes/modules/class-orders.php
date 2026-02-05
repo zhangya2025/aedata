@@ -106,6 +106,12 @@ class AEGIS_Orders {
         return $rows ?: [];
     }
 
+    protected static function load_dealer($dealer_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $dealer_id));
+    }
+
     protected static function prepare_priced_items($dealer, $items) {
         if (empty($items)) {
             return new WP_Error('no_items', '请至少添加一条 SKU 行。');
@@ -657,6 +663,125 @@ class AEGIS_Orders {
             'order_id' => $order_id,
             'message'  => $success_message,
         ];
+    }
+
+    public static function create_backorder_from_shortage($source_order, $missing_items, array $extra_meta = []) {
+        if (!$source_order) {
+            return new WP_Error('order_missing', '关联订单不存在，无法拆分欠货。');
+        }
+        if (empty($missing_items)) {
+            return new WP_Error('no_shortage', '缺口明细为空，无法创建欠货订单。');
+        }
+        $dealer = self::load_dealer((int) $source_order->dealer_id);
+        if (!$dealer) {
+            return new WP_Error('dealer_missing', '经销商不存在，无法创建欠货订单。');
+        }
+
+        $result = self::create_portal_order($dealer, $missing_items, '', self::STATUS_APPROVED_PENDING_FULFILLMENT, '');
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        $order_id = (int) $result['order_id'];
+        $order = self::get_order($order_id);
+        if (!$order) {
+            return new WP_Error('order_missing', '欠货订单创建失败。');
+        }
+        $extra_meta = array_merge(
+            $extra_meta,
+            [
+                'is_backorder'   => 1,
+                'shortage_items' => $missing_items,
+            ]
+        );
+        $order_items = self::get_items($order_id);
+        $prepared_items = [];
+        foreach ($order_items as $item) {
+            $prepared_items[] = [
+                'qty'                 => (int) $item->qty,
+                'unit_price_snapshot' => $item->unit_price_snapshot,
+            ];
+        }
+        $totals = self::calculate_totals($prepared_items);
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $updated = $wpdb->update(
+            $table,
+            [
+                'meta' => wp_json_encode(self::build_order_meta($order, $totals, $extra_meta)),
+            ],
+            ['id' => $order_id],
+            ['%s'],
+            ['%d']
+        );
+        if (false === $updated) {
+            return new WP_Error('order_meta_failed', '欠货订单创建失败，请稍后重试。');
+        }
+
+        $source_meta = self::get_order_meta($source_order);
+        $source_meta['backorder_order_id'] = $order_id;
+        $source_meta['backorder_order_no'] = $order->order_no;
+        if (!empty($extra_meta['split_from_shipment_id'])) {
+            $source_meta['backorder_shipment_id'] = (int) $extra_meta['split_from_shipment_id'];
+        }
+        $source_meta['shortage_items'] = $missing_items;
+        $wpdb->update(
+            $table,
+            [
+                'meta' => wp_json_encode($source_meta),
+            ],
+            ['id' => (int) $source_order->id],
+            ['%s'],
+            ['%d']
+        );
+
+        return [
+            'order_id' => $order_id,
+            'order_no' => $order->order_no,
+        ];
+    }
+
+    public static function update_order_items_for_fulfillment($order, $items) {
+        if (!$order) {
+            return new WP_Error('order_missing', '关联订单不存在，无法更新。');
+        }
+        if (empty($items)) {
+            return new WP_Error('no_items', '订单明细为空，无法更新。');
+        }
+        $totals = self::calculate_totals($items);
+        $now = current_time('mysql');
+        global $wpdb;
+        $table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
+        $latest_order = self::get_order((int) $order->id);
+        $order_for_meta = $latest_order ?: $order;
+        $updated = $wpdb->update(
+            $table,
+            [
+                'status'       => self::STATUS_FULFILLED,
+                'updated_at'   => $now,
+                'total_amount' => $totals['total_amount'],
+                'meta'         => wp_json_encode(self::build_order_meta($order_for_meta, $totals)),
+            ],
+            ['id' => (int) $order->id],
+            ['%s', '%s', '%f', '%s'],
+            ['%d']
+        );
+        if (false === $updated) {
+            return new WP_Error('update_failed', '订单更新失败，请稍后再试。');
+        }
+        self::persist_items((int) $order->id, $items, $now);
+        AEGIS_Access_Audit::record_event(
+            AEGIS_System::ACTION_ORDER_STATUS_CHANGE,
+            'SUCCESS',
+            [
+                'order_id' => (int) $order->id,
+                'order_no' => $order->order_no,
+                'from'     => $order->status,
+                'to'       => self::STATUS_FULFILLED,
+            ]
+        );
+
+        return ['message' => '订单已完成。'];
     }
 
     protected static function update_portal_order($dealer, $order, $items, $note = '') {

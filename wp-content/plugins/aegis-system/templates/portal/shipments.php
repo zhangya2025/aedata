@@ -90,9 +90,27 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                                     <?php foreach ($pending_orders as $row) : ?>
                                         <?php
                                         $order_url = $portal_url ? add_query_arg(['m' => 'orders', 'order_id' => $row->id], $portal_url) : '';
+                                        $order_detail = class_exists('AEGIS_Orders') ? AEGIS_Orders::get_order((int) $row->id) : null;
+                                        $order_meta = ($order_detail && !empty($order_detail->meta)) ? json_decode($order_detail->meta, true) : [];
+                                        $is_backorder = !empty($order_meta['is_backorder']);
+                                        $split_from_order_no = $order_meta['split_from_order_no'] ?? '';
+                                        $split_from_order_id = (int) ($order_meta['split_from_order_id'] ?? 0);
+                                        $split_from_order_url = ($portal_url && $split_from_order_id)
+                                            ? add_query_arg(['m' => 'orders', 'order_id' => $split_from_order_id], $portal_url)
+                                            : '';
                                         ?>
                                         <tr>
-                                            <td><?php echo esc_html($row->order_no); ?></td>
+                                            <td>
+                                                <?php echo esc_html($row->order_no); ?>
+                                                <?php if ($is_backorder) : ?>
+                                                    <span class="aegis-t-a6" style="margin-left:6px; padding:2px 6px; border-radius:999px; background:#fff4db; color:#b45309;">欠货</span>
+                                                    <?php if ($split_from_order_url && $split_from_order_no) : ?>
+                                                        <div class="aegis-t-a6" style="margin-top:4px;">
+                                                            来源：<a href="<?php echo esc_url($split_from_order_url); ?>"><?php echo esc_html($split_from_order_no); ?></a>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            </td>
                                             <td><?php echo esc_html($row->dealer_name ?? ''); ?></td>
                                             <td><?php echo esc_html($row->created_at); ?></td>
                                             <td><?php echo esc_html((int) ($row->total_qty ?? 0)); ?></td>
@@ -245,6 +263,21 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                 <div class="aegis-t-a6" style="margin-top:6px;">备注：<?php echo esc_html($shipment->note); ?></div>
             <?php endif; ?>
             <div class="aegis-t-a6" style="margin-top:8px;">本次总码数：<?php echo esc_html((int) ($summary->total ?? 0)); ?>，SKU 种类数：<?php echo esc_html((int) ($summary->sku_count ?? 0)); ?></div>
+            <?php
+            $backorder_order_id = 0;
+            $backorder_order_no = '';
+            if (!empty($linked_order) && !empty($linked_order->meta)) {
+                $linked_meta = json_decode($linked_order->meta, true);
+                $backorder_order_id = (int) ($linked_meta['backorder_order_id'] ?? 0);
+                $backorder_order_no = $linked_meta['backorder_order_no'] ?? '';
+            }
+            $backorder_order_url = ($portal_url && $backorder_order_id)
+                ? add_query_arg(['m' => 'orders', 'order_id' => $backorder_order_id], $portal_url)
+                : '';
+            ?>
+            <?php if ($backorder_order_id && $backorder_order_no && $backorder_order_url) : ?>
+                <div class="aegis-t-a6" style="margin-top:6px;">已生成欠货子订单：<a href="<?php echo esc_url($backorder_order_url); ?>"><?php echo esc_html($backorder_order_no); ?></a></div>
+            <?php endif; ?>
             <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
                 <a class="button" href="<?php echo esc_url(add_query_arg(['shipments_action' => 'print', 'shipment' => $shipment->id], $base_url)); ?>" target="_blank">打印汇总</a>
                 <a class="button" href="<?php echo esc_url(add_query_arg(['shipments_action' => 'export_summary', 'shipment' => $shipment->id], $base_url)); ?>">导出汇总</a>
@@ -374,6 +407,12 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                         </tbody>
                     </table>
                 </div>
+                <?php
+                $under_count = (int) ($order_compare_summary['under_count_skus'] ?? 0);
+                $over_count = (int) ($order_compare_summary['over_count_skus'] ?? 0);
+                $compare_error = $order_compare_summary['error'] ?? '';
+                $has_under = (!empty($shipment->order_ref) && $under_count > 0 && '' === $compare_error);
+                ?>
                 <form method="post" style="margin-top:10px;">
                     <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
                     <input type="hidden" name="shipments_action" value="complete" />
@@ -382,8 +421,28 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                     <?php if ($cancel_pending) : ?>
                         <div class="aegis-t-a6" style="color:#d63638; margin-bottom:8px;">关联订单撤销申请处理中，出库已冻结。</div>
                     <?php endif; ?>
-                    <button type="submit" class="button button-secondary" <?php disabled($cancel_pending); ?>>完成出库</button>
+                    <?php if ($has_under) : ?>
+                        <div class="aegis-t-a6" style="color:#d63638; margin-bottom:8px;">检测到少件，请继续扫码补齐或拆分欠货后完成出库。</div>
+                    <?php endif; ?>
+                    <button type="submit" class="button button-secondary" <?php disabled($cancel_pending || $has_under); ?>>完成出库</button>
                 </form>
+                <?php if ($has_under) : ?>
+                    <div class="aegis-t-a5" style="margin-top:12px; padding:10px 12px; border:1px solid #f0c2c2; background:#fff6f6; border-radius:6px;">
+                        <div class="aegis-t-a6" style="margin-bottom:6px;">少件 SKU 数：<?php echo esc_html($under_count); ?>。</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="button button-secondary">继续扫码补齐</button>
+                            <?php if (0 === $over_count) : ?>
+                                <form method="post">
+                                    <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+                                    <input type="hidden" name="shipments_action" value="complete_and_split" />
+                                    <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
+                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                    <button type="submit" class="button button-primary" <?php disabled($cancel_pending); ?> onclick="return confirm('确认拆分欠货并完成出库？');">拆分欠货并完成出库</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     <?php endif; ?>

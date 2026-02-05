@@ -346,6 +346,26 @@ $payment_status_labels = [
                     } elseif ($order->status === 'approved_pending_fulfillment') {
                         $cancel_pending_label = '仓库/HQ';
                     }
+                    $order_meta = !empty($order->meta) ? json_decode($order->meta, true) : [];
+                    $is_backorder = !empty($order_meta['is_backorder']);
+                    $split_from_order_id = (int) ($order_meta['split_from_order_id'] ?? 0);
+                    $split_from_order_no = $order_meta['split_from_order_no'] ?? '';
+                    $split_from_shipment_id = (int) ($order_meta['split_from_shipment_id'] ?? 0);
+                    $backorder_order_id = (int) ($order_meta['backorder_order_id'] ?? 0);
+                    $backorder_order_no = $order_meta['backorder_order_no'] ?? '';
+                    $shortage_items = $order_meta['shortage_items'] ?? [];
+                    if (empty($shortage_items) && $is_backorder && !empty($items)) {
+                        foreach ($items as $line) {
+                            $shortage_items[] = [
+                                'ean'                   => $line->ean,
+                                'qty'                   => (int) $line->qty,
+                                'product_name_snapshot' => $line->product_name_snapshot,
+                            ];
+                        }
+                    }
+                    $split_from_order_url = $split_from_order_id ? add_query_arg(['order_id' => $split_from_order_id], $base_url) : '';
+                    $backorder_order_url = $backorder_order_id ? add_query_arg(['order_id' => $backorder_order_id], $base_url) : '';
+                    $split_from_shipment_url = $split_from_shipment_id ? add_query_arg(['m' => 'shipments', 'shipment' => $split_from_shipment_id], $base_url) : '';
                     ?>
                     <?php if ($cancel_submitted) : ?>
                         <div class="notice notice-success" style="margin-bottom:12px;">
@@ -442,6 +462,40 @@ $payment_status_labels = [
                             </form>
                         <?php endif; ?>
                     </section>
+
+                    <?php if ($is_backorder || $backorder_order_id || $split_from_shipment_id || !empty($shortage_items)) : ?>
+                        <section class="aegis-orders-drawer-section">
+                            <div class="aegis-orders-section-title aegis-t-a5">拆单关联</div>
+                            <?php if ($is_backorder) : ?>
+                                <div class="aegis-t-a6" style="margin-bottom:4px;">类型：欠货子订单</div>
+                                <?php if ($split_from_order_no && $split_from_order_url) : ?>
+                                    <div class="aegis-t-a6">来源订单：<a href="<?php echo esc_url($split_from_order_url); ?>"><?php echo esc_html($split_from_order_no); ?></a></div>
+                                <?php endif; ?>
+                                <?php if ($split_from_shipment_id && $split_from_shipment_url) : ?>
+                                    <div class="aegis-t-a6">来源出库单：<a href="<?php echo esc_url($split_from_shipment_url); ?>">#<?php echo esc_html($split_from_shipment_id); ?></a></div>
+                                <?php endif; ?>
+                            <?php else : ?>
+                                <?php if ($backorder_order_no && $backorder_order_url) : ?>
+                                    <div class="aegis-t-a6">已生成欠货子订单：<a href="<?php echo esc_url($backorder_order_url); ?>"><?php echo esc_html($backorder_order_no); ?></a></div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            <?php if (!empty($shortage_items)) : ?>
+                                <div class="aegis-t-a6" style="margin-top:8px;">欠货明细：</div>
+                                <table class="aegis-table" style="width:100%; margin-top:6px;">
+                                    <thead><tr><th>EAN</th><th>商品</th><th>数量</th></tr></thead>
+                                    <tbody>
+                                        <?php foreach ($shortage_items as $line) : ?>
+                                            <tr>
+                                                <td><?php echo esc_html($line['ean'] ?? ''); ?></td>
+                                                <td><?php echo esc_html($line['product_name_snapshot'] ?? ''); ?></td>
+                                                <td><?php echo esc_html((int) ($line['qty'] ?? 0)); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
+                        </section>
+                    <?php endif; ?>
 
                     <section class="aegis-orders-drawer-section">
                         <div class="aegis-orders-section-title aegis-t-a5">状态进度</div>
