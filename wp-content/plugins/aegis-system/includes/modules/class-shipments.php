@@ -91,6 +91,14 @@ class AEGIS_Shipments {
                     } else {
                         $messages[] = $result['message'];
                     }
+                } elseif ('complete_and_split' === $action) {
+                    $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
+                    $result = self::handle_portal_complete_and_split($shipment_id);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
+                    }
                 } elseif ('delete_shipment' === $action) {
                     $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
                     $result = self::handle_delete_shipment($shipment_id);
@@ -513,56 +521,183 @@ class AEGIS_Shipments {
         $order_link_enabled = AEGIS_Orders::is_shipment_link_enabled();
         if ($shipment->order_ref && $order && $order_link_enabled) {
             $order_items = AEGIS_Orders::get_items($order->id);
-            $expected_map = [];
-            foreach ($order_items as $item) {
-                $ean = $item->ean;
-                if (!isset($expected_map[$ean])) {
-                    $expected_map[$ean] = 0;
-                }
-                $expected_map[$ean] += (int) $item->qty;
-            }
-
-            $scanned_map = [];
-            foreach ($items as $item) {
-                $ean = $item->ean;
-                if (!isset($scanned_map[$ean])) {
-                    $scanned_map[$ean] = 0;
-                }
-                $item_qty = isset($item->qty) ? (int) $item->qty : 1;
-                $scanned_map[$ean] += $item_qty > 0 ? $item_qty : 1;
-            }
-
-            $all_eans = array_unique(array_merge(array_keys($expected_map), array_keys($scanned_map)));
-            $has_over = false;
-            $has_under = false;
-            foreach ($all_eans as $ean) {
-                $expected_qty = $expected_map[$ean] ?? 0;
-                $scanned_qty = $scanned_map[$ean] ?? 0;
-                $delta = $scanned_qty - $expected_qty;
-                if ($delta > 0) {
-                    $has_over = true;
-                } elseif ($delta < 0) {
-                    $has_under = true;
-                }
-            }
-            if ($has_over) {
+            $reconcile = self::reconcile_order_items($order_items, $items);
+            if ($reconcile['has_over']) {
                 return new WP_Error('reconcile_over', '对账失败：存在多件/订单外条目，请删除多扫条目后再完成出库。');
             }
-            if ($has_under) {
-                return new WP_Error('reconcile_under', '对账失败：存在少件。可继续扫码补齐，或选择拆分欠货订单（后续功能）。');
+            if ($reconcile['has_under']) {
+                return new WP_Error('reconcile_under', '对账失败：存在少件。可继续扫码补齐，或选择拆分欠货订单。');
             }
         }
+        self::finalize_shipment_completion($shipment, $order, $count, true);
+        return ['message' => '出库完成，共 ' . $count . ' 条。'];
+    }
+
+    protected static function handle_portal_complete_and_split($shipment_id) {
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('shipment_missing', '出库单不存在。');
+        }
+        if (empty($shipment->order_ref)) {
+            return new WP_Error('missing_order_ref', '未关联订单，无法拆分欠货。');
+        }
+        if (!AEGIS_System::is_module_enabled('orders')) {
+            return new WP_Error('order_disabled', '订单模块未启用，无法拆分欠货。');
+        }
+
+        $order = AEGIS_Orders::get_order_by_no($shipment->order_ref);
+        if (!$order) {
+            return new WP_Error('order_missing', '关联订单不存在，无法拆分欠货。');
+        }
+        $guard = AEGIS_Orders::guard_not_cancel_pending(
+            (int) $order->id,
+            'shipment_split',
+            [
+                'order_no'    => $order->order_no,
+                'shipment_id' => (int) $shipment_id,
+            ]
+        );
+        if (is_wp_error($guard)) {
+            return $guard;
+        }
+        if (AEGIS_Orders::STATUS_APPROVED_PENDING_FULFILLMENT !== $order->status) {
+            return new WP_Error('order_not_ready', '关联订单未处于待出库状态，无法拆分欠货。');
+        }
+        if (!AEGIS_Orders::is_shipment_link_enabled()) {
+            return new WP_Error('order_link_disabled', '订单关联未启用，无法拆分欠货。');
+        }
+
+        $items = self::get_items_by_shipment($shipment_id);
+        $count = count($items);
+        if ($count <= 0) {
+            return new WP_Error('empty_shipment', '请先扫码或录入防伪码。');
+        }
+
+        $order_items = AEGIS_Orders::get_items($order->id);
+        $reconcile = self::reconcile_order_items($order_items, $items);
+        if ($reconcile['has_over']) {
+            return new WP_Error('reconcile_over', '对账失败：存在多件/订单外条目，请删除多扫条目后再拆分欠货。');
+        }
+        if (empty($reconcile['missing_items'])) {
+            return new WP_Error('no_shortage', '当前无少件，无需拆分欠货订单。');
+        }
+
+        $fulfilled_items = self::build_fulfilled_items($reconcile['expected_map'], $reconcile['scanned_map']);
+        if (empty($fulfilled_items)) {
+            return new WP_Error('empty_fulfilled', '已扫数量为空，无法完成出库。');
+        }
+
+        $meta = [
+            'split_from_order_no'   => $order->order_no,
+            'split_from_order_id'   => (int) $order->id,
+            'split_from_shipment_id' => (int) $shipment_id,
+        ];
+
+        $backorder = AEGIS_Orders::create_backorder_from_shortage($order, $reconcile['missing_items'], $meta);
+        if (is_wp_error($backorder)) {
+            return $backorder;
+        }
+
+        $update = AEGIS_Orders::update_order_items_for_fulfillment($order, $fulfilled_items);
+        if (is_wp_error($update)) {
+            return $update;
+        }
+
+        self::finalize_shipment_completion($shipment, $order, $count, false);
+
+        return ['message' => '出库完成，已生成欠货订单：' . $backorder['order_no'] . '。'];
+    }
+
+    protected static function reconcile_order_items($order_items, $shipment_items) {
+        $expected_map = [];
+        foreach ($order_items as $item) {
+            $ean = $item->ean;
+            if (!isset($expected_map[$ean])) {
+                $expected_map[$ean] = [
+                    'expected_qty' => 0,
+                    'source_item'  => $item,
+                ];
+            }
+            $expected_map[$ean]['expected_qty'] += (int) $item->qty;
+        }
+
+        $scanned_map = [];
+        foreach ($shipment_items as $item) {
+            $ean = $item->ean;
+            if (!isset($scanned_map[$ean])) {
+                $scanned_map[$ean] = 0;
+            }
+            $item_qty = isset($item->qty) ? (int) $item->qty : 1;
+            $scanned_map[$ean] += $item_qty > 0 ? $item_qty : 1;
+        }
+
+        $has_over = false;
+        $has_under = false;
+        $missing_items = [];
+        $all_eans = array_unique(array_merge(array_keys($expected_map), array_keys($scanned_map)));
+        foreach ($all_eans as $ean) {
+            $expected_qty = $expected_map[$ean]['expected_qty'] ?? 0;
+            $scanned_qty = $scanned_map[$ean] ?? 0;
+            $delta = $scanned_qty - $expected_qty;
+            if ($delta > 0) {
+                $has_over = true;
+            } elseif ($delta < 0) {
+                $has_under = true;
+                $source_item = $expected_map[$ean]['source_item'] ?? null;
+                $missing_items[] = [
+                    'ean'                   => $ean,
+                    'qty'                   => abs($delta),
+                    'product_name_snapshot' => $source_item ? ($source_item->product_name_snapshot ?? '') : '',
+                ];
+            }
+        }
+
+        return [
+            'expected_map' => $expected_map,
+            'scanned_map'  => $scanned_map,
+            'missing_items' => $missing_items,
+            'has_over'     => $has_over,
+            'has_under'    => $has_under,
+        ];
+    }
+
+    protected static function build_fulfilled_items($expected_map, $scanned_map) {
+        $fulfilled_items = [];
+        foreach ($expected_map as $ean => $info) {
+            $scanned_qty = $scanned_map[$ean] ?? 0;
+            if ($scanned_qty <= 0) {
+                continue;
+            }
+            $source_item = $info['source_item'] ?? null;
+            if (!$source_item) {
+                continue;
+            }
+            $fulfilled_items[] = [
+                'ean'                   => $ean,
+                'qty'                   => $scanned_qty,
+                'product_name_snapshot' => $source_item->product_name_snapshot ?? '',
+                'unit_price_snapshot'   => $source_item->unit_price_snapshot ?? 0,
+                'price_source'          => $source_item->price_source ?? '',
+                'price_level_snapshot'  => $source_item->price_level_snapshot ?? '',
+            ];
+        }
+
+        return $fulfilled_items;
+    }
+
+    protected static function finalize_shipment_completion($shipment, $order, $count, $update_order_status) {
+        global $wpdb;
         $wpdb->update(
             $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE,
             [
                 'qty'    => $count,
                 'status' => 'completed',
             ],
-            ['id' => $shipment_id],
+            ['id' => (int) $shipment->id],
             ['%d', '%s'],
             ['%d']
         );
-        if (!empty($shipment->order_ref)) {
+        if ($update_order_status && $order) {
             $order_table = $wpdb->prefix . AEGIS_System::ORDER_TABLE;
             $wpdb->update(
                 $order_table,
@@ -584,11 +719,13 @@ class AEGIS_Shipments {
                     'to'       => AEGIS_Orders::STATUS_FULFILLED,
                 ]
             );
+        }
+        if ($order) {
             AEGIS_Access_Audit::record_event(
                 AEGIS_System::ACTION_SHIPMENT_COMPLETE,
                 'SUCCESS',
                 [
-                    'shipment_id' => $shipment_id,
+                    'shipment_id' => (int) $shipment->id,
                     'order_id'    => (int) $order->id,
                     'order_no'    => $order->order_no,
                 ]
@@ -598,12 +735,11 @@ class AEGIS_Shipments {
             AEGIS_System::ACTION_SHIPMENT_CREATE,
             'SUCCESS',
             [
-                'shipment_id' => $shipment_id,
-                'dealer_id'   => $shipment->dealer_id,
+                'shipment_id' => (int) $shipment->id,
+                'dealer_id'   => (int) $shipment->dealer_id,
                 'qty'         => $count,
             ]
         );
-        return ['message' => '出库完成，共 ' . $count . ' 条。'];
     }
 
     protected static function handle_delete_shipment($shipment_id) {
