@@ -311,6 +311,38 @@ class AEGIS_Shipments {
             return new WP_Error('dealer_inactive', '该经销商已停用，禁止出库。');
         }
 
+        $shipment_table = $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE;
+        if ($order_ref) {
+            $existing_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}" . AEGIS_System::SHIPMENT_TABLE . " WHERE order_ref = %s AND status = %s ORDER BY id DESC LIMIT 1",
+                    $order_ref,
+                    'draft'
+                )
+            );
+            if ($existing_id > 0) {
+                if ($note) {
+                    $wpdb->update(
+                        $shipment_table,
+                        ['note' => $note],
+                        ['id' => $existing_id],
+                        ['%s'],
+                        ['%d']
+                    );
+                }
+                AEGIS_Access_Audit::record_event(
+                    AEGIS_System::ACTION_SHIPMENT_CREATE,
+                    'SUCCESS',
+                    [
+                        'shipment_id' => $existing_id,
+                        'dealer_id'   => $dealer_id,
+                        'phase'       => 'reuse_draft',
+                    ]
+                );
+                return ['shipment_id' => $existing_id];
+            }
+        }
+
         $shipment_no = 'SHP-' . gmdate('Ymd-His', current_time('timestamp'));
         $meta = [];
         if ($note) {
@@ -321,7 +353,7 @@ class AEGIS_Shipments {
         }
 
         $inserted = $wpdb->insert(
-            $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE,
+            $shipment_table,
             [
                 'shipment_no' => $shipment_no,
                 'dealer_id'   => $dealer_id,
