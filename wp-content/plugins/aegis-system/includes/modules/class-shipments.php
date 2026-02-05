@@ -45,7 +45,7 @@ class AEGIS_Shipments {
         }
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
-            $whitelist = ['shipments_action', 'dealer_id', 'note', 'order_ref', 'shipment_id', 'code', '_wp_http_referer', 'aegis_shipments_nonce', '_aegis_idempotency'];
+            $whitelist = ['shipments_action', 'dealer_id', 'note', 'order_ref', 'shipment_id', 'code', 'item_id', '_wp_http_referer', 'aegis_shipments_nonce', '_aegis_idempotency'];
             $action = isset($_POST['shipments_action']) ? sanitize_key(wp_unslash($_POST['shipments_action'])) : '';
             $capability = AEGIS_System::CAP_USE_WAREHOUSE;
             $validation = AEGIS_Access_Audit::validate_write_request(
@@ -100,6 +100,15 @@ class AEGIS_Shipments {
                         $messages[] = $result['message'];
                         wp_safe_redirect($base_url);
                         exit;
+                    }
+                } elseif ('delete_item' === $action) {
+                    $shipment_id = isset($_POST['shipment_id']) ? (int) $_POST['shipment_id'] : 0;
+                    $item_id = isset($_POST['item_id']) ? (int) $_POST['item_id'] : 0;
+                    $result = self::handle_delete_item($shipment_id, $item_id);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $messages[] = $result['message'];
                     }
                 }
             }
@@ -634,6 +643,90 @@ class AEGIS_Shipments {
             ]
         );
         return ['message' => '出库单已删除。'];
+    }
+
+    protected static function handle_delete_item($shipment_id, $item_id) {
+        global $wpdb;
+        if ($shipment_id <= 0 || $item_id <= 0) {
+            return new WP_Error('invalid_input', '出库单或条目无效。');
+        }
+
+        $shipment = self::get_shipment($shipment_id);
+        if (!$shipment) {
+            return new WP_Error('shipment_missing', '出库单不存在。');
+        }
+        if ('draft' !== $shipment->status) {
+            return new WP_Error('not_draft', '仅草稿可删除条目。');
+        }
+
+        $shipment_item_table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
+        $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$shipment_item_table} WHERE id = %d AND shipment_id = %d", $item_id, $shipment_id));
+        if (!$item) {
+            return new WP_Error('item_missing', '出库条目不存在。');
+        }
+
+        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+        $code = null;
+        if (!empty($item->code_id)) {
+            $code = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$code_table} WHERE id = %d", (int) $item->code_id));
+        }
+        if (!$code && !empty($item->code_value)) {
+            $code = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$code_table} WHERE code = %s", $item->code_value));
+        }
+        if (!$code) {
+            return new WP_Error('code_missing', '防伪码不存在，无法删除条目。');
+        }
+
+        $wpdb->query('START TRANSACTION');
+        $deleted = $wpdb->delete(
+            $shipment_item_table,
+            ['id' => $item_id, 'shipment_id' => $shipment_id],
+            ['%d', '%d']
+        );
+        if (!$deleted) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('item_delete_failed', '删除条目失败，请重试。');
+        }
+
+        $updated = $wpdb->update(
+            $code_table,
+            ['stock_status' => 'in_stock'],
+            ['id' => $code->id],
+            ['%s'],
+            ['%d']
+        );
+        if (false === $updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('code_update_failed', '回滚防伪码状态失败。');
+        }
+
+        $shipment_table = $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE;
+        $item_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(1) FROM {$shipment_item_table} WHERE shipment_id = %d", $shipment_id));
+        $qty_updated = $wpdb->update(
+            $shipment_table,
+            ['qty' => $item_count],
+            ['id' => $shipment_id],
+            ['%d'],
+            ['%d']
+        );
+        if (false === $qty_updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('shipment_update_failed', '更新出库单数量失败。');
+        }
+
+        $wpdb->query('COMMIT');
+        AEGIS_Access_Audit::record_event(
+            'SHIPMENT_ITEM_DELETE',
+            'SUCCESS',
+            [
+                'shipment_id' => $shipment_id,
+                'item_id'     => $item_id,
+                'code_id'     => $code->id,
+                'code_value'  => $code->code,
+                'actor_id'    => get_current_user_id(),
+            ]
+        );
+        return ['message' => '出库条目已删除。'];
     }
 
     protected static function handle_export_summary($shipment_id) {

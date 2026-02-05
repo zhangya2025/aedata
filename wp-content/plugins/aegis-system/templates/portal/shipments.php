@@ -339,12 +339,13 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
         <div class="aegis-t-a5 aegis-collapsible aegis-mobile-collapsible is-collapsed" id="aegis-shipments-detail" style="margin-bottom:12px;">
             <button type="button" class="aegis-t-a4 aegis-collapsible__toggle" aria-expanded="false" aria-controls="aegis-shipments-detail-content">防伪码明细</button>
             <div class="aegis-collapsible__content" id="aegis-shipments-detail-content">
+                <?php $show_item_delete = ('draft' === $shipment->status); ?>
                 <div class="aegis-table-wrap">
                     <table class="aegis-table aegis-codes-table" style="width:100%; margin-top:8px;">
-                        <thead><tr><th>#</th><th>Code</th><th>EAN</th><th>产品名</th><th>扫码时间</th></tr></thead>
+                        <thead><tr><th>#</th><th>Code</th><th>EAN</th><th>产品名</th><th>扫码时间</th><th>操作</th></tr></thead>
                         <tbody>
                             <?php if (empty($items)) : ?>
-                                <tr><td colspan="5">暂无数据</td></tr>
+                                <tr><td colspan="6">暂无数据</td></tr>
                             <?php else : ?>
                                 <?php foreach ($items as $index => $item) : ?>
                                     <tr>
@@ -353,6 +354,20 @@ $can_manage_system = AEGIS_System_Roles::user_can_manage_system();
                                         <td><?php echo esc_html($item->ean); ?></td>
                                         <td><?php echo esc_html($item->product_name); ?></td>
                                         <td><?php echo esc_html($item->scanned_at ?? $item->created_at ?? ''); ?></td>
+                                        <td>
+                                            <?php if ($show_item_delete) : ?>
+                                                <form method="post" style="display:inline;">
+                                                    <?php wp_nonce_field('aegis_shipments_action', 'aegis_shipments_nonce'); ?>
+                                                    <input type="hidden" name="shipments_action" value="delete_item" />
+                                                    <input type="hidden" name="shipment_id" value="<?php echo esc_attr($shipment->id); ?>" />
+                                                    <input type="hidden" name="item_id" value="<?php echo esc_attr($item->id); ?>" />
+                                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                    <button type="submit" class="button button-small" onclick="return confirm('确认删除该条目？');">删除</button>
+                                                </form>
+                                            <?php else : ?>
+                                                <span>-</span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
