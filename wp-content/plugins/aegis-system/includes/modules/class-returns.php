@@ -212,8 +212,14 @@ class AEGIS_Returns {
 
         $is_hq = AEGIS_System_Roles::is_hq_admin($user);
         $is_sales = in_array('aegis_sales', $roles, true);
+        $is_wh_mgr = in_array('aegis_warehouse_manager', $roles, true);
+        $is_wh_staff = in_array('aegis_warehouse_staff', $roles, true);
         if ($is_hq || $is_sales) {
             return self::render_sales_panel($portal_url, $user);
+        }
+
+        if ($is_wh_mgr || $is_wh_staff) {
+            return self::render_warehouse_panel($portal_url, $user);
         }
 
         if (in_array('aegis_warehouse', $roles, true) || in_array('aegis_finance', $roles, true)) {
@@ -568,6 +574,728 @@ class AEGIS_Returns {
         );
 
         return '已驳回。';
+    }
+
+    protected static function render_warehouse_panel($portal_url, $user) {
+        global $wpdb;
+
+        $is_hq = AEGIS_System_Roles::is_hq_admin($user);
+        if (!$is_hq && !current_user_can(AEGIS_System::CAP_RETURNS_WAREHOUSE_CHECK)) {
+            status_header(403);
+            return '<div class="aegis-t-a5">您无权访问该页面。</div>';
+        }
+
+        $base_url = add_query_arg('m', 'returns', $portal_url);
+        $request_id = isset($_GET['request_id']) ? (int) $_GET['request_id'] : 0;
+        $status_filter = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : self::STATUS_SALES_APPROVED;
+        $allowed_status = [
+            self::STATUS_SALES_APPROVED,
+            self::STATUS_WAREHOUSE_CHECKING,
+            self::STATUS_WAREHOUSE_APPROVED,
+            self::STATUS_WAREHOUSE_REJECTED,
+        ];
+        if (!in_array($status_filter, $allowed_status, true)) {
+            $status_filter = self::STATUS_SALES_APPROVED;
+        }
+
+        $messages = [];
+        $errors = [];
+        if (isset($_GET['aegis_returns_message'])) {
+            $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_returns_message']));
+        }
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $action = isset($_POST['returns_action']) ? sanitize_key(wp_unslash($_POST['returns_action'])) : '';
+            if (in_array($action, ['warehouse_start', 'warehouse_scan', 'warehouse_approve', 'warehouse_reject'], true)) {
+                $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_WAREHOUSE_CHECK,
+                        'nonce_field'     => 'aegis_returns_wh_nonce',
+                        'nonce_action'    => 'aegis_returns_wh_action',
+                        'whitelist'       => [
+                            'returns_action',
+                            'request_id',
+                            'scan_code',
+                            'warehouse_comment',
+                            'reject_reason',
+                            '_aegis_idempotency',
+                            '_wp_http_referer',
+                            'aegis_returns_wh_nonce',
+                        ],
+                        'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
+                    ]
+                );
+
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $scan_code = isset($_POST['scan_code']) ? sanitize_text_field(wp_unslash($_POST['scan_code'])) : '';
+                    $reject_reason = isset($_POST['reject_reason']) ? sanitize_textarea_field(wp_unslash($_POST['reject_reason'])) : '';
+                    $warehouse_comment = isset($_POST['warehouse_comment']) ? sanitize_textarea_field(wp_unslash($_POST['warehouse_comment'])) : '';
+
+                    if ('warehouse_start' === $action) {
+                        $result = self::handle_warehouse_start($request_id, $user);
+                    } elseif ('warehouse_scan' === $action) {
+                        $result = self::handle_warehouse_scan($request_id, $scan_code, $user);
+                    } elseif ('warehouse_approve' === $action) {
+                        $result = self::handle_warehouse_approve($request_id, $warehouse_comment, $user);
+                    } else {
+                        $result = self::handle_warehouse_reject($request_id, $reject_reason, $user);
+                    }
+
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $redirect_url = add_query_arg(
+                            [
+                                'request_id' => $request_id,
+                                'status' => $status_filter,
+                                'aegis_returns_message' => (string) $result,
+                            ],
+                            $base_url
+                        );
+                        wp_safe_redirect($redirect_url);
+                        exit;
+                    }
+                }
+            }
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $check_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_CHECK_TABLE;
+        $scan_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_SCAN_TABLE;
+
+        $requests = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT r.*, d.dealer_name
+                 FROM {$req_table} r
+                 LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                 WHERE r.status = %s
+                 ORDER BY r.updated_at DESC, r.id DESC
+                 LIMIT 50",
+                $status_filter
+            )
+        );
+
+        $counts_map = [];
+        $request_ids = array_map('intval', wp_list_pluck($requests, 'id'));
+        if (!empty($request_ids)) {
+            $in_sql = implode(',', array_fill(0, count($request_ids), '%d'));
+            $count_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT request_id, COUNT(*) AS cnt FROM {$item_table} WHERE request_id IN ({$in_sql}) GROUP BY request_id",
+                    $request_ids
+                )
+            );
+            foreach ($count_rows as $count_row) {
+                $counts_map[(int) $count_row->request_id] = (int) $count_row->cnt;
+            }
+        }
+
+        $current_request = null;
+        $current_items = [];
+        $check_row = null;
+        $scan_rows = [];
+        $expected_codes = [];
+        $matched_codes = [];
+        $missing_codes = [];
+        $bad_scans_count = 0;
+        $dup_count = 0;
+
+        if ($request_id > 0) {
+            $current_request = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT r.*, d.dealer_name
+                     FROM {$req_table} r
+                     LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                     WHERE r.id = %d
+                     LIMIT 1",
+                    $request_id
+                )
+            );
+
+            if ($current_request) {
+                $current_items = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT * FROM {$item_table} WHERE request_id = %d ORDER BY id ASC",
+                        $request_id
+                    )
+                );
+
+                $check_row = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT * FROM {$check_table} WHERE request_id = %d LIMIT 1",
+                        $request_id
+                    )
+                );
+
+                if ($check_row) {
+                    $scan_rows = $wpdb->get_results(
+                        $wpdb->prepare(
+                            "SELECT * FROM {$scan_table} WHERE warehouse_check_id = %d ORDER BY id DESC LIMIT 200",
+                            (int) $check_row->id
+                        )
+                    );
+                }
+
+                foreach ($current_items as $item) {
+                    $code_value = isset($item->code_value) ? AEGIS_System::normalize_code_value($item->code_value) : '';
+                    if ('' !== $code_value) {
+                        $expected_codes[$code_value] = true;
+                    }
+                }
+
+                foreach ($scan_rows as $scan_row) {
+                    $scan_code_value = isset($scan_row->code_value) ? AEGIS_System::normalize_code_value($scan_row->code_value) : '';
+                    if ('MATCH' === ($scan_row->scan_result ?? '') && '' !== $scan_code_value) {
+                        $matched_codes[$scan_code_value] = true;
+                    }
+                    if (in_array(($scan_row->scan_result ?? ''), ['NOT_IN_REQUEST', 'CONFLICT', 'INVALID'], true)) {
+                        $bad_scans_count++;
+                    }
+                    if ('DUPLICATE' === ($scan_row->scan_result ?? '')) {
+                        $dup_count++;
+                    }
+                }
+
+                $missing_codes = array_values(array_diff(array_keys($expected_codes), array_keys($matched_codes)));
+            } else {
+                $errors[] = '单据不存在。';
+                $request_id = 0;
+            }
+        }
+
+        $summary = [
+            'expected_total' => count($expected_codes),
+            'matched_total' => count($matched_codes),
+            'missing_total' => count($missing_codes),
+            'bad_total' => $bad_scans_count,
+            'dup_total' => $dup_count,
+        ];
+
+        $request_status = $current_request->status ?? '';
+        $checking_states = [self::STATUS_SALES_APPROVED, self::STATUS_WAREHOUSE_CHECKING];
+        $can_approve = in_array($request_status, $checking_states, true) && 0 === $summary['missing_total'] && 0 === $summary['bad_total'];
+
+        $context = [
+            'base_url' => $base_url,
+            'messages' => $messages,
+            'errors' => $errors,
+            'status_filter' => $status_filter,
+            'status_options' => [
+                self::STATUS_SALES_APPROVED => '待核对',
+                self::STATUS_WAREHOUSE_CHECKING => '核对中',
+                self::STATUS_WAREHOUSE_APPROVED => '已通过',
+                self::STATUS_WAREHOUSE_REJECTED => '已驳回',
+            ],
+            'view_mode' => ($request_id > 0 ? 'detail' : 'list'),
+            'requests' => $requests,
+            'counts' => $counts_map,
+            'request' => $current_request,
+            'items' => $current_items,
+            'warehouse_check' => $check_row,
+            'scans' => $scan_rows,
+            'summary' => $summary,
+            'missing_codes' => $missing_codes,
+            'matched_codes' => array_keys($matched_codes),
+            'can_start' => self::STATUS_SALES_APPROVED === $request_status && empty($check_row),
+            'can_scan' => in_array($request_status, $checking_states, true),
+            'can_approve' => $can_approve,
+            'can_reject' => in_array($request_status, $checking_states, true),
+            'idempotency' => wp_generate_uuid4(),
+        ];
+
+        return AEGIS_Portal::render_portal_template('returns-warehouse', $context);
+    }
+
+    protected static function handle_warehouse_start($request_id, $user) {
+        global $wpdb;
+
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return new WP_Error('invalid_request', '无效的退货单。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $check_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_CHECK_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $now = current_time('mysql');
+
+        $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$req_table} WHERE id = %d LIMIT 1", $request_id));
+        if (!$request) {
+            return new WP_Error('not_found', '单据不存在。');
+        }
+        if (self::STATUS_SALES_APPROVED !== $request->status) {
+            return new WP_Error('state_changed', '当前状态不允许开始核对。');
+        }
+
+        $locks = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$lock_table} WHERE request_id = %d", $request_id));
+        if ($locks <= 0) {
+            return new WP_Error('lock_missing', '未找到锁码记录，无法开始核对。');
+        }
+
+        $wpdb->query('START TRANSACTION');
+        $check_exists = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$check_table} WHERE request_id = %d LIMIT 1", $request_id));
+        if ($check_exists <= 0) {
+            $inserted = $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT INTO {$check_table} (request_id, status, started_by, started_at, created_at, updated_at)
+                     VALUES (%d, %s, %d, %s, %s, %s)",
+                    $request_id,
+                    'checking',
+                    (int) $user->ID,
+                    $now,
+                    $now,
+                    $now
+                )
+            );
+            if (false === $inserted) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('db_error', '创建核对任务失败。');
+            }
+        }
+
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table} SET status = %s, updated_at = %s WHERE id = %d AND status = %s",
+                self::STATUS_WAREHOUSE_CHECKING,
+                $now,
+                $request_id,
+                self::STATUS_SALES_APPROVED
+            )
+        );
+        if (false === $updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '更新单据状态失败。');
+        }
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_WAREHOUSE_START',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => $request_id,
+                'actor_user_id' => (int) $user->ID,
+            ]
+        );
+
+        return '已开始核对。';
+    }
+
+    protected static function handle_warehouse_scan($request_id, $scan_code, $user) {
+        global $wpdb;
+
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return new WP_Error('invalid_request', '无效的退货单。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+        $check_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_CHECK_TABLE;
+        $scan_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_SCAN_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+        $now = current_time('mysql');
+
+        $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$req_table} WHERE id = %d LIMIT 1", $request_id));
+        if (!$request) {
+            return new WP_Error('not_found', '单据不存在。');
+        }
+        if (!in_array($request->status, [self::STATUS_SALES_APPROVED, self::STATUS_WAREHOUSE_CHECKING], true)) {
+            return new WP_Error('state_changed', '当前状态不允许扫码。');
+        }
+
+        $code_value = AEGIS_System::normalize_code_value($scan_code);
+        if ('' === $code_value) {
+            return new WP_Error('scan_required', '请输入有效防伪码。');
+        }
+
+        $expected_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT code_value, code_id FROM {$item_table} WHERE request_id = %d",
+                $request_id
+            )
+        );
+        $expected_map = [];
+        foreach ($expected_rows as $row) {
+            $expected_value = AEGIS_System::normalize_code_value($row->code_value ?? '');
+            if ('' !== $expected_value) {
+                $expected_map[$expected_value] = (int) $row->code_id;
+            }
+        }
+
+        $wpdb->query('START TRANSACTION');
+
+        $check_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$check_table} WHERE request_id = %d LIMIT 1", $request_id));
+        if (!$check_row) {
+            $inserted = $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT INTO {$check_table} (request_id, status, started_by, started_at, created_at, updated_at)
+                     VALUES (%d, %s, %d, %s, %s, %s)",
+                    $request_id,
+                    'checking',
+                    (int) $user->ID,
+                    $now,
+                    $now,
+                    $now
+                )
+            );
+            if (false === $inserted) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('db_error', '创建核对任务失败。');
+            }
+            $check_id = (int) $wpdb->insert_id;
+        } else {
+            $check_id = (int) $check_row->id;
+        }
+
+        $scan_result = 'MATCH';
+        $scan_message = '匹配';
+        $matched_code_id = null;
+
+        if (isset($expected_map[$code_value])) {
+            $matched_code_id = (int) $expected_map[$code_value];
+            $match_count = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$scan_table}
+                     WHERE warehouse_check_id = %d AND code_value = %s AND scan_result = 'MATCH'",
+                    $check_id,
+                    $code_value
+                )
+            );
+            if ($match_count > 0) {
+                $scan_result = 'DUPLICATE';
+                $scan_message = '重复扫码';
+            }
+        } else {
+            $matched_code_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$code_table} WHERE code = %s LIMIT 1", $code_value));
+            if ($matched_code_id <= 0) {
+                $matched_code_id = null;
+                $scan_result = 'INVALID';
+                $scan_message = '防伪码不存在/无效';
+            } else {
+                $locked_request_id = (int) $wpdb->get_var($wpdb->prepare("SELECT request_id FROM {$lock_table} WHERE code_id = %d LIMIT 1", $matched_code_id));
+                if ($locked_request_id > 0 && $locked_request_id !== $request_id) {
+                    $scan_result = 'CONFLICT';
+                    $scan_message = '该码已被其他退货单占用';
+                } else {
+                    $scan_result = 'NOT_IN_REQUEST';
+                    $scan_message = '不在本申请单内';
+                }
+            }
+        }
+
+        $inserted_scan = $wpdb->query(
+            $wpdb->prepare(
+                "INSERT INTO {$scan_table}
+                (warehouse_check_id, code_id, code_value, scan_result, scan_message, scanned_by, scanned_at, meta)
+                VALUES (%d, %s, %s, %s, %s, %d, %s, %s)",
+                $check_id,
+                null === $matched_code_id ? null : $matched_code_id,
+                $code_value,
+                $scan_result,
+                $scan_message,
+                (int) $user->ID,
+                $now,
+                wp_json_encode(
+                    [
+                        'request_id' => $request_id,
+                        'scan_raw' => $scan_code,
+                    ]
+                )
+            )
+        );
+        if (false === $inserted_scan) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '扫码记录写入失败。');
+        }
+
+        $status_updated = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table} SET status = %s, updated_at = %s WHERE id = %d AND status = %s",
+                self::STATUS_WAREHOUSE_CHECKING,
+                $now,
+                $request_id,
+                self::STATUS_SALES_APPROVED
+            )
+        );
+        if (false === $status_updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '状态更新失败。');
+        }
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_WAREHOUSE_SCAN',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => $request_id,
+                'actor_user_id' => (int) $user->ID,
+                'scan_result' => $scan_result,
+            ]
+        );
+
+        return $scan_message;
+    }
+
+    protected static function handle_warehouse_approve($request_id, $warehouse_comment, $user) {
+        global $wpdb;
+
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return new WP_Error('invalid_request', '无效的退货单。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+        $check_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_CHECK_TABLE;
+        $scan_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_SCAN_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $now = current_time('mysql');
+
+        $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$req_table} WHERE id = %d LIMIT 1", $request_id));
+        if (!$request) {
+            return new WP_Error('not_found', '单据不存在。');
+        }
+        if (!in_array($request->status, [self::STATUS_SALES_APPROVED, self::STATUS_WAREHOUSE_CHECKING], true)) {
+            return new WP_Error('state_changed', '当前状态不允许通过。');
+        }
+
+        $check_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$check_table} WHERE request_id = %d LIMIT 1", $request_id));
+        if (!$check_row) {
+            return new WP_Error('not_ready', '尚未开始核对。');
+        }
+
+        $expected_rows = $wpdb->get_results($wpdb->prepare("SELECT code_value FROM {$item_table} WHERE request_id = %d", $request_id));
+        $expected_codes = [];
+        foreach ($expected_rows as $row) {
+            $expected_value = AEGIS_System::normalize_code_value($row->code_value ?? '');
+            if ('' !== $expected_value) {
+                $expected_codes[$expected_value] = true;
+            }
+        }
+
+        $matched_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT code_value FROM {$scan_table} WHERE warehouse_check_id = %d AND scan_result = 'MATCH'",
+                (int) $check_row->id
+            )
+        );
+        $matched_codes = [];
+        foreach ($matched_rows as $row) {
+            $matched_value = AEGIS_System::normalize_code_value($row->code_value ?? '');
+            if ('' !== $matched_value) {
+                $matched_codes[$matched_value] = true;
+            }
+        }
+
+        $missing_codes = array_diff(array_keys($expected_codes), array_keys($matched_codes));
+        $bad_scans_total = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$scan_table}
+                 WHERE warehouse_check_id = %d AND scan_result IN ('NOT_IN_REQUEST','CONFLICT','INVALID')",
+                (int) $check_row->id
+            )
+        );
+        if (!empty($missing_codes) || $bad_scans_total > 0) {
+            return new WP_Error('not_ready', '存在缺失或异常扫码，无法通过。');
+        }
+
+        $comment = sanitize_textarea_field((string) $warehouse_comment);
+        $wpdb->query('START TRANSACTION');
+
+        $updated_check = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$check_table}
+                 SET status = %s, finished_by = %d, finished_at = %s, updated_at = %s
+                 WHERE request_id = %d",
+                'approved',
+                (int) $user->ID,
+                $now,
+                $now,
+                $request_id
+            )
+        );
+        if (false === $updated_check) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '核对状态更新失败。');
+        }
+
+        $updated_req = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table}
+                 SET status = %s,
+                     warehouse_checked_by = %d,
+                     warehouse_checked_at = %s,
+                     warehouse_comment = %s,
+                     updated_at = %s
+                 WHERE id = %d AND status IN (%s, %s)",
+                self::STATUS_WAREHOUSE_APPROVED,
+                (int) $user->ID,
+                $now,
+                $comment,
+                $now,
+                $request_id,
+                self::STATUS_SALES_APPROVED,
+                self::STATUS_WAREHOUSE_CHECKING
+            )
+        );
+        if (1 !== (int) $updated_req) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $updated_lock = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$lock_table} SET lock_status = %s, updated_at = %s WHERE request_id = %d",
+                self::STATUS_WAREHOUSE_APPROVED,
+                $now,
+                $request_id
+            )
+        );
+        if (false === $updated_lock) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '锁码状态更新失败。');
+        }
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_WAREHOUSE_APPROVE',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => $request_id,
+                'actor_user_id' => (int) $user->ID,
+            ]
+        );
+
+        return '核对通过，已提交财务审核。';
+    }
+
+    protected static function handle_warehouse_reject($request_id, $reject_reason, $user) {
+        global $wpdb;
+
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return new WP_Error('invalid_request', '无效的退货单。');
+        }
+
+        $reason = trim((string) $reject_reason);
+        if ('' === $reason) {
+            return new WP_Error('reject_reason_required', '驳回必须填写原因。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $check_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_CHECK_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $now = current_time('mysql');
+
+        $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$req_table} WHERE id = %d LIMIT 1", $request_id));
+        if (!$request) {
+            return new WP_Error('not_found', '单据不存在。');
+        }
+        if (!in_array($request->status, [self::STATUS_SALES_APPROVED, self::STATUS_WAREHOUSE_CHECKING], true)) {
+            return new WP_Error('state_changed', '当前状态不允许驳回。');
+        }
+
+        $wpdb->query('START TRANSACTION');
+
+        $check_row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$check_table} WHERE request_id = %d LIMIT 1", $request_id));
+        if (!$check_row) {
+            $inserted = $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT INTO {$check_table} (request_id, status, started_by, started_at, created_at, updated_at)
+                     VALUES (%d, %s, %d, %s, %s, %s)",
+                    $request_id,
+                    'checking',
+                    (int) $user->ID,
+                    $now,
+                    $now,
+                    $now
+                )
+            );
+            if (false === $inserted) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('db_error', '创建核对任务失败。');
+            }
+        }
+
+        $updated_check = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$check_table}
+                 SET status = %s,
+                     reject_reason = %s,
+                     finished_by = %d,
+                     finished_at = %s,
+                     updated_at = %s
+                 WHERE request_id = %d",
+                'rejected',
+                $reason,
+                (int) $user->ID,
+                $now,
+                $now,
+                $request_id
+            )
+        );
+        if (false === $updated_check) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '核对状态更新失败。');
+        }
+
+        $updated_req = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table}
+                 SET status = %s,
+                     warehouse_checked_by = %d,
+                     warehouse_checked_at = %s,
+                     warehouse_comment = %s,
+                     updated_at = %s
+                 WHERE id = %d AND status IN (%s, %s)",
+                self::STATUS_WAREHOUSE_REJECTED,
+                (int) $user->ID,
+                $now,
+                $reason,
+                $now,
+                $request_id,
+                self::STATUS_SALES_APPROVED,
+                self::STATUS_WAREHOUSE_CHECKING
+            )
+        );
+        if (1 !== (int) $updated_req) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $deleted_locks = $wpdb->query($wpdb->prepare("DELETE FROM {$lock_table} WHERE request_id = %d", $request_id));
+        if (false === $deleted_locks) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '释放锁码失败。');
+        }
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_WAREHOUSE_REJECT',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => $request_id,
+                'actor_user_id' => (int) $user->ID,
+                'reject_reason' => $reason,
+            ]
+        );
+
+        return '已驳回并释放锁码。';
     }
 
     protected static function render_dealer_panel($portal_url, $user) {
