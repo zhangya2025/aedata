@@ -46,6 +46,15 @@ class AEGIS_System {
     const CAP_ORDERS_PAYMENT_REVIEW = 'aegis_orders_payment_review';
     const CAP_ORDERS_CREATE = 'aegis_orders_create';
     const CAP_ORDERS_MANAGE_ALL = self::CAP_ORDERS;
+    const CAP_RETURNS_DEALER_APPLY = 'aegis_returns_dealer_apply';
+    const CAP_RETURNS_DEALER_SUBMIT = 'aegis_returns_dealer_submit';
+    const CAP_RETURNS_SALES_REVIEW = 'aegis_returns_sales_review';
+    const CAP_RETURNS_OVERRIDE_ISSUE = 'aegis_returns_override_issue';
+    const CAP_RETURNS_OVERRIDE_REVOKE = 'aegis_returns_override_revoke';
+    const CAP_RETURNS_WAREHOUSE_CHECK = 'aegis_returns_warehouse_check';
+    const CAP_RETURNS_FINANCE_REVIEW = 'aegis_returns_finance_review';
+
+    const RETURNS_AFTER_SALES_DAYS_OPTION = 'aegis_returns_after_sales_days';
 
     const RETURNS_AFTER_SALES_DAYS_OPTION = 'aegis_returns_after_sales_days';
 
@@ -140,6 +149,7 @@ class AEGIS_System {
             'public_query'   => ['label' => '公开查询', 'default' => false],
             'reset_b'        => ['label' => '重置 B', 'default' => false],
             'orders'         => ['label' => '订单', 'default' => false],
+            'returns'        => ['label' => '退货申请', 'default' => false],
             'reports'        => ['label' => '报表', 'default' => false],
             'monitoring'     => ['label' => '监控', 'default' => false],
         ];

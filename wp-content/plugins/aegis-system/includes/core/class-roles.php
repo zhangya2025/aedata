@@ -49,6 +49,13 @@ class AEGIS_System_Roles {
                 AEGIS_System::CAP_ORDERS_INITIAL_REVIEW,
                 AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW,
                 AEGIS_System::CAP_ORDERS_MANAGE_ALL,
+                AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                AEGIS_System::CAP_RETURNS_DEALER_SUBMIT,
+                AEGIS_System::CAP_RETURNS_SALES_REVIEW,
+                AEGIS_System::CAP_RETURNS_OVERRIDE_ISSUE,
+                AEGIS_System::CAP_RETURNS_OVERRIDE_REVOKE,
+                AEGIS_System::CAP_RETURNS_WAREHOUSE_CHECK,
+                AEGIS_System::CAP_RETURNS_FINANCE_REVIEW,
             ];
 
             foreach ($fallback_caps as $cap) {
@@ -232,6 +239,13 @@ class AEGIS_System_Roles {
                     AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW => true,
                     AEGIS_System::CAP_ORDERS_MANAGE_ALL    => true,
                     AEGIS_System::CAP_ACCESS_AUDIT_VIEW    => true,
+                    AEGIS_System::CAP_RETURNS_DEALER_APPLY => true,
+                    AEGIS_System::CAP_RETURNS_DEALER_SUBMIT => true,
+                    AEGIS_System::CAP_RETURNS_SALES_REVIEW => true,
+                    AEGIS_System::CAP_RETURNS_OVERRIDE_ISSUE => true,
+                    AEGIS_System::CAP_RETURNS_OVERRIDE_REVOKE => true,
+                    AEGIS_System::CAP_RETURNS_WAREHOUSE_CHECK => true,
+                    AEGIS_System::CAP_RETURNS_FINANCE_REVIEW => true,
                 ],
             ],
             'aegis_sales'            => [
@@ -240,6 +254,7 @@ class AEGIS_System_Roles {
                     'read'                                   => true,
                     AEGIS_System::CAP_ORDERS_VIEW_ALL        => true,
                     AEGIS_System::CAP_ORDERS_INITIAL_REVIEW  => true,
+                    AEGIS_System::CAP_RETURNS_SALES_REVIEW   => true,
                 ],
             ],
             'aegis_finance'          => [
@@ -249,6 +264,7 @@ class AEGIS_System_Roles {
                     AEGIS_System::CAP_ACCESS_ROOT            => true,
                     AEGIS_System::CAP_ORDERS_VIEW_ALL        => true,
                     AEGIS_System::CAP_ORDERS_PAYMENT_REVIEW  => true,
+                    AEGIS_System::CAP_RETURNS_FINANCE_REVIEW => true,
                 ],
             ],
             'aegis_warehouse_manager' => [
@@ -258,6 +274,7 @@ class AEGIS_System_Roles {
                     AEGIS_System::CAP_ACCESS_ROOT          => true,
                     AEGIS_System::CAP_MANAGE_WAREHOUSE     => true,
                     AEGIS_System::CAP_USE_WAREHOUSE        => true,
+                    AEGIS_System::CAP_RETURNS_WAREHOUSE_CHECK => true,
                 ],
             ],
             'aegis_warehouse_staff'   => [
@@ -266,6 +283,7 @@ class AEGIS_System_Roles {
                     'read'                                 => true,
                     AEGIS_System::CAP_ACCESS_ROOT          => true,
                     AEGIS_System::CAP_USE_WAREHOUSE        => true,
+                    AEGIS_System::CAP_RETURNS_WAREHOUSE_CHECK => true,
                 ],
             ],
             'aegis_dealer'            => [
@@ -275,6 +293,8 @@ class AEGIS_System_Roles {
                     AEGIS_System::CAP_ACCESS_ROOT          => true,
                     AEGIS_System::CAP_RESET_B              => true,
                     AEGIS_System::CAP_ORDERS_CREATE         => true,
+                    AEGIS_System::CAP_RETURNS_DEALER_APPLY  => true,
+                    AEGIS_System::CAP_RETURNS_DEALER_SUBMIT => true,
                 ],
             ],
         ];

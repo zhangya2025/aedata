@@ -657,6 +657,7 @@ class AEGIS_Portal {
             'public_query'     => '公共查询',
             'reset_b'          => '清零B',
             'orders'           => '订单',
+            'returns'          => '退货申请',
             'reports'          => '报表',
             'monitoring'       => '监控',
             'access_audit'     => '访问审计',
@@ -695,15 +696,18 @@ class AEGIS_Portal {
         if (AEGIS_System_Roles::is_hq_admin($user)) {
             $allowed = $all_modules;
         } elseif (in_array('aegis_sales', $roles, true)) {
-            $allowed = ['my_dealers', 'orders', 'sku'];
+            $allowed = ['my_dealers', 'orders', 'sku', 'returns'];
         } elseif (in_array('aegis_finance', $roles, true)) {
-            $allowed = ['orders'];
+            $allowed = ['orders', 'returns'];
         } elseif (AEGIS_System_Roles::is_warehouse_user($user)) {
-            $allowed = ['inbound', 'shipments'];
+            $allowed = ['inbound', 'shipments', 'returns'];
         } elseif (in_array('aegis_dealer', $roles, true)) {
             $allowed = ['reset_b'];
             if (!empty($states['orders']['enabled'])) {
                 $allowed[] = 'orders';
+            }
+            if (!empty($states['returns']['enabled'])) {
+                $allowed[] = 'returns';
             }
         } else {
             $allowed = [];
@@ -770,6 +774,8 @@ class AEGIS_Portal {
                 return AEGIS_Reset_B::render_portal_panel(self::get_portal_url());
             case 'orders':
                 return AEGIS_Orders::render_portal_panel(self::get_portal_url());
+            case 'returns':
+                return AEGIS_Returns::render_portal_panel(self::get_portal_url());
             case 'reports':
                 return AEGIS_Reports::render_portal_panel(self::get_portal_url());
             case 'monitoring':
@@ -806,6 +812,14 @@ class AEGIS_Portal {
                     'href'  => add_query_arg('m', 'shipments', $portal_url),
                 ];
             }
+            if (AEGIS_System::is_module_enabled('returns')) {
+                $entries[] = [
+                    'title' => '退货核对',
+                    'desc'  => '收货核对',
+                    'icon'  => '📦',
+                    'href'  => add_query_arg('m', 'returns', $portal_url),
+                ];
+            }
         } elseif (in_array('aegis_dealer', (array) $user->roles, true)) {
             if (AEGIS_System::is_module_enabled('orders')) {
                 $entries[] = [
@@ -813,6 +827,14 @@ class AEGIS_Portal {
                     'desc'  => '订单管理',
                     'icon'  => '🧾',
                     'href'  => add_query_arg('m', 'orders', $portal_url),
+                ];
+            }
+            if (AEGIS_System::is_module_enabled('returns')) {
+                $entries[] = [
+                    'title' => '退货申请',
+                    'desc'  => '退货申请',
+                    'icon'  => '↩️',
+                    'href'  => add_query_arg('m', 'returns', $portal_url),
                 ];
             }
             if (AEGIS_System::is_module_enabled('reset_b')) {
