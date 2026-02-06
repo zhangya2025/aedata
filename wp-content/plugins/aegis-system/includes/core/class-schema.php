@@ -65,6 +65,13 @@ class AEGIS_System_Schema {
         $payment_table = $wpdb->prefix . AEGIS_System::PAYMENT_TABLE;
         $reset_log_table = $wpdb->prefix . AEGIS_System::RESET_LOG_TABLE;
         $dealer_price_table = $wpdb->prefix . AEGIS_System::DEALER_PRICE_TABLE;
+        $return_request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $return_request_item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+        $return_request_version_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_VERSION_TABLE;
+        $return_override_code_table = $wpdb->prefix . AEGIS_System::RETURN_OVERRIDE_CODE_TABLE;
+        $return_code_lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $return_warehouse_check_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_CHECK_TABLE;
+        $return_warehouse_scan_table = $wpdb->prefix . AEGIS_System::RETURN_WAREHOUSE_SCAN_TABLE;
 
         $audit_sql = "CREATE TABLE {$audit_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -396,7 +403,157 @@ class AEGIS_System_Schema {
             KEY updated_at (updated_at)
         ) {$charset_collate};";
 
-        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $dealer_price_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $order_status_log_sql, $payment_sql, $reset_log_sql];
+        $return_request_sql = "CREATE TABLE {$return_request_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            request_no VARCHAR(120) NOT NULL,
+            dealer_id BIGINT(20) UNSIGNED NOT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'draft',
+            contact_name VARCHAR(191) NULL,
+            contact_phone VARCHAR(64) NULL,
+            reason_code VARCHAR(64) NULL,
+            remark TEXT NULL,
+            submitted_at DATETIME NULL,
+            content_locked_at DATETIME NULL,
+            hard_locked_at DATETIME NULL,
+            sales_audited_by BIGINT(20) UNSIGNED NULL,
+            sales_audited_at DATETIME NULL,
+            sales_comment TEXT NULL,
+            warehouse_checked_by BIGINT(20) UNSIGNED NULL,
+            warehouse_checked_at DATETIME NULL,
+            warehouse_comment TEXT NULL,
+            finance_audited_by BIGINT(20) UNSIGNED NULL,
+            finance_audited_at DATETIME NULL,
+            finance_comment TEXT NULL,
+            closed_at DATETIME NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            meta LONGTEXT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY request_no (request_no),
+            KEY dealer_status (dealer_id, status),
+            KEY status (status),
+            KEY created_at (created_at),
+            KEY submitted_at (submitted_at)
+        ) {$charset_collate};";
+
+        $return_request_item_sql = "CREATE TABLE {$return_request_item_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            request_id BIGINT(20) UNSIGNED NOT NULL,
+            code_id BIGINT(20) UNSIGNED NULL,
+            code_value VARCHAR(128) NOT NULL,
+            ean VARCHAR(64) NULL,
+            batch_id BIGINT(20) UNSIGNED NULL,
+            outbound_scanned_at DATETIME NULL,
+            after_sales_deadline_at DATETIME NULL,
+            validation_status VARCHAR(32) NOT NULL DEFAULT 'pending',
+            fail_reason_code VARCHAR(64) NULL,
+            fail_reason_msg TEXT NULL,
+            override_id BIGINT(20) UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            meta LONGTEXT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY request_code_unique (request_id, code_value),
+            KEY request_id (request_id),
+            KEY code_id (code_id),
+            KEY code_value (code_value),
+            KEY outbound_scanned_at (outbound_scanned_at),
+            KEY validation_status (validation_status)
+        ) {$charset_collate};";
+
+        $return_request_version_sql = "CREATE TABLE {$return_request_version_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            request_id BIGINT(20) UNSIGNED NOT NULL,
+            version_no INT(11) NOT NULL,
+            snapshot_json LONGTEXT NOT NULL,
+            created_by BIGINT(20) UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            KEY request_version (request_id, version_no),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
+        $return_override_code_sql = "CREATE TABLE {$return_override_code_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            code_hash VARCHAR(128) NOT NULL,
+            code_hint VARCHAR(191) NULL,
+            code_id BIGINT(20) UNSIGNED NOT NULL,
+            code_value VARCHAR(128) NOT NULL,
+            dealer_id BIGINT(20) UNSIGNED NOT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'active',
+            expires_at DATETIME NULL,
+            reason_code VARCHAR(64) NULL,
+            reason_text TEXT NULL,
+            issued_by BIGINT(20) UNSIGNED NULL,
+            issued_role VARCHAR(60) NULL,
+            issued_at DATETIME NULL,
+            used_at DATETIME NULL,
+            used_by_dealer_id BIGINT(20) UNSIGNED NULL,
+            used_in_request_id BIGINT(20) UNSIGNED NULL,
+            revoked_at DATETIME NULL,
+            revoked_by BIGINT(20) UNSIGNED NULL,
+            meta LONGTEXT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY code_hash (code_hash),
+            KEY code_id (code_id),
+            KEY dealer_status (dealer_id, status),
+            KEY expires_at (expires_at),
+            KEY issued_at (issued_at),
+            KEY used_at (used_at)
+        ) {$charset_collate};";
+
+        $return_code_lock_sql = "CREATE TABLE {$return_code_lock_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            code_id BIGINT(20) UNSIGNED NOT NULL,
+            code_value VARCHAR(128) NOT NULL,
+            request_id BIGINT(20) UNSIGNED NOT NULL,
+            lock_status VARCHAR(32) NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY code_unique (code_id),
+            KEY request_id (request_id),
+            KEY lock_status (lock_status),
+            KEY updated_at (updated_at)
+        ) {$charset_collate};";
+
+        $return_warehouse_check_sql = "CREATE TABLE {$return_warehouse_check_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            request_id BIGINT(20) UNSIGNED NOT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'checking',
+            started_by BIGINT(20) UNSIGNED NULL,
+            started_at DATETIME NULL,
+            finished_by BIGINT(20) UNSIGNED NULL,
+            finished_at DATETIME NULL,
+            reject_reason TEXT NULL,
+            summary_json LONGTEXT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY request_unique (request_id),
+            KEY status (status),
+            KEY started_at (started_at),
+            KEY finished_at (finished_at)
+        ) {$charset_collate};";
+
+        $return_warehouse_scan_sql = "CREATE TABLE {$return_warehouse_scan_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            warehouse_check_id BIGINT(20) UNSIGNED NOT NULL,
+            code_id BIGINT(20) UNSIGNED NULL,
+            code_value VARCHAR(128) NOT NULL,
+            scan_result VARCHAR(32) NOT NULL,
+            scan_message TEXT NULL,
+            scanned_by BIGINT(20) UNSIGNED NULL,
+            scanned_at DATETIME NOT NULL,
+            meta LONGTEXT NULL,
+            PRIMARY KEY (id),
+            KEY warehouse_check_id (warehouse_check_id),
+            KEY code_id (code_id),
+            KEY code_value (code_value),
+            KEY scanned_at (scanned_at),
+            KEY scan_result (scan_result)
+        ) {$charset_collate};";
+
+        return [$audit_sql, $media_sql, $sku_sql, $dealer_sql, $dealer_price_sql, $code_batch_sql, $code_sql, $shipment_sql, $shipment_item_sql, $receipt_sql, $receipt_item_sql, $query_log_sql, $order_sql, $order_item_sql, $order_status_log_sql, $payment_sql, $reset_log_sql, $return_request_sql, $return_request_item_sql, $return_request_version_sql, $return_override_code_sql, $return_code_lock_sql, $return_warehouse_check_sql, $return_warehouse_scan_sql];
     }
 
     /**
