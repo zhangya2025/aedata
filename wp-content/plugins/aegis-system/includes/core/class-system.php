@@ -8,7 +8,7 @@ class AEGIS_System {
     const TYPOGRAPHY_OPTION = 'aegis_system_typography';
     const HQ_DISPLAY_OPTION = 'aegis_public_query_hq_label';
     const ORDER_SHIPMENT_LINK_OPTION = 'aegis_order_shipment_link';
-    const SCHEMA_VERSION = '2.6.3';
+    const SCHEMA_VERSION = '2.6.4';
     const AUDIT_TABLE = 'aegis_audit_events';
     const MEDIA_TABLE = 'aegis_media_files';
     const SKU_TABLE = 'aegis_skus';
@@ -26,6 +26,13 @@ class AEGIS_System {
     const ORDER_STATUS_LOG_TABLE = 'aegis_order_status_logs';
     const PAYMENT_TABLE = 'aegis_payment_proofs';
     const RESET_LOG_TABLE = 'aegis_reset_logs';
+    const RETURN_REQUEST_TABLE = 'aegis_return_requests';
+    const RETURN_REQUEST_ITEM_TABLE = 'aegis_return_request_items';
+    const RETURN_REQUEST_VERSION_TABLE = 'aegis_return_request_versions';
+    const RETURN_OVERRIDE_CODE_TABLE = 'aegis_return_override_codes';
+    const RETURN_CODE_LOCK_TABLE = 'aegis_return_code_locks';
+    const RETURN_WAREHOUSE_CHECK_TABLE = 'aegis_return_warehouse_checks';
+    const RETURN_WAREHOUSE_SCAN_TABLE = 'aegis_return_warehouse_scans';
 
     const CAP_ACCESS_ROOT = 'aegis_access_root';
     const CAP_ACCESS_AUDIT_VIEW = 'aegis_access_audit_view';
@@ -39,6 +46,8 @@ class AEGIS_System {
     const CAP_ORDERS_PAYMENT_REVIEW = 'aegis_orders_payment_review';
     const CAP_ORDERS_CREATE = 'aegis_orders_create';
     const CAP_ORDERS_MANAGE_ALL = self::CAP_ORDERS;
+
+    const RETURNS_AFTER_SALES_DAYS_OPTION = 'aegis_returns_after_sales_days';
 
     const ACTION_MODULE_ENABLE = 'MODULE_ENABLE';
     const ACTION_MODULE_DISABLE = 'MODULE_DISABLE';
