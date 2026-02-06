@@ -1,0 +1,267 @@
+<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+$base_url = $context_data['base_url'] ?? '';
+$messages = $context_data['messages'] ?? [];
+$errors = $context_data['errors'] ?? [];
+$status_filter = $context_data['status_filter'] ?? AEGIS_Returns::STATUS_SALES_APPROVED;
+$status_options = $context_data['status_options'] ?? [];
+$view_mode = $context_data['view_mode'] ?? 'list';
+$requests = $context_data['requests'] ?? [];
+$counts = $context_data['counts'] ?? [];
+$request = $context_data['request'] ?? null;
+$items = $context_data['items'] ?? [];
+$warehouse_check = $context_data['warehouse_check'] ?? null;
+$scans = $context_data['scans'] ?? [];
+$summary = $context_data['summary'] ?? [];
+$missing_codes = $context_data['missing_codes'] ?? [];
+$matched_codes = $context_data['matched_codes'] ?? [];
+$can_start = !empty($context_data['can_start']);
+$can_scan = !empty($context_data['can_scan']);
+$can_approve = !empty($context_data['can_approve']);
+$can_reject = !empty($context_data['can_reject']);
+$idempotency = $context_data['idempotency'] ?? wp_generate_uuid4();
+
+$list_url = add_query_arg(['status' => $status_filter], $base_url);
+$matched_map = [];
+foreach ($matched_codes as $code) {
+    $matched_map[(string) $code] = true;
+}
+?>
+
+<div class="aegis-t-a4" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+    <div class="aegis-t-a2">退货收货核对</div>
+    <?php if ('detail' === $view_mode) : ?>
+        <a class="aegis-portal-button" href="<?php echo esc_url($list_url); ?>">返回列表</a>
+    <?php endif; ?>
+</div>
+
+<?php foreach ($messages as $msg) : ?>
+    <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
+<?php endforeach; ?>
+<?php foreach ($errors as $msg) : ?>
+    <div class="notice notice-error"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
+<?php endforeach; ?>
+
+<form method="get" class="aegis-t-a6" style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
+    <input type="hidden" name="m" value="returns" />
+    <label>
+        状态
+        <select name="status" onchange="this.form.submit()">
+            <?php foreach ($status_options as $status_key => $status_label) : ?>
+                <option value="<?php echo esc_attr($status_key); ?>" <?php selected($status_filter, $status_key); ?>><?php echo esc_html($status_label); ?></option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <button type="submit" class="aegis-portal-button is-primary">筛选</button>
+</form>
+
+<?php if ('list' === $view_mode) : ?>
+    <div class="aegis-portal-table" style="overflow:auto;">
+        <table class="aegis-t-a6" style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="text-align:left; border-bottom:1px solid #e5e5e5;">
+                    <th style="padding:8px;">单号</th>
+                    <th style="padding:8px;">经销商</th>
+                    <th style="padding:8px;">条目数</th>
+                    <th style="padding:8px;">销售同意时间</th>
+                    <th style="padding:8px;">状态</th>
+                    <th style="padding:8px;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($requests)) : ?>
+                    <tr><td colspan="6" style="padding:12px;">暂无数据。</td></tr>
+                <?php else : ?>
+                    <?php foreach ($requests as $row) : ?>
+                        <?php
+                        $detail_url = add_query_arg(
+                            [
+                                'request_id' => (int) $row->id,
+                                'status' => $status_filter,
+                            ],
+                            $base_url
+                        );
+                        ?>
+                        <tr style="border-bottom:1px solid #f0f0f0;">
+                            <td style="padding:8px;"><a href="<?php echo esc_url($detail_url); ?>"><?php echo esc_html($row->request_no); ?></a></td>
+                            <td style="padding:8px;"><?php echo esc_html($row->dealer_name ?? ''); ?></td>
+                            <td style="padding:8px;"><?php echo esc_html((string) ($counts[(int) $row->id] ?? 0)); ?></td>
+                            <td style="padding:8px;"><?php echo esc_html($row->sales_audited_at ?? ''); ?></td>
+                            <td style="padding:8px;"><?php echo esc_html($status_options[$row->status] ?? $row->status); ?></td>
+                            <td style="padding:8px;"><a class="aegis-portal-button" href="<?php echo esc_url($detail_url); ?>">查看</a></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+<?php elseif ($request) : ?>
+    <section class="aegis-card" style="margin-bottom:12px;">
+        <div class="aegis-card-header">
+            <div class="aegis-card-title aegis-t-a4">单据详情</div>
+        </div>
+        <div class="aegis-card-body aegis-t-a6">
+            <p><strong>单号：</strong><?php echo esc_html($request->request_no ?? ''); ?></p>
+            <p><strong>经销商：</strong><?php echo esc_html($request->dealer_name ?? ''); ?></p>
+            <p><strong>提交时间：</strong><?php echo esc_html($request->submitted_at ?? ''); ?></p>
+            <p><strong>销售同意时间：</strong><?php echo esc_html($request->sales_audited_at ?? ''); ?></p>
+            <p><strong>当前状态：</strong><?php echo esc_html($status_options[$request->status] ?? $request->status); ?></p>
+            <?php if ($warehouse_check) : ?>
+                <p><strong>核对记录状态：</strong><?php echo esc_html($warehouse_check->status ?? ''); ?></p>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <section class="aegis-card" style="margin-bottom:12px;">
+        <div class="aegis-card-header">
+            <div class="aegis-card-title aegis-t-a4">核对摘要</div>
+        </div>
+        <div class="aegis-card-body aegis-t-a6" style="display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:8px;">
+            <div>应收：<?php echo esc_html((string) ($summary['expected_total'] ?? 0)); ?></div>
+            <div>已匹配：<?php echo esc_html((string) ($summary['matched_total'] ?? 0)); ?></div>
+            <div>缺失：<?php echo esc_html((string) ($summary['missing_total'] ?? 0)); ?></div>
+            <div>异常：<?php echo esc_html((string) ($summary['bad_total'] ?? 0)); ?></div>
+            <div>重复：<?php echo esc_html((string) ($summary['dup_total'] ?? 0)); ?></div>
+        </div>
+        <?php if (!empty($missing_codes)) : ?>
+            <div class="aegis-card-body aegis-t-a6" style="padding-top:0;">
+                <strong>缺失码：</strong>
+                <?php echo esc_html(implode(', ', array_map(['AEGIS_System', 'format_code_display'], $missing_codes))); ?>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <section class="aegis-card" style="margin-bottom:12px;">
+        <div class="aegis-card-header">
+            <div class="aegis-card-title aegis-t-a4">核对操作</div>
+        </div>
+        <div class="aegis-card-body aegis-t-a6" style="display:grid; gap:12px;">
+            <?php if ($can_start) : ?>
+                <form method="post">
+                    <?php wp_nonce_field('aegis_returns_wh_action', 'aegis_returns_wh_nonce'); ?>
+                    <input type="hidden" name="returns_action" value="warehouse_start" />
+                    <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
+                    <button type="submit" class="aegis-portal-button is-primary">开始核对</button>
+                </form>
+            <?php endif; ?>
+
+            <?php if ($can_scan) : ?>
+                <form method="post" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                    <?php wp_nonce_field('aegis_returns_wh_action', 'aegis_returns_wh_nonce'); ?>
+                    <input type="hidden" name="returns_action" value="warehouse_scan" />
+                    <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
+                    <label style="flex:1; min-width:280px;">扫码录入
+                        <input type="text" name="scan_code" style="width:100%;" required />
+                    </label>
+                    <button type="submit" class="aegis-portal-button is-primary">扫码录入</button>
+                </form>
+            <?php endif; ?>
+
+            <?php if ($can_approve) : ?>
+                <form method="post" onsubmit="return confirm('确认核对通过并流转到财务？');">
+                    <?php wp_nonce_field('aegis_returns_wh_action', 'aegis_returns_wh_nonce'); ?>
+                    <input type="hidden" name="returns_action" value="warehouse_approve" />
+                    <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
+                    <label style="display:block; margin-bottom:8px;">备注（可选）
+                        <textarea name="warehouse_comment" rows="3" style="width:100%;"></textarea>
+                    </label>
+                    <button type="submit" class="aegis-portal-button is-primary">核对通过</button>
+                </form>
+            <?php endif; ?>
+
+            <?php if ($can_reject) : ?>
+                <form method="post" onsubmit="return confirm('确认核对不通过并释放锁码？');">
+                    <?php wp_nonce_field('aegis_returns_wh_action', 'aegis_returns_wh_nonce'); ?>
+                    <input type="hidden" name="returns_action" value="warehouse_reject" />
+                    <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
+                    <label style="display:block; margin-bottom:8px;">驳回原因（必填）
+                        <textarea name="reject_reason" rows="3" style="width:100%;" required></textarea>
+                    </label>
+                    <button type="submit" class="aegis-portal-button">核对不通过</button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <section class="aegis-card" style="margin-bottom:12px;">
+        <div class="aegis-card-header">
+            <div class="aegis-card-title aegis-t-a4">应收清单</div>
+        </div>
+        <div class="aegis-card-body aegis-t-a6 aegis-portal-table" style="overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="text-align:left; border-bottom:1px solid #e5e5e5;">
+                        <th style="padding:8px;">防伪码</th>
+                        <th style="padding:8px;">出库时间</th>
+                        <th style="padding:8px;">截止时间</th>
+                        <th style="padding:8px;">是否已收</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($items)) : ?>
+                        <tr><td colspan="4" style="padding:12px;">暂无条目。</td></tr>
+                    <?php else : ?>
+                        <?php foreach ($items as $item) : ?>
+                            <?php $normalized = AEGIS_System::normalize_code_value($item->code_value ?? ''); ?>
+                            <tr style="border-bottom:1px solid #f0f0f0;">
+                                <td style="padding:8px;"><?php echo esc_html(AEGIS_System::format_code_display($item->code_value ?? '')); ?></td>
+                                <td style="padding:8px;"><?php echo esc_html($item->outbound_scanned_at ?? ''); ?></td>
+                                <td style="padding:8px;"><?php echo esc_html($item->after_sales_deadline_at ?? ''); ?></td>
+                                <td style="padding:8px;"><?php echo esc_html(!empty($matched_map[$normalized]) ? '已收' : '未收'); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="aegis-card" style="margin-bottom:12px;">
+        <div class="aegis-card-header">
+            <div class="aegis-card-title aegis-t-a4">异常扫码列表</div>
+        </div>
+        <div class="aegis-card-body aegis-t-a6 aegis-portal-table" style="overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="text-align:left; border-bottom:1px solid #e5e5e5;">
+                        <th style="padding:8px;">时间</th>
+                        <th style="padding:8px;">码</th>
+                        <th style="padding:8px;">结果</th>
+                        <th style="padding:8px;">信息</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $abnormal_scans = array_values(array_filter(
+                        $scans,
+                        static function ($scan_row) {
+                            return 'MATCH' !== ($scan_row->scan_result ?? '');
+                        }
+                    ));
+                    ?>
+                    <?php if (empty($abnormal_scans)) : ?>
+                        <tr><td colspan="4" style="padding:12px;">暂无异常扫码。</td></tr>
+                    <?php else : ?>
+                        <?php foreach ($abnormal_scans as $scan_row) : ?>
+                            <tr style="border-bottom:1px solid #f0f0f0;">
+                                <td style="padding:8px;"><?php echo esc_html($scan_row->scanned_at ?? ''); ?></td>
+                                <td style="padding:8px;"><?php echo esc_html(AEGIS_System::format_code_display($scan_row->code_value ?? '')); ?></td>
+                                <td style="padding:8px;"><?php echo esc_html($scan_row->scan_result ?? ''); ?></td>
+                                <td style="padding:8px;"><?php echo esc_html($scan_row->scan_message ?? ''); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <a class="aegis-portal-button" href="<?php echo esc_url($list_url); ?>">返回列表</a>
+<?php endif; ?>
