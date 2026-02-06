@@ -244,6 +244,18 @@ class AEGIS_Returns {
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['returns_action']) ? sanitize_key(wp_unslash($_POST['returns_action'])) : '';
             $idempotency = isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null;
+            $action_whitelist = [
+                'returns_action',
+                'request_id',
+                'contact_name',
+                'contact_phone',
+                'reason_code',
+                'remark',
+                'code_values',
+                '_aegis_idempotency',
+                '_wp_http_referer',
+                'aegis_returns_nonce',
+            ];
             if (in_array($action, ['create_draft', 'update_draft', 'delete_draft'], true)) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
@@ -251,18 +263,7 @@ class AEGIS_Returns {
                         'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
                         'nonce_field'     => 'aegis_returns_nonce',
                         'nonce_action'    => 'aegis_returns_action',
-                        'whitelist'       => [
-                            'returns_action',
-                            'request_id',
-                            'contact_name',
-                            'contact_phone',
-                            'reason_code',
-                            'remark',
-                            'code_values',
-                            '_aegis_idempotency',
-                            '_wp_http_referer',
-                            'aegis_returns_nonce',
-                        ],
+                        'whitelist'       => $action_whitelist,
                         'idempotency_key' => $idempotency,
                     ]
                 );
@@ -556,6 +557,202 @@ class AEGIS_Returns {
                         }
                     }
                 }
+            } elseif (in_array($action, ['submit_request', 'withdraw_request'], true)) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_SUBMIT,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => $action_whitelist,
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+                    $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+                    $version_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_VERSION_TABLE;
+                    $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+                    $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                    if ($request_id <= 0) {
+                        $errors[] = '单据不存在或无权限。';
+                    } else {
+                        $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$request_table} WHERE id = %d AND dealer_id = %d", $request_id, $dealer_id));
+                        if (!$request) {
+                            $errors[] = '单据不存在或无权限。';
+                        } elseif ('submit_request' === $action) {
+                            if (!self::can_edit_request($request)) {
+                                $errors[] = '单据已锁定或已提交，无法再次提交。';
+                            } else {
+                                $stats = self::revalidate_items_for_request($request_id, $dealer_id);
+                                if (is_wp_error($stats)) {
+                                    $errors[] = $stats->get_error_message();
+                                } elseif ($stats['total'] <= 0 || $stats['fail'] > 0 || $stats['pending'] > 0) {
+                                    $redirect_url = add_query_arg(
+                                        [
+                                            'request_id' => $request_id,
+                                            'aegis_returns_error' => sprintf('存在未通过条目（通过%d/未通过%d/待校验%d），无法提交。请删除不通过条目或联系销售/HQ处理。', $stats['pass'], $stats['fail'], $stats['pending']),
+                                        ],
+                                        $base_url
+                                    );
+                                    wp_safe_redirect($redirect_url);
+                                    exit;
+                                } else {
+                                    $items_for_submit = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$item_table} WHERE request_id = %d ORDER BY id ASC", $request_id));
+                                    foreach ($items_for_submit as $submit_item) {
+                                        if (empty($submit_item->code_id)) {
+                                            $errors[] = '存在无法识别的防伪码，无法提交。';
+                                            break;
+                                        }
+                                    }
+                                    if (empty($errors)) {
+                                        $now = current_time('mysql');
+                                        $snapshot = [
+                                            'request' => [
+                                                'request_no' => $request->request_no,
+                                                'dealer_id' => (int) $request->dealer_id,
+                                                'contact_name' => $request->contact_name,
+                                                'contact_phone' => $request->contact_phone,
+                                                'reason_code' => $request->reason_code,
+                                                'remark' => $request->remark,
+                                            ],
+                                            'items' => array_map(
+                                                static function ($item_row) {
+                                                    return [
+                                                        'code_value' => $item_row->code_value,
+                                                        'code_id' => (int) $item_row->code_id,
+                                                        'ean' => $item_row->ean,
+                                                        'batch_id' => $item_row->batch_id,
+                                                        'outbound_scanned_at' => $item_row->outbound_scanned_at,
+                                                        'after_sales_deadline_at' => $item_row->after_sales_deadline_at,
+                                                        'validation_status' => $item_row->validation_status,
+                                                    ];
+                                                },
+                                                $items_for_submit
+                                            ),
+                                            'generated_at' => $now,
+                                            'after_sales_days' => absint(get_option(AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION, 30)),
+                                        ];
+                                        $version_no = self::get_next_version_no($request_id);
+
+                                        $wpdb->query('START TRANSACTION');
+                                        $version_inserted = $wpdb->insert(
+                                            $version_table,
+                                            [
+                                                'request_id' => $request_id,
+                                                'version_no' => $version_no,
+                                                'snapshot_json' => wp_json_encode($snapshot),
+                                                'created_by' => get_current_user_id(),
+                                                'created_at' => $now,
+                                            ],
+                                            ['%d', '%d', '%s', '%d', '%s']
+                                        );
+                                        if (!$version_inserted) {
+                                            $wpdb->query('ROLLBACK');
+                                            $errors[] = '写入版本快照失败。';
+                                        } else {
+                                            $lock_error = '';
+                                            foreach ($items_for_submit as $submit_item) {
+                                                $lock_inserted = $wpdb->insert(
+                                                    $lock_table,
+                                                    [
+                                                        'code_id' => (int) $submit_item->code_id,
+                                                        'code_value' => $submit_item->code_value,
+                                                        'request_id' => $request_id,
+                                                        'lock_status' => 'submitted',
+                                                        'created_at' => $now,
+                                                        'updated_at' => $now,
+                                                    ],
+                                                    ['%d', '%s', '%d', '%s', '%s', '%s']
+                                                );
+                                                if (!$lock_inserted) {
+                                                    $conflict = $wpdb->get_row(
+                                                        $wpdb->prepare(
+                                                            "SELECT l.request_id, r.request_no, r.status FROM {$lock_table} l JOIN {$request_table} r ON r.id = l.request_id WHERE l.code_id = %d LIMIT 1",
+                                                            (int) $submit_item->code_id
+                                                        )
+                                                    );
+                                                    $lock_error = $conflict
+                                                        ? sprintf('防伪码 %s 已在退货单 %s（状态 %s）处理中，无法提交。', $submit_item->code_value, $conflict->request_no, $conflict->status)
+                                                        : '提交失败，请重试。';
+                                                    break;
+                                                }
+                                            }
+                                            if ($lock_error) {
+                                                $wpdb->query('ROLLBACK');
+                                                wp_safe_redirect(add_query_arg(['request_id' => $request_id, 'aegis_returns_error' => $lock_error], $base_url));
+                                                exit;
+                                            }
+
+                                            $updated = $wpdb->query(
+                                                $wpdb->prepare(
+                                                    "UPDATE {$request_table} SET status = %s, submitted_at = %s, content_locked_at = %s, updated_at = %s WHERE id = %d AND dealer_id = %d AND status = %s AND (hard_locked_at IS NULL OR hard_locked_at = '')",
+                                                    self::STATUS_SUBMITTED,
+                                                    $now,
+                                                    $now,
+                                                    $now,
+                                                    $request_id,
+                                                    $dealer_id,
+                                                    self::STATUS_DRAFT
+                                                )
+                                            );
+                                            if (!$updated) {
+                                                $wpdb->query('ROLLBACK');
+                                                $errors[] = '提交失败，请重试。';
+                                            } else {
+                                                $wpdb->query('COMMIT');
+                                                AEGIS_Access_Audit::record_event('RETURNS_SUBMIT', 'SUCCESS', [
+                                                    'entity_type' => 'return_request',
+                                                    'entity_id' => $request_id,
+                                                    'dealer_id' => $dealer_id,
+                                                    'request_no' => $request->request_no,
+                                                    'total' => $stats['total'],
+                                                    'pass' => $stats['pass'],
+                                                ]);
+                                                wp_safe_redirect(add_query_arg(['aegis_returns_message' => '已提交，等待销售审核。'], $base_url));
+                                                exit;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } elseif ('withdraw_request' === $action) {
+                            if (!self::can_withdraw_request($request)) {
+                                $errors[] = '单据已进入审核流程，无法撤回。';
+                            } else {
+                                $now = current_time('mysql');
+                                $wpdb->query('START TRANSACTION');
+                                $wpdb->query($wpdb->prepare("DELETE FROM {$lock_table} WHERE request_id = %d", $request_id));
+                                $updated = $wpdb->query(
+                                    $wpdb->prepare(
+                                        "UPDATE {$request_table} SET status = %s, submitted_at = NULL, content_locked_at = NULL, updated_at = %s WHERE id = %d AND dealer_id = %d AND status = %s AND (hard_locked_at IS NULL OR hard_locked_at = '')",
+                                        self::STATUS_DRAFT,
+                                        $now,
+                                        $request_id,
+                                        $dealer_id,
+                                        self::STATUS_SUBMITTED
+                                    )
+                                );
+                                if (!$updated) {
+                                    $wpdb->query('ROLLBACK');
+                                    $errors[] = '撤回失败，请重试。';
+                                } else {
+                                    $wpdb->query('COMMIT');
+                                    AEGIS_Access_Audit::record_event('RETURNS_WITHDRAW', 'SUCCESS', [
+                                        'entity_type' => 'return_request',
+                                        'entity_id' => $request_id,
+                                        'dealer_id' => $dealer_id,
+                                        'request_no' => $request->request_no,
+                                    ]);
+                                    wp_safe_redirect(add_query_arg(['request_id' => $request_id, 'aegis_returns_message' => '已撤回为草稿，可继续修改。'], $base_url));
+                                    exit;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -611,6 +808,9 @@ class AEGIS_Returns {
             }
         }
 
+        $can_edit_current = self::can_edit_request($current_request);
+        $can_withdraw_current = self::can_withdraw_request($current_request);
+
         $context = [
             'base_url'       => $base_url,
             'portal_url'     => $portal_url,
@@ -624,6 +824,8 @@ class AEGIS_Returns {
             'request'        => $current_request,
             'items'          => $current_items,
             'code_text'      => $textarea_string,
+            'can_edit'       => $can_edit_current,
+            'can_withdraw'   => $can_withdraw_current,
             'idempotency'    => wp_generate_uuid4(),
             'status_labels'  => self::get_status_labels(),
         ];
@@ -823,16 +1025,116 @@ class AEGIS_Returns {
     }
 
     protected static function is_request_editable($request) {
+        return self::can_edit_request($request);
+    }
+
+    protected static function can_edit_request($request): bool {
         if (!$request) {
             return false;
         }
-        if (self::STATUS_DRAFT !== $request->status) {
+
+        return self::STATUS_DRAFT === $request->status
+            && empty($request->hard_locked_at)
+            && empty($request->content_locked_at);
+    }
+
+    protected static function can_withdraw_request($request): bool {
+        if (!$request) {
             return false;
         }
-        if (!empty($request->hard_locked_at) || !empty($request->content_locked_at)) {
-            return false;
+
+        $sales_audited_at = property_exists($request, 'sales_audited_at') ? $request->sales_audited_at : null;
+
+        return self::STATUS_SUBMITTED === $request->status
+            && empty($request->hard_locked_at)
+            && empty($sales_audited_at);
+    }
+
+    protected static function get_next_version_no($request_id): int {
+        global $wpdb;
+
+        $version_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_VERSION_TABLE;
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COALESCE(MAX(version_no), 0) + 1 FROM {$version_table} WHERE request_id = %d",
+                $request_id
+            )
+        );
+    }
+
+    protected static function revalidate_items_for_request(int $request_id, int $dealer_id) {
+        global $wpdb;
+
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+        $items = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, code_value FROM {$item_table} WHERE request_id = %d ORDER BY id ASC",
+                $request_id
+            )
+        );
+        if (empty($items)) {
+            return new WP_Error('empty_items', '请先录入防伪码。');
         }
-        return true;
+
+        $code_values = [];
+        foreach ($items as $item) {
+            $code_values[] = (string) $item->code_value;
+        }
+        $item_rows = self::build_item_rows_for_codes($code_values, $dealer_id, $request_id);
+
+        $pass = 0;
+        $fail = 0;
+        $pending = 0;
+        foreach ($code_values as $code_value) {
+            $row = $item_rows[$code_value] ?? [
+                'code_id'                 => null,
+                'ean'                     => null,
+                'batch_id'                => null,
+                'outbound_scanned_at'     => null,
+                'after_sales_deadline_at' => null,
+                'validation_status'       => 'fail',
+                'fail_reason_code'        => self::FAIL_INVALID_CODE_FORMAT,
+                'fail_reason_msg'         => '防伪码格式无效，请检查后重试。',
+            ];
+
+            $validation_status = (string) ($row['validation_status'] ?? 'pending');
+            if ('pass' === $validation_status) {
+                $pass++;
+            } elseif ('pending' === $validation_status) {
+                $pending++;
+            } else {
+                $fail++;
+            }
+
+            $wpdb->update(
+                $item_table,
+                [
+                    'code_id' => $row['code_id'],
+                    'ean' => $row['ean'],
+                    'batch_id' => $row['batch_id'],
+                    'outbound_scanned_at' => $row['outbound_scanned_at'],
+                    'after_sales_deadline_at' => $row['after_sales_deadline_at'],
+                    'validation_status' => $validation_status,
+                    'fail_reason_code' => $row['fail_reason_code'],
+                    'fail_reason_msg' => $row['fail_reason_msg'],
+                ],
+                [
+                    'request_id' => $request_id,
+                    'code_value' => $code_value,
+                ],
+                ['%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s'],
+                ['%d', '%s']
+            );
+        }
+
+        return [
+            'rows' => $item_rows,
+            'total' => count($code_values),
+            'pass' => $pass,
+            'fail' => $fail,
+            'pending' => $pending,
+        ];
     }
 
     protected static function get_status_labels() {
