@@ -1026,6 +1026,8 @@ class AEGIS_Portal {
         $modules = AEGIS_System::get_registered_modules();
         $states = self::get_portal_module_states();
         $order_link_enabled = (bool) get_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, false);
+        $returns_days = absint(get_option(AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION, 30));
+        if ($returns_days < 1) { $returns_days = 30; }
         $validation = ['success' => true, 'message' => ''];
         $message = '';
 
@@ -1036,34 +1038,56 @@ class AEGIS_Portal {
                     'capability'      => AEGIS_System::CAP_MANAGE_SYSTEM,
                     'nonce_field'     => 'aegis_system_portal_nonce',
                     'nonce_action'    => 'aegis_system_portal_save_modules',
-                    'whitelist'       => ['aegis_system_portal_nonce', '_wp_http_referer', '_aegis_idempotency', 'modules', 'submit', AEGIS_System::ORDER_SHIPMENT_LINK_OPTION],
+                    'whitelist'       => ['aegis_system_portal_nonce', '_wp_http_referer', '_aegis_idempotency', 'modules', 'submit', AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION],
                     'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
                 ]
             );
 
             if ($validation['success']) {
-                $allowed_modules = array_keys($modules);
-                $posted_modules = isset($_POST['modules']) && is_array($_POST['modules']) ? array_keys($_POST['modules']) : [];
-                $unknown_modules = array_diff($posted_modules, $allowed_modules);
-                if (!empty($unknown_modules)) {
-                    AEGIS_Access_Audit::record_event('PARAMS_IGNORED', 'SUCCESS', ['keys' => array_values($unknown_modules)]);
-                }
+                $new_returns_days = isset($_POST[AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION])
+                    ? absint(wp_unslash($_POST[AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION]))
+                    : $returns_days;
 
-                $new_states = [];
-                foreach ($modules as $slug => $module) {
-                    if ($slug === 'core_manager') {
-                        $new_states[$slug] = true;
-                        continue;
+                if ($new_returns_days < 1 || $new_returns_days > 3650) {
+                    $validation = ['success' => false, 'message' => '退货有效期（售后天数）必须在 1 ~ 3650 天之间。'];
+                } else {
+                    $allowed_modules = array_keys($modules);
+                    $posted_modules = isset($_POST['modules']) && is_array($_POST['modules']) ? array_keys($_POST['modules']) : [];
+                    $unknown_modules = array_diff($posted_modules, $allowed_modules);
+                    if (!empty($unknown_modules)) {
+                        AEGIS_Access_Audit::record_event('PARAMS_IGNORED', 'SUCCESS', ['keys' => array_values($unknown_modules)]);
                     }
-                    $new_states[$slug] = isset($_POST['modules'][$slug]) ? true : false;
-                }
 
-                self::save_module_states($new_states, $states);
-                $new_enabled = !empty($_POST[AEGIS_System::ORDER_SHIPMENT_LINK_OPTION]);
-                update_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, $new_enabled ? 1 : 0);
-                $states = self::get_portal_module_states();
-                $order_link_enabled = $new_enabled;
-                $message = '模块配置已保存。';
+                    $new_states = [];
+                    foreach ($modules as $slug => $module) {
+                        if ($slug === 'core_manager') {
+                            $new_states[$slug] = true;
+                            continue;
+                        }
+                        $new_states[$slug] = isset($_POST['modules'][$slug]) ? true : false;
+                    }
+
+                    self::save_module_states($new_states, $states);
+                    $new_enabled = !empty($_POST[AEGIS_System::ORDER_SHIPMENT_LINK_OPTION]);
+                    update_option(AEGIS_System::ORDER_SHIPMENT_LINK_OPTION, $new_enabled ? 1 : 0);
+
+                    if ($new_returns_days !== $returns_days) {
+                        update_option(AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION, $new_returns_days, true);
+                        AEGIS_Access_Audit::log(
+                            AEGIS_System::ACTION_SETTINGS_UPDATE,
+                            [
+                                'result'      => 'SUCCESS',
+                                'entity_type' => 'returns_settings',
+                                'message'     => 'Returns after-sales days updated via portal',
+                                'meta'        => ['after_sales_days' => $new_returns_days],
+                            ]
+                        );
+                    }
+                    $returns_days = $new_returns_days;
+                    $states = self::get_portal_module_states();
+                    $order_link_enabled = $new_enabled;
+                    $message = '模块配置已保存。';
+                }
             }
         }
 
@@ -1113,6 +1137,19 @@ class AEGIS_Portal {
                         </div>
                     </div>
                 <?php endforeach; ?>
+            </div>
+            <div style="margin-top:16px; padding:12px; border:1px solid #e5e5e5; border-radius:8px;">
+                <div class="aegis-t-a5" style="font-weight:600; margin-bottom:6px;">退货申请 / 售后有效期</div>
+                <div style="display:inline-flex; align-items:center; gap:8px;">
+                    <input type="number"
+                           name="<?php echo esc_attr(AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION); ?>"
+                           value="<?php echo esc_attr($returns_days); ?>"
+                           min="1" max="3650" style="width:120px;" />
+                    <span>天</span>
+                </div>
+                <div class="aegis-t-a6" style="color:#666; margin-top:6px;">
+                    用于退货自动校验：出库扫码时间（aegis_shipment_items.scanned_at）+ 售后天数，超期需走特批。
+                </div>
             </div>
             <div style="margin-top:16px; padding:12px; border:1px solid #e5e5e5; border-radius:8px;">
                 <div class="aegis-t-a5" style="font-weight:600; margin-bottom:6px;">订单关联 / 出库关联订单</div>

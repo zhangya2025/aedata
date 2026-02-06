@@ -81,8 +81,12 @@ class AEGIS_System_Roles {
             || current_user_can(AEGIS_System::CAP_ORDERS_MANAGE_ALL);
     }
 
-    public static function user_can_manage_system() {
-        return current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM);
+    public static function user_can_manage_system($user = null) {
+        if (null !== $user) {
+            return self::is_hq_admin($user) || user_can($user, AEGIS_System::CAP_MANAGE_SYSTEM);
+        }
+
+        return self::is_hq_admin() || current_user_can(AEGIS_System::CAP_MANAGE_SYSTEM);
     }
 
     public static function user_can_manage_warehouse() {
