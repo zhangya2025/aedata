@@ -212,9 +212,18 @@ class AEGIS_Returns {
 
         $is_hq = AEGIS_System_Roles::is_hq_admin($user);
         $is_sales = in_array('aegis_sales', $roles, true);
+        $is_finance = in_array('aegis_finance', $roles, true);
         $is_wh_mgr = in_array('aegis_warehouse_manager', $roles, true);
         $is_wh_staff = in_array('aegis_warehouse_staff', $roles, true);
-        if ($is_hq || $is_sales) {
+        if ($is_hq) {
+            $stage = isset($_GET['stage']) ? sanitize_key(wp_unslash($_GET['stage'])) : 'sales';
+            if ('finance' === $stage) {
+                return self::render_finance_panel($portal_url, $user);
+            }
+            return self::render_sales_panel($portal_url, $user);
+        }
+
+        if ($is_sales) {
             return self::render_sales_panel($portal_url, $user);
         }
 
@@ -222,8 +231,8 @@ class AEGIS_Returns {
             return self::render_warehouse_panel($portal_url, $user);
         }
 
-        if (in_array('aegis_warehouse', $roles, true) || in_array('aegis_finance', $roles, true)) {
-            return '<div class="aegis-t-a5">该角色功能将在后续 PR 实现。</div>';
+        if ($is_finance) {
+            return self::render_finance_panel($portal_url, $user);
         }
 
         return '<div class="aegis-t-a5">该角色功能将在后续 PR 实现。</div>';
@@ -1296,6 +1305,312 @@ class AEGIS_Returns {
         );
 
         return '已驳回并释放锁码。';
+    }
+
+    protected static function render_finance_panel($portal_url, $user) {
+        global $wpdb;
+
+        $is_hq = AEGIS_System_Roles::is_hq_admin($user);
+        if (!$is_hq && !current_user_can(AEGIS_System::CAP_RETURNS_FINANCE_REVIEW)) {
+            status_header(403);
+            return '<div class="aegis-t-a5">您无权访问该页面。</div>';
+        }
+
+        $base_url = add_query_arg('m', 'returns', $portal_url);
+        if ($is_hq) {
+            $base_url = add_query_arg('stage', 'finance', $base_url);
+        }
+
+        $request_id = isset($_GET['request_id']) ? (int) $_GET['request_id'] : 0;
+        $status_filter = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : self::STATUS_WAREHOUSE_APPROVED;
+        $allowed_status = [self::STATUS_WAREHOUSE_APPROVED, self::STATUS_CLOSED, self::STATUS_FINANCE_REJECTED];
+        if (!in_array($status_filter, $allowed_status, true)) {
+            $status_filter = self::STATUS_WAREHOUSE_APPROVED;
+        }
+
+        $messages = [];
+        $errors = [];
+        if (isset($_GET['aegis_returns_message'])) {
+            $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_returns_message']));
+        }
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $action = isset($_POST['returns_action']) ? sanitize_key(wp_unslash($_POST['returns_action'])) : '';
+            if (in_array($action, ['finance_approve', 'finance_reject'], true)) {
+                $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability' => AEGIS_System::CAP_RETURNS_FINANCE_REVIEW,
+                        'nonce_field' => 'aegis_returns_fin_nonce',
+                        'nonce_action' => 'aegis_returns_fin_action',
+                        'whitelist' => [
+                            'returns_action',
+                            'request_id',
+                            'finance_comment',
+                            '_aegis_idempotency',
+                            '_wp_http_referer',
+                            'aegis_returns_fin_nonce',
+                        ],
+                        'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
+                    ]
+                );
+
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $finance_comment = isset($_POST['finance_comment']) ? sanitize_textarea_field(wp_unslash($_POST['finance_comment'])) : '';
+                    $result = ('finance_approve' === $action)
+                        ? self::handle_finance_approve($request_id, $finance_comment, $user)
+                        : self::handle_finance_reject($request_id, $finance_comment, $user);
+
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $redirect_url = add_query_arg(
+                            [
+                                'status' => $status_filter,
+                                'aegis_returns_message' => (string) $result,
+                            ],
+                            $base_url
+                        );
+                        wp_safe_redirect($redirect_url);
+                        exit;
+                    }
+                }
+            }
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+
+        $requests = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT r.*, d.dealer_name
+                 FROM {$req_table} r
+                 LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                 WHERE r.status = %s
+                 ORDER BY r.warehouse_checked_at DESC, r.id DESC
+                 LIMIT 50",
+                $status_filter
+            )
+        );
+
+        $counts_map = [];
+        $request_ids = array_map('intval', wp_list_pluck($requests, 'id'));
+        if (!empty($request_ids)) {
+            $in_sql = implode(',', array_fill(0, count($request_ids), '%d'));
+            $count_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT request_id, COUNT(*) AS cnt FROM {$item_table} WHERE request_id IN ({$in_sql}) GROUP BY request_id",
+                    $request_ids
+                )
+            );
+            foreach ($count_rows as $count_row) {
+                $counts_map[(int) $count_row->request_id] = (int) $count_row->cnt;
+            }
+        }
+
+        $current_request = null;
+        $current_items = [];
+        if ($request_id > 0) {
+            $current_request = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT r.*, d.dealer_name
+                     FROM {$req_table} r
+                     LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                     WHERE r.id = %d
+                     LIMIT 1",
+                    $request_id
+                )
+            );
+
+            if ($current_request) {
+                $current_items = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT * FROM {$item_table} WHERE request_id = %d ORDER BY id ASC",
+                        $request_id
+                    )
+                );
+            } else {
+                $errors[] = '单据不存在。';
+                $request_id = 0;
+            }
+        }
+
+        $context = [
+            'base_url' => $base_url,
+            'messages' => $messages,
+            'errors' => $errors,
+            'status_filter' => $status_filter,
+            'status_options' => [
+                self::STATUS_WAREHOUSE_APPROVED => '待财务审核',
+                self::STATUS_CLOSED => '已结单',
+                self::STATUS_FINANCE_REJECTED => '财务驳回',
+            ],
+            'is_hq' => $is_hq,
+            'view_mode' => ($request_id > 0 ? 'detail' : 'list'),
+            'requests' => $requests,
+            'counts' => $counts_map,
+            'request' => $current_request,
+            'items' => $current_items,
+            'idempotency' => wp_generate_uuid4(),
+        ];
+
+        return AEGIS_Portal::render_portal_template('returns-finance', $context);
+    }
+
+    protected static function handle_finance_approve($request_id, $comment, $user) {
+        global $wpdb;
+
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return new WP_Error('invalid_request', '无效的退货单。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $now = current_time('mysql');
+        $comment = trim((string) $comment);
+
+        $req = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$req_table} WHERE id = %d LIMIT 1", $request_id));
+        if (!$req) {
+            return new WP_Error('not_found', '单据不存在。');
+        }
+        if (self::STATUS_WAREHOUSE_APPROVED !== $req->status) {
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $wpdb->query('START TRANSACTION');
+
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table}
+                 SET status = %s,
+                     finance_audited_by = %d,
+                     finance_audited_at = %s,
+                     finance_comment = %s,
+                     closed_at = %s,
+                     updated_at = %s
+                 WHERE id = %d AND status = %s",
+                self::STATUS_CLOSED,
+                (int) $user->ID,
+                $now,
+                $comment,
+                $now,
+                $now,
+                $request_id,
+                self::STATUS_WAREHOUSE_APPROVED
+            )
+        );
+        if (1 !== (int) $updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $updated_lock = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$lock_table} SET lock_status = %s, updated_at = %s WHERE request_id = %d",
+                self::STATUS_CLOSED,
+                $now,
+                $request_id
+            )
+        );
+        if (false === $updated_lock) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '锁码状态更新失败。');
+        }
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_FINANCE_APPROVE',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => $request_id,
+                'request_no' => $req->request_no,
+                'dealer_id' => (int) $req->dealer_id,
+                'actor_user_id' => (int) get_current_user_id(),
+            ]
+        );
+
+        return '已批准结单。';
+    }
+
+    protected static function handle_finance_reject($request_id, $comment, $user) {
+        global $wpdb;
+
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return new WP_Error('invalid_request', '无效的退货单。');
+        }
+
+        $comment = trim((string) $comment);
+        if ('' === $comment) {
+            return new WP_Error('comment_required', '驳回必须填写原因。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $now = current_time('mysql');
+
+        $req = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$req_table} WHERE id = %d LIMIT 1", $request_id));
+        if (!$req) {
+            return new WP_Error('not_found', '单据不存在。');
+        }
+        if (self::STATUS_WAREHOUSE_APPROVED !== $req->status) {
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $wpdb->query('START TRANSACTION');
+
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table}
+                 SET status = %s,
+                     finance_audited_by = %d,
+                     finance_audited_at = %s,
+                     finance_comment = %s,
+                     updated_at = %s
+                 WHERE id = %d AND status = %s",
+                self::STATUS_FINANCE_REJECTED,
+                (int) $user->ID,
+                $now,
+                $comment,
+                $now,
+                $request_id,
+                self::STATUS_WAREHOUSE_APPROVED
+            )
+        );
+        if (1 !== (int) $updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$lock_table} WHERE request_id = %d", $request_id));
+        if (false === $deleted) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '释放锁码失败。');
+        }
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_FINANCE_REJECT',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => $request_id,
+                'request_no' => $req->request_no,
+                'dealer_id' => (int) $req->dealer_id,
+                'actor_user_id' => (int) get_current_user_id(),
+                'comment' => $comment,
+            ]
+        );
+
+        return '已驳回。';
     }
 
     protected static function render_dealer_panel($portal_url, $user) {
