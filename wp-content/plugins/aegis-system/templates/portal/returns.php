@@ -90,6 +90,7 @@ $show_edit = 'edit' === $view_mode;
         <div class="aegis-card-header">
             <div class="aegis-card-title aegis-t-a4">新建退货单</div>
         </div>
+        <div class="aegis-t-a6" style="margin-bottom:12px; color:#555;">保存草稿会自动校验：归属经销商、出库时间、售后期。未通过需联系销售/HQ，后续支持特批码。</div>
         <?php if ($dealer_blocked) : ?>
             <p class="aegis-t-a6" style="color:#d63638;">经销商账号不可创建退货申请，请联系管理员。</p>
         <?php else : ?>
@@ -135,6 +136,7 @@ $show_edit = 'edit' === $view_mode;
             <div class="aegis-t-a6" style="margin-bottom:8px;">状态：<?php echo esc_html($status_label); ?></div>
             <div class="aegis-t-a6" style="margin-bottom:8px;">创建时间：<?php echo esc_html($request->created_at); ?></div>
             <div class="aegis-t-a6" style="margin-bottom:12px;">更新时间：<?php echo esc_html($request->updated_at); ?></div>
+            <div class="aegis-t-a6" style="margin-bottom:12px; color:#555;">保存草稿会自动校验：归属经销商、出库时间、售后期。未通过需联系销售/HQ，后续支持特批码。</div>
 
             <?php if (!$is_editable) : ?>
                 <p class="aegis-t-a6" style="color:#d63638;">已锁定不可编辑。</p>
@@ -164,6 +166,36 @@ $show_edit = 'edit' === $view_mode;
                     </label>
                     <button type="submit" class="button button-primary">保存草稿</button>
                 </form>
+            <?php endif; ?>
+
+            <?php if (!empty($items)) : ?>
+                <div class="aegis-portal-table" style="overflow:auto; margin-top:16px;">
+                    <table class="aegis-t-a6" style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="text-align:left; border-bottom:1px solid #e5e5e5;">
+                                <th style="padding:8px;">防伪码</th>
+                                <th style="padding:8px;">结果</th>
+                                <th style="padding:8px;">原因</th>
+                                <th style="padding:8px;">出库时间</th>
+                                <th style="padding:8px;">截止时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($items as $item) : ?>
+                                <?php $is_pass = 'pass' === ($item->validation_status ?? 'pending'); ?>
+                                <tr style="border-bottom:1px solid #f0f0f0;">
+                                    <td style="padding:8px; white-space:nowrap;"><?php echo esc_html(AEGIS_System::format_code_display($item->code_value ?? '')); ?></td>
+                                    <td style="padding:8px; white-space:nowrap; color:<?php echo $is_pass ? '#1a7f37' : '#d63638'; ?>;">
+                                        <?php echo $is_pass ? '通过' : '不通过'; ?>
+                                    </td>
+                                    <td style="padding:8px;"><?php echo esc_html($item->fail_reason_msg ?? ''); ?></td>
+                                    <td style="padding:8px; white-space:nowrap;"><?php echo esc_html($item->outbound_scanned_at ?? ''); ?></td>
+                                    <td style="padding:8px; white-space:nowrap;"><?php echo esc_html($item->after_sales_deadline_at ?? ''); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
         <?php endif; ?>
     </section>
