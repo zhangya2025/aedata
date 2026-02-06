@@ -14,15 +14,21 @@ $counts = $context_data['counts'] ?? [];
 $request = $context_data['request'] ?? null;
 $items = $context_data['items'] ?? [];
 $idempotency = $context_data['idempotency'] ?? wp_generate_uuid4();
+$is_hq = !empty($context_data['is_hq']);
 
 $list_url = add_query_arg(['status' => $status_filter], $base_url);
 ?>
 
 <div class="aegis-t-a4" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
     <div class="aegis-t-a2">退货审核</div>
-    <?php if ('detail' === $view_mode) : ?>
-        <a class="aegis-portal-button" href="<?php echo esc_url($list_url); ?>">返回列表</a>
-    <?php endif; ?>
+    <div style="display:flex; gap:8px; align-items:center;">
+        <?php if ($is_hq) : ?>
+            <a class="aegis-portal-button" href="<?php echo esc_url(add_query_arg(['m' => 'returns', 'stage' => 'override'], $base_url)); ?>">特批码管理</a>
+        <?php endif; ?>
+        <?php if ('detail' === $view_mode) : ?>
+            <a class="aegis-portal-button" href="<?php echo esc_url($list_url); ?>">返回列表</a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <?php foreach ($messages as $msg) : ?>
