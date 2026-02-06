@@ -54,7 +54,6 @@ class AEGIS_System {
     const CAP_RETURNS_WAREHOUSE_CHECK = 'aegis_returns_warehouse_check';
     const CAP_RETURNS_FINANCE_REVIEW = 'aegis_returns_finance_review';
 
-    const RETURNS_AFTER_SALES_DAYS_OPTION = 'aegis_returns_after_sales_days';
 
     const RETURNS_AFTER_SALES_DAYS_OPTION = 'aegis_returns_after_sales_days';
 
