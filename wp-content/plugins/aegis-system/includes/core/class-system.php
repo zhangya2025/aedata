@@ -289,6 +289,17 @@ class AEGIS_System {
             );
         }
 
+        if (AEGIS_System_Roles::user_can_manage_system()) {
+            add_submenu_page(
+                'aegis-system',
+                '退货申请设置',
+                '退货申请设置',
+                AEGIS_System::CAP_MANAGE_SYSTEM,
+                'aegis-system-returns-settings',
+                ['AEGIS_Returns', 'render_admin_settings']
+            );
+        }
+
         if (!empty($states['assets_media']) && AEGIS_System_Roles::user_can_manage_system()) {
             add_submenu_page(
                 'aegis-system',
@@ -406,6 +417,7 @@ class AEGIS_System {
             'aegis-system_page_aegis-system-shipments',
             'aegis-system_page_aegis-system-public-query',
             'aegis-system_page_aegis-system-reset-b',
+            'aegis-system_page_aegis-system-returns-settings',
         ];
 
         if (!in_array($hook, $screens, true)) {
