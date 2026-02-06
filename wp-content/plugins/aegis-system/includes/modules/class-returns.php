@@ -210,7 +210,364 @@ class AEGIS_Returns {
             return self::render_dealer_panel($portal_url, $user);
         }
 
+        $is_hq = AEGIS_System_Roles::is_hq_admin($user);
+        $is_sales = in_array('aegis_sales', $roles, true);
+        if ($is_hq || $is_sales) {
+            return self::render_sales_panel($portal_url, $user);
+        }
+
+        if (in_array('aegis_warehouse', $roles, true) || in_array('aegis_finance', $roles, true)) {
+            return '<div class="aegis-t-a5">该角色功能将在后续 PR 实现。</div>';
+        }
+
         return '<div class="aegis-t-a5">该角色功能将在后续 PR 实现。</div>';
+    }
+
+    protected static function render_sales_panel($portal_url, $user) {
+        global $wpdb;
+
+        $is_hq = AEGIS_System_Roles::is_hq_admin($user);
+        if (!$is_hq && !current_user_can(AEGIS_System::CAP_RETURNS_SALES_REVIEW)) {
+            status_header(403);
+            return '<div class="aegis-t-a5">您无权访问该页面。</div>';
+        }
+
+        $base_url = add_query_arg('m', 'returns', $portal_url);
+        $request_id = isset($_GET['request_id']) ? (int) $_GET['request_id'] : 0;
+        $status_filter = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : 'submitted';
+        $allowed_status = [self::STATUS_SUBMITTED, self::STATUS_SALES_APPROVED, self::STATUS_SALES_REJECTED];
+        if (!in_array($status_filter, $allowed_status, true)) {
+            $status_filter = self::STATUS_SUBMITTED;
+        }
+
+        $messages = [];
+        $errors = [];
+        if (isset($_GET['aegis_returns_message'])) {
+            $messages[] = sanitize_text_field(wp_unslash($_GET['aegis_returns_message']));
+        }
+
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $action = isset($_POST['returns_action']) ? sanitize_key(wp_unslash($_POST['returns_action'])) : '';
+            if (in_array($action, ['sales_approve', 'sales_reject'], true)) {
+                $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_SALES_REVIEW,
+                        'nonce_field'     => 'aegis_returns_sales_nonce',
+                        'nonce_action'    => 'aegis_returns_sales_action',
+                        'whitelist'       => [
+                            'returns_action',
+                            'request_id',
+                            'sales_comment',
+                            '_aegis_idempotency',
+                            '_wp_http_referer',
+                            'aegis_returns_sales_nonce',
+                        ],
+                        'idempotency_key' => isset($_POST['_aegis_idempotency']) ? sanitize_text_field(wp_unslash($_POST['_aegis_idempotency'])) : null,
+                    ]
+                );
+
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $sales_comment = isset($_POST['sales_comment']) ? sanitize_textarea_field(wp_unslash($_POST['sales_comment'])) : '';
+                    $result = 'sales_approve' === $action
+                        ? self::handle_sales_approve($request_id, $sales_comment, $user)
+                        : self::handle_sales_reject($request_id, $sales_comment, $user);
+
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        $redirect_url = add_query_arg(
+                            [
+                                'aegis_returns_message' => (string) $result,
+                            ],
+                            $base_url
+                        );
+                        wp_safe_redirect($redirect_url);
+                        exit;
+                    }
+                }
+            }
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $current_user_id = (int) $user->ID;
+
+        if ($is_hq) {
+            $requests = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT r.*, d.dealer_name\n                     FROM {$req_table} r\n                     LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id\n                     WHERE r.status = %s\n                     ORDER BY r.submitted_at DESC, r.id DESC\n                     LIMIT 50",
+                    $status_filter
+                )
+            );
+        } else {
+            $requests = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT r.*, d.dealer_name\n                     FROM {$req_table} r\n                     LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id\n                     WHERE r.status = %s AND d.sales_user_id = %d\n                     ORDER BY r.submitted_at DESC, r.id DESC\n                     LIMIT 50",
+                    $status_filter,
+                    $current_user_id
+                )
+            );
+        }
+
+        $counts_map = [];
+        $request_ids = array_map('intval', wp_list_pluck($requests, 'id'));
+        if (!empty($request_ids)) {
+            $in_sql = implode(',', array_fill(0, count($request_ids), '%d'));
+            $count_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT request_id, COUNT(*) AS cnt FROM {$item_table} WHERE request_id IN ({$in_sql}) GROUP BY request_id",
+                    $request_ids
+                )
+            );
+            foreach ($count_rows as $count_row) {
+                $counts_map[(int) $count_row->request_id] = (int) $count_row->cnt;
+            }
+        }
+
+        $current_request = null;
+        $current_items = [];
+        if ($request_id > 0) {
+            if ($is_hq) {
+                $current_request = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT r.*, d.dealer_name
+                         FROM {$req_table} r
+                         LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                         WHERE r.id = %d
+                         LIMIT 1",
+                        $request_id
+                    )
+                );
+            } else {
+                $current_request = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT r.*, d.dealer_name
+                         FROM {$req_table} r
+                         LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                         WHERE r.id = %d AND d.sales_user_id = %d
+                         LIMIT 1",
+                        $request_id,
+                        $current_user_id
+                    )
+                );
+            }
+
+            if ($current_request) {
+                $current_items = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT * FROM {$item_table} WHERE request_id = %d ORDER BY id ASC",
+                        $request_id
+                    )
+                );
+            } else {
+                $errors[] = '单据不存在或无权限。';
+            }
+        }
+
+        return AEGIS_Portal::render_portal_template(
+            'returns-sales',
+            [
+                'base_url' => $base_url,
+                'messages' => $messages,
+                'errors' => $errors,
+                'status_filter' => $status_filter,
+                'status_options' => [
+                    self::STATUS_SUBMITTED => '待审核',
+                    self::STATUS_SALES_APPROVED => '已同意',
+                    self::STATUS_SALES_REJECTED => '已驳回',
+                ],
+                'is_hq' => $is_hq,
+                'view_mode' => ($request_id > 0 ? 'detail' : 'list'),
+                'requests' => $requests,
+                'counts' => $counts_map,
+                'request' => $current_request,
+                'items' => $current_items,
+                'idempotency' => wp_generate_uuid4(),
+            ]
+        );
+    }
+
+    protected static function load_request_for_sales($request_id, $user) {
+        global $wpdb;
+
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return null;
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $dealer_table = $wpdb->prefix . AEGIS_System::DEALER_TABLE;
+        $is_hq = AEGIS_System_Roles::is_hq_admin($user);
+
+        if ($is_hq) {
+            return $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT r.*, d.dealer_name
+                     FROM {$req_table} r
+                     LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                     WHERE r.id = %d
+                     LIMIT 1",
+                    $request_id
+                )
+            );
+        }
+
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT r.*, d.dealer_name
+                 FROM {$req_table} r
+                 LEFT JOIN {$dealer_table} d ON d.id = r.dealer_id
+                 WHERE r.id = %d AND d.sales_user_id = %d
+                 LIMIT 1",
+                $request_id,
+                (int) $user->ID
+            )
+        );
+    }
+
+    protected static function handle_sales_approve($request_id, $comment, $user) {
+        global $wpdb;
+
+        $req = self::load_request_for_sales($request_id, $user);
+        if (!$req) {
+            return new WP_Error('not_found', '单据不存在或无权限。');
+        }
+
+        if (self::STATUS_SUBMITTED !== $req->status) {
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $now = current_time('mysql');
+
+        $wpdb->query('START TRANSACTION');
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table}
+                 SET status = %s,
+                     sales_audited_by = %d,
+                     sales_audited_at = %s,
+                     sales_comment = %s,
+                     hard_locked_at = %s,
+                     updated_at = %s
+                 WHERE id = %d AND status = %s",
+                self::STATUS_SALES_APPROVED,
+                (int) get_current_user_id(),
+                $now,
+                $comment,
+                $now,
+                $now,
+                (int) $request_id,
+                self::STATUS_SUBMITTED
+            )
+        );
+
+        if (1 !== (int) $updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$lock_table} SET lock_status = %s, updated_at = %s WHERE request_id = %d",
+                self::STATUS_SALES_APPROVED,
+                $now,
+                (int) $request_id
+            )
+        );
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_SALES_APPROVE',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => (int) $request_id,
+                'request_no' => $req->request_no,
+                'dealer_id' => (int) $req->dealer_id,
+                'dealer_name' => $req->dealer_name ?? '',
+                'actor_user_id' => (int) get_current_user_id(),
+            ]
+        );
+
+        return '已同意，等待仓库核对。';
+    }
+
+    protected static function handle_sales_reject($request_id, $comment, $user) {
+        global $wpdb;
+
+        $comment = trim((string) $comment);
+        if ('' === $comment) {
+            return new WP_Error('comment_required', '驳回必须填写原因。');
+        }
+
+        $req = self::load_request_for_sales($request_id, $user);
+        if (!$req) {
+            return new WP_Error('not_found', '单据不存在或无权限。');
+        }
+
+        if (self::STATUS_SUBMITTED !== $req->status) {
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $req_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $lock_table = $wpdb->prefix . AEGIS_System::RETURN_CODE_LOCK_TABLE;
+        $now = current_time('mysql');
+
+        $wpdb->query('START TRANSACTION');
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$req_table}
+                 SET status = %s,
+                     sales_audited_by = %d,
+                     sales_audited_at = %s,
+                     sales_comment = %s,
+                     updated_at = %s
+                 WHERE id = %d AND status = %s",
+                self::STATUS_SALES_REJECTED,
+                (int) get_current_user_id(),
+                $now,
+                $comment,
+                $now,
+                (int) $request_id,
+                self::STATUS_SUBMITTED
+            )
+        );
+        if (1 !== (int) $updated) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('state_changed', '单据状态已变化，请刷新后重试。');
+        }
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$lock_table} WHERE request_id = %d",
+                (int) $request_id
+            )
+        );
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_SALES_REJECT',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'entity_id' => (int) $request_id,
+                'request_no' => $req->request_no,
+                'dealer_id' => (int) $req->dealer_id,
+                'dealer_name' => $req->dealer_name ?? '',
+                'actor_user_id' => (int) get_current_user_id(),
+                'comment' => $comment,
+            ]
+        );
+
+        return '已驳回。';
     }
 
     protected static function render_dealer_panel($portal_url, $user) {
