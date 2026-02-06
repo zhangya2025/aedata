@@ -14,6 +14,13 @@ class AEGIS_Returns {
     const STATUS_FINANCE_REJECTED = 'finance_rejected';
     const STATUS_CLOSED = 'closed';
 
+    const FAIL_INVALID_CODE_FORMAT = 'INVALID_CODE_FORMAT';
+    const FAIL_CODE_NOT_FOUND = 'CODE_NOT_FOUND';
+    const FAIL_OUTBOUND_TIME_MISSING = 'OUTBOUND_TIME_MISSING';
+    const FAIL_NOT_OWNED_BY_DEALER = 'NOT_OWNED_BY_DEALER';
+    const FAIL_AFTER_SALES_EXPIRED = 'AFTER_SALES_EXPIRED';
+    const FAIL_CODE_ALREADY_IN_RETURN_PROCESS = 'CODE_ALREADY_IN_RETURN_PROCESS';
+
     const PER_PAGE_DEFAULT = 20;
 
     /**
@@ -301,18 +308,39 @@ class AEGIS_Returns {
                                 $errors[] = '写入退货单失败，请重试。';
                             } else {
                                 $new_request_id = (int) $wpdb->insert_id;
+                                $item_rows = self::build_item_rows_for_codes($codes, $dealer_id, 0);
                                 $item_count = 0;
+                                $pass_count = 0;
+                                $fail_count = 0;
                                 foreach ($codes as $code_value) {
+                                    $row = $item_rows[$code_value] ?? [
+                                        'code_id'                 => null,
+                                        'code_value'              => $code_value,
+                                        'ean'                     => null,
+                                        'batch_id'                => null,
+                                        'outbound_scanned_at'     => null,
+                                        'after_sales_deadline_at' => null,
+                                        'validation_status'       => 'fail',
+                                        'fail_reason_code'        => self::FAIL_INVALID_CODE_FORMAT,
+                                        'fail_reason_msg'         => '防伪码格式无效，请检查后重试。',
+                                    ];
                                     $item_inserted = $wpdb->insert(
                                         $item_table,
                                         [
-                                            'request_id'        => $new_request_id,
-                                            'code_id'           => null,
-                                            'code_value'        => $code_value,
-                                            'validation_status' => 'pending',
-                                            'created_at'        => $now,
+                                            'request_id'               => $new_request_id,
+                                            'code_id'                  => $row['code_id'],
+                                            'code_value'               => $row['code_value'],
+                                            'ean'                      => $row['ean'],
+                                            'batch_id'                 => $row['batch_id'],
+                                            'outbound_scanned_at'      => $row['outbound_scanned_at'],
+                                            'after_sales_deadline_at'  => $row['after_sales_deadline_at'],
+                                            'validation_status'        => $row['validation_status'],
+                                            'fail_reason_code'         => $row['fail_reason_code'],
+                                            'fail_reason_msg'          => $row['fail_reason_msg'],
+                                            'created_at'               => $now,
+                                            'meta'                     => null,
                                         ],
-                                        ['%d', '%d', '%s', '%s', '%s']
+                                        ['%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
                                     );
                                     if (!$item_inserted) {
                                         $wpdb->query('ROLLBACK');
@@ -320,6 +348,11 @@ class AEGIS_Returns {
                                         break;
                                     }
                                     $item_count++;
+                                    if ('pass' === $row['validation_status']) {
+                                        $pass_count++;
+                                    } else {
+                                        $fail_count++;
+                                    }
                                 }
 
                                 if (empty($errors)) {
@@ -331,12 +364,14 @@ class AEGIS_Returns {
                                             'request_id' => $new_request_id,
                                             'dealer_id'  => $dealer_id,
                                             'item_count' => $item_count,
+                                            'pass_count' => $pass_count,
+                                            'fail_count' => $fail_count,
                                         ]
                                     );
                                     $redirect_url = add_query_arg(
                                         [
                                             'request_id'            => $new_request_id,
-                                            'aegis_returns_message' => '草稿已创建',
+                                            'aegis_returns_message' => sprintf('草稿已保存：通过 %d 条，未通过 %d 条。', $pass_count, $fail_count),
                                         ],
                                         $base_url
                                     );
@@ -386,18 +421,39 @@ class AEGIS_Returns {
                                     $errors[] = '更新退货单失败，请重试。';
                                 } else {
                                     $wpdb->query($wpdb->prepare("DELETE FROM {$item_table} WHERE request_id = %d", $request_id));
+                                    $item_rows = self::build_item_rows_for_codes($codes, $dealer_id, $request_id);
                                     $item_count = 0;
+                                    $pass_count = 0;
+                                    $fail_count = 0;
                                     foreach ($codes as $code_value) {
+                                        $row = $item_rows[$code_value] ?? [
+                                            'code_id'                 => null,
+                                            'code_value'              => $code_value,
+                                            'ean'                     => null,
+                                            'batch_id'                => null,
+                                            'outbound_scanned_at'     => null,
+                                            'after_sales_deadline_at' => null,
+                                            'validation_status'       => 'fail',
+                                            'fail_reason_code'        => self::FAIL_INVALID_CODE_FORMAT,
+                                            'fail_reason_msg'         => '防伪码格式无效，请检查后重试。',
+                                        ];
                                         $item_inserted = $wpdb->insert(
                                             $item_table,
                                             [
-                                                'request_id'        => $request_id,
-                                                'code_id'           => null,
-                                                'code_value'        => $code_value,
-                                                'validation_status' => 'pending',
-                                                'created_at'        => $now,
+                                                'request_id'               => $request_id,
+                                                'code_id'                  => $row['code_id'],
+                                                'code_value'               => $row['code_value'],
+                                                'ean'                      => $row['ean'],
+                                                'batch_id'                 => $row['batch_id'],
+                                                'outbound_scanned_at'      => $row['outbound_scanned_at'],
+                                                'after_sales_deadline_at'  => $row['after_sales_deadline_at'],
+                                                'validation_status'        => $row['validation_status'],
+                                                'fail_reason_code'         => $row['fail_reason_code'],
+                                                'fail_reason_msg'          => $row['fail_reason_msg'],
+                                                'created_at'               => $now,
+                                                'meta'                     => null,
                                             ],
-                                            ['%d', '%d', '%s', '%s', '%s']
+                                            ['%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
                                         );
                                         if (!$item_inserted) {
                                             $wpdb->query('ROLLBACK');
@@ -405,6 +461,11 @@ class AEGIS_Returns {
                                             break;
                                         }
                                         $item_count++;
+                                        if ('pass' === $row['validation_status']) {
+                                            $pass_count++;
+                                        } else {
+                                            $fail_count++;
+                                        }
                                     }
 
                                     if (empty($errors)) {
@@ -416,12 +477,14 @@ class AEGIS_Returns {
                                                 'request_id' => $request_id,
                                                 'dealer_id'  => $dealer_id,
                                                 'item_count' => $item_count,
+                                                'pass_count' => $pass_count,
+                                                'fail_count' => $fail_count,
                                             ]
                                         );
                                         $redirect_url = add_query_arg(
                                             [
                                                 'request_id'            => $request_id,
-                                                'aegis_returns_message' => '草稿已保存',
+                                                'aegis_returns_message' => sprintf('草稿已保存：通过 %d 条，未通过 %d 条。', $pass_count, $fail_count),
                                             ],
                                             $base_url
                                         );
@@ -586,6 +649,164 @@ class AEGIS_Returns {
             }
         }
         return array_keys($unique);
+    }
+
+    protected static function build_item_rows_for_codes(array $code_values, int $dealer_id, int $exclude_request_id = 0): array {
+        global $wpdb;
+
+        $after_sales_days = absint(get_option(AEGIS_System::RETURNS_AFTER_SALES_DAYS_OPTION, 30));
+        if ($after_sales_days < 1) {
+            $after_sales_days = 30;
+        }
+        if ($after_sales_days > 3650) {
+            $after_sales_days = 3650;
+        }
+
+        $normalized_codes = [];
+        foreach ($code_values as $code_value) {
+            $normalized = AEGIS_System::normalize_code_value($code_value);
+            if ('' === $normalized) {
+                continue;
+            }
+            $normalized_codes[$normalized] = true;
+        }
+        $codes = array_keys($normalized_codes);
+        if (empty($codes)) {
+            return [];
+        }
+
+        $code_table = $wpdb->prefix . AEGIS_System::CODE_TABLE;
+        $shipment_table = $wpdb->prefix . AEGIS_System::SHIPMENT_TABLE;
+        $shipment_item_table = $wpdb->prefix . AEGIS_System::SHIPMENT_ITEM_TABLE;
+        $return_request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $return_request_item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+
+        $code_placeholders = implode(',', array_fill(0, count($codes), '%s'));
+        $code_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, code, ean, batch_id FROM {$code_table} WHERE code IN ({$code_placeholders})",
+                $codes
+            )
+        );
+        $code_map = [];
+        $code_ids = [];
+        foreach ($code_rows as $row) {
+            $code_key = (string) $row->code;
+            $code_map[$code_key] = $row;
+            $code_ids[] = (int) $row->id;
+        }
+
+        $ship_map = [];
+        if (!empty($code_ids)) {
+            $code_id_placeholders = implode(',', array_fill(0, count($code_ids), '%d'));
+            $ship_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT i.code_id, i.scanned_at, s.dealer_id AS ship_dealer_id
+                    FROM {$shipment_item_table} i
+                    JOIN {$shipment_table} s ON s.id = i.shipment_id
+                    WHERE i.code_id IN ({$code_id_placeholders})",
+                    $code_ids
+                )
+            );
+            foreach ($ship_rows as $row) {
+                $ship_map[(int) $row->code_id] = $row;
+            }
+        }
+
+        $dup_map = [];
+        $dup_args = $codes;
+        $dup_args[] = $exclude_request_id;
+        $dup_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT i.code_value, r.id AS request_id, r.request_no, r.status
+                FROM {$return_request_item_table} i
+                JOIN {$return_request_table} r ON r.id = i.request_id
+                WHERE i.code_value IN ({$code_placeholders})
+                  AND r.id <> %d
+                  AND r.status NOT IN ('sales_rejected','warehouse_rejected','finance_rejected','closed')",
+                $dup_args
+            )
+        );
+        foreach ($dup_rows as $row) {
+            $dup_code_value = (string) $row->code_value;
+            if (!isset($dup_map[$dup_code_value])) {
+                $dup_map[$dup_code_value] = $row;
+            }
+        }
+
+        $tz = wp_timezone();
+        $now_dt = new DateTime('now', $tz);
+        $results = [];
+        foreach ($codes as $code_value) {
+            $code_row = $code_map[$code_value] ?? null;
+            $code_id = $code_row ? (int) $code_row->id : null;
+            $ean = $code_row ? $code_row->ean : null;
+            $batch_id = $code_row ? (int) $code_row->batch_id : null;
+            $shipment_row = $code_id ? ($ship_map[$code_id] ?? null) : null;
+            $outbound_scanned_at = $shipment_row ? $shipment_row->scanned_at : null;
+
+            $result = [
+                'code_id'                 => $code_id,
+                'code_value'              => $code_value,
+                'ean'                     => $ean,
+                'batch_id'                => $batch_id,
+                'outbound_scanned_at'     => $outbound_scanned_at,
+                'after_sales_deadline_at' => null,
+                'validation_status'       => 'fail',
+                'fail_reason_code'        => null,
+                'fail_reason_msg'         => null,
+            ];
+
+            if (isset($dup_map[$code_value])) {
+                $dup = $dup_map[$code_value];
+                $result['fail_reason_code'] = self::FAIL_CODE_ALREADY_IN_RETURN_PROCESS;
+                $result['fail_reason_msg'] = sprintf('该防伪码已存在退货单 %s（%s），请勿重复申请。', $dup->request_no, $dup->status);
+                $results[$code_value] = $result;
+                continue;
+            }
+
+            if (!$code_row) {
+                $result['fail_reason_code'] = self::FAIL_CODE_NOT_FOUND;
+                $result['fail_reason_msg'] = '防伪码不存在，请联系销售/HQ处理。';
+                $results[$code_value] = $result;
+                continue;
+            }
+
+            if (!$shipment_row || empty($shipment_row->scanned_at)) {
+                $result['fail_reason_code'] = self::FAIL_OUTBOUND_TIME_MISSING;
+                $result['fail_reason_msg'] = '未查询到出库扫码时间，无法判定售后期，请联系销售/HQ处理。';
+                $results[$code_value] = $result;
+                continue;
+            }
+
+            if ((int) $shipment_row->ship_dealer_id !== $dealer_id) {
+                $result['fail_reason_code'] = self::FAIL_NOT_OWNED_BY_DEALER;
+                $result['fail_reason_msg'] = '该防伪码不属于当前经销商名下，请联系销售/HQ处理。';
+                $results[$code_value] = $result;
+                continue;
+            }
+
+            $scan_dt = new DateTime($shipment_row->scanned_at, $tz);
+            $deadline_dt = (clone $scan_dt)->add(new DateInterval('P' . $after_sales_days . 'D'));
+            $deadline = $deadline_dt->format('Y-m-d H:i:s');
+            $result['after_sales_deadline_at'] = $deadline;
+
+            if ($now_dt > $deadline_dt) {
+                $result['fail_reason_code'] = self::FAIL_AFTER_SALES_EXPIRED;
+                $result['fail_reason_msg'] = sprintf(
+                    '已超售后期（出库：%s，截止：%s），请联系销售/HQ处理。',
+                    $shipment_row->scanned_at,
+                    $deadline
+                );
+                $results[$code_value] = $result;
+                continue;
+            }
+
+            $result['validation_status'] = 'pass';
+            $results[$code_value] = $result;
+        }
+
+        return $results;
     }
 
     protected static function generate_request_no() {
