@@ -183,10 +183,11 @@ $show_edit = 'edit' === $view_mode;
                     </label>
                     <button type="submit" class="button button-primary">保存草稿</button>
                 </form>
+                <p class="aegis-t-a6" style="margin-top:8px; color:#555;">未通过条目如已获得 HQ 特批码，可在对应行输入特批码强制通过。</p>
                 <?php
                 $has_invalid_item = false;
                 foreach ($items as $item) {
-                    if ('pass' !== ($item->validation_status ?? 'pending')) {
+                    if (!in_array(($item->validation_status ?? 'pending'), ['pass', 'pass_override'], true)) {
                         $has_invalid_item = true;
                         break;
                     }
@@ -215,13 +216,30 @@ $show_edit = 'edit' === $view_mode;
                         </thead>
                         <tbody>
                             <?php foreach ($items as $item) : ?>
-                                <?php $is_pass = 'pass' === ($item->validation_status ?? 'pending'); ?>
+                                <?php
+                                $validation_status = (string) ($item->validation_status ?? 'pending');
+                                $is_override = 'pass_override' === $validation_status;
+                                $is_pass = in_array($validation_status, ['pass', 'pass_override'], true);
+                                ?>
                                 <tr style="border-bottom:1px solid #f0f0f0;">
                                     <td style="padding:8px; white-space:nowrap;"><?php echo esc_html(AEGIS_System::format_code_display($item->code_value ?? '')); ?></td>
                                     <td style="padding:8px; white-space:nowrap; color:<?php echo $is_pass ? '#1a7f37' : '#d63638'; ?>;">
-                                        <?php echo $is_pass ? '通过' : '不通过'; ?>
+                                        <?php echo $is_pass ? ($is_override ? '特批通过' : '通过') : '不通过'; ?>
                                     </td>
-                                    <td style="padding:8px;"><?php echo esc_html($item->fail_reason_msg ?? ''); ?></td>
+                                    <td style="padding:8px;">
+                                        <?php echo esc_html($item->fail_reason_msg ?? ''); ?>
+                                        <?php if (!$is_pass && $can_edit) : ?>
+                                            <form method="post" style="margin-top:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                                <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                                                <input type="hidden" name="returns_action" value="apply_override" />
+                                                <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                                                <input type="hidden" name="code_value" value="<?php echo esc_attr((string) $item->code_value); ?>" />
+                                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                <input type="text" name="override_plain_code" placeholder="输入特批码" style="min-width:220px;" required />
+                                                <button type="submit" class="button">验证并放行</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="padding:8px; white-space:nowrap;"><?php echo esc_html($item->outbound_scanned_at ?? ''); ?></td>
                                     <td style="padding:8px; white-space:nowrap;"><?php echo esc_html($item->after_sales_deadline_at ?? ''); ?></td>
                                 </tr>
