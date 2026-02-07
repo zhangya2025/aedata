@@ -2153,6 +2153,50 @@ class AEGIS_Returns {
                         }
                     }
                 }
+            } elseif ('copy_to_new_draft' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => [
+                            'returns_action',
+                            'request_id',
+                            '_aegis_idempotency',
+                            '_wp_http_referer',
+                            'aegis_returns_nonce',
+                        ],
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $source_request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                    $copy_result = self::handle_dealer_copy_to_new_draft($source_request_id, $dealer_id, $user);
+                    if (is_wp_error($copy_result)) {
+                        $redirect_url = add_query_arg(
+                            [
+                                'request_id' => $source_request_id,
+                                'aegis_returns_error' => $copy_result->get_error_message(),
+                            ],
+                            $base_url
+                        );
+                        wp_safe_redirect($redirect_url);
+                        exit;
+                    }
+
+                    $redirect_url = add_query_arg(
+                        [
+                            'request_id' => (int) $copy_result,
+                            'aegis_returns_message' => '已复制为新草稿，请检查并提交。',
+                        ],
+                        $base_url
+                    );
+                    wp_safe_redirect($redirect_url);
+                    exit;
+                }
             } elseif ('apply_override' === $action) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
@@ -2906,6 +2950,151 @@ class AEGIS_Returns {
 
     protected static function is_request_editable($request) {
         return self::can_edit_request($request);
+    }
+
+    protected static function is_copyable_status($status): bool {
+        return in_array(
+            $status,
+            [
+                self::STATUS_SALES_REJECTED,
+                self::STATUS_WAREHOUSE_REJECTED,
+                self::STATUS_FINANCE_REJECTED,
+            ],
+            true
+        );
+    }
+
+    protected static function handle_dealer_copy_to_new_draft(int $source_request_id, int $dealer_id, WP_User $user): int|WP_Error {
+        global $wpdb;
+
+        $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+
+        if ($source_request_id <= 0 || $dealer_id <= 0) {
+            return new WP_Error('not_found', '单据不存在或无权限。');
+        }
+
+        $req = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$request_table} WHERE id = %d AND dealer_id = %d LIMIT 1",
+                $source_request_id,
+                $dealer_id
+            )
+        );
+        if (!$req) {
+            return new WP_Error('not_found', '单据不存在或无权限。');
+        }
+
+        if (!self::is_copyable_status($req->status)) {
+            return new WP_Error('not_allowed', '该状态不允许复制为新草稿。');
+        }
+
+        $source_codes = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT code_value FROM {$item_table} WHERE request_id = %d ORDER BY id ASC",
+                $source_request_id
+            )
+        );
+        $codes = [];
+        foreach ($source_codes as $source_code_value) {
+            $normalized = AEGIS_System::normalize_code_value((string) $source_code_value);
+            if ('' !== $normalized) {
+                $codes[$normalized] = $normalized;
+            }
+        }
+        $codes = array_values($codes);
+        if (empty($codes)) {
+            return new WP_Error('empty', '原单无防伪码条目，无法复制。');
+        }
+
+        $item_rows = self::build_item_rows_for_codes($codes, $dealer_id, 0);
+        $request_no = self::generate_request_no();
+        $now = current_time('mysql');
+        $origin_meta = wp_json_encode(
+            [
+                'origin_request_id' => $source_request_id,
+                'origin_request_no' => $req->request_no,
+            ]
+        );
+
+        $wpdb->query('START TRANSACTION');
+        $inserted = $wpdb->insert(
+            $request_table,
+            [
+                'request_no'    => $request_no,
+                'dealer_id'     => $dealer_id,
+                'status'        => self::STATUS_DRAFT,
+                'contact_name'  => $req->contact_name,
+                'contact_phone' => $req->contact_phone,
+                'reason_code'   => $req->reason_code,
+                'remark'        => $req->remark,
+                'created_at'    => $now,
+                'updated_at'    => $now,
+                'meta'          => $origin_meta,
+            ],
+            ['%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+        );
+        if (!$inserted) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', '写入退货单失败，请重试。');
+        }
+
+        $new_request_id = (int) $wpdb->insert_id;
+        foreach ($codes as $code_value) {
+            $row = $item_rows[$code_value] ?? [
+                'code_id'                 => null,
+                'code_value'              => $code_value,
+                'ean'                     => null,
+                'batch_id'                => null,
+                'outbound_scanned_at'     => null,
+                'after_sales_deadline_at' => null,
+                'validation_status'       => 'fail',
+                'fail_reason_code'        => self::FAIL_INVALID_CODE_FORMAT,
+                'fail_reason_msg'         => '防伪码格式无效，请检查后重试。',
+            ];
+
+            $item_inserted = $wpdb->insert(
+                $item_table,
+                [
+                    'request_id'               => $new_request_id,
+                    'code_id'                  => $row['code_id'],
+                    'code_value'               => $row['code_value'],
+                    'ean'                      => $row['ean'],
+                    'batch_id'                 => $row['batch_id'],
+                    'outbound_scanned_at'      => $row['outbound_scanned_at'],
+                    'after_sales_deadline_at'  => $row['after_sales_deadline_at'],
+                    'validation_status'        => $row['validation_status'],
+                    'override_id'              => null,
+                    'fail_reason_code'         => $row['fail_reason_code'],
+                    'fail_reason_msg'          => $row['fail_reason_msg'],
+                    'created_at'               => $now,
+                    'meta'                     => null,
+                ],
+                ['%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
+            );
+
+            if (!$item_inserted) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('db_error', '写入退货条目失败，请重试。');
+            }
+        }
+
+        $wpdb->query('COMMIT');
+
+        AEGIS_Access_Audit::record_event(
+            'RETURNS_COPY_NEW_DRAFT',
+            'SUCCESS',
+            [
+                'entity_type' => 'return_request',
+                'source_request_id' => $source_request_id,
+                'new_request_id' => $new_request_id,
+                'dealer_id' => $dealer_id,
+                'source_request_no' => $req->request_no,
+                'actor_user_id' => (int) $user->ID,
+            ]
+        );
+
+        return $new_request_id;
     }
 
     protected static function can_edit_request($request): bool {

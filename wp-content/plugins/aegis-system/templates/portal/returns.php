@@ -19,6 +19,11 @@ $can_edit = !empty($context_data['can_edit']);
 $can_withdraw = !empty($context_data['can_withdraw']);
 $idempotency = $context_data['idempotency'] ?? wp_generate_uuid4();
 $status_labels = $context_data['status_labels'] ?? [];
+$copyable_statuses = [
+    AEGIS_Returns::STATUS_SALES_REJECTED,
+    AEGIS_Returns::STATUS_WAREHOUSE_REJECTED,
+    AEGIS_Returns::STATUS_FINANCE_REJECTED,
+];
 
 $list_url = $base_url;
 $create_url = add_query_arg('create', '1', $base_url);
@@ -85,6 +90,15 @@ $show_edit = 'edit' === $view_mode;
                                         <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
                                         <button type="submit" class="button">撤回</button>
                                     </form>
+                                <?php elseif (in_array($row->status, $copyable_statuses, true)) : ?>
+                                    <a class="button" href="<?php echo esc_url($edit_url); ?>">查看</a>
+                                    <form method="post" style="display:inline;" onsubmit="return confirm('确认复制为新草稿？');">
+                                        <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                                        <input type="hidden" name="returns_action" value="copy_to_new_draft" />
+                                        <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $row->id); ?>" />
+                                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                        <button type="submit" class="button">复制为新草稿</button>
+                                    </form>
                                 <?php else : ?>
                                     <a class="button" href="<?php echo esc_url($edit_url); ?>">查看</a>
                                 <?php endif; ?>
@@ -148,6 +162,9 @@ $show_edit = 'edit' === $view_mode;
 
             <?php if (!$can_edit) : ?>
                 <p class="aegis-t-a6" style="color:#d63638;">已锁定不可编辑。</p>
+                <?php if (in_array($request->status, $copyable_statuses, true)) : ?>
+                    <p class="aegis-t-a6" style="margin-bottom:12px; color:#555;">该单已驳回/不通过，内容不可修改。可复制为新草稿重新发起。</p>
+                <?php endif; ?>
                 <label class="aegis-t-a6" style="display:block;">防伪码列表
                     <textarea rows="6" style="width:100%;" readonly><?php echo esc_textarea($code_text); ?></textarea>
                 </label>
@@ -158,6 +175,15 @@ $show_edit = 'edit' === $view_mode;
                         <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
                         <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
                         <button type="submit" class="button">撤回</button>
+                    </form>
+                <?php endif; ?>
+                <?php if (in_array($request->status, $copyable_statuses, true)) : ?>
+                    <form method="post" class="aegis-t-a6" style="margin-top:12px;" onsubmit="return confirm('确认复制为新草稿？');">
+                        <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                        <input type="hidden" name="returns_action" value="copy_to_new_draft" />
+                        <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <button type="submit" class="button">复制为新草稿</button>
                     </form>
                 <?php endif; ?>
             <?php else : ?>
