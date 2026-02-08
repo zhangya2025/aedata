@@ -20,6 +20,29 @@ $list_url = add_query_arg(['status' => $status_filter], $base_url);
 $status_label = static function ($status, $options) {
     return $options[$status] ?? $status;
 };
+
+$sample_reason_options = AEGIS_Returns::get_sample_reason_options();
+$format_sample_reason = static function ($item) use ($sample_reason_options) {
+    $meta = [];
+    if (!empty($item->meta)) {
+        $decoded = json_decode((string) $item->meta, true);
+        if (is_array($decoded)) {
+            $meta = $decoded;
+        }
+    }
+    $reason = isset($meta['sample_reason']) ? (string) $meta['sample_reason'] : '';
+    $reason_text = isset($meta['sample_reason_text']) ? (string) $meta['sample_reason_text'] : '';
+    $label = isset($sample_reason_options[$reason]) ? (string) $sample_reason_options[$reason] : '';
+
+    if ('' === $reason) {
+        return '—';
+    }
+    if ('other' === $reason) {
+        return '' !== $reason_text ? ('其他：' . $reason_text) : '其他';
+    }
+
+    return '' !== $label ? $label : '—';
+};
 ?>
 
 <div class="aegis-t-a4 aegis-returns-page">
@@ -106,10 +129,10 @@ $status_label = static function ($status, $options) {
             <div class="aegis-card-header"><div class="aegis-card-title aegis-t-a4">条目列表</div></div>
             <div class="aegis-table-wrap">
                 <table class="aegis-table aegis-returns-results-table aegis-t-a6" style="width:100%;">
-                    <thead><tr><th>防伪码</th><th>出库时间</th><th>截止时间</th><th>校验结果</th></tr></thead>
+                    <thead><tr><th>防伪码</th><th>出库时间</th><th>截止时间</th><th>校验结果</th><th>采样原因</th></tr></thead>
                     <tbody>
                         <?php if (empty($items)) : ?>
-                            <tr><td colspan="4">暂无条目。</td></tr>
+                            <tr><td colspan="5">暂无条目。</td></tr>
                         <?php else : ?>
                             <?php foreach ($items as $item) : ?>
                                 <tr>
@@ -117,6 +140,7 @@ $status_label = static function ($status, $options) {
                                     <td><?php echo esc_html($item->outbound_scanned_at ?? ''); ?></td>
                                     <td><?php echo esc_html($item->after_sales_deadline_at ?? ''); ?></td>
                                     <td><?php echo esc_html($item->validation_status ?? ''); ?></td>
+                                    <td><?php echo esc_html($format_sample_reason($item)); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
