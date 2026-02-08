@@ -1812,6 +1812,7 @@ class AEGIS_Returns {
         if (isset($_GET['aegis_returns_error'])) {
             $errors[] = sanitize_text_field(wp_unslash($_GET['aegis_returns_error']));
         }
+        $pending_decision = null;
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $action = isset($_POST['returns_action']) ? sanitize_key(wp_unslash($_POST['returns_action'])) : '';
@@ -1819,18 +1820,319 @@ class AEGIS_Returns {
             $action_whitelist = [
                 'returns_action',
                 'request_id',
+                'code_input',
                 'contact_name',
                 'contact_phone',
                 'reason_code',
                 'remark',
                 'code_values',
                 'code_value',
+                'item_id',
                 'override_plain_code',
                 '_aegis_idempotency',
                 '_wp_http_referer',
                 'aegis_returns_nonce',
+                'submit',
             ];
-            if (in_array($action, ['create_draft', 'update_draft', 'delete_draft'], true)) {
+            if ('create_empty_draft' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => $action_whitelist,
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } elseif ($dealer_blocked) {
+                    $errors[] = '当前经销商账号不可创建退货申请。';
+                } else {
+                    $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+                    $request_no = self::generate_request_no();
+                    $now = current_time('mysql');
+                    $inserted = $wpdb->insert(
+                        $request_table,
+                        [
+                            'request_no'    => $request_no,
+                            'dealer_id'     => $dealer_id,
+                            'status'        => self::STATUS_DRAFT,
+                            'contact_name'  => '',
+                            'contact_phone' => '',
+                            'reason_code'   => '',
+                            'remark'        => '',
+                            'created_at'    => $now,
+                            'updated_at'    => $now,
+                        ],
+                        ['%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+                    );
+                    if (!$inserted) {
+                        $errors[] = '创建草稿失败，请重试。';
+                    } else {
+                        $new_request_id = (int) $wpdb->insert_id;
+                        wp_safe_redirect(add_query_arg(['request_id' => $new_request_id, 'aegis_returns_message' => '已创建草稿'], $base_url));
+                        exit;
+                    }
+                }
+            } elseif ('validate_code' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => $action_whitelist,
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+                    $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+                    $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                    $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$request_table} WHERE id = %d AND dealer_id = %d", $request_id, $dealer_id));
+                    if (!$request || !self::can_edit_request($request)) {
+                        $errors[] = '仅草稿可录入防伪码。';
+                    } else {
+                        $code_input = isset($_POST['code_input']) ? sanitize_text_field(wp_unslash($_POST['code_input'])) : '';
+                        $code_value = AEGIS_System::normalize_code_value($code_input);
+                        if ('' === $code_value) {
+                            $errors[] = '请输入防伪码。';
+                        } else {
+                            $item_rows = self::build_item_rows_for_codes([$code_value], $dealer_id, $request_id);
+                            $row = $item_rows[$code_value] ?? [
+                                'code_id' => null,
+                                'code_value' => $code_value,
+                                'ean' => null,
+                                'batch_id' => null,
+                                'outbound_scanned_at' => null,
+                                'after_sales_deadline_at' => null,
+                                'validation_status' => 'fail',
+                                'fail_reason_code' => self::FAIL_INVALID_CODE_FORMAT,
+                                'fail_reason_msg' => '防伪码格式无效，请检查后重试。',
+                            ];
+                            if ('pass' === (string) $row['validation_status']) {
+                                $item_inserted = $wpdb->insert(
+                                    $item_table,
+                                    [
+                                        'request_id'               => $request_id,
+                                        'code_id'                  => $row['code_id'],
+                                        'code_value'               => $row['code_value'],
+                                        'ean'                      => $row['ean'],
+                                        'batch_id'                 => $row['batch_id'],
+                                        'outbound_scanned_at'      => $row['outbound_scanned_at'],
+                                        'after_sales_deadline_at'  => $row['after_sales_deadline_at'],
+                                        'validation_status'        => 'pass',
+                                        'override_id'              => null,
+                                        'fail_reason_code'         => null,
+                                        'fail_reason_msg'          => null,
+                                        'created_at'               => current_time('mysql'),
+                                        'meta'                     => null,
+                                    ],
+                                    ['%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
+                                );
+                                if ($item_inserted) {
+                                    wp_safe_redirect(add_query_arg(['request_id' => $request_id, 'aegis_returns_message' => '已加入清单（通过）'], $base_url));
+                                    exit;
+                                }
+                                $errors[] = '该防伪码已在清单中。';
+                            } else {
+                                if (self::is_overridable_fail_reason((string) ($row['fail_reason_code'] ?? ''))) {
+                                    $pending_decision = [
+                                        'code_value' => $code_value,
+                                        'fail_reason_code' => (string) ($row['fail_reason_code'] ?? ''),
+                                        'fail_reason_msg' => (string) ($row['fail_reason_msg'] ?? ''),
+                                    ];
+                                    $request_id = (int) $request->id;
+                                    $view_mode = 'edit';
+                                } else {
+                                    $errors[] = ((string) ($row['fail_reason_msg'] ?? '该防伪码不可录入。')) . ' 该码不可录入。';
+                                }
+                            }
+                        }
+                    }
+                }
+            } elseif ('add_need_override' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => $action_whitelist,
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+                    $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+                    $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                    $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$request_table} WHERE id = %d AND dealer_id = %d", $request_id, $dealer_id));
+                    $code_value = AEGIS_System::normalize_code_value(isset($_POST['code_value']) ? sanitize_text_field(wp_unslash($_POST['code_value'])) : '');
+                    if (!$request || !self::can_edit_request($request)) {
+                        $errors[] = '仅草稿可录入防伪码。';
+                    } elseif ('' === $code_value) {
+                        $errors[] = '防伪码不能为空。';
+                    } else {
+                        $item_rows = self::build_item_rows_for_codes([$code_value], $dealer_id, $request_id);
+                        $row = $item_rows[$code_value] ?? null;
+                        if (!$row) {
+                            $errors[] = '防伪码不可录入。';
+                        } else {
+                            $status = 'pass' === (string) $row['validation_status'] ? 'pass' : 'need_override';
+                            if ('need_override' === $status && !self::is_overridable_fail_reason((string) ($row['fail_reason_code'] ?? ''))) {
+                                $errors[] = ((string) ($row['fail_reason_msg'] ?? '该码不可录入。')) . ' 该码不可录入。';
+                            } else {
+                                $item_inserted = $wpdb->insert(
+                                    $item_table,
+                                    [
+                                        'request_id'               => $request_id,
+                                        'code_id'                  => $row['code_id'],
+                                        'code_value'               => $row['code_value'],
+                                        'ean'                      => $row['ean'],
+                                        'batch_id'                 => $row['batch_id'],
+                                        'outbound_scanned_at'      => $row['outbound_scanned_at'],
+                                        'after_sales_deadline_at'  => $row['after_sales_deadline_at'],
+                                        'validation_status'        => $status,
+                                        'override_id'              => null,
+                                        'fail_reason_code'         => 'pass' === $status ? null : $row['fail_reason_code'],
+                                        'fail_reason_msg'          => 'pass' === $status ? null : $row['fail_reason_msg'],
+                                        'created_at'               => current_time('mysql'),
+                                        'meta'                     => null,
+                                    ],
+                                    ['%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
+                                );
+                                if ($item_inserted) {
+                                    $msg = 'pass' === $status ? '已加入清单（通过）' : '已加入清单（需特批）';
+                                    wp_safe_redirect(add_query_arg(['request_id' => $request_id, 'aegis_returns_message' => $msg], $base_url));
+                                    exit;
+                                }
+                                $errors[] = '该防伪码已在清单中。';
+                            }
+                        }
+                    }
+                }
+            } elseif ('remove_item' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => $action_whitelist,
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+                    $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+                    $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                    $item_id = isset($_POST['item_id']) ? (int) $_POST['item_id'] : 0;
+                    $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$request_table} WHERE id = %d AND dealer_id = %d", $request_id, $dealer_id));
+                    if (!$request || !self::can_edit_request($request)) {
+                        $errors[] = '仅草稿可移除条目。';
+                    } else {
+                        $deleted = $wpdb->query($wpdb->prepare("DELETE FROM {$item_table} WHERE id = %d AND request_id = %d", $item_id, $request_id));
+                        if (false === $deleted) {
+                            $errors[] = '移除失败，请重试。';
+                        } else {
+                            wp_safe_redirect(add_query_arg(['request_id' => $request_id, 'aegis_returns_message' => '已移除'], $base_url));
+                            exit;
+                        }
+                    }
+                }
+            } elseif ('bulk_add_codes' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => $action_whitelist,
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+                    $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+                    $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                    $request = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$request_table} WHERE id = %d AND dealer_id = %d", $request_id, $dealer_id));
+                    if (!$request || !self::can_edit_request($request)) {
+                        $errors[] = '仅草稿可批量录入。';
+                    } else {
+                        $raw_codes = isset($_POST['code_values']) ? sanitize_textarea_field(wp_unslash($_POST['code_values'])) : '';
+                        $codes = self::parse_code_values_from_text($raw_codes);
+                        if (is_wp_error($codes)) {
+                            $errors[] = $codes->get_error_message();
+                        } else {
+                            $item_rows = self::build_item_rows_for_codes($codes, $dealer_id, $request_id);
+                            $pass_count = 0;
+                            $need_override_count = 0;
+                            $skipped_count = 0;
+                            foreach ($codes as $code_value) {
+                                $row = $item_rows[$code_value] ?? null;
+                                if (!$row) {
+                                    $skipped_count++;
+                                    continue;
+                                }
+                                $status = '';
+                                $fail_reason_code = null;
+                                $fail_reason_msg = null;
+                                if ('pass' === (string) $row['validation_status']) {
+                                    $status = 'pass';
+                                } elseif (self::is_overridable_fail_reason((string) ($row['fail_reason_code'] ?? ''))) {
+                                    $status = 'need_override';
+                                    $fail_reason_code = $row['fail_reason_code'];
+                                    $fail_reason_msg = $row['fail_reason_msg'];
+                                } else {
+                                    $skipped_count++;
+                                    continue;
+                                }
+                                $inserted = $wpdb->insert(
+                                    $item_table,
+                                    [
+                                        'request_id'               => $request_id,
+                                        'code_id'                  => $row['code_id'],
+                                        'code_value'               => $row['code_value'],
+                                        'ean'                      => $row['ean'],
+                                        'batch_id'                 => $row['batch_id'],
+                                        'outbound_scanned_at'      => $row['outbound_scanned_at'],
+                                        'after_sales_deadline_at'  => $row['after_sales_deadline_at'],
+                                        'validation_status'        => $status,
+                                        'override_id'              => null,
+                                        'fail_reason_code'         => $fail_reason_code,
+                                        'fail_reason_msg'          => $fail_reason_msg,
+                                        'created_at'               => current_time('mysql'),
+                                        'meta'                     => null,
+                                    ],
+                                    ['%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
+                                );
+                                if (!$inserted) {
+                                    $skipped_count++;
+                                    continue;
+                                }
+                                if ('pass' === $status) {
+                                    $pass_count++;
+                                } else {
+                                    $need_override_count++;
+                                }
+                            }
+                            $msg = sprintf('批量加入完成：通过 %d 条，需特批 %d 条，跳过 %d 条。', $pass_count, $need_override_count, $skipped_count);
+                            wp_safe_redirect(add_query_arg(['request_id' => $request_id, 'aegis_returns_message' => $msg], $base_url));
+                            exit;
+                        }
+                    }
+                }
+            } elseif (in_array($action, ['create_draft', 'update_draft', 'delete_draft'], true)) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
                     [
@@ -2269,11 +2571,21 @@ class AEGIS_Returns {
                                 $stats = self::revalidate_items_for_request($request_id, $dealer_id);
                                 if (is_wp_error($stats)) {
                                     $errors[] = $stats->get_error_message();
+                                } elseif ($stats['need_override'] > 0) {
+                                    $redirect_url = add_query_arg(
+                                        [
+                                            'request_id' => $request_id,
+                                            'aegis_returns_error' => '存在需特批条目未验证，无法提交。请在清单行内输入特批码验证后再提交。',
+                                        ],
+                                        $base_url
+                                    );
+                                    wp_safe_redirect($redirect_url);
+                                    exit;
                                 } elseif ($stats['total'] <= 0 || $stats['fail'] > 0 || $stats['pending'] > 0) {
                                     $redirect_url = add_query_arg(
                                         [
                                             'request_id' => $request_id,
-                                            'aegis_returns_error' => sprintf('存在未通过条目（通过%d/未通过%d/待校验%d），无法提交。请删除不通过条目或联系销售/HQ处理。', $stats['pass'], $stats['fail'], $stats['pending']),
+                                            'aegis_returns_error' => sprintf('存在未通过条目（通过%d/未通过%d/需特批%d/待校验%d），无法提交。请删除不通过条目或联系销售/HQ处理。', $stats['pass'], $stats['fail'], $stats['need_override'], $stats['pending']),
                                         ],
                                         $base_url
                                     );
@@ -2508,6 +2820,7 @@ class AEGIS_Returns {
             'can_withdraw'   => $can_withdraw_current,
             'idempotency'    => wp_generate_uuid4(),
             'status_labels'  => self::get_status_labels(),
+            'pending_decision' => $pending_decision,
         ];
 
         return AEGIS_Portal::render_portal_template('returns', $context);
@@ -2531,6 +2844,18 @@ class AEGIS_Returns {
             }
         }
         return array_keys($unique);
+    }
+
+    protected static function is_overridable_fail_reason($code): bool {
+        return in_array(
+            (string) $code,
+            [
+                self::FAIL_AFTER_SALES_EXPIRED,
+                self::FAIL_NOT_OWNED_BY_DEALER,
+                self::FAIL_OUTBOUND_TIME_MISSING,
+            ],
+            true
+        );
     }
 
     protected static function build_item_rows_for_codes(array $code_values, int $dealer_id, int $exclude_request_id = 0): array {
@@ -3160,6 +3485,7 @@ class AEGIS_Returns {
         $pass = 0;
         $fail = 0;
         $pending = 0;
+        $need_override = 0;
         foreach ($code_values as $code_value) {
             $row = $item_rows[$code_value] ?? [
                 'code_id'                 => null,
@@ -3177,11 +3503,17 @@ class AEGIS_Returns {
                 $row['override_id'] = (int) $override_map[$code_value];
                 $row['fail_reason_code'] = null;
                 $row['fail_reason_msg'] = null;
+            } elseif ('fail' === (string) ($row['validation_status'] ?? 'pending')
+                && self::is_overridable_fail_reason((string) ($row['fail_reason_code'] ?? ''))
+            ) {
+                $row['validation_status'] = 'need_override';
             }
 
             $validation_status = (string) ($row['validation_status'] ?? 'pending');
             if (in_array($validation_status, ['pass', 'pass_override'], true)) {
                 $pass++;
+            } elseif ('need_override' === $validation_status) {
+                $need_override++;
             } elseif ('pending' === $validation_status) {
                 $pending++;
             } else {
@@ -3215,6 +3547,7 @@ class AEGIS_Returns {
             'total' => count($code_values),
             'pass' => $pass,
             'fail' => $fail,
+            'need_override' => $need_override,
             'pending' => $pending,
         ];
     }
