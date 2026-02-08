@@ -263,16 +263,26 @@ foreach ($items as $item) {
                                 <th>截止时间</th>
                                 <th>状态</th>
                                 <th>原因</th>
+                                <th>采样原因（可选）</th>
                                 <th>特批码</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($items)) : ?>
-                                <tr><td colspan="7">暂无条目。</td></tr>
+                                <tr><td colspan="8">暂无条目。</td></tr>
                             <?php else : ?>
                                 <?php foreach ($items as $item) : ?>
                                     <?php $status = (string) ($item->validation_status ?? 'pending'); ?>
+                                    <?php
+                                    $item_meta = json_decode((string) ($item->meta ?? ''), true);
+                                    if (!is_array($item_meta)) {
+                                        $item_meta = [];
+                                    }
+                                    $sample_reason = (string) ($item_meta['sample_reason'] ?? '');
+                                    $sample_reason_text = (string) ($item_meta['sample_reason_text'] ?? '');
+                                    $sample_reason_options = AEGIS_Returns::get_sample_reason_options();
+                                    ?>
                                     <tr>
                                         <td><?php echo esc_html(AEGIS_System::format_code_display($item->code_value ?? '')); ?></td>
                                         <td><?php echo esc_html($item->outbound_scanned_at ?? ''); ?></td>
@@ -292,6 +302,34 @@ foreach ($items as $item) {
                                             <?php endif; ?>
                                         </td>
                                         <td><?php echo in_array($status, ['need_override', 'fail'], true) ? esc_html($item->fail_reason_msg ?? '') : '-'; ?></td>
+                                        <td>
+                                            <?php if ($can_edit && !empty($request)) : ?>
+                                                <form method="post" class="aegis-returns-reason-form aegis-returns-ajax-form">
+                                                    <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                                                    <input type="hidden" name="returns_action" value="update_item_reason" />
+                                                    <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                                                    <input type="hidden" name="item_id" value="<?php echo esc_attr((int) $item->id); ?>" />
+                                                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                                                    <select name="sample_reason" class="aegis-portal-input">
+                                                        <?php foreach ($sample_reason_options as $reason_value => $reason_label) : ?>
+                                                            <option value="<?php echo esc_attr($reason_value); ?>" <?php selected($sample_reason, (string) $reason_value); ?>><?php echo esc_html($reason_label); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <?php if ('other' === $sample_reason) : ?>
+                                                        <input type="text" name="sample_reason_text" class="aegis-portal-input" placeholder="其他原因（可选）" value="<?php echo esc_attr($sample_reason_text); ?>" />
+                                                    <?php endif; ?>
+                                                    <button type="submit" class="aegis-portal-button is-secondary">保存</button>
+                                                </form>
+                                            <?php else : ?>
+                                                <?php if ('' === $sample_reason) : ?>
+                                                    —
+                                                <?php elseif ('other' === $sample_reason && '' !== $sample_reason_text) : ?>
+                                                    <?php echo esc_html('其他：' . $sample_reason_text); ?>
+                                                <?php else : ?>
+                                                    <?php echo esc_html($sample_reason_options[$sample_reason] ?? $sample_reason); ?>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php if ('need_override' === $status && $can_edit && !empty($request)) : ?>
                                                 <form method="post" class="inline-form aegis-returns-ajax-form" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">

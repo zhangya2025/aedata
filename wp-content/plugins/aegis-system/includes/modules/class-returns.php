@@ -1828,6 +1828,8 @@ class AEGIS_Returns {
                 'code_values',
                 'code_value',
                 'item_id',
+                'sample_reason',
+                'sample_reason_text',
                 'override_plain_code',
                 '_aegis_idempotency',
                 '_wp_http_referer',
@@ -2499,6 +2501,33 @@ class AEGIS_Returns {
                     wp_safe_redirect($redirect_url);
                     exit;
                 }
+            } elseif ('update_item_reason' === $action) {
+                $validation = AEGIS_Access_Audit::validate_write_request(
+                    $_POST,
+                    [
+                        'capability'      => AEGIS_System::CAP_RETURNS_DEALER_APPLY,
+                        'nonce_field'     => 'aegis_returns_nonce',
+                        'nonce_action'    => 'aegis_returns_action',
+                        'whitelist'       => $action_whitelist,
+                        'idempotency_key' => $idempotency,
+                    ]
+                );
+                if (!$validation['success']) {
+                    $errors[] = $validation['message'];
+                } else {
+                    $request_id = isset($_POST['request_id']) ? (int) $_POST['request_id'] : 0;
+                    $item_id = isset($_POST['item_id']) ? (int) $_POST['item_id'] : 0;
+                    $sample_reason = isset($_POST['sample_reason']) ? sanitize_key(wp_unslash($_POST['sample_reason'])) : '';
+                    $sample_reason_text = isset($_POST['sample_reason_text']) ? sanitize_text_field(wp_unslash($_POST['sample_reason_text'])) : '';
+
+                    $result = self::handle_update_item_reason($request_id, $item_id, $dealer_id, $sample_reason, $sample_reason_text);
+                    if (is_wp_error($result)) {
+                        $errors[] = $result->get_error_message();
+                    } else {
+                        wp_safe_redirect(add_query_arg(['request_id' => $request_id, 'aegis_returns_message' => '已保存原因。'], $base_url));
+                        exit;
+                    }
+                }
             } elseif ('apply_override' === $action) {
                 $validation = AEGIS_Access_Audit::validate_write_request(
                     $_POST,
@@ -3037,6 +3066,18 @@ class AEGIS_Returns {
         return hash_hmac('sha256', (string) $plain, wp_salt('nonce'));
     }
 
+    public static function get_sample_reason_options(): array {
+        return [
+            '' => '（不填写）',
+            'expiry' => '临期/超期',
+            'damaged' => '破损',
+            'wrong_delivery' => '错发/漏发',
+            'slow_moving' => '滞销',
+            'quality' => '质量问题',
+            'other' => '其他',
+        ];
+    }
+
     protected static function handle_override_issue($code_value, $dealer_id, $reason_text, $expires_hours, $user) {
         global $wpdb;
 
@@ -3268,6 +3309,96 @@ class AEGIS_Returns {
             'dealer_id' => $dealer_id,
             'code_value' => $code_value,
             'override_id' => (int) $override->id,
+        ]);
+
+        return true;
+    }
+
+    protected static function handle_update_item_reason(int $request_id, int $item_id, int $dealer_id, string $sample_reason, string $sample_reason_text) {
+        global $wpdb;
+
+        if ($request_id <= 0 || $item_id <= 0 || $dealer_id <= 0) {
+            return new WP_Error('invalid_param', '参数无效。');
+        }
+
+        $request_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_TABLE;
+        $item_table = $wpdb->prefix . AEGIS_System::RETURN_REQUEST_ITEM_TABLE;
+
+        $request = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$request_table} WHERE id = %d AND dealer_id = %d",
+                $request_id,
+                $dealer_id
+            )
+        );
+        if (!$request) {
+            return new WP_Error('not_found', '单据不存在或无权限。');
+        }
+        if (!self::can_edit_request($request)) {
+            return new WP_Error('not_editable', '当前单据不可编辑。');
+        }
+
+        $item = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, meta FROM {$item_table} WHERE id = %d AND request_id = %d",
+                $item_id,
+                $request_id
+            )
+        );
+        if (!$item) {
+            return new WP_Error('item_not_found', '条目不存在或无权限。');
+        }
+
+        $reason_options = self::get_sample_reason_options();
+        if (!array_key_exists($sample_reason, $reason_options)) {
+            return new WP_Error('invalid_reason', '采样原因无效。');
+        }
+
+        $sample_reason_text = sanitize_text_field($sample_reason_text);
+        if ('other' === $sample_reason) {
+            $sample_reason_text = mb_substr($sample_reason_text, 0, 200);
+        } else {
+            $sample_reason_text = '';
+        }
+
+        $meta = json_decode((string) $item->meta, true);
+        if (!is_array($meta)) {
+            $meta = [];
+        }
+
+        if ('' === $sample_reason) {
+            unset($meta['sample_reason'], $meta['sample_reason_text']);
+        } else {
+            $meta['sample_reason'] = $sample_reason;
+            if ('other' === $sample_reason && '' !== $sample_reason_text) {
+                $meta['sample_reason_text'] = $sample_reason_text;
+            } else {
+                unset($meta['sample_reason_text']);
+            }
+        }
+
+        $updated = $wpdb->update(
+            $item_table,
+            [
+                'meta' => wp_json_encode($meta, JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'id' => $item_id,
+                'request_id' => $request_id,
+            ],
+            ['%s'],
+            ['%d', '%d']
+        );
+        if (false === $updated) {
+            return new WP_Error('db_error', '保存采样原因失败，请重试。');
+        }
+
+        AEGIS_Access_Audit::record_event('RETURNS_ITEM_REASON_UPDATE', 'SUCCESS', [
+            'entity_type' => 'return_request_item',
+            'request_id' => $request_id,
+            'item_id' => $item_id,
+            'dealer_id' => $dealer_id,
+            'sample_reason' => $sample_reason,
         ]);
 
         return true;

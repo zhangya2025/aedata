@@ -2152,3 +2152,14 @@ body.aegis-scan-open {
   opacity: .7;
   cursor: not-allowed;
 }
+
+.aegis-returns-reason-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.aegis-returns-reason-form select {
+  min-width: 140px;
+}
