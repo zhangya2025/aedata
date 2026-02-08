@@ -53,11 +53,29 @@ foreach ($items as $item) {
                 <a class="button" href="<?php echo esc_url($create_url); ?>">新建退货单</a>
             <?php else : ?>
                 <a class="button" href="<?php echo esc_url($list_url); ?>">返回列表</a>
+                <?php if ($show_edit && !empty($request) && $can_withdraw) : ?>
+                    <form method="post" class="inline-form" onsubmit="return confirm('确认撤回该已提交单据？');">
+                        <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                        <input type="hidden" name="returns_action" value="withdraw_request" />
+                        <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
+                        <button type="submit" class="button">撤回</button>
+                    </form>
+                <?php endif; ?>
+                <?php if ($show_edit && !empty($request) && in_array($request->status, $copyable_statuses, true)) : ?>
+                    <form method="post" class="inline-form" onsubmit="return confirm('确认复制为新草稿？');">
+                        <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                        <input type="hidden" name="returns_action" value="copy_to_new_draft" />
+                        <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                        <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
+                        <button type="submit" class="button">复制为新草稿</button>
+                    </form>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
 
-    <p class="aegis-t-a6 aegis-helptext">草稿保存会自动校验：归属经销商、出库扫码时间、售后有效期；未通过可联系 HQ 获取特批码。</p>
+    <p class="aegis-returns-help aegis-t-a6">系统按出库扫码时间 + 售后有效期自动校验；不通过条目可删除或联系 HQ/销售获取特批码后在行内验证。</p>
 
     <?php foreach ($messages as $msg) : ?>
         <div class="notice notice-success"><p class="aegis-t-a6"><?php echo esc_html($msg); ?></p></div>
@@ -131,127 +149,126 @@ foreach ($items as $item) {
                 </table>
             </div>
         </section>
-    <?php elseif ($show_create) : ?>
-        <section class="aegis-card">
-            <div class="aegis-card-header">
-                <div class="aegis-card-title aegis-t-a4">新建退货单</div>
-            </div>
-            <?php if ($dealer_blocked) : ?>
-                <p class="aegis-t-a6" style="color:#d63638;">经销商账号不可创建退货申请，请联系管理员。</p>
-            <?php else : ?>
-                <form method="post" class="aegis-t-a6">
-                    <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
-                    <input type="hidden" name="returns_action" value="create_draft" />
-                    <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
-                    <div class="aegis-t-a6" style="margin-bottom:8px;">经销商：<?php echo esc_html($dealer ? $dealer->dealer_name : ''); ?></div>
-                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">联系人
-                        <input type="text" name="contact_name" style="width:100%;" />
-                    </label>
-                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">联系电话
-                        <input type="text" name="contact_phone" style="width:100%;" />
-                    </label>
-                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">退货原因
-                        <input type="text" name="reason_code" style="width:100%;" />
-                    </label>
-                    <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">备注
-                        <textarea name="remark" rows="3" style="width:100%;"></textarea>
-                    </label>
-                    <label class="aegis-t-a6" style="display:block; margin-bottom:12px;">防伪码列表
-                        <textarea name="code_values" rows="6" class="aegis-returns-code-textarea" placeholder="一行一个，或用空格/逗号分隔；最多 500 条"></textarea>
-                    </label>
-                    <button type="submit" class="button button-primary">创建草稿</button>
-                </form>
-            <?php endif; ?>
-        </section>
-    <?php elseif ($show_edit) : ?>
-        <div class="aegis-returns-grid">
-            <section class="aegis-card">
-                <div class="aegis-card-header">
-                    <div class="aegis-card-title aegis-t-a4">编辑退货单</div>
-                </div>
-                <?php if (empty($request)) : ?>
-                    <p class="aegis-t-a6" style="color:#d63638;">单据不存在或无权限。</p>
-                <?php else : ?>
-                    <?php $status_label = $status_labels[$request->status] ?? $request->status; ?>
-                    <div class="aegis-t-a6" style="margin-bottom:8px;">单号：<?php echo esc_html($request->request_no); ?></div>
-                    <div class="aegis-t-a6" style="margin-bottom:8px;">状态：<?php echo esc_html($status_label); ?></div>
-                    <div class="aegis-t-a6" style="margin-bottom:8px;">创建时间：<?php echo esc_html($request->created_at); ?></div>
-                    <div class="aegis-t-a6" style="margin-bottom:12px;">更新时间：<?php echo esc_html($request->updated_at); ?></div>
-                    <div class="aegis-t-a6" style="margin-bottom:12px; color:#555;">当前状态：<?php echo esc_html($status_label); ?>。<?php if (AEGIS_Returns::STATUS_DRAFT === $request->status) : ?>草稿：可编辑，可提交。<?php else : ?>已提交：不可编辑<?php echo $can_withdraw ? '，可撤回。' : '。'; ?><?php endif; ?></div>
-
-                    <?php if (!$can_edit) : ?>
-                        <p class="aegis-t-a6" style="color:#d63638;">已锁定不可编辑。</p>
-                        <?php if (in_array($request->status, $copyable_statuses, true)) : ?>
-                            <p class="aegis-t-a6" style="margin-bottom:12px; color:#555;">该单已驳回/不通过，内容不可修改。可复制为新草稿重新发起。</p>
-                        <?php endif; ?>
-                        <label class="aegis-t-a6" style="display:block;">防伪码列表
-                            <textarea rows="6" class="aegis-returns-code-textarea" readonly><?php echo esc_textarea($code_text); ?></textarea>
-                        </label>
-                        <?php if ($can_withdraw) : ?>
-                            <form method="post" class="aegis-t-a6" style="margin-top:12px;" onsubmit="return confirm('确认撤回该已提交单据？');">
-                                <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
-                                <input type="hidden" name="returns_action" value="withdraw_request" />
-                                <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
-                                <button type="submit" class="button">撤回</button>
-                            </form>
-                        <?php endif; ?>
-                        <?php if (in_array($request->status, $copyable_statuses, true)) : ?>
-                            <form method="post" class="aegis-t-a6" style="margin-top:12px;" onsubmit="return confirm('确认复制为新草稿？');">
-                                <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
-                                <input type="hidden" name="returns_action" value="copy_to_new_draft" />
-                                <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
-                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr(wp_generate_uuid4()); ?>" />
-                                <button type="submit" class="button">复制为新草稿</button>
-                            </form>
-                        <?php endif; ?>
+    <?php elseif ($show_create || $show_edit) : ?>
+        <div class="aegis-returns-layout">
+            <section class="aegis-card aegis-portal-card">
+                <?php if ($show_create) : ?>
+                    <div class="aegis-card-header">
+                        <div class="aegis-card-title aegis-t-a4">新建退货（草稿）</div>
+                    </div>
+                    <?php if ($dealer_blocked) : ?>
+                        <p class="aegis-t-a6" style="color:#d63638;">经销商账号不可创建退货申请，请联系管理员。</p>
                     <?php else : ?>
                         <form method="post" class="aegis-t-a6">
                             <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
-                            <input type="hidden" name="returns_action" value="update_draft" />
-                            <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                            <input type="hidden" name="returns_action" value="create_draft" />
                             <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
-                            <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">联系人
-                                <input type="text" name="contact_name" value="<?php echo esc_attr($request->contact_name); ?>" style="width:100%;" />
-                            </label>
-                            <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">联系电话
-                                <input type="text" name="contact_phone" value="<?php echo esc_attr($request->contact_phone); ?>" style="width:100%;" />
-                            </label>
-                            <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">退货原因
-                                <input type="text" name="reason_code" value="<?php echo esc_attr($request->reason_code); ?>" style="width:100%;" />
-                            </label>
-                            <label class="aegis-t-a6" style="display:block; margin-bottom:8px;">备注
-                                <textarea name="remark" rows="3" style="width:100%;"><?php echo esc_textarea($request->remark); ?></textarea>
-                            </label>
-                            <label class="aegis-t-a6" style="display:block; margin-bottom:12px;">防伪码列表
-                                <textarea name="code_values" rows="6" class="aegis-returns-code-textarea" placeholder="一行一个，或用空格/逗号分隔；最多 500 条"><?php echo esc_textarea($code_text); ?></textarea>
-                            </label>
-                            <button type="submit" class="button button-primary">保存草稿</button>
+                            <input type="hidden" name="contact_name" value="" />
+                            <input type="hidden" name="contact_phone" value="" />
+                            <input type="hidden" name="reason_code" value="" />
+
+                            <div class="aegis-t-a6" style="margin-bottom:10px;">经销商：<?php echo esc_html($dealer ? $dealer->dealer_name : ''); ?></div>
+
+                            <div class="aegis-returns-code-entry">
+                                <input id="aegis_returns_code_input" class="aegis-portal-input" type="text" placeholder="请输入/扫码防伪码，回车加入" autocomplete="off" />
+                                <button type="button" class="aegis-portal-button is-primary" id="aegis_returns_add_btn">加入</button>
+                            </div>
+                            <div class="aegis-returns-mini" style="margin-top:6px;">提示：本阶段需点击“保存草稿”后进行系统校验与展示结果。</div>
+
+                            <details style="margin-top:12px;">
+                                <summary class="aegis-portal-button is-secondary">批量录入（可选）</summary>
+                                <div style="margin-top:10px;">
+                                    <textarea class="aegis-returns-code-textarea" name="code_values" id="aegis_returns_code_values" placeholder="一行一个，或用空格/逗号分隔；最多 500 条"><?php echo esc_textarea($code_text); ?></textarea>
+                                    <div class="aegis-returns-mini">支持换行/空格/逗号分隔，最多 500 条。</div>
+                                </div>
+                            </details>
+
+                            <details style="margin-top:12px;">
+                                <summary>备注（可选）</summary>
+                                <textarea name="remark" rows="3" style="width:100%; margin-top:8px;"></textarea>
+                            </details>
+
+                            <button type="submit" class="button button-primary" style="margin-top:12px;">保存草稿</button>
                         </form>
-                        <p class="aegis-t-a6" style="margin-top:8px; color:#555;">未通过条目如已获得 HQ 特批码，可在对应行输入特批码强制通过。</p>
-                        <?php
-                        $has_invalid_item = false;
-                        foreach ($items as $item) {
-                            if (!in_array(($item->validation_status ?? 'pending'), ['pass', 'pass_override'], true)) {
-                                $has_invalid_item = true;
-                                break;
+                    <?php endif; ?>
+                <?php else : ?>
+                    <div class="aegis-card-header">
+                        <div class="aegis-card-title aegis-t-a4"><?php echo $can_edit ? '编辑草稿' : '查看退货单'; ?></div>
+                    </div>
+                    <?php if (empty($request)) : ?>
+                        <p class="aegis-t-a6" style="color:#d63638;">单据不存在或无权限。</p>
+                    <?php else : ?>
+                        <?php $status_label = $status_labels[$request->status] ?? $request->status; ?>
+                        <div class="aegis-t-a6" style="margin-bottom:8px;">单号：<?php echo esc_html($request->request_no); ?></div>
+                        <div class="aegis-t-a6" style="margin-bottom:8px;">状态：<?php echo esc_html($status_label); ?></div>
+                        <div class="aegis-t-a6" style="margin-bottom:8px;">创建时间：<?php echo esc_html($request->created_at); ?></div>
+                        <div class="aegis-t-a6" style="margin-bottom:12px;">更新时间：<?php echo esc_html($request->updated_at); ?></div>
+
+                        <?php if (!$can_edit) : ?>
+                            <p class="aegis-t-a6" style="color:#d63638;">已锁定不可编辑。</p>
+                            <details style="margin-top:12px;">
+                                <summary class="aegis-portal-button is-secondary">已录入防伪码</summary>
+                                <div style="margin-top:10px;">
+                                    <textarea rows="6" class="aegis-returns-code-textarea" readonly><?php echo esc_textarea($code_text); ?></textarea>
+                                </div>
+                            </details>
+                        <?php else : ?>
+                            <?php
+                            $has_invalid_item = false;
+                            foreach ($items as $item) {
+                                if (!in_array(($item->validation_status ?? 'pending'), ['pass', 'pass_override'], true)) {
+                                    $has_invalid_item = true;
+                                    break;
+                                }
                             }
-                        }
-                        ?>
-                        <form method="post" class="aegis-t-a6" style="margin-top:10px;" onsubmit="return confirm('提交后将锁定草稿内容，确认提交？');">
-                            <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
-                            <input type="hidden" name="returns_action" value="submit_request" />
-                            <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
-                            <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
-                            <button type="submit" class="button" <?php disabled($has_invalid_item, true); ?>>提交（提交后将锁定，需销售审核）</button>
-                        </form>
+                            ?>
+                            <form method="post" class="aegis-t-a6">
+                                <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                                <input type="hidden" name="returns_action" value="update_draft" />
+                                <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
+                                <input type="hidden" name="contact_name" value="" />
+                                <input type="hidden" name="contact_phone" value="" />
+                                <input type="hidden" name="reason_code" value="" />
+
+                                <div class="aegis-returns-code-entry">
+                                    <input id="aegis_returns_code_input" class="aegis-portal-input" type="text" placeholder="请输入/扫码防伪码，回车加入" autocomplete="off" />
+                                    <button type="button" class="aegis-portal-button is-primary" id="aegis_returns_add_btn">加入</button>
+                                </div>
+                                <div class="aegis-returns-mini" style="margin-top:6px;">提示：本阶段需点击“保存草稿”后进行系统校验与展示结果。</div>
+
+                                <details style="margin-top:12px;">
+                                    <summary class="aegis-portal-button is-secondary">批量录入（可选）</summary>
+                                    <div style="margin-top:10px;">
+                                        <textarea class="aegis-returns-code-textarea" name="code_values" id="aegis_returns_code_values" placeholder="一行一个，或用空格/逗号分隔；最多 500 条"><?php echo esc_textarea($code_text); ?></textarea>
+                                        <div class="aegis-returns-mini">支持换行/空格/逗号分隔，最多 500 条。</div>
+                                    </div>
+                                </details>
+
+                                <details style="margin-top:12px;">
+                                    <summary>备注（可选）</summary>
+                                    <textarea name="remark" rows="3" style="width:100%; margin-top:8px;"><?php echo esc_textarea($request->remark); ?></textarea>
+                                </details>
+
+                                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                                    <button type="submit" class="button button-primary">保存草稿</button>
+                                </div>
+                            </form>
+                            <form method="post" class="aegis-t-a6" style="margin-top:10px;" onsubmit="return confirm('提交后将锁定草稿内容，确认提交？');">
+                                <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
+                                <input type="hidden" name="returns_action" value="submit_request" />
+                                <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
+                                <input type="hidden" name="_aegis_idempotency" value="<?php echo esc_attr($idempotency); ?>" />
+                                <button type="submit" class="button" <?php disabled($has_invalid_item, true); ?>>提交（提交后将锁定，需销售审核）</button>
+                            </form>
+                        <?php endif; ?>
                     <?php endif; ?>
                 <?php endif; ?>
             </section>
 
-            <aside class="aegis-card">
+            <aside class="aegis-card aegis-portal-card">
                 <div class="aegis-card-header">
-                    <div class="aegis-card-title aegis-t-a4">校验摘要</div>
+                    <div class="aegis-card-title aegis-t-a4">退货清单（校验结果）</div>
                 </div>
                 <div class="aegis-returns-kpis">
                     <div class="aegis-returns-kpi"><div class="label">总条目</div><div class="value"><?php echo esc_html((string) $total_items); ?></div></div>
@@ -261,7 +278,7 @@ foreach ($items as $item) {
                 </div>
 
                 <div class="aegis-table-wrap">
-                    <table class="aegis-table aegis-returns-results-table aegis-t-a6" style="width:100%; margin-top:12px;">
+                    <table class="aegis-portal-table aegis-returns-results-table aegis-t-a6" style="width:100%; margin-top:12px;">
                         <thead>
                             <tr>
                                 <th class="col-code">防伪码</th>
@@ -296,7 +313,7 @@ foreach ($items as $item) {
                                         <td><?php echo esc_html($item->outbound_scanned_at ?? ''); ?></td>
                                         <td><?php echo esc_html($item->after_sales_deadline_at ?? ''); ?></td>
                                         <td>
-                                            <?php if (!$is_pass && $can_edit) : ?>
+                                            <?php if (!$is_pass && $can_edit && $show_edit && !empty($request)) : ?>
                                                 <form method="post" class="inline-form" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                                                     <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                                                     <input type="hidden" name="returns_action" value="apply_override" />
@@ -320,3 +337,62 @@ foreach ($items as $item) {
         </div>
     <?php endif; ?>
 </div>
+
+<?php if ($show_create || $show_edit) : ?>
+<script>
+(function(){
+  var input = document.getElementById('aegis_returns_code_input');
+  var btn = document.getElementById('aegis_returns_add_btn');
+  var ta = document.getElementById('aegis_returns_code_values');
+  if(!input || !btn || !ta) return;
+
+  function splitTokens(raw){
+    if(!raw) return [];
+    return raw
+      .replace(/，/g, ',')
+      .replace(/；/g, ';')
+      .split(/[\s,\n;\r]+/g)
+      .map(function(s){ return (s||'').trim(); })
+      .filter(Boolean);
+  }
+
+  function getSetFromTextarea(){
+    var lines = splitTokens(ta.value || '');
+    var set = Object.create(null);
+    lines.forEach(function(x){ set[x] = true; });
+    return set;
+  }
+
+  function appendTokens(tokens){
+    if(!tokens.length) return;
+    var set = getSetFromTextarea();
+    var added = [];
+    tokens.forEach(function(t){
+      if(!set[t]){
+        set[t] = true;
+        added.push(t);
+      }
+    });
+    if(!added.length) return;
+    var current = (ta.value || '').trim();
+    ta.value = current ? (current + "\n" + added.join("\n")) : added.join("\n");
+  }
+
+  function onAdd(){
+    var raw = input.value || '';
+    var tokens = splitTokens(raw);
+    appendTokens(tokens);
+    input.value = '';
+    input.focus();
+  }
+
+  btn.addEventListener('click', onAdd);
+  input.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      onAdd();
+    }
+  });
+})();
+</script>
+<?php endif; ?>

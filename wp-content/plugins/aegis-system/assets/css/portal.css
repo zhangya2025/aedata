@@ -2088,3 +2088,61 @@ body.aegis-scan-open {
     width: 170px;
     white-space: nowrap;
 }
+
+/* ===== Returns (Dealer) UI v1 ===== */
+.aegis-returns-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aegis-returns-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.aegis-returns-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aegis-returns-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .aegis-returns-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.aegis-returns-code-entry {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.aegis-returns-code-entry input {
+  flex: 1 1 auto;
+}
+
+.aegis-returns-help {
+  color: rgba(0,0,0,.65);
+}
+
+.aegis-returns-code-textarea {
+  width: 100%;
+  min-height: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.aegis-returns-mini {
+  font-size: 12px;
+  color: rgba(0,0,0,.65);
+}
