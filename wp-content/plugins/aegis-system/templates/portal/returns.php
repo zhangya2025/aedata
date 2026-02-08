@@ -48,7 +48,7 @@ foreach ($items as $item) {
     }
 }
 ?>
-<div class="aegis-t-a4 aegis-returns-page">
+<div id="aegis-returns-panel" class="aegis-t-a4 aegis-returns-page">
     <div class="aegis-returns-header">
         <div class="aegis-t-a2">退货申请</div>
         <div class="aegis-returns-header-actions">
@@ -57,7 +57,7 @@ foreach ($items as $item) {
             <?php else : ?>
                 <a class="button" href="<?php echo esc_url($list_url); ?>">返回列表</a>
                 <?php if ($show_edit && !empty($request) && $can_withdraw) : ?>
-                    <form method="post" class="inline-form" onsubmit="return confirm('确认撤回该已提交单据？');">
+                    <form method="post" class="inline-form aegis-returns-ajax-form" onsubmit="return confirm('确认撤回该已提交单据？');">
                         <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                         <input type="hidden" name="returns_action" value="withdraw_request" />
                         <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
@@ -124,7 +124,7 @@ foreach ($items as $item) {
                                                 </form>
                                             <?php elseif (AEGIS_Returns::STATUS_SUBMITTED === $row->status) : ?>
                                                 <a class="button" href="<?php echo esc_url($edit_url); ?>">查看</a>
-                                                <form method="post" class="inline-form" onsubmit="return confirm('确认撤回该已提交单据？');">
+                                                <form method="post" class="inline-form aegis-returns-ajax-form" onsubmit="return confirm('确认撤回该已提交单据？');">
                                                     <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                                                     <input type="hidden" name="returns_action" value="withdraw_request" />
                                                     <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $row->id); ?>" />
@@ -181,7 +181,7 @@ foreach ($items as $item) {
                     <div class="aegis-t-a6" style="margin-bottom:12px;">状态：<?php echo esc_html($status_labels[$request->status] ?? $request->status); ?></div>
 
                     <?php if ($can_edit) : ?>
-                        <form method="post" class="aegis-t-a6">
+                        <form method="post" class="aegis-t-a6 aegis-returns-ajax-form">
                             <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                             <input type="hidden" name="returns_action" value="validate_code" />
                             <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
@@ -198,7 +198,7 @@ foreach ($items as $item) {
                                 <p class="aegis-t-a6">请选择：放弃录入 或 申请特批录入（需联系 HQ/销售获取特批码）。</p>
                                 <div class="aegis-returns-header-actions" style="margin-top:8px;">
                                     <a class="button" href="<?php echo esc_url(add_query_arg('request_id', (int) $request->id, $base_url)); ?>">放弃录入</a>
-                                    <form method="post" class="inline-form">
+                                    <form method="post" class="inline-form aegis-returns-ajax-form">
                                         <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                                         <input type="hidden" name="returns_action" value="add_need_override" />
                                         <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
@@ -212,7 +212,7 @@ foreach ($items as $item) {
 
                         <details style="margin-top:12px;">
                             <summary class="aegis-portal-button is-secondary">批量录入（可选）</summary>
-                            <form method="post" style="margin-top:10px;">
+                            <form method="post" class="aegis-returns-ajax-form" style="margin-top:10px;">
                                 <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                                 <input type="hidden" name="returns_action" value="bulk_add_codes" />
                                 <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
@@ -231,7 +231,7 @@ foreach ($items as $item) {
                             <p class="aegis-t-a6" style="color:#d63638; margin-bottom:8px;">存在需特批条目未验证，无法提交。请在清单行内输入特批码验证。</p>
                         <?php endif; ?>
                         <?php if ($can_edit) : ?>
-                            <form method="post" class="aegis-t-a6" onsubmit="return confirm('提交后将锁定草稿内容，确认提交？');">
+                            <form method="post" class="aegis-t-a6 aegis-returns-ajax-form" onsubmit="return confirm('提交后将锁定草稿内容，确认提交？');">
                                 <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                                 <input type="hidden" name="returns_action" value="submit_request" />
                                 <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
@@ -294,7 +294,7 @@ foreach ($items as $item) {
                                         <td><?php echo in_array($status, ['need_override', 'fail'], true) ? esc_html($item->fail_reason_msg ?? '') : '-'; ?></td>
                                         <td>
                                             <?php if ('need_override' === $status && $can_edit && !empty($request)) : ?>
-                                                <form method="post" class="inline-form" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                                <form method="post" class="inline-form aegis-returns-ajax-form" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                                                     <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                                                     <input type="hidden" name="returns_action" value="apply_override" />
                                                     <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
@@ -309,7 +309,7 @@ foreach ($items as $item) {
                                         </td>
                                         <td>
                                             <?php if ($can_edit && !empty($request)) : ?>
-                                                <form method="post" class="inline-form" onsubmit="return confirm('确认移除该条目？');">
+                                                <form method="post" class="inline-form aegis-returns-ajax-form" onsubmit="return confirm('确认移除该条目？');">
                                                     <?php wp_nonce_field('aegis_returns_action', 'aegis_returns_nonce'); ?>
                                                     <input type="hidden" name="returns_action" value="remove_item" />
                                                     <input type="hidden" name="request_id" value="<?php echo esc_attr((int) $request->id); ?>" />
@@ -332,61 +332,91 @@ foreach ($items as $item) {
     <?php endif; ?>
 </div>
 
-<?php if ($show_create || $show_edit) : ?>
 <script>
 (function(){
-  var input = document.getElementById('aegis_returns_code_input');
-  var btn = document.getElementById('aegis_returns_add_btn');
-  var ta = document.getElementById('aegis_returns_code_values');
-  if(!input || !btn || !ta) return;
+  if (window.AegisReturnsAjaxBound) return;
+  window.AegisReturnsAjaxBound = true;
 
-  function splitTokens(raw){
-    if(!raw) return [];
-    return raw
-      .replace(/，/g, ',')
-      .replace(/；/g, ';')
-      .split(/[\s,\n;\r]+/g)
-      .map(function(s){ return (s||'').trim(); })
-      .filter(Boolean);
-  }
-
-  function getSetFromTextarea(){
-    var lines = splitTokens(ta.value || '');
-    var set = Object.create(null);
-    lines.forEach(function(x){ set[x] = true; });
-    return set;
-  }
-
-  function appendTokens(tokens){
-    if(!tokens.length) return;
-    var set = getSetFromTextarea();
-    var added = [];
-    tokens.forEach(function(t){
-      if(!set[t]){
-        set[t] = true;
-        added.push(t);
+  const canonicalizeUrl = (inputUrl) => {
+    try {
+      const url = new URL(inputUrl, window.location.href);
+      if (url.pathname.includes('/index.php/')) {
+        url.pathname = url.pathname.replace('/index.php/', '/');
       }
-    });
-    if(!added.length) return;
-    var current = (ta.value || '').trim();
-    ta.value = current ? (current + "\n" + added.join("\n")) : added.join("\n");
-  }
-
-  function onAdd(){
-    var raw = input.value || '';
-    var tokens = splitTokens(raw);
-    appendTokens(tokens);
-    input.value = '';
-    input.focus();
-  }
-
-  btn.addEventListener('click', onAdd);
-  input.addEventListener('keydown', function(e){
-    if(e.key === 'Enter'){
-      e.preventDefault();
-      onAdd();
+      return url.toString();
+    } catch (e) {
+      return inputUrl;
     }
+  };
+
+  const refreshReturnsFromHtml = (html) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const nextPanel = doc.querySelector('#aegis-returns-panel');
+    const currentPanel = document.querySelector('#aegis-returns-panel');
+    if (!nextPanel || !currentPanel) return;
+
+    currentPanel.innerHTML = nextPanel.innerHTML;
+
+    // 恢复焦点到扫码输入框
+    const focusEl =
+      currentPanel.querySelector('input[name="code_input"]') ||
+      currentPanel.querySelector('#aegis_returns_code_input') ||
+      currentPanel.querySelector('input[type="text"]');
+    if (focusEl && typeof focusEl.focus === 'function') {
+      focusEl.focus();
+      if (typeof focusEl.select === 'function') {
+        focusEl.select();
+      }
+    }
+  };
+
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (!form.classList.contains('aegis-returns-ajax-form')) return;
+
+    // 仅拦截 returns 页面内表单
+    if (!form.closest('#aegis-returns-panel')) return;
+
+    event.preventDefault();
+
+    const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+    const originalLabel = submitButton ? (submitButton.value || submitButton.textContent || '') : '';
+    if (submitButton) {
+      submitButton.disabled = true;
+      if (submitButton.tagName === 'INPUT') {
+        submitButton.value = '处理中…';
+      } else {
+        submitButton.textContent = '处理中…';
+      }
+    }
+
+    const actionUrl = canonicalizeUrl(form.getAttribute('action') || window.location.href);
+
+    fetch(actionUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: new FormData(form),
+    })
+      .then((response) => response.text().then((html) => ({ response, html })))
+      .then(({ response, html }) => {
+        if (response.url) {
+          window.history.replaceState({}, '', canonicalizeUrl(response.url));
+        }
+        refreshReturnsFromHtml(html);
+      })
+      .catch(() => {
+        if (submitButton) {
+          submitButton.disabled = false;
+          if (submitButton.tagName === 'INPUT') {
+            submitButton.value = originalLabel;
+          } else {
+            submitButton.textContent = originalLabel;
+          }
+        }
+        alert('请求失败，请重试。');
+      });
   });
 })();
 </script>
-<?php endif; ?>
