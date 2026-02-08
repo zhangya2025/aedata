@@ -331,3 +331,62 @@ foreach ($items as $item) {
         </div>
     <?php endif; ?>
 </div>
+
+<?php if ($show_create || $show_edit) : ?>
+<script>
+(function(){
+  var input = document.getElementById('aegis_returns_code_input');
+  var btn = document.getElementById('aegis_returns_add_btn');
+  var ta = document.getElementById('aegis_returns_code_values');
+  if(!input || !btn || !ta) return;
+
+  function splitTokens(raw){
+    if(!raw) return [];
+    return raw
+      .replace(/，/g, ',')
+      .replace(/；/g, ';')
+      .split(/[\s,\n;\r]+/g)
+      .map(function(s){ return (s||'').trim(); })
+      .filter(Boolean);
+  }
+
+  function getSetFromTextarea(){
+    var lines = splitTokens(ta.value || '');
+    var set = Object.create(null);
+    lines.forEach(function(x){ set[x] = true; });
+    return set;
+  }
+
+  function appendTokens(tokens){
+    if(!tokens.length) return;
+    var set = getSetFromTextarea();
+    var added = [];
+    tokens.forEach(function(t){
+      if(!set[t]){
+        set[t] = true;
+        added.push(t);
+      }
+    });
+    if(!added.length) return;
+    var current = (ta.value || '').trim();
+    ta.value = current ? (current + "\n" + added.join("\n")) : added.join("\n");
+  }
+
+  function onAdd(){
+    var raw = input.value || '';
+    var tokens = splitTokens(raw);
+    appendTokens(tokens);
+    input.value = '';
+    input.focus();
+  }
+
+  btn.addEventListener('click', onAdd);
+  input.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      onAdd();
+    }
+  });
+})();
+</script>
+<?php endif; ?>
