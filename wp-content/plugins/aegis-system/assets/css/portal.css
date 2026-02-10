@@ -710,19 +710,24 @@ body.aegis-scan-open {
     background: #f5f6f8;
 }
 
-.aegis-portal-table {
+.aegis-portal-table,
+.aegis-table {
     width: 100%;
     border-collapse: collapse;
 }
 
 .aegis-portal-table th,
-.aegis-portal-table td {
+.aegis-portal-table td,
+.aegis-table th,
+.aegis-table td {
     border-bottom: 1px solid #e5e5e5;
     padding: 10px 8px;
     text-align: left;
+    vertical-align: middle;
 }
 
-.aegis-portal-table thead {
+.aegis-portal-table thead,
+.aegis-table thead {
     background: #f8f9fb;
 }
 
@@ -1165,27 +1170,45 @@ body.aegis-scan-open {
     white-space: nowrap;
 }
 
-.aegis-portal-table .col-auth-code {
+.aegis-portal-table .col-auth-code,
+.aegis-table .col-auth-code {
     width: 140px;
     max-width: 160px;
     white-space: nowrap;
 }
 
-.aegis-portal-table .col-contact {
+.aegis-portal-table .col-contact,
+.aegis-table .col-contact {
     width: 90px;
     max-width: 110px;
     white-space: nowrap;
 }
 
-.aegis-portal-table .col-phone {
+.aegis-portal-table .col-phone,
+.aegis-table .col-phone {
     width: 130px;
     max-width: 150px;
     white-space: nowrap;
 }
 
-.aegis-portal-table .col-date {
+.aegis-portal-table .col-date,
+.aegis-table .col-date {
     width: 130px;
     white-space: nowrap;
+}
+
+.aegis-table .col-actions {
+    text-align: center;
+    white-space: nowrap;
+}
+
+.aegis-table .col-number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.aegis-table .col-center {
+    text-align: center;
 }
 
 .status-badge {
